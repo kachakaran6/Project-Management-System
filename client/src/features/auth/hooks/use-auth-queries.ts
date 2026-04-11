@@ -89,8 +89,21 @@ export function useSignupMutation() {
   });
 }
 
+export function useSendOtpMutation() {
+  return useMutation({
+    mutationFn: (email: string) => authApi.sendOtp(email),
+  });
+}
+
+export function useVerifyOtpMutation() {
+  return useMutation({
+    mutationFn: ({ email, otp }: { email: string; otp: string }) =>
+      authApi.verifyOtp(email, otp),
+  });
+}
+
 export function useUserQuery(enabled = true) {
-  const setUser = useAuthStore((state) => state.setUser);
+  const { setUser, setOrganizations } = useAuthStore();
   const query = useQuery({
     queryKey: authQueryKeys.me,
     queryFn: () => authApi.me(),
@@ -99,10 +112,15 @@ export function useUserQuery(enabled = true) {
   });
 
   useEffect(() => {
-    if (query.data?.data.user) {
-      setUser(query.data.data.user);
+    if (query.data?.data) {
+      const { user, organizations } = query.data.data;
+      if (user) setUser(user);
+      
+      if (Array.isArray(organizations) && organizations.length > 0) {
+        setOrganizations(organizations);
+      }
     }
-  }, [query.data, setUser]);
+  }, [query.data, setUser, setOrganizations]);
 
   return query;
 }

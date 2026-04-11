@@ -6,11 +6,14 @@ import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { requestIdMiddleware, requestLogger } from "./middlewares/observability.middleware.js";
 
 const app = express();
 
 // ─── Security ─────────────────────────────────────────────────────────────────
 app.use(helmet());
+app.use(requestIdMiddleware);
+app.use(requestLogger);
 
 app.use(
   cors({
@@ -24,7 +27,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-organization-id"],
   }),
 );
 
@@ -77,6 +80,8 @@ import tagRoutes from "./modules/tag/tag.routes.js";
 import searchRoutes from "./modules/search/search.routes.js";
 import inviteRoutes from "./modules/invite/invite.routes.js";
 import adminRoutes from "./modules/admin/admin.routes.js";
+import pageRoutes from "./modules/page/page.routes.js";
+import organizationRoutes from "./modules/organization/organization.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/workspaces", workspaceRoutes);
@@ -87,7 +92,10 @@ app.use("/api/v1/attachments", attachmentRoutes);
 app.use("/api/v1/tags", tagRoutes);
 app.use("/api/v1/search", searchRoutes);
 app.use("/api/v1/invites", inviteRoutes);
+app.use("/api/v1/invite", inviteRoutes);
 app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/pages", pageRoutes);
+app.use("/api/v1/organizations", organizationRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {

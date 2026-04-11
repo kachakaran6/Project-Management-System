@@ -2,6 +2,10 @@ import * as inviteService from './invite.service.js';
 import { asyncHandler } from '../../middlewares/asyncHandler.js';
 import { successResponse } from '../../utils/apiResponse.js';
 
+const resolveOrganizationId = (req: any) => req.params.orgId || req.organizationId;
+
+const resolveToken = (req: any) => req.params.token || req.body.token;
+
 /**
  * Controller: Send Invitation
  */
@@ -10,7 +14,7 @@ export const invite = asyncHandler(async (req, res) => {
   const invite = await inviteService.sendInvite({
     email,
     role,
-    organizationId: req.organizationId,
+    organizationId: resolveOrganizationId(req),
     invitedBy: req.user.id
   });
 
@@ -21,7 +25,7 @@ export const invite = asyncHandler(async (req, res) => {
  * Controller: Accept Invitation
  */
 export const accept = asyncHandler(async (req, res) => {
-  const { token } = req.body;
+  const token = resolveToken(req);
   const result = await inviteService.acceptInvite(token, req.user.id);
   return successResponse(res, result, 'Invitation accepted successfully.');
 });
@@ -30,6 +34,35 @@ export const accept = asyncHandler(async (req, res) => {
  * Controller: List Invitations
  */
 export const list = asyncHandler(async (req, res) => {
-  const invites = await inviteService.getOrganizationInvites(req.organizationId);
+  const invites = await inviteService.getOrganizationInvites(resolveOrganizationId(req));
   return successResponse(res, invites, 'Invitations retrieved successfully.');
+});
+
+/**
+ * Controller: Lookup Invitation by Token
+ */
+export const lookup = asyncHandler(async (req, res) => {
+  const invite = await inviteService.getInviteByToken(resolveToken(req));
+  return successResponse(res, invite, 'Invitation retrieved successfully.');
+});
+
+/**
+ * Controller: Revoke Invitation
+ */
+export const revoke = asyncHandler(async (req, res) => {
+  const invite = await inviteService.revokeInvite(req.params.id as string, resolveOrganizationId(req));
+  return successResponse(res, invite, 'Invitation revoked successfully.');
+});
+
+/**
+ * Controller: Resend Invitation
+ */
+export const resend = asyncHandler(async (req, res) => {
+  const invite = await inviteService.resendInvite(
+    req.params.id as string,
+    resolveOrganizationId(req),
+    req.user.id,
+  );
+
+  return successResponse(res, invite, 'Invitation resent successfully.');
 });

@@ -33,7 +33,9 @@ const fallbackPermissionsByRole = {
 export const requirePermission = (permission: string) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { role, organizationId } = req;
+      const { role, organizationId: ctxOrgId } = req as any;
+      // Prioritize organization from URL params if present (covers /organizations/:orgId/... routes)
+      const organizationId = req.params.orgId || req.params.id || ctxOrgId;
 
       if (!role) {
         return res.status(403).json({

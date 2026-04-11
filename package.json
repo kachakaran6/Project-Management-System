@@ -25,10 +25,13 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.4.0",
-    "morgan": "^1.10.0",
+    "morgan": "^1.10.1",
     "nodemailer": "^8.0.5",
     "socket.io": "^4.8.3",
-    "stripe": "^22.0.0"
+    "stripe": "^22.0.0",
+    "uuid": "^13.0.0",
+    "winston": "^3.19.0",
+    "winston-mongodb": "^7.0.1"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
@@ -38,6 +41,7 @@
     "@types/morgan": "^1.9.10",
     "@types/nodemailer": "^8.0.0",
     "@types/supertest": "^7.2.0",
+    "@types/uuid": "^10.0.0",
     "cross-env": "^10.1.0",
     "jest": "^30.3.0",
     "nodemon": "^3.1.3",

@@ -6,6 +6,10 @@ import { PERMISSIONS } from '../../constants/index.js';
 
 const router = express.Router();
 
+// Public invite lookup for the acceptance page
+router.get('/:token', inviteController.lookup);
+router.post('/accept', requireAuth, inviteController.accept);
+
 router.use(requireAuth);
 
 // Anyone in current organization with permission can invite
@@ -16,8 +20,5 @@ router.post(
   requirePermission(PERMISSIONS.INVITE_USER), 
   inviteController.invite
 );
-
-// Accepting an invite requires valid authentication but not necessarily within the same org
-router.post('/accept', inviteController.accept);
 
 export default router;

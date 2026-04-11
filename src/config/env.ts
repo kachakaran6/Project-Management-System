@@ -59,4 +59,14 @@ export const env: Env = {
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || "fallback-refresh-secret",
   jwtAccessExpiresIn: process.env.JWT_JWT_ACCESS_EXPIRY || "15m",
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRY || "7d",
+
+  // SMTP
+  smtpHost: process.env.SMTP_HOST || 'smtp.ethereal.email',
+  smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
+  smtpUser: process.env.SMTP_USER,
+  smtpPass: process.env.SMTP_PASS,
+  emailFrom: process.env.SMTP_FROM || 'noreply@pms-orbit.io',
+
+  // Frontend
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
 };

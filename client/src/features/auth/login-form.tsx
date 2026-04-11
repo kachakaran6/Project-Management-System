@@ -15,6 +15,9 @@ export function LoginForm() {
   const router = useRouter();
   const loginMutation = useLoginMutation();
 
+  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const initialEmail = searchParams?.get("email") || "";
+
   const onSubmit = async (values: LoginValues) => {
     try {
       await loginMutation.mutateAsync({
@@ -46,7 +49,11 @@ export function LoginForm() {
         <CardTitle className="text-center">Login to PMS</CardTitle>
       </CardHeader>
       <CardContent>
-        <FormWrapper schema={loginSchema} onSubmit={onSubmit}>
+        <FormWrapper 
+          schema={loginSchema} 
+          onSubmit={onSubmit}
+          defaultValues={{ email: initialEmail } as any}
+        >
           {(methods) => (
             <div className="space-y-4">
               <FormField

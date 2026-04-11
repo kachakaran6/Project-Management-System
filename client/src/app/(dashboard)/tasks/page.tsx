@@ -214,7 +214,7 @@ export default function TasksPage() {
   // projectId → name lookup
   const projectMap = useMemo(() => {
     return Object.fromEntries(
-      (projectsQuery.data?.data.items ?? []).map((p) => [p.id, p.name]),
+      (projectsQuery.data?.data.items ?? []).map((p: any) => [p.id || p._id, p.name]),
     );
   }, [projectsQuery.data?.data.items]);
 
@@ -350,8 +350,8 @@ export default function TasksPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All projects</SelectItem>
-              {(projectsQuery.data?.data.items ?? []).map((p) => (
-                <SelectItem key={p.id} value={p.id}>
+              {(projectsQuery.data?.data.items ?? []).map((p: any) => (
+                <SelectItem key={p.id || p._id} value={p.id || p._id}>
                   {p.name}
                 </SelectItem>
               ))}
@@ -378,6 +378,8 @@ export default function TasksPage() {
           )}
         </div>
       </div>
+
+
 
       {/* ── Bulk Action Bar ── */}
       {selectedIds.length > 0 && (
@@ -431,14 +433,17 @@ export default function TasksPage() {
       {/* ── Loading Skeletons ── */}
       {tasksQuery.isLoading && (
         <div className="space-y-2 rounded-xl border border-border bg-card">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="flex items-center gap-4 border-b border-border px-4 py-3 last:border-0">
+          {[...Array(10)].map((_, i) => (
+            <div key={`task-skeleton-row-${i}`} className="flex items-center gap-4 border-b border-border px-4 py-3 last:border-0">
               <Skeleton className="h-4 w-4 rounded" />
-              <Skeleton className="h-4 flex-1" />
-              <Skeleton className="h-6 w-24 rounded-full" />
-              <Skeleton className="h-6 w-20 rounded-full" />
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-4 w-20" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+              <Skeleton className="h-7 w-24 rounded-full" />
+              <Skeleton className="h-7 w-20 rounded-full" />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-8 w-8 rounded" />
             </div>
           ))}
         </div>
@@ -504,12 +509,12 @@ export default function TasksPage() {
             <tbody>
               {rows.map((task) => (
                 <TaskRow
-                  key={task.id}
+                  key={task.id || (task as any)._id}
                   task={task}
                   projectName={projectMap[task.projectId] ?? ""}
-                  selected={Boolean(selected[task.id])}
+                  selected={Boolean(selected[task.id || (task as any)._id])}
                   onSelect={(checked) =>
-                    setSelected((prev) => ({ ...prev, [task.id]: checked }))
+                    setSelected((prev) => ({ ...prev, [task.id || (task as any)._id]: checked }))
                   }
                   onDelete={() => setDeleteTarget(task)}
                   canMutate={canMutate}
@@ -594,12 +599,13 @@ export default function TasksPage() {
               onClick={async () => {
                 if (!deleteTarget) return;
                 try {
-                  await deleteTask.mutateAsync(deleteTarget.id);
+                  const targetId = deleteTarget.id || (deleteTarget as any)._id;
+                  await deleteTask.mutateAsync(targetId);
                   setDeleteTarget(null);
                   // remove from selection
                   setSelected((prev) => {
                     const next = { ...prev };
-                    delete next[deleteTarget.id];
+                    delete next[targetId];
                     return next;
                   });
                   toast.success("Task deleted");

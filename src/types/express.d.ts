@@ -10,6 +10,7 @@ declare global {
         email?: string;
         [key: string]: unknown;
       };
+      requestId?: string;
       role?: string | null;
       organizationId?: string | null;
       rawBody?: Buffer;

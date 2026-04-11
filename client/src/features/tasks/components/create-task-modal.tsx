@@ -34,8 +34,8 @@ export function CreateTaskModal({
   const createTask = useCreateTaskMutation();
   const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
 
-  const projects = (projectsQuery.data?.data.items ?? []).map((p) => ({
-    id: p.id,
+  const projects = (projectsQuery.data?.data.items ?? []).map((p: any) => ({
+    id: p.id || p._id,
     name: p.name,
   }));
 

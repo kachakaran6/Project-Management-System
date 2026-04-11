@@ -26,6 +26,7 @@ export interface RefreshResponse {
 
 export interface MeResponse {
   user: UserWithRole;
+  organizations?: OrganizationMembership[];
   organizationId?: string | null;
   role?: UserWithRole["role"];
 }

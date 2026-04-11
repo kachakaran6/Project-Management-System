@@ -10,7 +10,7 @@ export interface SidebarNavItem {
   href: string;
   icon: LucideIcon;
   group: NavGroup;
-  roles: Array<"SUPER_ADMIN" | "ADMIN" | "MANAGER" | "MEMBER">;
+  roles: Array<"SUPER_ADMIN" | "ADMIN" | "MANAGER" | "MEMBER" | "USER">;
 }
 
 interface SidebarItemProps {

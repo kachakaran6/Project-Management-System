@@ -2,12 +2,15 @@
 
 import {
   Bug,
+  FileText,
   FolderKanban,
   LayoutDashboard,
+  LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
   Shield,
+  ShieldCheck,
   SquareCheckBig,
   Users,
 } from "lucide-react";
@@ -25,35 +28,42 @@ const navItems: SidebarNavItem[] = [
     href: "/dashboard",
     icon: LayoutDashboard,
     group: "workspace",
-    roles: ["SUPER_ADMIN", "ADMIN", "MANAGER", "MEMBER"],
+    roles: ["SUPER_ADMIN", "ADMIN", "MANAGER", "MEMBER", "USER"],
   },
   {
     title: "Projects",
     href: "/projects",
     icon: FolderKanban,
     group: "workspace",
-    roles: ["SUPER_ADMIN", "ADMIN", "MANAGER", "MEMBER"],
+    roles: ["SUPER_ADMIN", "ADMIN", "MANAGER", "MEMBER", "USER"],
   },
   {
     title: "Tasks",
     href: "/tasks",
     icon: SquareCheckBig,
     group: "workspace",
-    roles: ["SUPER_ADMIN", "ADMIN", "MANAGER", "MEMBER"],
+    roles: ["SUPER_ADMIN", "ADMIN", "MANAGER", "MEMBER", "USER"],
   },
   {
-    title: "Team",
+    title: "Pages",
+    href: "/pages",
+    icon: FileText,
+    group: "workspace",
+    roles: ["SUPER_ADMIN", "ADMIN", "MANAGER", "MEMBER", "USER"],
+  },
+  {
+    title: "Organization Members",
     href: "/team",
     icon: Users,
     group: "manage",
-    roles: ["SUPER_ADMIN", "ADMIN", "MANAGER"],
+    roles: ["ADMIN"],
   },
   {
     title: "Settings",
     href: "/settings",
     icon: Settings,
     group: "manage",
-    roles: ["SUPER_ADMIN", "ADMIN"],
+    roles: ["SUPER_ADMIN", "ADMIN", "USER"],
   },
   {
     title: "Admin",
@@ -61,6 +71,20 @@ const navItems: SidebarNavItem[] = [
     icon: Shield,
     group: "manage",
     roles: ["SUPER_ADMIN", "ADMIN"],
+  },
+  {
+    title: "Users",
+    href: "/admin/users",
+    icon: Users,
+    group: "manage",
+    roles: ["SUPER_ADMIN"],
+  },
+  {
+    title: "Admin Requests",
+    href: "/admin/approvals",
+    icon: ShieldCheck,
+    group: "manage",
+    roles: ["SUPER_ADMIN"],
   },
   {
     title: "Dev Logs",
@@ -80,7 +104,12 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
   const { activeOrg, user } = useAuth();
   const { sidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
 
-  const role = (activeOrg?.role ?? user?.role ?? "MEMBER") as SidebarNavItem["roles"][number];
+  const resolvedRole =
+    user?.role === "SUPER_ADMIN"
+      ? "SUPER_ADMIN"
+      : activeOrg?.role ?? user?.role ?? "MEMBER";
+
+  const role = resolvedRole as SidebarNavItem["roles"][number];
   const visibleItems = navItems.filter((item) => item.roles.includes(role));
   const workspaceItems = visibleItems.filter(
     (item) => item.group === "workspace",
@@ -146,7 +175,21 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
         />
       </div>
 
-      <div className="mt-auto rounded-lg border border-sidebar-border bg-sidebar-accent p-3">
+      <div className="mt-auto border-t border-sidebar-border pt-4">
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start gap-3 px-3 py-2 text-sidebar-foreground/80 hover:bg-red-500/10 hover:text-red-500 transition-colors",
+            sidebarCollapsed && !mobile && "justify-center"
+          )}
+          onClick={() => (window.location.href = "/logout")}
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!(sidebarCollapsed && !mobile) && <span className="font-medium">Sign Out</span>}
+        </Button>
+      </div>
+
+      <div className="mt-4 rounded-lg border border-sidebar-border bg-sidebar-accent p-3">
         <p
           className={cn(
             "text-xs text-sidebar-foreground/85",

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import type { ErrorRequestHandler } from 'express';
 import { env } from '../config/env.js';
-import { logger } from '../utils/logger.js';
+import { logError, logWarn } from '../services/logService.js';
 
 /**
  * Normalizes different error types into a consistent shape.
@@ -52,10 +52,23 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   const { statusCode, message, errors } = normalizeError(err);
   const error = err as AppErrorLike;
 
+  const logData = {
+    action: 'API_ERROR',
+    status: 'FAILURE' as const,
+    userId: (req as any).user?.id,
+    requestId: req.requestId,
+    endpoint: req.originalUrl,
+    method: req.method,
+    ip: req.ip,
+    userAgent: req.headers['user-agent'],
+    metadata: { errors, originalMessage: error.message },
+    stack: error.stack
+  };
+
   if (statusCode >= 500) {
-    logger.error(`[${req.method}] ${req.originalUrl} → ${statusCode}: ${error.stack || error.message}`);
+    logError(`[${req.method}] ${req.originalUrl} → ${statusCode}: ${error.stack || error.message}`, logData);
   } else {
-    logger.warn(`[${req.method}] ${req.originalUrl} → ${statusCode}: ${message}`);
+    logWarn(`[${req.method}] ${req.originalUrl} → ${statusCode}: ${message}`, logData);
   }
 
   res.status(statusCode).json({

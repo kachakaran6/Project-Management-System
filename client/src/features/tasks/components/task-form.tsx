@@ -87,7 +87,7 @@ export function TaskForm({
           <Select
             value={form.watch("projectId")}
             onValueChange={(value) =>
-              form.setValue("projectId", value, { shouldValidate: true })
+              form.setValue("projectId", value || "", { shouldValidate: true })
             }
           >
             <SelectTrigger>

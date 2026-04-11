@@ -29,13 +29,62 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       });
     }
 
-    // Attach user to request
+    // Fetch full user from DB to ensure role/status is current
+    const user = await User.findById(decoded.userId).select('role status isActive isApproved');
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User no longer exists.",
+      });
+    }
+
+    // 3. Resolve Organization & Role Context
+    const tenantHeader = req.headers['x-organization-id'];
+    const headerOrgId = Array.isArray(tenantHeader) ? tenantHeader[0] : tenantHeader;
+    const paramOrgId = req.params.orgId || req.params.id;
+    
+    let targetOrgId = (headerOrgId || paramOrgId || "").toString().trim();
+
+    // Fallback if no context
+    if (!targetOrgId) {
+      const membership = await OrganizationMember.findOne({
+        userId: user._id,
+        isActive: true,
+      }).sort({ joinedAt: 1 });
+      targetOrgId = membership?.organizationId?.toString() || "";
+    }
+
+    req.organizationId = targetOrgId || null;
+
+    // Resolve Role Context (Organization-specific Role > Platform Role)
+    let contextRole = user.role; 
+
+    if (targetOrgId) {
+      const orgMembership = await OrganizationMember.findOne({
+        userId: user._id,
+        organizationId: targetOrgId,
+        isActive: true
+      });
+      
+      if (orgMembership) {
+        contextRole = orgMembership.role;
+      } else if (user.role !== 'SUPER_ADMIN') {
+        contextRole = 'MEMBER'; 
+      }
+    }
+
+    if (user.role === 'SUPER_ADMIN') {
+      contextRole = 'SUPER_ADMIN';
+    }
+
     req.user = {
-      id: decoded.userId as string,
-      role: decoded.role,
+      id: user._id.toString(),
+      role: contextRole,
+      platformRole: user.role
     };
 
-    req.role = decoded.role;
+    req.role = contextRole;
 
     next();
   } catch (error: unknown) {

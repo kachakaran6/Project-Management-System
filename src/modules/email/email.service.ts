@@ -8,8 +8,9 @@ import { logger } from '../../utils/logger.js';
  * This setup defaults to development-friendly Ethereal/SMTP.
  */
 const transporter = nodemailer.createTransport({
-  host: env.smtpHost || 'smtp.ethereal.email',
-  port: env.smtpPort || 587,
+  host: env.smtpHost,
+  port: env.smtpPort,
+  secure: env.smtpPort === 465, // true for 465, false for 587 or other ports
   auth: {
     user: env.smtpUser,
     pass: env.smtpPass
@@ -25,7 +26,7 @@ const transporter = nodemailer.createTransport({
 export const sendEmail = async ({ to, subject, html }: { to: string; subject: string; html: string }) => {
   try {
     const info = await transporter.sendMail({
-      from: `"Antigravity PMS" <${env.emailFrom || 'noreply@antigravity.io'}>`,
+      from: `"Karan's PMS" <${env.emailFrom || 'noreply@antigravity.io'}>`,
       to,
       subject,
       html

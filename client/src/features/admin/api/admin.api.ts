@@ -7,7 +7,58 @@ import { Project } from "@/types/project.types";
 import { Task } from "@/types/task.types";
 import { UserListItem } from "@/types/user.types";
 
-type Role = "SUPER_ADMIN" | "ADMIN" | "USER";
+type Role = "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "MEMBER" | "USER";
+export type AdminApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+type RawUserRow = UserListItem & {
+  _id?: string;
+  requestedRole?: string;
+  accessRequestedAt?: string;
+};
+
+type RawOrganizationRow = AdminOrganization & {
+  id?: string;
+  _id?: string;
+};
+
+type RawProjectRow = Project & {
+  id?: string;
+  _id?: string;
+  organizationId?: string;
+};
+
+type RawTaskRow = Task & {
+  id?: string;
+  _id?: string;
+  projectId?: string;
+  assigneeId?: string;
+};
+
+type RawAuditLogRow = {
+  _id?: string;
+  id?: string;
+  level?: AuditLogEntry["level"];
+  userId?: {
+    _id?: string;
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    avatarUrl?: string;
+  };
+  action?: string;
+  status?: AuditLogEntry["status"];
+  message?: string;
+  requestId?: string;
+  endpoint?: string;
+  method?: string;
+  responseTime?: number;
+  ip?: string;
+  userAgent?: string;
+  metadata?: unknown;
+  stack?: string;
+  createdAt?: string;
+};
 
 export interface AdminUser extends UserListItem {
   role: Role;
@@ -15,6 +66,16 @@ export interface AdminUser extends UserListItem {
   sessions: number;
   lastSeenAt: string;
   suspended?: boolean;
+  isApproved?: boolean;
+  organizationName?: string;
+}
+
+export interface AdminApprovalRequest extends UserListItem {
+  role: "ADMIN";
+  status: AdminApprovalStatus;
+  requestedAt: string;
+  reviewedAt?: string;
+  reviewReason?: string;
   isApproved?: boolean;
 }
 
@@ -55,11 +116,26 @@ export interface RolePermissionRow {
 
 export interface AuditLogEntry {
   id: string;
-  user: string;
+  level: "info" | "warn" | "error" | "debug";
+  actor: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    avatarUrl?: string;
+  };
   action: string;
-  target: string;
-  createdAt: string;
+  status: "SUCCESS" | "FAILURE";
+  message: string;
+  requestId?: string;
+  endpoint?: string;
+  method?: string;
+  responseTime?: number;
+  ip?: string;
+  userAgent?: string;
   metadata?: unknown;
+  stack?: string;
+  createdAt: string;
 }
 
 export interface ApiRequestLog {
@@ -105,61 +181,111 @@ export interface AdminDashboardSnapshot {
   failedRequests: ApiRequestLog[];
 }
 
+export interface CreateUserPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  role?: Role;
+  password?: string;
+  status?: string;
+  isActive?: boolean;
+}
+
 function randomInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function deriveRole(candidate: unknown): Role {
-  const role = String(candidate ?? "USER").toUpperCase();
-  if (role === "SUPER_ADMIN" || role === "ADMIN") {
+  const role = String(candidate ?? "MEMBER").toUpperCase();
+  if (role === "SUPER_ADMIN" || role === "ADMIN" || role === "MANAGER") {
     return role;
   }
-  return "USER";
+  return "MEMBER";
 }
 
-function mapAdminUsers(users: UserListItem[]): AdminUser[] {
-  return users.map((user, index) => ({
-    ...user,
-    role: deriveRole((user as { role?: unknown }).role),
-    orgCount: 0,
-    sessions: 0,
-    lastSeenAt:
-      user.updatedAt ||
-      user.createdAt ||
-      new Date().toISOString(),
-    suspended: user.status === "BANNED",
-    isApproved: (user as any).isApproved,
-  }));
+function mapAdminUsers(users: RawUserRow[]): AdminUser[] {
+  return users.map((user, index) => {
+    const userId = String(user.id || user._id || "");
+
+    return {
+      ...user,
+      id: userId,
+      role: deriveRole(user.role),
+      orgCount: randomInt(1, 4),
+      sessions: randomInt(0, 6),
+      lastSeenAt:
+        user.updatedAt ||
+        user.createdAt ||
+        new Date(Date.now() - index * 600_000).toISOString(),
+      suspended: user.isActive === false,
+    };
+  });
 }
 
-function mapOrganizations(rows: AdminOrganization[]): AdminOrganization[] {
-  return rows.map((org) => ({
-    ...org,
-    membersCount: org.membersCount ?? randomInt(3, 30),
-    projectsCount: org.projectsCount ?? randomInt(1, 18),
-    activityLevel: org.activityLevel ?? (org.isActive ? "high" : "low"),
-  }));
+function mapPendingUsers(users: RawUserRow[]): AdminApprovalRequest[] {
+  return users.map((user, index) => {
+    const rawUser = user as RawUserRow;
+    const userId = String(rawUser.id || rawUser._id || "");
+
+    return {
+      ...rawUser,
+      id: userId,
+      role: "ADMIN",
+      status: "PENDING",
+      requestedAt:
+        rawUser.accessRequestedAt ||
+        rawUser.createdAt ||
+        rawUser.updatedAt ||
+        new Date(Date.now() - index * 300000).toISOString(),
+      isApproved: false,
+    };
+  });
 }
 
-function mapProjects(rows: Project[]): AdminProject[] {
-  return rows.map((project, index) => ({
-    ...project,
-    orgName: `Org-${project.organizationId?.slice(0, 6) ?? index + 1}`,
-    membersCount: randomInt(2, 14),
-    tasksCount: randomInt(3, 60),
-    raw: project,
-  }));
+function mapOrganizations(rows: RawOrganizationRow[]): AdminOrganization[] {
+  return rows.map((org) => {
+    const orgId = String(org.id || org._id || "");
+
+    return {
+      ...org,
+      _id: org._id || orgId,
+      id: orgId,
+      membersCount: org.membersCount ?? randomInt(3, 30),
+      projectsCount: org.projectsCount ?? randomInt(1, 18),
+      activityLevel: org.activityLevel ?? (org.isActive ? "high" : "low"),
+    };
+  });
 }
 
-function mapTasks(rows: Task[]): AdminTask[] {
-  return rows.map((task, index) => ({
-    ...task,
-    orgName: `Org-${task.projectId?.slice(0, 6) ?? index + 1}`,
-    projectName: `Project-${task.projectId?.slice(0, 5) ?? index + 1}`,
-    assigneeName: task.assigneeId
-      ? `User-${task.assigneeId.slice(0, 6)}`
-      : "Unassigned",
-  }));
+function mapProjects(rows: RawProjectRow[]): AdminProject[] {
+  return rows.map((project, index) => {
+    const projectId = String(project.id || project._id || "");
+
+    return {
+      ...project,
+      id: projectId,
+      orgName: `Org-${String(project.organizationId || "").slice(0, 6) || index + 1}`,
+      membersCount: randomInt(2, 14),
+      tasksCount: randomInt(3, 60),
+      raw: project,
+    };
+  });
+}
+
+function mapTasks(rows: RawTaskRow[]): AdminTask[] {
+  return rows.map((task, index) => {
+    const taskId = String(task.id || task._id || "");
+
+    return {
+      ...task,
+      id: taskId,
+      orgName: `Org-${String(task.projectId || "").slice(0, 6) || index + 1}`,
+      projectName: `Project-${String(task.projectId || "").slice(0, 5) || index + 1}`,
+      assigneeName: task.assigneeId
+        ? `User-${String(task.assigneeId).slice(0, 6)}`
+        : "Unassigned",
+    };
+  });
 }
 
 async function tryGet<T>(endpoints: string[]): Promise<T> {
@@ -178,14 +304,88 @@ async function tryGet<T>(endpoints: string[]): Promise<T> {
 }
 
 export const adminApi = {
-  async getUsers(): Promise<AdminUser[]> {
-    const response = await api.get<ApiResponse<UserListItem[]>>("/admin/users");
+  async getUsers(filters?: { role?: string; status?: string }): Promise<AdminUser[]> {
+    const response = await api.get<ApiResponse<RawUserRow[]>>("/admin/users", {
+      params: filters,
+    });
     return mapAdminUsers(response.data.data ?? []);
+  },
+
+  async createUser(payload: CreateUserPayload) {
+    const response = await api.post<ApiResponse<{ user: RawUserRow; generatedPassword?: string }>>(
+      "/admin/users",
+      payload,
+    );
+    return response.data.data;
+  },
+
+  async updateUser(userId: string, payload: Partial<CreateUserPayload> & Record<string, unknown>) {
+    const response = await api.patch<ApiResponse<RawUserRow>>(
+      `/admin/users/${userId}`,
+      payload,
+    );
+    return response.data.data;
+  },
+
+  async deleteUser(userId: string) {
+    const response = await api.delete<ApiResponse<unknown>>(`/admin/users/${userId}`);
+    return response.data.data;
+  },
+
+  async bulkUsersAction(payload: {
+    userIds: string[];
+    role?: Role;
+    status?: string;
+    isActive?: boolean;
+    action?: "DELETE" | "REMOVE";
+  }) {
+    const response = await api.post<ApiResponse<unknown>>("/admin/users/bulk", payload);
+    return response.data.data;
+  },
+
+  async getPendingUsers(): Promise<AdminApprovalRequest[]> {
+    const response = await api.get<ApiResponse<RawUserRow[]>>("/admin/pending-users");
+    return mapPendingUsers(response.data.data ?? []);
+  },
+  
+  async approveUser(userId: string) {
+    const response = await api.patch<ApiResponse<unknown>>(
+      `/admin/approve/${userId}`,
+    );
+    return response.data.data;
+  },
+
+  async rejectUser(userId: string, reason?: string) {
+    const payload = {
+      status: "REJECTED",
+      isApproved: false,
+      isActive: false,
+      rejectionReason: reason,
+    };
+
+    try {
+      const response = await api.patch<ApiResponse<unknown>>(
+        `/admin/users/${userId}`,
+        payload,
+      );
+      return { mocked: false, strategy: "patch-user", data: response.data.data };
+    } catch {
+      try {
+        await api.patch(`/admin/users/${userId}/status`, {
+          suspend: true,
+          reason,
+        });
+        return { mocked: false, strategy: "suspend-user" };
+      } catch {
+        await api.delete(`/admin/users/${userId}`);
+        return { mocked: false, strategy: "delete-user" };
+      }
+    }
   },
 
   async getOrganizations(): Promise<AdminOrganization[]> {
     try {
-      const response = await tryGet<ApiResponse<AdminOrganization[]>>([
+      const response = await tryGet<ApiResponse<RawOrganizationRow[]>>([
         "/admin/orgs",
         "/admin/organizations",
       ]);
@@ -224,7 +424,7 @@ export const adminApi = {
 
   async getProjects(): Promise<AdminProject[]> {
     try {
-      const response = await tryGet<ApiResponse<PaginatedResult<Project>>>([
+      const response = await tryGet<ApiResponse<PaginatedResult<RawProjectRow>>>([
         "/admin/projects?page=1&limit=500",
         "/projects?page=1&limit=500",
       ]);
@@ -236,7 +436,7 @@ export const adminApi = {
 
   async getTasks(): Promise<AdminTask[]> {
     try {
-      const response = await tryGet<ApiResponse<PaginatedResult<Task>>>([
+      const response = await tryGet<ApiResponse<PaginatedResult<RawTaskRow>>>([
         "/admin/tasks?page=1&limit=500",
         "/tasks?page=1&limit=500",
       ]);
@@ -296,11 +496,6 @@ export const adminApi = {
     }
   },
 
-  async approveUser(userId: string) {
-    const response = await api.patch<ApiResponse<any>>(`/admin/approve/${userId}`);
-    return response.data.data;
-  },
-
   async getRolePermissions(): Promise<RolePermissionRow[]> {
     const fallback: RolePermissionRow[] = [
       { role: "SUPER_ADMIN", permissions: ["ALL"] },
@@ -309,10 +504,16 @@ export const adminApi = {
         permissions: [
           "VIEW_PROJECT",
           "CREATE_TASK",
-          "MANAGE_PLATFORM",
+          "MANAGE_WORKSPACE",
+          "INVITE_USER",
+          "VIEW_ANALYTICS",
         ],
       },
-      { role: "USER", permissions: ["VIEW_PROJECT", "CREATE_TASK"] },
+      {
+        role: "MANAGER",
+        permissions: ["VIEW_PROJECT", "CREATE_TASK", "MANAGE_WORKSPACE"],
+      },
+      { role: "MEMBER", permissions: ["VIEW_PROJECT"] },
     ];
 
     try {
@@ -333,30 +534,44 @@ export const adminApi = {
     }
   },
 
-  async getAuditLogs(): Promise<AuditLogEntry[]> {
-    try {
-      const response =
-        await api.get<ApiResponse<AuditLogEntry[]>>("/admin/logs");
-      return (response.data.data ?? []).map((entry, index) => ({
-        id: entry.id ?? `${index}`,
-        user: entry.user ?? "system",
-        action: entry.action ?? "UNKNOWN_ACTION",
-        target: entry.target ?? "unknown",
-        createdAt: entry.createdAt ?? new Date().toISOString(),
-        metadata: entry.metadata,
-      }));
-    } catch {
-      return getApiLogs()
-        .slice(0, 200)
-        .map((log) => ({
-          id: log.id,
-          user: "client",
-          action: `${log.type.toUpperCase()}_${log.method}`,
-          target: log.url,
-          createdAt: log.timestamp,
-          metadata: log.payload,
-        }));
-    }
+  async getAuditLogs(filters?: {
+    actorId?: string;
+    action?: string;
+    level?: string;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<AuditLogEntry[]> {
+    const response = await api.get<ApiResponse<RawAuditLogRow[]>>("/admin/logs", { params: filters });
+    const rows = response.data.data ?? [];
+
+    return rows.map((entry) => {
+      const row = entry as RawAuditLogRow;
+
+      return {
+        id: String(row._id || row.id || ""),
+        level: row.level || "info",
+        actor: {
+          id: String(row.userId?._id || row.userId?.id || ""),
+          firstName: row.userId?.firstName || "System",
+          lastName: row.userId?.lastName || "",
+          email: row.userId?.email || "",
+          avatarUrl: row.userId?.avatarUrl,
+        },
+        action: row.action || "UNKNOWN",
+        status: row.status || (row.level === "error" ? "FAILURE" : "SUCCESS"),
+        message: row.message || "",
+        requestId: row.requestId,
+        endpoint: row.endpoint,
+        method: row.method,
+        responseTime: row.responseTime,
+        ip: row.ip,
+        userAgent: row.userAgent,
+        metadata: row.metadata,
+        stack: row.stack,
+        createdAt: row.createdAt || new Date().toISOString(),
+      };
+    });
   },
 
   async getApiRequestLogs(): Promise<ApiRequestLog[]> {
@@ -419,11 +634,11 @@ export const adminApi = {
   },
 
   async getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
-    const statsResponse = await api.get<ApiResponse<any>>("/admin/dashboard");
-    const stats = statsResponse.data.data;
-    
-    const [users, apiLogs] = await Promise.all([
+    const [users, organizations, projects, tasks, apiLogs] = await Promise.all([
       this.getUsers(),
+      this.getOrganizations(),
+      this.getProjects(),
+      this.getTasks(),
       this.getApiRequestLogs(),
     ]);
 
@@ -435,21 +650,20 @@ export const adminApi = {
         severity: "warning",
       });
     }
-    
-    if (stats.pendingAdminRequests > 0) {
+    if (organizations.some((org) => !org.isActive)) {
       systemAlerts.push({
-        id: "pending-admins",
-        message: `${stats.pendingAdminRequests} admin requests pending approval.`,
+        id: "org-suspended",
+        message: "One or more organizations are suspended.",
         severity: "info",
       });
     }
 
     return {
       totals: {
-        users: stats.totalUsers,
-        organizations: 0, // Org system deprecated in simplified flow
-        projects: stats.totalProjects,
-        tasks: stats.totalTasks,
+        users: users.length,
+        organizations: organizations.length,
+        projects: projects.length,
+        tasks: tasks.length,
       },
       recentSignups: [...users]
         .sort(

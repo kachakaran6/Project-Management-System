@@ -86,8 +86,8 @@ export default function AdminDashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(snapshot?.recentSignups ?? []).map((user) => (
-                  <TableRow key={user.id}>
+                {(snapshot?.recentSignups ?? []).map((user: any) => (
+                  <TableRow key={user.id || user._id}>
                     <TableCell>{`${user.firstName} ${user.lastName}`.trim()}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
@@ -114,8 +114,8 @@ export default function AdminDashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(snapshot?.activeSessions ?? []).map((user) => (
-                  <TableRow key={user.id}>
+                {(snapshot?.activeSessions ?? []).map((user: any) => (
+                  <TableRow key={user.id || user._id}>
                     <TableCell>{`${user.firstName} ${user.lastName}`.trim()}</TableCell>
                     <TableCell>{user.sessions}</TableCell>
                     <TableCell>{new Date(user.lastSeenAt).toLocaleString()}</TableCell>

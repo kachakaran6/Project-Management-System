@@ -9,7 +9,9 @@ export interface TeamMember {
   lastName: string;
   email: string;
   role: TeamRole;
-  status: "ACTIVE" | "INVITED" | "SUSPENDED";
+  status: "ACTIVE" | "DISABLED" | "PENDING";
+  avatarUrl?: string;
+  lastActive?: string;
 }
 
 export interface InvitePayload {
@@ -27,31 +29,19 @@ function deriveRole(candidate: unknown): TeamRole {
 
 export const teamApi = {
   async getMembers(): Promise<TeamMember[]> {
-    try {
-      const response =
-        await api.get<ApiResponse<Array<Record<string, unknown>>>>(
-          "/admin/users",
-        );
-      return (response.data.data ?? []).map((row) => ({
-        id: String(row.id ?? row._id ?? ""),
-        firstName: String(row.firstName ?? ""),
-        lastName: String(row.lastName ?? ""),
-        email: String(row.email ?? ""),
-        role: deriveRole(row.role),
-        status: row.isActive === false ? "SUSPENDED" : "ACTIVE",
-      }));
-    } catch {
-      const inviteResponse =
-        await api.get<ApiResponse<Array<Record<string, unknown>>>>("/invites");
-      return (inviteResponse.data.data ?? []).map((row, index) => ({
-        id: String(row.id ?? row._id ?? `invite-${index}`),
-        firstName: "Pending",
-        lastName: "Invite",
-        email: String(row.email ?? "unknown@pending.local"),
-        role: deriveRole(row.role),
-        status: "INVITED",
-      }));
-    }
+    const response = await api.get<ApiResponse<{ members: any[]; invites: any[] }>>("/organizations/members");
+    const data = response.data.data;
+    
+    return (data.members ?? []).map((row) => ({
+      id: String(row.id || row.userId || row._id || ""),
+      firstName: String(row.firstName ?? ""),
+      lastName: String(row.lastName ?? ""),
+      email: String(row.email ?? ""),
+      role: deriveRole(row.role),
+      status: row.status as any,
+      avatarUrl: row.avatarUrl as string | undefined,
+      lastActive: row.lastActive as string | undefined, // Mapping joinedAt or lastActive if available
+    }));
   },
 
   async inviteMember(payload: InvitePayload): Promise<void> {
@@ -61,21 +51,33 @@ export const teamApi = {
   async updateMemberRole(
     memberId: string,
     role: TeamRole,
-  ): Promise<{ mocked: boolean }> {
-    try {
-      await api.patch(`/organization/members/${memberId}`, { role });
-      return { mocked: false };
-    } catch {
-      return { mocked: true };
-    }
+  ): Promise<ApiResponse<any>> {
+    const response = await api.patch<ApiResponse<any>>(`/admin/users/${memberId}`, { role });
+    return response.data;
   },
 
-  async removeMember(memberId: string): Promise<{ mocked: boolean }> {
-    try {
-      await api.delete(`/organization/members/${memberId}`);
-      return { mocked: false };
-    } catch {
-      return { mocked: true };
-    }
+  async updateMemberStatus(
+    memberId: string,
+    status: "ACTIVE" | "DISABLED",
+  ): Promise<ApiResponse<any>> {
+    const response = await api.patch<ApiResponse<any>>(`/admin/users/${memberId}`, {
+      isActive: status === "ACTIVE",
+    });
+    return response.data;
+  },
+
+  async removeMember(memberId: string): Promise<ApiResponse<any>> {
+    const response = await api.delete<ApiResponse<any>>(`/admin/users/${memberId}`);
+    return response.data;
+  },
+
+  async bulkUpdate(payload: {
+    userIds: string[];
+    role?: TeamRole;
+    status?: "ACTIVE" | "DISABLED";
+    action?: "DELETE" | "REMOVE";
+  }): Promise<ApiResponse<any>> {
+    const response = await api.post<ApiResponse<any>>("/admin/users/bulk", payload);
+    return response.data;
   },
 };

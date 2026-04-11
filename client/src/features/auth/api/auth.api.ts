@@ -59,4 +59,74 @@ export const authApi = {
     const response = await api.get<ApiResponse<null>>(`/auth/verify-email?token=${token}`);
     return response.data;
   },
+
+  updateMe: async (payload: {
+    firstName?: string;
+    lastName?: string;
+    bio?: string;
+    avatarUrl?: string;
+  }): Promise<ApiResponse<{ user: import("@/types/user.types").UserWithRole }>> => {
+    const response = await api.patch<ApiResponse<{ user: import("@/types/user.types").UserWithRole }>>(
+      "/auth/me",
+      payload,
+    );
+    return response.data;
+  },
+
+  sendOtp: async (email: string): Promise<ApiResponse<null>> => {
+    const response = await api.post<ApiResponse<null>>("/auth/send-otp", { email });
+    return response.data;
+  },
+
+  verifyOtp: async (email: string, otp: string): Promise<ApiResponse<{ user: any }>> => {
+    const response = await api.post<ApiResponse<{ user: any }>>("/auth/verify-otp", { email, otp });
+    return response.data;
+  },
+
+  requestOrganizationAccess: async (payload?: {
+    requestedRole?: "ADMIN";
+    note?: string;
+  }): Promise<
+    ApiResponse<{
+      status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+      requestedRole?: string | null;
+      requestedAt?: string | null;
+      reviewedAt?: string | null;
+      note?: string | null;
+    }>
+  > => {
+    const response = await api.post<
+      ApiResponse<{
+        status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+        requestedRole?: string | null;
+        requestedAt?: string | null;
+        reviewedAt?: string | null;
+        note?: string | null;
+      }>
+    >("/auth/request-organization-access", payload ?? { requestedRole: "ADMIN" });
+    return response.data;
+  },
+
+  getOrganizationAccessStatus: async (): Promise<
+    ApiResponse<{
+      status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+      requestedRole?: string | null;
+      requestedAt?: string | null;
+      reviewedAt?: string | null;
+      note?: string | null;
+      currentRole?: string | null;
+    }>
+  > => {
+    const response = await api.get<
+      ApiResponse<{
+        status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+        requestedRole?: string | null;
+        requestedAt?: string | null;
+        reviewedAt?: string | null;
+        note?: string | null;
+        currentRole?: string | null;
+      }>
+    >("/auth/organization-access-status");
+    return response.data;
+  },
 };

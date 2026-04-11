@@ -1,43 +1,54 @@
-import Activity from '../models/Activity.js';
+import winston from 'winston';
+// @ts-ignore
+import 'winston-mongodb'; // Note: peer dependency mongoose is required
+import { env } from '../config/env.js';
 
-/**
- * Standard System Logger
- */
-export const logger = {
-  info: (message: string | undefined) => console.log(`[INFO] ${message}`),
-  warn: (message: string | undefined) => console.warn(`[WARN] ${message}`),
-  error: (message: string | undefined) => console.error(`[ERROR] ${message}`),
-};
+const { combine, timestamp, json, colorize, printf, errors } = winston.format;
 
-/**
- * Log a user action to the activity system
- */
-export const logActivity = async ({
-  userId,
-  action,
-  entityId,
-  entityType,
-  metadata = {}
-}: {
-  userId: unknown;
-  action: unknown;
-  entityId: unknown;
-  entityType: unknown;
-  metadata?: Record<string, unknown>;
-}) => {
-  try {
-    const activity = await Activity.create({
-      actorId: userId,
-      action,
-      entityId,
-      entityType,
-      metadata
-    });
-    return activity;
-  } catch (error: unknown) {
-    const activityError = error as Error;
-    logger.error(`Failed to log activity: ${activityError.message}`);
-    // Don't throw error to avoid breaking main production flow
-    return null;
-  }
-};
+// ─── Custom Console Format ───────────────────────────────────────────────────
+const consoleFormat = printf(({ level, message, timestamp, requestId, userId, action, status, ...meta }) => {
+  const reqStr = requestId ? ` [${requestId}]` : '';
+  const userStr = userId ? ` [User:${userId}]` : '';
+  const actionStr = action ? ` [${action}:${status || 'INFO'}]` : '';
+  
+  return `${timestamp} ${level}:${reqStr}${userStr}${actionStr} ${message} ${
+    Object.keys(meta).length ? JSON.stringify(meta) : ''
+  }`;
+});
+
+// ─── Logger Configuration ──────────────────────────────────────────────────────
+const logger = winston.createLogger({
+  level: env.isDevelopment ? 'debug' : 'info',
+  format: combine(
+    timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    errors({ stack: true }),
+    json()
+  ),
+  defaultMeta: { service: 'pms-orbit-api' },
+  transports: [
+    // 1. Console Transport (Colored for Dev)
+    new winston.transports.Console({
+      format: combine(
+        colorize(),
+        consoleFormat
+      )
+    }),
+    
+    // 2. File Transport (Combined Logs)
+    new winston.transports.File({ 
+      filename: 'logs/combined.log',
+      maxsize: 5242880, // 5MB
+      maxFiles: 5,
+    }),
+    
+    // 3. File Transport (Errors Only)
+    new winston.transports.File({ 
+      filename: 'logs/error.log', 
+      level: 'error',
+      maxsize: 5242880, // 5MB
+      maxFiles: 5,
+    }),
+  ],
+});
+
+export { logger };

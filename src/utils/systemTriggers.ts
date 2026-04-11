@@ -1,67 +1,71 @@
-import Activity from '../models/Activity.js';
+import { logInfo } from '../services/logService.js';
 import Notification from '../models/Notification.js';
 import OrganizationMember from '../models/OrganizationMember.js';
 
+interface ActivityParams {
+  userId: any;
+  organizationId?: any;
+  workspaceId?: any;
+  projectId?: any;
+  resourceId?: any; // ID of the Task, Project, etc.
+  resourceType?: string; // 'Task', 'Project', 'Workspace'
+  action: string; // 'CREATE_PROJECT', 'DELETE_TASK', etc.
+  metadata?: Record<string, any>;
+  message?: string;
+  status?: 'SUCCESS' | 'FAILURE';
+}
+
 /**
- * Log a system activity
- * @param {object} params
+ * Log a system activity (New Observability Wrapper)
  */
-export const logActivity = async ({
-  userId,
-  organizationId = null,
-  workspaceId = null,
-  projectId = null,
-  resourceId, // ID of the Task, Project, etc.
-  resourceType, // 'Task', 'Project', 'Workspace'
-  action, // 'CREATE_PROJECT', 'DELETE_TASK', etc.
-  metadata = {}
-}: {
-  userId: unknown;
-  organizationId?: unknown;
-  workspaceId?: unknown;
-  projectId?: unknown;
-  resourceId: unknown;
-  resourceType: unknown;
-  action: unknown;
-  metadata?: Record<string, unknown>;
-}) => {
-  try {
-    await Activity.create({
-      actorId: userId,
-      organizationId,
-      workspaceId,
-      projectId,
-      entityId: resourceId,
-      entityType: resourceType,
-      action,
-      metadata
-    });
-  } catch (error: unknown) {
-    const activityError = error as Error;
-    console.error('Activity logging failed:', activityError.message);
-  }
+export const logActivity = async (params: ActivityParams) => {
+  const { 
+    userId, 
+    action, 
+    resourceType, 
+    resourceId, 
+    message,
+    status = 'SUCCESS',
+    metadata = {} 
+  } = params;
+
+  // Build human readable message if not provided
+  const logMessage = message || `${action.replace(/_/g, ' ')} ${resourceType ? `on ${resourceType}` : ''}`;
+
+  await logInfo(logMessage, {
+    userId,
+    action,
+    status,
+    metadata: {
+      ...metadata,
+      resourceType,
+      resourceId,
+      organizationId: params.organizationId,
+      workspaceId: params.workspaceId,
+      projectId: params.projectId
+    }
+  });
 };
 
 /**
  * Trigger notification to specific users
- * @param {object} params
  */
 export const triggerNotification = async ({
-  userIds, // Array of user IDs to notify
+  userIds,
   organizationId,
-  actorId, // User who triggered notification
-  type, // 'TASK_ASSIGNED', 'TASK_UPDATED', etc.
+  actorId,
+  type,
   message,
   resourceId,
   resourceType
 }: {
-  userIds: unknown[];
-  organizationId: unknown;
-  actorId: unknown;
-  type: unknown;
-  message: unknown;
-  resourceId: unknown;
-  resourceType: unknown;
+  userIds: any[];
+  organizationId: any;
+  actorId: any;
+  type: any;
+  message: any;
+  resourceId: any;
+  resourceType: any;
 }) => {
   try {
     const notifications = userIds.map((userId) => ({
@@ -75,17 +79,16 @@ export const triggerNotification = async ({
     }));
 
     await Notification.insertMany(notifications);
-  } catch (error: unknown) {
-    const notificationError = error as Error;
-    console.error('Notification trigger failed:', notificationError.message);
+  } catch (error) {
+    console.error('Notification trigger failed:', error);
   }
 };
 
 /**
- * Notify all organization admins/members (optional ready)
+ * Notify all organization admins/members
  */
-export const notifyOrgMembers = async (organizationId: unknown, params: Record<string, unknown>) => {
+export const notifyOrgMembers = async (organizationId: any, params: any) => {
   const members = await OrganizationMember.find({ organizationId, isActive: true }).select('userId');
   const userIds = members.map((m: any) => m.userId);
-  await triggerNotification({ ...(params as any), userIds });
+  await triggerNotification({ ...params, userIds, organizationId });
 };

@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { ROLES } from '../constants/index.js';
 
 const organizationMemberSchema = new mongoose.Schema({
   organizationId: { 
@@ -16,8 +15,8 @@ const organizationMemberSchema = new mongoose.Schema({
   },
   role: { 
     type: String, 
-    enum: Object.values(ROLES), 
-    default: ROLES.MEMBER 
+    enum: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'MEMBER'], 
+    default: 'MEMBER' 
   },
   joinedAt: { type: Date, default: Date.now },
   isActive: { type: Boolean, default: true }

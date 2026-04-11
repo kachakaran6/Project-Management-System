@@ -5,6 +5,7 @@ import {
   FolderKanban,
   Home,
   LifeBuoy,
+  LogOut,
   Settings,
   Users2,
 } from "lucide-react";
@@ -31,11 +32,10 @@ const navItems: SidebarNavItem[] = [
     roles: ["admin", "manager", "member"],
   },
   {
-    title: "Teams",
-    href: "/teams",
+    title: "Members",
+    href: "/team",
     icon: Users2,
-    roles: ["admin", "manager"],
-    badge: "New",
+    roles: ["admin"],
   },
   {
     title: "Reports",
@@ -105,7 +105,21 @@ export function AppSidebar({
         collapsed={collapsed}
       />
 
-      <div className="mt-auto rounded-lg border border-sidebar-border bg-sidebar-accent p-3">
+      <div className="mt-auto border-t border-sidebar-border pt-4">
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start gap-3 px-3 py-2 text-sidebar-foreground/80 hover:bg-red-500/10 hover:text-red-500 transition-colors",
+            collapsed && "justify-center"
+          )}
+          onClick={() => (window.location.href = "/logout")}
+        >
+          <LogOut className="h-5 w-5 shrink-0" />
+          {!collapsed && <span className="font-medium">Sign Out</span>}
+        </Button>
+      </div>
+
+      <div className="mt-4 rounded-lg border border-sidebar-border bg-sidebar-accent p-3">
         <p
           className={cn(
             "text-xs text-sidebar-foreground/85",
