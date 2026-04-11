@@ -1,0 +1,38 @@
+import "dotenv/config";
+
+const requiredEnvVars = ["PORT", "MONGO_URI", "NODE_ENV"];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.error(`❌ Missing required environment variable: ${envVar}`);
+    process.exit(1);
+  }
+}
+
+export const env = {
+  port: parseInt(process.env.PORT, 10) || 5000,
+  mongoUri: process.env.MONGO_URI,
+  nodeEnv: process.env.NODE_ENV,
+  isProduction: process.env.NODE_ENV === "production",
+  isDevelopment: process.env.NODE_ENV === "development",
+
+  // CORS
+  allowedOrigins: process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+    : ["http://localhost:3000"],
+
+  // Rate limiting
+  rateLimitEnabled:
+    process.env.RATE_LIMIT_ENABLED !== undefined
+      ? process.env.RATE_LIMIT_ENABLED === "true"
+      : process.env.NODE_ENV === "production",
+  rateLimitWindowMs:
+    parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000, // 15 min
+  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
+
+  // JWT
+  jwtAccessSecret: process.env.JWT_ACCESS_SECRET || "fallback-access-secret",
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || "fallback-refresh-secret",
+  jwtAccessExpiresIn: process.env.JWT_JWT_ACCESS_EXPIRY || "15m",
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRY || "7d",
+};

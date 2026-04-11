@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+:root {
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  --shadow-xs: 0 1px 2px rgba(8, 15, 28, 0.04);
+  --shadow-sm: 0 6px 18px rgba(15, 28, 44, 0.06);
+  --shadow-md: 0 10px 30px rgba(15, 28, 44, 0.1);
+  --shadow-lg: 0 22px 50px rgba(15, 28, 44, 0.14);
+
+  --background: #f4f7fb;
+  --surface: #ffffff;
+  --foreground: #0f172a;
+  --muted: #e2e8f0;
+  --muted-foreground: #64748b;
+
+  --primary: #155eef;
+  --primary-foreground: #ffffff;
+  --secondary: #ecf3ff;
+  --secondary-foreground: #1e3a8a;
+
+  --success: #0f9d58;
+  --success-foreground: #ecfdf3;
+  --warning: #f79009;
+  --warning-foreground: #fffaeb;
+  --destructive: #d92d20;
+  --destructive-foreground: #fff1f3;
+
+  --border: #d0dbea;
+  --input: #c9d7eb;
+  --ring: #3072ff;
+
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+  --accent: #e8f1ff;
+  --accent-foreground: #163973;
+
+  --sidebar: #0f172a;
+  --sidebar-foreground: #d7e1f5;
+  --sidebar-accent: #1f2a44;
+  --sidebar-border: #2c3e5f;
+  --sidebar-ring: #8bb4ff;
+}
+
+.dark {
+  --background: #040b18;
+  --surface: #0a162a;
+  --foreground: #e2e8f0;
+  --muted: #16253d;
+  --muted-foreground: #8ea1c3;
+
+  --primary: #5b8dff;
+  --primary-foreground: #08152f;
+  --secondary: #132947;
+  --secondary-foreground: #d8e6ff;
+
+  --success: #22c55e;
+  --success-foreground: #082513;
+  --warning: #fbbf24;
+  --warning-foreground: #2a1800;
+  --destructive: #f97066;
+  --destructive-foreground: #380b10;
+
+  --border: #213857;
+  --input: #2a4368;
+  --ring: #8bb4ff;
+
+  --card: #0c1b31;
+  --card-foreground: var(--foreground);
+  --popover: #12233b;
+  --popover-foreground: var(--foreground);
+  --accent: #203454;
+  --accent-foreground: #dce9ff;
+
+  --sidebar: #07101f;
+  --sidebar-foreground: #cad9f4;
+  --sidebar-accent: #12243e;
+  --sidebar-border: #243d63;
+  --sidebar-ring: #99bcff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-sans: var(--font-jakarta);
+  --font-heading: var(--font-sora);
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 85% 5%,
+      rgba(63, 110, 225, 0.18),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 10% 25%,
+      rgba(44, 198, 161, 0.12),
+      transparent 40%
+    ),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-jakarta), "Segoe UI", sans-serif;
+}

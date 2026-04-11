@@ -1,0 +1,89 @@
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import { SquarePen } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { TaskForm } from "@/features/tasks/components/task-form";
+import { TaskFormValues } from "@/features/tasks/schemas/task.schema";
+import { useCreateTaskMutation } from "@/features/tasks/hooks/use-tasks-query";
+import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
+import { CreateTaskInput } from "@/types/task.types";
+
+interface CreateTaskModalProps {
+  trigger?: React.ReactNode;
+  defaultProjectId?: string;
+  onCreated?: () => void;
+}
+
+export function CreateTaskModal({
+  trigger,
+  defaultProjectId,
+  onCreated,
+}: CreateTaskModalProps) {
+  const [open, setOpen] = useState(false);
+  const createTask = useCreateTaskMutation();
+  const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
+
+  const projects = (projectsQuery.data?.data.items ?? []).map((p) => ({
+    id: p.id,
+    name: p.name,
+  }));
+
+  const handleSubmit = async (values: TaskFormValues) => {
+    try {
+      const payload: CreateTaskInput = {
+        title: values.title,
+        projectId: values.projectId,
+        status: values.status,
+        priority: values.priority,
+        description: values.description || undefined,
+        dueDate: values.dueDate || undefined,
+      };
+
+      await createTask.mutateAsync(payload);
+      toast.success(`Task "${values.title}" created!`);
+      setOpen(false);
+      onCreated?.();
+    } catch {
+      toast.error("Failed to create task. Please try again.");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {trigger ?? (
+          <Button>
+            <SquarePen className="mr-2 size-4" />
+            Create Task
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create New Task</DialogTitle>
+          <DialogDescription>
+            Add a task to a project to track work.
+          </DialogDescription>
+        </DialogHeader>
+        <TaskForm
+          projects={projects}
+          initialValues={{ projectId: defaultProjectId ?? "", status: "TODO", priority: "MEDIUM" }}
+          onSubmit={handleSubmit}
+          isSubmitting={createTask.isPending}
+          submitLabel="Create Task"
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
