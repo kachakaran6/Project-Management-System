@@ -5,30 +5,36 @@ import { logger } from '../utils/logger.js';
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 3000;
 
-let retryCount = 0;
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const connect = async () => {
-  try {
-    const conn = await mongoose.connect(env.mongoUri, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
+  let lastError: Error | null = null;
 
-    retryCount = 0;
-    logger.info(`✅ MongoDB connected: ${conn.connection.host}`);
-  } catch (err: unknown) {
-    retryCount++;
-    const error = err as Error;
-    logger.error(`❌ MongoDB connection failed (attempt ${retryCount}/${MAX_RETRIES}): ${error.message}`);
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const conn = await mongoose.connect(env.mongoUri, {
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+      });
 
-    if (retryCount < MAX_RETRIES) {
-      logger.warn(`⏳ Retrying in ${RETRY_DELAY_MS / 1000}s...`);
-      setTimeout(connect, RETRY_DELAY_MS);
-    } else {
-      logger.error('🔴 Max retries reached. Shutting down.');
-      process.exit(1);
+      logger.info(`✅ MongoDB connected: ${conn.connection.host}`);
+      return;
+    } catch (err: unknown) {
+      const error = err as Error;
+      lastError = error;
+      logger.error(
+        `❌ MongoDB connection failed (attempt ${attempt}/${MAX_RETRIES}): ${error.message}`,
+      );
+
+      if (attempt < MAX_RETRIES) {
+        logger.warn(`⏳ Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+        await delay(RETRY_DELAY_MS);
+      }
     }
   }
+
+  logger.error('🔴 Max retries reached. Shutting down.');
+  throw lastError ?? new Error('MongoDB connection failed');
 };
 
 mongoose.connection.on('connected', () => logger.info('🟢 Mongoose: connected'));

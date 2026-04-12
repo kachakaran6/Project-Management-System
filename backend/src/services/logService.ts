@@ -1,5 +1,6 @@
 import Log from '../models/Log.js';
 import { logger } from '../utils/logger.js';
+import mongoose from 'mongoose';
 
 interface LogData {
   message: string;
@@ -56,11 +57,14 @@ export const logEvent = async (data: LogData) => {
 
   // 2. Persist to MongoDB (Non-blocking)
   try {
-    await Log.create({
-      level,
-      message,
-      ...rest
-    });
+    // Only persist logs when DB is connected; avoid buffering timeout noise.
+    if (mongoose.connection.readyState === 1) {
+      await Log.create({
+        level,
+        message,
+        ...rest,
+      });
+    }
   } catch (err) {
     // Fallback if DB logging fails - don't crash the app
     console.error('CRITICAL: Failed to write log to MongoDB:', err);
