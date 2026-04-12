@@ -9,6 +9,8 @@ import {
   AdminOrganization,
   AdminProject,
   AdminTask,
+  AdminOrganizationDetails,
+  AdminAnalyticsSummary,
 } from "@/features/admin/api/admin.api";
 
 const baseApiUrl =
@@ -19,6 +21,8 @@ export const adminQueryKeys = {
   users: ["admin", "users"] as const,
   approvals: ["admin", "approvals"] as const,
   organizations: ["admin", "organizations"] as const,
+  organizationDetails: (orgId: string) =>
+    ["admin", "organizations", orgId] as const,
   projects: ["admin", "projects"] as const,
   tasks: ["admin", "tasks"] as const,
   billing: ["admin", "billing"] as const,
@@ -64,6 +68,15 @@ export function useAdminOrganizationsQuery() {
   });
 }
 
+export function useAdminOrganizationDetailsQuery(orgId?: string) {
+  return useQuery<AdminOrganizationDetails>({
+    queryKey: orgId ? adminQueryKeys.organizationDetails(orgId) : ["admin", "organizations", "empty"],
+    queryFn: () => adminApi.getOrganizationById(orgId as string),
+    enabled: Boolean(orgId),
+    staleTime: 20_000,
+  });
+}
+
 export function useAdminProjectsQuery() {
   return useQuery<AdminProject[]>({
     queryKey: adminQueryKeys.projects,
@@ -104,11 +117,11 @@ export function useRolePermissionsQuery() {
   });
 }
 
-export function useAuditLogsQuery() {
+export function useAuditLogsQuery(params?: Parameters<typeof adminApi.getAuditLogs>[0]) {
   return useQuery({
-    queryKey: adminQueryKeys.auditLogs,
-    queryFn: () => adminApi.getAuditLogs(),
-    refetchInterval: 10_000,
+    queryKey: [...adminQueryKeys.auditLogs, params],
+    queryFn: () => adminApi.getAuditLogs(params),
+    refetchInterval: 20_000,
   });
 }
 
@@ -121,7 +134,7 @@ export function useApiLogsQuery() {
 }
 
 export function useAnalyticsQuery() {
-  return useQuery({
+  return useQuery<AdminAnalyticsSummary>({
     queryKey: adminQueryKeys.analytics,
     queryFn: () => adminApi.getAnalytics(),
     refetchInterval: 35_000,

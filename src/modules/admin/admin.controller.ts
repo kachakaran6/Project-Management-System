@@ -88,10 +88,60 @@ export const listTasks = asyncHandler(async (req, res) => {
 });
 
 /**
- * Controller: System Logs
+ * Controller: List organizations (platform)
+ */
+export const listOrganizations = asyncHandler(async (_req, res) => {
+  const organizations = await adminService.getOrganizations();
+  return successResponse(res, organizations, 'Organizations retrieved.');
+});
+
+/**
+ * Controller: Organization details
+ */
+export const getOrganizationDetails = asyncHandler(async (req, res) => {
+  const details = await adminService.getOrganizationDetails(req.params.organizationId as string);
+  return successResponse(res, details, 'Organization details retrieved.');
+});
+
+/**
+ * Controller: Platform analytics snapshot
+ */
+export const getAnalytics = asyncHandler(async (_req, res) => {
+  const analytics = await adminService.getAnalyticsSnapshot();
+  return successResponse(res, analytics, 'Analytics retrieved.');
+});
+
+/**
+ * Controller: System Logs (Admin Audit)
  */
 export const listLogs = asyncHandler(async (req, res) => {
-  const { actorId, action } = req.query;
-  const logs = await adminService.getSystemLogs({ actorId, action });
-  return successResponse(res, logs, 'System activity logs retrieved.');
+  const { 
+    page, 
+    limit, 
+    query, 
+    level, 
+    module, 
+    action, 
+    status, 
+    userId, 
+    organizationId, 
+    startDate, 
+    endDate 
+  } = req.query;
+  
+  const result = await adminService.getSystemLogs({ 
+    page: Number(page),
+    limit: Number(limit),
+    query: query as string,
+    level: level as string,
+    module: module as string,
+    action: action as string,
+    status: status as string,
+    userId: userId as string,
+    organizationId: organizationId as string,
+    startDate: startDate as string,
+    endDate: endDate as string
+  });
+  
+  return successResponse(res, result, 'System activity logs retrieved.');
 });

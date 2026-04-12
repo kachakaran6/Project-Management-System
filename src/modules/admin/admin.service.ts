@@ -274,27 +274,260 @@ export const getAllTasks = async (organizationId?: string, actorRole?: string) =
 };
 
 /**
- * System Activity Logs (New Observability Model)
+ * List organizations with platform metrics
  */
-export const getSystemLogs = async (filter: Record<string, any> = {}) => {
-  const query: Record<string, any> = {};
-  
-  if (filter.actorId) query.userId = filter.actorId;
-  if (filter.action) query.action = filter.action;
-  if (filter.level) query.level = filter.level;
-  if (filter.status) query.status = filter.status;
-  
-  if (filter.startDate && filter.endDate) {
-    query.createdAt = {
-      $gte: new Date(filter.startDate),
-      $lte: new Date(filter.endDate),
-    };
+export const getOrganizations = async () => {
+  const organizations = await Organization.find({}).sort({ createdAt: -1 }).lean();
+  const orgIds = organizations.map((org: any) => org._id);
+
+  const [memberCounts, activeUserCounts, projectCounts] = await Promise.all([
+    OrganizationMember.aggregate([
+      { $match: { organizationId: { $in: orgIds }, isActive: true } },
+      { $group: { _id: '$organizationId', count: { $sum: 1 } } },
+    ]),
+    OrganizationMember.aggregate([
+      { $match: { organizationId: { $in: orgIds }, isActive: true } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: '$user' },
+      { $match: { 'user.status': 'ACTIVE' } },
+      { $group: { _id: '$organizationId', count: { $sum: 1 } } },
+    ]),
+    Project.aggregate([
+      { $match: { organizationId: { $in: orgIds }, isActive: true } },
+      { $group: { _id: '$organizationId', count: { $sum: 1 } } },
+    ]),
+  ]);
+
+  const membersByOrg = new Map(memberCounts.map((item: any) => [String(item._id), item.count]));
+  const activeUsersByOrg = new Map(activeUserCounts.map((item: any) => [String(item._id), item.count]));
+  const projectsByOrg = new Map(projectCounts.map((item: any) => [String(item._id), item.count]));
+
+  return organizations.map((org: any) => ({
+    ...org,
+    _id: String(org._id),
+    membersCount: membersByOrg.get(String(org._id)) ?? 0,
+    activeUsersCount: activeUsersByOrg.get(String(org._id)) ?? 0,
+    projectsCount: projectsByOrg.get(String(org._id)) ?? 0,
+  }));
+};
+
+/**
+ * Get organization detail view for admin console
+ */
+export const getOrganizationDetails = async (organizationId: string) => {
+  const organization = await Organization.findById(organizationId).lean();
+  if (!organization) {
+    throw new AppError('Organization not found.', 404);
   }
 
-  // Fetch from the new structured Log model
-  return Log.find(query)
-    .populate('userId', 'firstName lastName email avatarUrl')
-    .sort({ createdAt: -1 })
-    .limit(200)
-    .lean();
+  const [membersCount, activeUsersCount, projectsCount, recentMembers] = await Promise.all([
+    OrganizationMember.countDocuments({ organizationId, isActive: true }),
+    OrganizationMember.aggregate([
+      { $match: { organizationId: organization._id, isActive: true } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: '$user' },
+      { $match: { 'user.status': 'ACTIVE' } },
+      { $count: 'count' },
+    ]),
+    Project.countDocuments({ organizationId, isActive: true }),
+    OrganizationMember.find({ organizationId, isActive: true })
+      .populate('userId', 'firstName lastName email status avatarUrl')
+      .sort({ createdAt: -1 })
+      .limit(8)
+      .lean(),
+  ]);
+
+  return {
+    ...organization,
+    _id: String(organization._id),
+    membersCount,
+    activeUsersCount: activeUsersCount[0]?.count ?? 0,
+    projectsCount,
+    recentMembers: recentMembers.map((member: any) => ({
+      id: String(member.userId?._id || member.userId),
+      firstName: member.userId?.firstName || '',
+      lastName: member.userId?.lastName || '',
+      email: member.userId?.email || '',
+      role: member.role,
+      status: member.userId?.status || 'ACTIVE',
+      avatarUrl: member.userId?.avatarUrl,
+      joinedAt: member.joinedAt,
+    })),
+  };
+};
+
+/**
+ * Build platform analytics summary for admin UI
+ */
+export const getAnalyticsSnapshot = async () => {
+  const [
+    totalOrganizations,
+    activeOrganizations,
+    totalUsers,
+    activeUsers,
+    totalTasks,
+    orgGrowth,
+    userGrowth,
+    activityDistribution,
+  ] = await Promise.all([
+    Organization.countDocuments({}),
+    Organization.countDocuments({ isActive: true }),
+    User.countDocuments({}),
+    User.countDocuments({ status: 'ACTIVE' }),
+    Task.countDocuments({ isActive: true }),
+    Organization.aggregate([
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+      { $limit: 6 },
+    ]),
+    User.aggregate([
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+      { $limit: 6 },
+    ]),
+    Log.aggregate([
+      {
+        $group: {
+          _id: '$level',
+          count: { $sum: 1 },
+        },
+      },
+    ]),
+  ]);
+
+  const formatSeries = (rows: any[]) =>
+    rows.map((item) => ({
+      label: `${item._id.year}-${String(item._id.month).padStart(2, '0')}`,
+      value: item.count,
+    }));
+
+  return {
+    counts: {
+      totalOrganizations,
+      activeOrganizations,
+      totalUsers,
+      activeUsers,
+      totalTasks,
+    },
+    trends: {
+      organizations: formatSeries(orgGrowth),
+      users: formatSeries(userGrowth),
+    },
+    summaries: {
+      activityDistribution: activityDistribution.map((item: any) => ({
+        level: String(item._id || 'info'),
+        count: item.count,
+      })),
+    },
+  };
+};
+
+/**
+ * System Activity Logs (Audit Logging with Pagination & Search)
+ */
+export const getSystemLogs = async (params: {
+  page?: number;
+  limit?: number;
+  query?: string;
+  level?: string;
+  module?: string;
+  action?: string;
+  status?: string;
+  userId?: string;
+  organizationId?: string;
+  startDate?: string;
+  endDate?: string;
+}) => {
+  const page = Math.max(1, Number(params.page) || 1);
+  const limit = Math.min(500, Math.max(1, Number(params.limit) || 20));
+  const skip = (page - 1) * limit;
+
+  const mongoQuery: Record<string, any> = {};
+
+  // 1. Text Search
+  if (params.query) {
+    mongoQuery.$or = [
+      { message: { $regex: params.query, $options: 'i' } },
+      { action: { $regex: params.query, $options: 'i' } },
+      { module: { $regex: params.query, $options: 'i' } },
+      { 'performedBy.email': { $regex: params.query, $options: 'i' } },
+      { 'performedBy.name': { $regex: params.query, $options: 'i' } }
+    ];
+  }
+
+  // 2. Exact Filters
+  if (params.level) mongoQuery.level = params.level;
+  if (params.module) mongoQuery.module = params.module;
+  if (params.action) mongoQuery.action = params.action;
+  if (params.status) mongoQuery.status = params.status;
+  if (params.userId) mongoQuery.userId = params.userId;
+  if (params.organizationId) mongoQuery.organizationId = params.organizationId;
+
+  // 3. Date Range Filter
+  if (params.startDate || params.endDate) {
+    mongoQuery.createdAt = {};
+    if (params.startDate) {
+      const start = new Date(params.startDate);
+      if (!isNaN(start.getTime())) mongoQuery.createdAt.$gte = start;
+    }
+    if (params.endDate) {
+      const end = new Date(params.endDate);
+      if (!isNaN(end.getTime())) {
+        // Set to end of day if only date is provided
+        end.setHours(23, 59, 59, 999);
+        mongoQuery.createdAt.$lte = end;
+      }
+    }
+  }
+
+  // Fetch data
+  const [logs, total] = await Promise.all([
+    Log.find(mongoQuery)
+      .populate('userId', 'firstName lastName email avatarUrl')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Log.countDocuments(mongoQuery)
+  ]);
+
+  return {
+    data: logs,
+    pagination: {
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit)
+    }
+  };
 };

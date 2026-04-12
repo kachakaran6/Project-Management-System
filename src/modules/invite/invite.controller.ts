@@ -2,7 +2,10 @@ import * as inviteService from './invite.service.js';
 import { asyncHandler } from '../../middlewares/asyncHandler.js';
 import { successResponse } from '../../utils/apiResponse.js';
 
-const resolveOrganizationId = (req: any) => req.params.orgId || req.organizationId;
+const resolveOrganizationId = (req: any) => {
+  const paramId = req.params.orgId;
+  return (!paramId || paramId === '0') ? req.organizationId : paramId;
+};
 
 const resolveToken = (req: any) => req.params.token || req.body.token;
 

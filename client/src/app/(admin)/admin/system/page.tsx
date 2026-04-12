@@ -11,8 +11,8 @@ import {
 } from "@/features/dev/hooks/use-dev";
 
 export default function AdminSystemPage() {
-  const { activeOrg } = useAuth();
-  const role = activeOrg?.role;
+  const { activeOrg, user } = useAuth();
+  const role = activeOrg?.role ?? user?.role;
   const isSuperAdmin = role === "SUPER_ADMIN";
 
   const systemQuery = useSystemInfoQuery();

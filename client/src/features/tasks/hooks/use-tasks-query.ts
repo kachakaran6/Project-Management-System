@@ -11,11 +11,20 @@ export const tasksQueryKeys = {
   detail: (id: string) => ["tasks", "detail", id] as const,
 };
 
-export function useTasksQuery(filters: TaskFilters = {}) {
+export function useTasksQuery(
+  filters: TaskFilters = {},
+  options?: {
+    enabled?: boolean;
+    staleTime?: number;
+    refetchInterval?: number;
+  },
+) {
   return useQuery({
     queryKey: tasksQueryKeys.list(filters),
     queryFn: () => taskApi.getTasks(filters),
-    staleTime: 30_000,
+    staleTime: options?.staleTime ?? 30_000,
+    enabled: options?.enabled ?? true,
+    refetchInterval: options?.refetchInterval,
   });
 }
 

@@ -25,6 +25,13 @@ router.patch('/approve/:userId', adminController.approveAdmin);
 router.get('/projects', adminController.listProjects);
 router.get('/tasks', adminController.listTasks);
 
+// Organizations (Platform-level)
+router.get('/organizations', adminController.listOrganizations);
+router.get('/organizations/:organizationId', adminController.getOrganizationDetails);
+
+// Analytics
+router.get('/analytics', adminController.getAnalytics);
+
 // System Logs
 router.get('/logs', adminController.listLogs);
 

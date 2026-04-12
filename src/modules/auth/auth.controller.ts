@@ -1,5 +1,6 @@
 import * as authService from './auth.service.js';
 import { asyncHandler } from '../../middlewares/asyncHandler.js';
+import { logInfo } from '../../services/logService.js';
 
 /**
  * POST /auth/register
@@ -85,6 +86,21 @@ export const login = asyncHandler(async (req, res) => {
     organizationId,
     { ip, userAgent },
   );
+
+  // Structured Audit Log
+  await logInfo(`User logged in: ${user.email}`, {
+    module: 'AUTH',
+    action: 'LOGIN_SUCCESS',
+    performedBy: {
+      userId: (user as any).id || (user as any)._id,
+      name: `${user.firstName} ${user.lastName}`,
+      email: user.email
+    },
+    ip,
+    userAgent,
+    organizationId: organizationId || null,
+    metadata: { method: 'PASSWORD' }
+  });
 
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,

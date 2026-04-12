@@ -1,6 +1,7 @@
 import * as projectService from './project.service.js';
 import { asyncHandler } from '../../middlewares/asyncHandler.js';
 import { paginate, successResponse } from '../../utils/apiResponse.js';
+import { logInfo } from '../../services/logService.js';
 
 /**
  * Controller: Create Project
@@ -16,6 +17,24 @@ export const create = asyncHandler(async (req, res) => {
     status
   });
 
+  // Structured Audit Log
+  await logInfo(`New project created: ${name}`, {
+    module: 'PROJECT',
+    action: 'PROJECT_CREATED',
+    performedBy: {
+      userId: req.user.id,
+      name: `${req.user.firstName} ${req.user.lastName}`,
+      email: req.user.email
+    },
+    target: {
+      targetId: (project as any)._id,
+      type: 'PROJECT',
+      name: project.name
+    },
+    organizationId: req.organizationId || undefined,
+    metadata: { status: project.status }
+  });
+
   return successResponse(res, project, 'Project created successfully.', 201);
 });
 
@@ -27,7 +46,7 @@ export const getAll = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit as string, 10) || 10;
   
   const filter = {
-    organizationId: req.organizationId,
+    organizationId: req.organizationId || undefined,
     userId: req.user.id, // Support solo mode
     role: req.user.role,
     workspaceId: req.query.workspaceId,

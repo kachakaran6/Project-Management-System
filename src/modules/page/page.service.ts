@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import PDFDocument from 'pdfkit';
 import Page from '../../models/Page.js';
 import User from '../../models/User.js';
 import { AppError } from '../../middlewares/errorHandler.js';
@@ -268,3 +269,39 @@ export const enrichPageAuthor = async (rawPage: Record<string, unknown>) => {
     },
   };
 };
+
+const stripHtml = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+export const renderPagePdf = async (input: {
+  title: string;
+  content: string;
+  visibility: string;
+  authorName: string;
+  updatedAt?: unknown;
+}) =>
+  new Promise<Buffer>((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 48, size: 'A4' });
+    const chunks: Buffer[] = [];
+
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    doc.on('error', reject);
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+    const safeTitle = input.title.trim() || 'Untitled Page';
+    const plainText = stripHtml(input.content || '');
+
+    doc.fontSize(22).text(safeTitle, { align: 'left' });
+    doc.moveDown(0.6);
+
+    doc.fontSize(10).fillColor('#6b7280').text(`Visibility: ${input.visibility}`);
+    doc.text(`Author: ${input.authorName || 'Unknown'}`);
+    doc.text(`Last edited: ${input.updatedAt ? new Date(String(input.updatedAt)).toLocaleString() : 'N/A'}`);
+    doc.moveDown(1);
+
+    doc.fillColor('#111827').fontSize(11).text(plainText || 'No content', {
+      align: 'left',
+      lineGap: 4,
+    });
+
+    doc.end();
+  });

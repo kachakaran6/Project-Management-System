@@ -49,11 +49,11 @@ export function useUpdatePageMutation() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdatePageInput }) =>
       pageApi.updatePage(id, data),
-    onSuccess: async (_, variables) => {
+    onSuccess: async (updated, variables) => {
+      queryClient.setQueryData(pagesQueryKeys.detail(variables.id), updated);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: pagesQueryKeys.all }),
         queryClient.invalidateQueries({
-          queryKey: pagesQueryKeys.detail(variables.id),
+          queryKey: ["pages", "list"],
         }),
       ]);
     },
@@ -68,5 +68,11 @@ export function useDeletePageMutation() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: pagesQueryKeys.all });
     },
+  });
+}
+
+export function useExportPagePdfMutation() {
+  return useMutation({
+    mutationFn: (id: string) => pageApi.exportPagePdf(id),
   });
 }

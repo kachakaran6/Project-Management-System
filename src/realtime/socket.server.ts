@@ -3,6 +3,7 @@ import { Server } from 'socket.io';
 import { authSocket } from './socket.middleware.js';
 import * as handlers from './socket.handlers.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from './socket.events.js';
+import { env } from '../config/env.js';
 
 let io: Server | undefined;
 
@@ -13,8 +14,10 @@ let io: Server | undefined;
 export const initSocket = (httpServer: HttpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: '*', // In production, replace with specific origins
-      methods: ['GET', 'POST']
+      origin: env.allowedOrigins,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      credentials: true,
+      allowedHeaders: ['Content-Type', 'Authorization'],
     },
     pingTimeout: 60000,
     pingInterval: 25000

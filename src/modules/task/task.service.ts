@@ -1,12 +1,43 @@
 import Task from '../../models/Task.js';
 import TaskAssignee from '../../models/TaskAssignee.js';
 import TaskTag from '../../models/TaskTag.js';
+import OrganizationMember from '../../models/OrganizationMember.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import * as activityLog from '../../utils/systemTriggers.js';
 import mongoose from 'mongoose';
 import { emitToRoom, emitToUsers } from '../../realtime/socket.server.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../realtime/socket.events.js';
 import { ROLES } from '../../constants/index.js';
+
+const normalizeAssigneeUser = (assignee: any) => {
+  const user = assignee?.userId;
+  if (!user) return null;
+
+  const id = String(user._id || user.id || user);
+  const firstName = user.firstName || '';
+  const lastName = user.lastName || '';
+  const name = `${firstName} ${lastName}`.trim() || user.email || 'Unknown User';
+
+  return {
+    id,
+    name,
+    email: user.email || '',
+    avatarUrl: user.avatarUrl,
+  };
+};
+
+const enrichTaskWithAssignees = (task: any, assignees: any[] = []) => {
+  const assigneeUsers = assignees
+    .map(normalizeAssigneeUser)
+    .filter(Boolean);
+
+  return {
+    ...task,
+    assignees,
+    assigneeUsers,
+    assigneeId: assigneeUsers[0]?.id,
+  };
+};
 
 /**
  * Task Service: Business Logic for task management
@@ -18,8 +49,13 @@ import { ROLES } from '../../constants/index.js';
 export const createTask = async (taskData: Record<string, any>, userId: any) => {
   const { 
     title, description, projectId, workspaceId, organizationId, 
-    status, priority, dueDate, assignees = [], tags = [] 
+    status, priority, dueDate, assignees = [], assigneeId, tags = [] 
   } = taskData;
+
+  // Normalize single assigneeId into the assignees array
+  if (assigneeId && !assignees.includes(assigneeId)) {
+    assignees.push(assigneeId);
+  }
 
   if (!title) {
     throw new AppError('Title is required.', 400);
@@ -129,6 +165,13 @@ export const getTasks = async (
   if (filter.status) query.status = filter.status;
   if (filter.priority) query.priority = filter.priority;
   if (filter.dueDate) query.dueDate = { $lte: new Date(filter.dueDate) };
+  if (filter.search) {
+    const regex = new RegExp(String(filter.search).trim(), 'i');
+    query.$or = [
+      { title: regex },
+      { description: regex },
+    ];
+  }
 
   // Filtering by assignee requires a sub-query or aggregation
   if (filter.assigneeId) {
@@ -159,25 +202,114 @@ export const getTasks = async (
     Task.countDocuments(query)
   ]);
 
-  return { tasks, totalCount };
+  if (tasks.length === 0) {
+    return { tasks, totalCount };
+  }
+
+  const taskIds = tasks.map((task: any) => task._id);
+  const assigneeRows = await TaskAssignee.find({ taskId: { $in: taskIds } })
+    .populate('userId', 'firstName lastName email avatarUrl')
+    .lean();
+
+  const assigneesByTaskId = new Map<string, any[]>();
+  for (const row of assigneeRows) {
+    const key = String(row.taskId);
+    const existing = assigneesByTaskId.get(key) || [];
+    existing.push(row);
+    assigneesByTaskId.set(key, existing);
+  }
+
+  const enrichedTasks = tasks.map((task: any) => {
+    const assignees = assigneesByTaskId.get(String(task._id)) || [];
+    return enrichTaskWithAssignees(task, assignees);
+  });
+
+  return { tasks: enrichedTasks, totalCount };
 };
 
 /**
  * Update task
  */
 export const updateTask = async (taskId: any, updateData: Record<string, any>, userId: any, role: any) => {
+  const { assigneeId, assigneeIds, ...otherData } = updateData;
   const query: Record<string, any> = { _id: taskId, isActive: true };
-  
-  // Basic security: if not Super Admin, check if they are the creator or it belongs to no org (solo)
-  // Actually, per requirements: USER and ADMIN behave same and can manage everything.
+  const assigneesProvided =
+    Object.prototype.hasOwnProperty.call(updateData, 'assigneeId') ||
+    Object.prototype.hasOwnProperty.call(updateData, 'assigneeIds');
   
   const task = await Task.findOneAndUpdate(
     query,
-    { $set: updateData },
+    { $set: otherData },
     { new: true, runValidators: true }
   );
 
   if (!task) throw new AppError('Task not found.', 404);
+
+  // Handle assignment update (single + multi-assignee compatible)
+  if (assigneesProvided) {
+    const normalizedAssigneeIds = new Set<string>();
+
+    if (Array.isArray(assigneeIds)) {
+      assigneeIds
+        .map((id: any) => String(id).trim())
+        .filter(Boolean)
+        .forEach((id: string) => normalizedAssigneeIds.add(id));
+    }
+
+    if (assigneeId !== undefined && assigneeId !== null && String(assigneeId).trim()) {
+      normalizedAssigneeIds.add(String(assigneeId).trim());
+    }
+
+    const finalAssigneeIds = Array.from(normalizedAssigneeIds);
+
+    if (finalAssigneeIds.length > 0) {
+      const validMembers = await OrganizationMember.find({
+        organizationId: task.organizationId,
+        userId: { $in: finalAssigneeIds },
+        isActive: true,
+      })
+        .select('userId')
+        .lean();
+
+      const validMemberIds = new Set(validMembers.map((member: any) => String(member.userId)));
+      const invalidAssignees = finalAssigneeIds.filter((id: string) => !validMemberIds.has(id));
+
+      if (invalidAssignees.length > 0) {
+        throw new AppError('One or more assignees are not members of this organization.', 400);
+      }
+    }
+
+    // Replace old assignees
+    await TaskAssignee.deleteMany({ taskId });
+
+    if (finalAssigneeIds.length > 0) {
+      const assigneeDocs = finalAssigneeIds.map((id: string) => ({
+        taskId,
+        userId: id,
+        organizationId: task.organizationId,
+        assignedById: userId,
+      }));
+      await TaskAssignee.insertMany(assigneeDocs, { ordered: false });
+
+       // Trigger Notification
+       activityLog.triggerNotification({
+        userIds: finalAssigneeIds,
+         organizationId: task.organizationId,
+         actorId: userId,
+         type: 'TASK_ASSIGNED',
+         message: `You have been reassigned to task: ${task.title}`,
+         resourceId: taskId,
+         resourceType: 'Task'
+       });
+
+       // Real-time notify
+       emitToUsers(finalAssigneeIds, SOCKET_EVENTS.TASK_ASSIGNED, {
+         taskId,
+         title: task.title,
+         actorId: userId
+       });
+    }
+  }
 
   // Log activity
   activityLog.logActivity({
@@ -289,7 +421,10 @@ export const getTaskById = async (taskId: any) => {
     TaskTag.find({ taskId }).populate('tagId').lean()
   ]);
 
-  return { ...task, assignees, tags };
+  return {
+    ...enrichTaskWithAssignees(task, assignees),
+    tags,
+  };
 };
 
 /**

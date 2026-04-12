@@ -28,8 +28,8 @@ export const metadata: Metadata = {
 const themeScript = `(function() {
   try {
     var stored = JSON.parse(localStorage.getItem('pms-theme-v1') || '{}');
-    var accent = stored.state && stored.state.accent ? stored.state.accent : 'blue';
-    var mode   = stored.state && stored.state.mode   ? stored.state.mode   : 'system';
+    var accent = stored && stored.state && stored.state.accent ? stored.state.accent : 'blue';
+    var mode   = stored && stored.state && stored.state.mode   ? stored.state.mode   : 'system';
 
     document.documentElement.setAttribute('data-accent', accent);
 
@@ -40,9 +40,10 @@ const themeScript = `(function() {
     } else {
       document.documentElement.classList.remove('dark');
     }
-  } catch(e) {
-    document.documentElement.setAttribute('data-accent', 'blue');
-  }
+    } catch(e) {
+      document.documentElement.setAttribute('data-accent', 'blue');
+      console.warn('Failed to parse theme from localStorage', e);
+    }
 })();`;
 
 export default function RootLayout({

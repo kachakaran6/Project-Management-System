@@ -1,7 +1,7 @@
 import { api } from "@/lib/api/axios-instance";
 import { ApiResponse } from "@/types/api.types";
 
-export type TeamRole = "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "MEMBER";
+export type TeamRole = "OWNER" | "ADMIN" | "MANAGER" | "MEMBER" | "VIEWER";
 
 export interface TeamMember {
   id: string;
@@ -9,6 +9,7 @@ export interface TeamMember {
   lastName: string;
   email: string;
   role: TeamRole;
+  permissions?: string[];
   status: "ACTIVE" | "DISABLED" | "PENDING";
   avatarUrl?: string;
   lastActive?: string;
@@ -16,14 +17,23 @@ export interface TeamMember {
 
 export interface InvitePayload {
   email: string;
-  role: Exclude<TeamRole, "SUPER_ADMIN">;
+  role: Exclude<TeamRole, "OWNER">;
+}
+
+export interface MemberPermissionsResponse {
+  role: TeamRole;
+  rolePermissions: string[];
+  customPermissions: string[];
+  effectivePermissions: string[];
 }
 
 function deriveRole(candidate: unknown): TeamRole {
   const role = String(candidate ?? "MEMBER").toUpperCase();
-  if (role === "SUPER_ADMIN" || role === "ADMIN" || role === "MANAGER") {
-    return role;
+  if (role === "OWNER" || role === "ADMIN" || role === "MANAGER" || role === "MEMBER" || role === "VIEWER") {
+    return role as TeamRole;
   }
+  // Backward compat: SUPER_ADMIN becomes ADMIN
+  if (role === "SUPER_ADMIN") return "ADMIN";
   return "MEMBER";
 }
 
@@ -38,22 +48,66 @@ export const teamApi = {
       lastName: String(row.lastName ?? ""),
       email: String(row.email ?? ""),
       role: deriveRole(row.role),
+      permissions: row.permissions || [],
       status: row.status as any,
       avatarUrl: row.avatarUrl as string | undefined,
-      lastActive: row.lastActive as string | undefined, // Mapping joinedAt or lastActive if available
+      lastActive: row.lastActive as string | undefined,
     }));
   },
 
   async inviteMember(payload: InvitePayload): Promise<void> {
-    await api.post("/invites", payload);
+    await api.post("/organizations/invites", payload);
   },
 
+  /**
+   * Update member role - calls the organization API endpoint
+   * CRITICAL: Uses correct org-based endpoint with CHANGE_MEMBER_ROLE permission check
+   */
   async updateMemberRole(
     memberId: string,
     role: TeamRole,
   ): Promise<ApiResponse<any>> {
-    const response = await api.patch<ApiResponse<any>>(`/admin/users/${memberId}`, { role });
+    // Get current organization context from auth state or endpoint
+    // The endpoint will use req.organizationId from auth middleware
+    const response = await api.patch<ApiResponse<any>>(
+      `/organizations/0/member/${memberId}`,
+      { role }
+    );
     return response.data;
+  },
+
+  /**
+   * Get member permissions (role defaults + custom overrides)
+   */
+  async getMemberPermissions(memberId: string): Promise<MemberPermissionsResponse> {
+    const response = await api.get<ApiResponse<MemberPermissionsResponse>>(
+      `/organizations/0/members/${memberId}/permissions`
+    );
+    return response.data.data;
+  },
+
+  /**
+   * Update member permissions (add/remove granular permissions)
+   */
+  async updateMemberPermissions(
+    memberId: string,
+    permissions: string[]
+  ): Promise<ApiResponse<any>> {
+    const response = await api.patch<ApiResponse<any>>(
+      `/organizations/0/members/${memberId}/permissions`,
+      { permissions }
+    );
+    return response.data;
+  },
+
+  /**
+   * Get default permissions for a role
+   */
+  async getRolePermissions(role: TeamRole): Promise<{ role: TeamRole; permissions: string[] }> {
+    const response = await api.get<ApiResponse<{ role: TeamRole; permissions: string[] }>>(
+      `/organizations/0/roles/${role}/permissions`
+    );
+    return response.data.data;
   },
 
   async updateMemberStatus(
@@ -67,7 +121,9 @@ export const teamApi = {
   },
 
   async removeMember(memberId: string): Promise<ApiResponse<any>> {
-    const response = await api.delete<ApiResponse<any>>(`/admin/users/${memberId}`);
+    const response = await api.delete<ApiResponse<any>>(
+      `/organizations/0/member/${memberId}`
+    );
     return response.data;
   },
 

@@ -58,7 +58,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     req.organizationId = targetOrgId || null;
 
     // Resolve Role Context (Organization-specific Role > Platform Role)
-    let contextRole = user.role; 
+    let contextRole: string = user.role; 
 
     if (targetOrgId) {
       const orgMembership = await OrganizationMember.findOne({

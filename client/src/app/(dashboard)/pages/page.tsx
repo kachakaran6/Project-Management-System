@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -145,6 +144,16 @@ export default function PagesListPage() {
     visibilityFilter,
   ]);
 
+  const stats = useMemo(() => {
+    const rows = visibleRows;
+    return {
+      total: rows.length,
+      publicCount: rows.filter((item) => item.visibility === "PUBLIC").length,
+      privateCount: rows.filter((item) => item.visibility === "PRIVATE").length,
+      mineCount: rows.filter((item) => item.creatorId === currentUserId).length,
+    };
+  }, [currentUserId, visibleRows]);
+
   const handleCreate = async () => {
     const title = createTitle.trim();
     if (!title) {
@@ -189,6 +198,25 @@ export default function PagesListPage() {
           <CardTitle className="text-base">Pages Library</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-xl border border-border bg-muted/20 px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Total</p>
+              <p className="mt-1 text-xl font-semibold">{stats.total}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-muted/20 px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Public</p>
+              <p className="mt-1 text-xl font-semibold">{stats.publicCount}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-muted/20 px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Private</p>
+              <p className="mt-1 text-xl font-semibold">{stats.privateCount}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-muted/20 px-3 py-2">
+              <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Created By Me</p>
+              <p className="mt-1 text-xl font-semibold">{stats.mineCount}</p>
+            </div>
+          </div>
+
           <div className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_180px_180px_180px]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

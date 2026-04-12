@@ -64,7 +64,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { useAuth } from "@/features/auth/hooks/use-auth";
+import { PermissionModal } from "@/features/team/components/permission-modal";
 import {
   useTeamMembersQuery,
   useUpdateMemberRoleMutation,
@@ -74,9 +74,10 @@ import {
   useInviteMemberMutation,
 } from "@/features/team/hooks/use-team-query";
 import { TeamMember, TeamRole } from "@/features/team/api/team.api";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
-const ROLES: TeamRole[] = ["SUPER_ADMIN", "ADMIN", "MANAGER", "MEMBER"];
+const ROLES: TeamRole[] = ["OWNER", "ADMIN", "MANAGER", "MEMBER"];
 
 export default function TeamPage() {
   // ─── State ──────────────────────────────────────────────────────────────────
@@ -87,9 +88,11 @@ export default function TeamPage() {
   const [selectedUser, setSelectedUser] = useState<TeamMember | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [permissionModalOpen, setPermissionModalOpen] = useState(false);
+  const [selectedMemberForPermissions, setSelectedMemberForPermissions] = useState<TeamMember | null>(null);
 
   // ─── API Hooks ──────────────────────────────────────────────────────────────
-  const { data: members = [], isLoading } = useTeamMembersQuery();
+  const { data: members = [], isLoading, refetch: refetchMembers } = useTeamMembersQuery();
   const updateRole = useUpdateMemberRoleMutation();
   const updateStatus = useUpdateMemberStatusMutation();
   const removeMember = useRemoveMemberMutation();
@@ -98,8 +101,8 @@ export default function TeamPage() {
   const { user: currentUser, activeOrg } = useAuth();
 
   const userRole = (activeOrg?.role || currentUser?.role || "MEMBER") as TeamRole;
-  const isSuperAdmin = userRole === "SUPER_ADMIN";
-  const isAdmin = userRole === "ADMIN" || isSuperAdmin;
+  const isOwner = userRole === "OWNER";
+  const isAdmin = userRole === "ADMIN" || isOwner;
 
   // ─── Derived Data ──────────────────────────────────────────────────────────
   const filteredUsers = useMemo(() => {
@@ -143,6 +146,15 @@ export default function TeamPage() {
     }
   };
 
+  const handleOpenPermissionModal = (user: TeamMember) => {
+    setSelectedMemberForPermissions(user);
+    setPermissionModalOpen(true);
+  };
+
+  const handlePermissionsUpdated = () => {
+    refetchMembers();
+  };
+
   const toggleSelectAll = () => {
     if (selectedIds.length === filteredUsers.length) {
       setSelectedIds([]);
@@ -158,9 +170,9 @@ export default function TeamPage() {
   };
 
   const canManageUser = (target: TeamMember) => {
-    if (isSuperAdmin) return true;
+    if (isOwner) return true;
     if (isAdmin) {
-      return target.role !== "SUPER_ADMIN";
+      return target.role !== "OWNER";
     }
     return false;
   };
@@ -323,7 +335,7 @@ export default function TeamPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {ROLES.filter(r => isSuperAdmin || r !== 'SUPER_ADMIN').map((r) => (
+                          {ROLES.filter(r => isOwner || r !== 'OWNER').map((r) => (
                             <SelectItem key={r} value={r} className="text-xs">
                               {r.replace("_", " ")}
                             </SelectItem>
@@ -369,10 +381,12 @@ export default function TeamPage() {
                           <Eye className="mr-2 h-4 w-4 text-blue-500" />
                           View Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <UserCog className="mr-2 h-4 w-4 text-orange-500" />
-                          Edit Permissions
-                        </DropdownMenuItem>
+                        {(isOwner || isAdmin) && (
+                          <DropdownMenuItem onClick={() => handleOpenPermissionModal(user)}>
+                            <UserCog className="mr-2 h-4 w-4 text-orange-500" />
+                            Manage Permissions
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
                           {user.status === "ACTIVE" ? (
@@ -385,7 +399,7 @@ export default function TeamPage() {
                           <UserMinus className="mr-2 h-4 w-4" />
                           Remove Member
                         </DropdownMenuItem>
-                        {isSuperAdmin && (
+                        {isOwner && (
                           <DropdownMenuItem className="text-destructive font-bold" onClick={() => setConfirmDeleteId(user.id)}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             Permanent Delete
@@ -403,6 +417,21 @@ export default function TeamPage() {
 
       {/* ─── Invitation Modal ─────────────────────────────────────────────── */}
       <InviteModal open={isInviteOpen} onOpenChange={setIsInviteOpen} onInvite={(payload) => inviteMember.mutateAsync(payload)} />
+
+      {/* ─── Permission Modal ─────────────────────────────────────────────── */}
+      {selectedMemberForPermissions && (
+        <PermissionModal
+          isOpen={permissionModalOpen}
+          onClose={() => {
+            setPermissionModalOpen(false);
+            setSelectedMemberForPermissions(null);
+          }}
+          memberId={selectedMemberForPermissions.id}
+          memberName={`${selectedMemberForPermissions.firstName} ${selectedMemberForPermissions.lastName}`}
+          memberRole={selectedMemberForPermissions.role}
+          onPermissionsUpdated={handlePermissionsUpdated}
+        />
+      )}
 
       {/* ─── User Details Sheet ───────────────────────────────────────────── */}
       <Sheet open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>

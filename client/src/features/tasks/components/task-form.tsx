@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
@@ -18,6 +19,7 @@ import {
   TaskFormValues,
   taskFormSchema,
 } from "@/features/tasks/schemas/task.schema";
+import { MultiUserSelect } from "@/features/team/components/multi-user-select";
 
 interface ProjectOption {
   id: string;
@@ -47,10 +49,25 @@ export function TaskForm({
       status: initialValues?.status ?? "TODO",
       priority: initialValues?.priority ?? "MEDIUM",
       projectId: initialValues?.projectId ?? "",
-      assigneeId: initialValues?.assigneeId ?? "",
+      assigneeIds: initialValues?.assigneeIds ?? [],
       dueDate: initialValues?.dueDate ?? "",
     },
   });
+
+  // Reset form when initialValues change (critical for edit modal)
+  React.useEffect(() => {
+    if (initialValues) {
+      form.reset({
+        title: initialValues.title ?? "",
+        description: initialValues.description ?? "",
+        status: initialValues.status ?? "TODO",
+        priority: initialValues.priority ?? "MEDIUM",
+        projectId: initialValues.projectId ?? "",
+        assigneeIds: initialValues.assigneeIds ?? [],
+        dueDate: initialValues.dueDate ?? "",
+      });
+    }
+  }, [initialValues, form]);
 
   return (
     <form
@@ -163,16 +180,22 @@ export function TaskForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="assigneeId">Assignee ID (optional)</Label>
-        <Input
-          id="assigneeId"
-          {...form.register("assigneeId")}
-          placeholder="User ID"
+        <Label>Assignees</Label>
+        <MultiUserSelect
+          value={form.watch("assigneeIds") || []}
+          onChange={(userIds) => form.setValue("assigneeIds", userIds, { shouldDirty: true })}
+          placeholder="Select team members"
+          prefilledUsers={(initialValues as any)?.assigneeUsers}
         />
+        {form.formState.errors.assigneeIds ? (
+          <p className="text-sm text-destructive">
+            {form.formState.errors.assigneeIds.message}
+          </p>
+        ) : null}
       </div>
 
-      <Button type="submit" disabled={isSubmitting}>
-        {submitLabel}
+      <Button type="submit" className="w-full" disabled={isSubmitting}>
+        {isSubmitting ? "Saving..." : submitLabel}
       </Button>
     </form>
   );

@@ -257,19 +257,26 @@ export default function OrganizationMembersPage() {
                       </TableCell>
                       <TableCell>{member.email}</TableCell>
                       <TableCell>
-                        <Select
-                          value={member.role === "ADMIN" ? "ADMIN" : "MEMBER"}
-                          onValueChange={(value) => updateRoleMutation.mutate({ userId: member.id, role: value as "ADMIN" | "MEMBER" })}
-                          disabled={updateRoleMutation.isPending || member.id === user?.id}
-                        >
-                          <SelectTrigger className="w-32.5">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ADMIN">Admin</SelectItem>
-                            <SelectItem value="MEMBER">Member</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <Select
+                            value={member.role}
+                            disabled={updateRoleMutation.isPending || member.id === user?.id}
+                            onValueChange={(value) => 
+                              updateRoleMutation.mutate({ 
+                                userId: member.id, 
+                                role: value as OrganizationMemberRole 
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-[110px] bg-background/50 border-white/5 text-[11px] font-medium">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ADMIN">Admin</SelectItem>
+                              <SelectItem value="MANAGER">Manager</SelectItem>
+                              <SelectItem value="MEMBER">Member</SelectItem>
+                              <SelectItem value="VIEWER">Viewer</SelectItem>
+                            </SelectContent>
+                          </Select>
                       </TableCell>
                       <TableCell>{statusBadge(member.status)}</TableCell>
                       <TableCell className="text-right">
@@ -337,18 +344,20 @@ export default function OrganizationMembersPage() {
               <label className="text-sm font-medium">Email</label>
               <Input value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="name@company.com" />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Role</label>
-              <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as "ADMIN" | "MEMBER") }>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ADMIN">Admin</SelectItem>
-                  <SelectItem value="MEMBER">Member</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Initial Role</label>
+                <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as OrganizationMemberRole) }>
+                  <SelectTrigger className="h-10 bg-background/50 border-white/5">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="MANAGER">Manager</SelectItem>
+                    <SelectItem value="MEMBER">Member</SelectItem>
+                    <SelectItem value="VIEWER">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>

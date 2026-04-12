@@ -116,3 +116,38 @@ export const remove = asyncHandler(async (req, res) => {
 
   return successResponse(res, null, 'Page deleted successfully.');
 });
+
+export const exportPdf = asyncHandler(async (req, res) => {
+  const organizationId = pageService.resolveOrganizationId(req);
+  const id = readParam(req.params.id);
+
+  const page = await pageService.getPageById(
+    id,
+    req.user.id,
+    req.user.role,
+    organizationId,
+  );
+
+  const normalized = await normalizePagePayload(page as unknown as Record<string, unknown>);
+  const creator = normalized.creator as
+    | { firstName?: string; lastName?: string; email?: string }
+    | undefined;
+
+  const pdf = await pageService.renderPagePdf({
+    title: normalized.title,
+    content: normalized.content,
+    visibility: normalized.visibility,
+    authorName: creator
+      ? `${creator.firstName || ''} ${creator.lastName || ''}`.trim() || creator.email || 'Unknown'
+      : 'Unknown',
+    updatedAt: normalized.updatedAt,
+  });
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${normalized.title.replace(/[^a-zA-Z0-9-_ ]/g, '').trim() || 'page'}.pdf"`,
+  );
+
+  res.status(200).send(pdf);
+});

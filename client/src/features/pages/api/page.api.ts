@@ -158,4 +158,11 @@ export const pageApi = {
     const response = await api.delete<ApiResponse<null>>(`/pages/${id}`);
     return response.data;
   },
+
+  async exportPagePdf(id: string): Promise<Blob> {
+    const response = await api.get<Blob>(`/pages/${id}/export.pdf`, {
+      responseType: "blob",
+    });
+    return response.data;
+  },
 };

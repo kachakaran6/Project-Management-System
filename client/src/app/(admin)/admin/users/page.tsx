@@ -67,7 +67,7 @@ import {
   useAuditLogsQuery,
 } from "@/features/admin/hooks/use-admin";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import type { AdminApprovalRequest, AdminUser } from "@/features/admin/api/admin.api";
+import type { AdminApprovalRequest, AdminUser, AuditLogEntry } from "@/features/admin/api/admin.api";
 
 const roleOptions: Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER", "MEMBER", "USER"];
 const statusOptions = ["ALL", "ACTIVE", "SUSPENDED", "PENDING_APPROVAL", "INACTIVE"] as const;
@@ -338,7 +338,7 @@ export default function AdminUsersPage() {
 
   const users = usersQuery.data ?? [];
   const pendingRequests = pendingQuery.data ?? [];
-  const auditLogs = auditLogsQuery.data ?? [];
+  const auditLogs: AuditLogEntry[] = auditLogsQuery.data?.items ?? [];
   const tasks = tasksQuery.data ?? [];
 
   const filteredUsers = useMemo(() => {

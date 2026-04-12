@@ -901,7 +901,7 @@ function OrganizationSection() {
         </div>
       </SectionCard>
 
-      {!canManageOrg && organizations.length === 0 ? (
+      {!canManageOrg && organizations.length === 0 && (user?.role as string) !== 'MEMBER' ? (
         <SectionCard
           title="Organization Access Request"
           description="Request elevated organization access and track approval status."

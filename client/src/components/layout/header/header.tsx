@@ -1,12 +1,13 @@
 "use client";
 
-import { MoonStar, Menu, Search, SunMedium } from "lucide-react";
+import { MoonStar, Menu, SunMedium } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { HeaderOrgSwitcher } from "@/components/layout/header/org-switcher";
+import { GlobalSearch } from "@/components/layout/header/global-search";
+import { NotificationBell } from "@/components/layout/header/notification-bell";
 import { HeaderUserMenu } from "@/components/layout/header/user-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -73,15 +74,8 @@ export function AppHeader() {
         </nav>
       </div>
 
-      <div className="ml-auto hidden max-w-xs flex-1 md:block">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Search projects, tasks, users"
-            aria-label="Global search"
-          />
-        </div>
+      <div className="ml-auto hidden flex-1 md:block">
+        <GlobalSearch />
       </div>
 
       <HeaderOrgSwitcher />
@@ -121,6 +115,8 @@ export function AppHeader() {
           <TooltipContent>{tooltipLabel}</TooltipContent>
         </Tooltip>
       </TooltipProvider>
+
+      <NotificationBell />
 
       <HeaderUserMenu />
     </header>

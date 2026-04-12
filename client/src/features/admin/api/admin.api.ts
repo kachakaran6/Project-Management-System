@@ -37,6 +37,8 @@ type RawTaskRow = Task & {
 type RawAuditLogRow = {
   _id?: string;
   id?: string;
+  organizationId?: string;
+  module?: string;
   level?: AuditLogEntry["level"];
   userId?: {
     _id?: string;
@@ -87,8 +89,24 @@ export interface AdminOrganization {
   isActive: boolean;
   createdAt: string;
   membersCount: number;
+  activeUsersCount?: number;
   projectsCount: number;
   activityLevel: "low" | "medium" | "high";
+}
+
+export interface AdminOrganizationMember {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  status: string;
+  avatarUrl?: string;
+  joinedAt?: string;
+}
+
+export interface AdminOrganizationDetails extends AdminOrganization {
+  recentMembers: AdminOrganizationMember[];
 }
 
 export interface AdminProject extends Project {
@@ -116,6 +134,8 @@ export interface RolePermissionRow {
 
 export interface AuditLogEntry {
   id: string;
+  organizationId?: string;
+  module?: string;
   level: "info" | "warn" | "error" | "debug";
   actor: {
     id: string;
@@ -137,6 +157,24 @@ export interface AuditLogEntry {
   stack?: string;
   createdAt: string;
 }
+
+export interface AuditLogsResult {
+  items: AuditLogEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+type AuditLogsApiPayload = {
+  data: RawAuditLogRow[];
+  pagination: {
+    total?: number;
+    page?: number;
+    limit?: number;
+    pages?: number;
+  };
+};
 
 export interface ApiRequestLog {
   id: string;
@@ -162,6 +200,31 @@ export interface AnalyticsPoint {
   users: number;
   organizations: number;
   tasks: number;
+}
+
+export interface AnalyticsSeriesPoint {
+  label: string;
+  value: number;
+}
+
+export interface AdminAnalyticsSummary {
+  counts: {
+    totalOrganizations: number;
+    activeOrganizations: number;
+    totalUsers: number;
+    activeUsers: number;
+    totalTasks: number;
+  };
+  trends: {
+    organizations: AnalyticsSeriesPoint[];
+    users: AnalyticsSeriesPoint[];
+  };
+  summaries: {
+    activityDistribution: Array<{
+      level: string;
+      count: number;
+    }>;
+  };
 }
 
 export interface AdminDashboardSnapshot {
@@ -386,13 +449,25 @@ export const adminApi = {
   async getOrganizations(): Promise<AdminOrganization[]> {
     try {
       const response = await tryGet<ApiResponse<RawOrganizationRow[]>>([
-        "/admin/orgs",
         "/admin/organizations",
+        "/admin/orgs",
       ]);
       return mapOrganizations(response.data ?? []);
     } catch {
       return [];
     }
+  },
+
+  async getOrganizationById(orgId: string): Promise<AdminOrganizationDetails> {
+    const response = await api.get<ApiResponse<RawOrganizationRow & { recentMembers?: AdminOrganizationMember[] }>>(
+      `/admin/organizations/${orgId}`,
+    );
+    const details = response.data.data;
+    return {
+      ...details,
+      _id: String(details._id || details.id || ""),
+      recentMembers: details.recentMembers ?? [],
+    };
   },
 
   async toggleOrganizationStatus(orgId: string) {
@@ -534,22 +609,30 @@ export const adminApi = {
     }
   },
 
-  async getAuditLogs(filters?: {
-    actorId?: string;
-    action?: string;
+  async getAuditLogs(params?: {
+    page?: number;
+    limit?: number;
+    query?: string;
     level?: string;
+    module?: string;
+    action?: string;
     status?: string;
+    userId?: string;
+    organizationId?: string;
     startDate?: string;
     endDate?: string;
-  }): Promise<AuditLogEntry[]> {
-    const response = await api.get<ApiResponse<RawAuditLogRow[]>>("/admin/logs", { params: filters });
-    const rows = response.data.data ?? [];
+  }): Promise<AuditLogsResult> {
+    const response = await api.get<ApiResponse<AuditLogsApiPayload>>("/admin/logs", { params });
+    const payload = response.data.data;
+    const rows = payload?.data ?? [];
 
-    return rows.map((entry) => {
+    const mapped = rows.map((entry) => {
       const row = entry as RawAuditLogRow;
 
       return {
         id: String(row._id || row.id || ""),
+        organizationId: row.organizationId,
+        module: row.module,
         level: row.level || "info",
         actor: {
           id: String(row.userId?._id || row.userId?.id || ""),
@@ -572,6 +655,14 @@ export const adminApi = {
         createdAt: row.createdAt || new Date().toISOString(),
       };
     });
+
+    return {
+      items: mapped,
+      total: payload?.pagination?.total ?? 0,
+      page: payload?.pagination?.page ?? 1,
+      limit: payload?.pagination?.limit ?? 20,
+      pages: payload?.pagination?.pages ?? 1
+    };
   },
 
   async getApiRequestLogs(): Promise<ApiRequestLog[]> {
@@ -678,38 +769,10 @@ export const adminApi = {
     };
   },
 
-  async getAnalytics(): Promise<AnalyticsPoint[]> {
-    const [users, orgs, tasks] = await Promise.all([
-      this.getUsers(),
-      this.getOrganizations(),
-      this.getTasks(),
-    ]);
-
-    return [
-      {
-        label: "W1",
-        users: Math.max(0, users.length - 7),
-        organizations: Math.max(0, orgs.length - 2),
-        tasks: Math.max(0, tasks.length - 16),
-      },
-      {
-        label: "W2",
-        users: Math.max(0, users.length - 4),
-        organizations: Math.max(0, orgs.length - 1),
-        tasks: Math.max(0, tasks.length - 8),
-      },
-      {
-        label: "W3",
-        users: Math.max(0, users.length - 2),
-        organizations: orgs.length,
-        tasks: Math.max(0, tasks.length - 3),
-      },
-      {
-        label: "W4",
-        users: users.length,
-        organizations: orgs.length,
-        tasks: tasks.length,
-      },
-    ];
+  async getAnalytics(): Promise<AdminAnalyticsSummary> {
+    const response = await api.get<ApiResponse<AdminAnalyticsSummary>>(
+      "/admin/analytics",
+    );
+    return response.data.data;
   },
 };

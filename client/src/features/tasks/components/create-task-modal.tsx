@@ -48,6 +48,7 @@ export function CreateTaskModal({
         priority: values.priority,
         description: values.description || undefined,
         dueDate: values.dueDate || undefined,
+        assigneeIds: values.assigneeIds || [],
       };
 
       await createTask.mutateAsync(payload);

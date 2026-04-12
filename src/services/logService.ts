@@ -4,9 +4,28 @@ import { logger } from '../utils/logger.js';
 interface LogData {
   message: string;
   level?: 'info' | 'warn' | 'error' | 'debug';
+  module?: string;
   action?: string;
   status?: 'SUCCESS' | 'FAILURE';
+  
+  // Actor info
   userId?: any;
+  performedBy?: {
+    userId?: string;
+    name?: string;
+    email?: string;
+  };
+
+  // Target info
+  target?: {
+    targetId?: string;
+    type?: string;
+    name?: string;
+  };
+
+  organizationId?: string;
+  
+  // Technical Context
   requestId?: string;
   endpoint?: string;
   method?: string;

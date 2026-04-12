@@ -25,6 +25,7 @@ export const getAll = asyncHandler(async (req, res) => {
     organizationId: req.organizationId,
     userId: req.user.id, // Support solo mode
     role: req.user.role, 
+    search: req.query.search,
     workspaceId: req.query.workspaceId,
     projectId: req.query.projectId,
     status: req.query.status,

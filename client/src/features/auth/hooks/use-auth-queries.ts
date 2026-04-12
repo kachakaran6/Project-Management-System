@@ -26,6 +26,21 @@ function deriveMemberships(
   }));
 }
 
+function mergeMemberships(
+  primary: OrganizationMembership[] | undefined,
+  fallback: OrganizationMembership[],
+): OrganizationMembership[] {
+  if (primary && primary.length > 0) {
+    return primary.map((org) => ({
+      ...org,
+      slug: org.slug ?? org.name.toLowerCase().replace(/\s+/g, "-"),
+      role: org.role ?? fallback[0]?.role ?? "MEMBER",
+    }));
+  }
+
+  return fallback;
+}
+
 export function useLoginMutation() {
   const queryClient = useQueryClient();
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -45,7 +60,12 @@ export function useLoginMutation() {
         limit: 100,
       });
 
-      const memberships = deriveMemberships(
+      const meMemberships = mergeMemberships(
+        meResult.data.organizations,
+        [],
+      );
+
+      const workspaceMemberships = deriveMemberships(
         workspaceResult.data.items.map((item) => ({
           id: item.id,
           name: item.name,
@@ -56,13 +76,15 @@ export function useLoginMutation() {
           "MEMBER",
       );
 
+      const memberships = meMemberships.length > 0 ? meMemberships : workspaceMemberships;
+
       setAuth(
         {
           ...meResult.data.user,
           role:
-            ((meResult.data.role as string) ||
-             user.role ||
-             undefined) as import("@/types/user.types").Role | undefined,
+            (meResult.data.role as OrganizationMembership["role"]) ||
+            user.role ||
+            undefined,
           organizationId: meResult.data.organizationId || user.organizationId,
         },
         accessToken,
@@ -89,21 +111,8 @@ export function useSignupMutation() {
   });
 }
 
-export function useSendOtpMutation() {
-  return useMutation({
-    mutationFn: (email: string) => authApi.sendOtp(email),
-  });
-}
-
-export function useVerifyOtpMutation() {
-  return useMutation({
-    mutationFn: ({ email, otp }: { email: string; otp: string }) =>
-      authApi.verifyOtp(email, otp),
-  });
-}
-
 export function useUserQuery(enabled = true) {
-  const { setUser, setOrganizations } = useAuthStore();
+  const setUser = useAuthStore((state) => state.setUser);
   const query = useQuery({
     queryKey: authQueryKeys.me,
     queryFn: () => authApi.me(),
@@ -112,15 +121,13 @@ export function useUserQuery(enabled = true) {
   });
 
   useEffect(() => {
-    if (query.data?.data) {
-      const { user, organizations } = query.data.data;
-      if (user) setUser(user);
-      
-      if (Array.isArray(organizations) && organizations.length > 0) {
-        setOrganizations(organizations);
-      }
+    if (query.data?.data.user) {
+      setUser(query.data.data.user);
     }
-  }, [query.data, setUser, setOrganizations]);
+    if (query.data?.data.organizations) {
+      useAuthStore.getState().setOrganizations(query.data.data.organizations);
+    }
+  }, [query.data, setUser]);
 
   return query;
 }

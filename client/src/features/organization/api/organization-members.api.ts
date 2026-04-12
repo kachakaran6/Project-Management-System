@@ -105,4 +105,12 @@ export const organizationMembersApi = {
     );
     return response.data;
   },
+
+  async searchMembers(orgId: string, query: string): Promise<ApiResponse<OrganizationMemberRecord[]>> {
+    const response = await api.get<ApiResponse<OrganizationMemberRecord[]>>(
+      `/organizations/${orgId}/search`,
+      { params: { q: query } }
+    );
+    return response.data;
+  },
 };

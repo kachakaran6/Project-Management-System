@@ -25,7 +25,7 @@ export function useInviteOrganizationMemberMutation(orgId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: { email: string; role: "ADMIN" | "MEMBER" }) =>
+    mutationFn: (payload: { email: string; role: OrganizationMemberRole }) =>
       organizationMembersApi.inviteMember(orgId, payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: organizationMemberQueryKeys.members(orgId) });

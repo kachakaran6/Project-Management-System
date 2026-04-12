@@ -1,6 +1,9 @@
 import { logInfo } from '../services/logService.js';
 import Notification from '../models/Notification.js';
 import OrganizationMember from '../models/OrganizationMember.js';
+import { emitToUsers } from '../realtime/socket.server.js';
+import { SOCKET_EVENTS } from '../realtime/socket.events.js';
+import { NOTIFICATION_TYPES } from '../constants/index.js';
 
 interface ActivityParams {
   userId: any;
@@ -68,19 +71,51 @@ export const triggerNotification = async ({
   resourceType: any;
 }) => {
   try {
-    const notifications = userIds.map((userId) => ({
-      userId,
+    const uniqueUserIds = [...new Set(userIds.map((userId) => String(userId)))];
+    const validUserIds = organizationId
+      ? await OrganizationMember.find({
+          organizationId,
+          userId: { $in: uniqueUserIds },
+          isActive: true
+        }).distinct('userId')
+      : uniqueUserIds;
+
+    const titleMap: Record<string, string> = {
+      [NOTIFICATION_TYPES.TASK_ASSIGNED]: 'Task assigned',
+      [NOTIFICATION_TYPES.TASK_UPDATED]: 'Task updated',
+      [NOTIFICATION_TYPES.COMMENT_ADDED]: 'New comment',
+      [NOTIFICATION_TYPES.MENTION]: 'You were mentioned',
+      [NOTIFICATION_TYPES.PROJECT_INVITE]: 'Project invitation'
+    };
+
+    const link = resourceType === 'Task' && resourceId ? `/tasks/${resourceId}` : resourceType === 'Project' && resourceId ? `/projects/${resourceId}` : undefined;
+
+    const notifications = validUserIds.map((recipientId) => ({
+      recipientId,
       organizationId,
-      actorId,
+      senderId: actorId,
       type,
+      title: titleMap[type] || 'Notification',
       message,
+      link,
+      metadata: {
+        resourceId,
+        resourceType,
+      },
       resourceId,
       resourceType
     }));
 
-    await Notification.insertMany(notifications);
+    if (notifications.length === 0) {
+      return [];
+    }
+
+    const createdNotifications = await Notification.insertMany(notifications);
+    emitToUsers(validUserIds, SOCKET_EVENTS.NOTIFICATION_NEW, createdNotifications);
+    return createdNotifications;
   } catch (error) {
     console.error('Notification trigger failed:', error);
+    return [];
   }
 };
 
