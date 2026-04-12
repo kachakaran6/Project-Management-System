@@ -24,11 +24,16 @@ interface EditTaskModalProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export function EditTaskModal({ task, trigger, open, onOpenChange }: EditTaskModalProps) {
+export function EditTaskModal({
+  task,
+  trigger,
+  open,
+  onOpenChange,
+}: EditTaskModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const updateTask = useUpdateTaskMutation();
   const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
-  
+
   const isControlled = open !== undefined && onOpenChange !== undefined;
   const dialogOpen = isControlled ? open : internalOpen;
   const handleOpenChange = isControlled ? onOpenChange : setInternalOpen;
@@ -36,7 +41,7 @@ export function EditTaskModal({ task, trigger, open, onOpenChange }: EditTaskMod
   const taskId = task.id || (task as any)._id;
 
   const projects = (projectsQuery.data?.data.items ?? []).map((p) => ({
-    id: p.id || p._id,
+    id: p.id,
     name: p.name,
   }));
 
@@ -51,7 +56,7 @@ export function EditTaskModal({ task, trigger, open, onOpenChange }: EditTaskMod
         dueDate: values.dueDate || undefined,
         assigneeIds: values.assigneeIds || [],
       };
-      
+
       if (!taskId) {
         toast.error("Invalid task ID.");
         return;
@@ -67,11 +72,7 @@ export function EditTaskModal({ task, trigger, open, onOpenChange }: EditTaskMod
 
   return (
     <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
-      {trigger ? (
-        <DialogTrigger asChild>
-          {trigger}
-        </DialogTrigger>
-      ) : null}
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Task</DialogTitle>
@@ -81,19 +82,31 @@ export function EditTaskModal({ task, trigger, open, onOpenChange }: EditTaskMod
         </DialogHeader>
         <TaskForm
           projects={projects}
-          initialValues={{
-            title: task.title,
-            description: task.description ?? "",
-            status: task.status,
-            priority: task.priority,
-            projectId: typeof task.projectId === 'string' ? task.projectId : (task.projectId as any)?._id || (task.projectId as any)?.id || "",
-            dueDate: task.dueDate
-              ? new Date(task.dueDate).toISOString().split("T")[0]
-              : "",
-            assigneeIds: (task as any).assigneeIds || (task as any).assignees?.map((a: any) => a.userId?._id || a.userId) || [],
-            // Pass the full users for chips to show names immediately
-            assigneeUsers: (task as any).assigneeUsers,
-          } as any}
+          initialValues={
+            {
+              title: task.title,
+              description: task.description ?? "",
+              status: task.status,
+              priority: task.priority,
+              projectId:
+                typeof task.projectId === "string"
+                  ? task.projectId
+                  : (task.projectId as any)?._id ||
+                    (task.projectId as any)?.id ||
+                    "",
+              dueDate: task.dueDate
+                ? new Date(task.dueDate).toISOString().split("T")[0]
+                : "",
+              assigneeIds:
+                (task as any).assigneeIds ||
+                (task as any).assignees?.map(
+                  (a: any) => a.userId?._id || a.userId,
+                ) ||
+                [],
+              // Pass the full users for chips to show names immediately
+              assigneeUsers: (task as any).assigneeUsers,
+            } as any
+          }
           onSubmit={handleSubmit}
           isSubmitting={updateTask.isPending}
           submitLabel="Save Changes"

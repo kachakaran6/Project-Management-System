@@ -201,8 +201,7 @@ function TaskCard({ task, isDragging = false, projectId, canEdit = true }: TaskC
         ref={setNodeRef}
         style={style}
         className={[
-          "group rounded-[10px] border border-[#E5E7EB] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
-          "dark:border-[#1F2937] dark:bg-[#111827]",
+          "group rounded-[10px] border border-border bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
           "transition-all duration-150",
           "hover:-translate-y-px hover:shadow-[0_3px_8px_rgba(16,24,40,0.08)]",
           isDragging ? "scale-[1.02] shadow-[0_8px_20px_rgba(16,24,40,0.14)] cursor-grabbing" : "cursor-pointer",
@@ -220,19 +219,19 @@ function TaskCard({ task, isDragging = false, projectId, canEdit = true }: TaskC
                 {...attributes}
                 {...listeners}
                 onClick={(event) => event.stopPropagation()}
-                className="mt-0.5 shrink-0 cursor-grab touch-none text-[#ADB5BD] hover:text-[#6C757D] dark:text-slate-500 dark:hover:text-slate-300 active:cursor-grabbing"
+                className="mt-0.5 shrink-0 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
                 aria-label="Drag task"
               >
                 <GripVertical className="size-3.5" />
               </button>
             ) : (
-              <div className="mt-0.5 shrink-0 text-[#CED4DA] dark:text-slate-700">
+              <div className="mt-0.5 shrink-0 text-muted-foreground/50">
                 <GripVertical className="size-3.5" />
               </div>
             )}
 
             {/* Title */}
-            <p className="flex-1 min-w-0 text-[14px] font-semibold leading-5 text-[#212529] dark:text-[#E5E7EB] wrap-break-word">
+            <p className="flex-1 min-w-0 text-[14px] font-semibold leading-5 text-foreground wrap-break-word">
               {task.title}
             </p>
 
@@ -243,7 +242,7 @@ function TaskCard({ task, isDragging = false, projectId, canEdit = true }: TaskC
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 shrink-0 -mr-1 text-[#6C757D] hover:text-[#212529] dark:text-slate-400 dark:hover:text-slate-100"
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
                     onClick={(event) => event.stopPropagation()}
                   >
                     <MoreHorizontal className="size-3.5" />
@@ -276,7 +275,7 @@ function TaskCard({ task, isDragging = false, projectId, canEdit = true }: TaskC
 
           {/* Description snippet */}
           {task.description && (
-            <p className="mt-1.5 ml-6 text-[12px] leading-relaxed text-[#6C757D] dark:text-slate-400 line-clamp-2">
+            <p className="mt-1.5 ml-6 text-[12px] leading-relaxed text-muted-foreground line-clamp-2">
               {task.description}
             </p>
           )}
@@ -287,13 +286,13 @@ function TaskCard({ task, isDragging = false, projectId, canEdit = true }: TaskC
               {task.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full bg-[#F1F3F5] px-2 py-0.5 text-[10px] font-medium text-[#495057] dark:bg-slate-800 dark:text-slate-300"
+                  className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
                 >
                   {tag}
                 </span>
               ))}
               {task.tags.length > 3 && (
-                <span className="rounded-full bg-[#F8F9FA] px-2 py-0.5 text-[10px] text-[#6C757D] dark:bg-slate-800 dark:text-slate-400">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
                   +{task.tags.length - 3}
                 </span>
               )}
@@ -309,7 +308,7 @@ function TaskCard({ task, isDragging = false, projectId, canEdit = true }: TaskC
                     <TooltipTrigger asChild>
                       <Avatar className="h-5.5 w-5.5 border border-white dark:border-[#111827] cursor-default">
                         <AvatarImage src={user.avatarUrl} alt={user.name} />
-                        <AvatarFallback className="text-[9px] bg-[#F1F3F5] text-[#495057] dark:bg-slate-700 dark:text-slate-200">
+                        <AvatarFallback className="text-[9px] bg-muted text-muted-foreground">
                           {user.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                         </AvatarFallback>
                       </Avatar>
@@ -320,12 +319,12 @@ function TaskCard({ task, isDragging = false, projectId, canEdit = true }: TaskC
                   </Tooltip>
                 ))}
                 {assignees.length > 3 && (
-                  <div className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-[#F8F9FA] text-[9px] font-medium text-[#6C757D] border border-white dark:border-[#111827] dark:bg-slate-800 dark:text-slate-300">
+                  <div className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-muted text-[9px] font-medium text-muted-foreground border border-background">
                     +{assignees.length - 3}
                   </div>
                 )}
                 {assignees.length === 0 && (
-                  <span className="text-[12px] text-[#ADB5BD] dark:text-slate-500">Unassigned</span>
+                  <span className="text-[12px] text-muted-foreground/60">Unassigned</span>
                 )}
               </div>
             </TooltipProvider>
@@ -335,8 +334,8 @@ function TaskCard({ task, isDragging = false, projectId, canEdit = true }: TaskC
                 <div
                   className={`flex items-center gap-1 text-[11px] ${
                     isPastDue
-                      ? "text-red-600 dark:text-red-400"
-                      : "text-[#6C757D] dark:text-slate-400"
+                      ? "text-destructive"
+                      : "text-muted-foreground"
                   }`}
                 >
                   <Calendar className="size-3" />
@@ -432,7 +431,7 @@ function QuickAddInput({ projectId, status, onDone }: QuickAddProps) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Task name…"
-        className="h-7 border-none bg-transparent p-0 text-sm text-[#212529] dark:text-slate-100 focus-visible:ring-0 focus-visible:ring-offset-0"
+        className="h-7 border-none bg-transparent p-0 text-sm text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
         onKeyDown={(e) => {
           if (e.key === "Enter") handleSubmit();
           if (e.key === "Escape") onDone();
@@ -444,7 +443,7 @@ function QuickAddInput({ projectId, status, onDone }: QuickAddProps) {
         ) : (
           <button
             onClick={handleSubmit}
-            className="rounded-md p-0.5 text-[#0D6EFD] hover:bg-blue-50 dark:hover:bg-blue-900/30"
+            className="rounded-md p-0.5 text-primary hover:bg-primary/10"
             aria-label="Save"
           >
             <Plus className="size-4" />
@@ -452,7 +451,7 @@ function QuickAddInput({ projectId, status, onDone }: QuickAddProps) {
         )}
         <button
           onClick={onDone}
-          className="rounded-md p-0.5 text-[#6C757D] hover:bg-[#F1F3F5] dark:text-slate-400 dark:hover:bg-slate-800"
+          className="rounded-md p-0.5 text-muted-foreground hover:bg-muted"
           aria-label="Cancel"
         >
           <X className="size-4" />
@@ -480,25 +479,24 @@ function TaskColumn({ col, tasks, isOver, projectId, canEdit = true }: TaskColum
     <div
       ref={setNodeRef}
       className={[
-        "flex flex-col rounded-xl border border-[#E5E7EB] bg-transparent",
-        "dark:border-[#1F2937]",
+        "flex flex-col rounded-xl border border-border bg-transparent",
         "min-h-100 w-75 shrink-0 px-1 transition-colors duration-150",
-        isOver ? "border-[#ADB5BD] dark:border-slate-500 ring-1 ring-[#CED4DA] dark:ring-slate-700" : "",
+        isOver ? "border-muted-foreground/50 ring-1 ring-border" : "",
       ].join(" ")}
     >
       {/* Column header */}
       <div className="flex items-center justify-between px-3 py-3">
         <div className="flex items-center gap-2">
           <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: col.dotColor }} />
-          <span className="text-[15px] font-semibold text-[#212529] dark:text-[#E5E7EB]">{col.label}</span>
-          <span className="text-[12px] text-[#6C757D] dark:text-slate-400">
+          <span className="text-[15px] font-semibold text-foreground">{col.label}</span>
+          <span className="text-[12px] text-muted-foreground">
             {tasks.length}
           </span>
         </div>
         {canEdit ? (
           <button
             onClick={() => setQuickAdd(true)}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-[#6C757D] dark:text-slate-400 transition-colors hover:bg-[#F1F3F5] hover:text-[#212529] dark:hover:bg-slate-800 dark:hover:text-slate-100"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label={`Add task to ${col.label}`}
           >
             <Plus className="size-4" />
@@ -528,14 +526,14 @@ function TaskColumn({ col, tasks, isOver, projectId, canEdit = true }: TaskColum
 
         {/* Empty state */}
         {tasks.length === 0 && !quickAdd && (
-          <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-[#DEE2E6] py-8 text-center dark:border-slate-700">
-            <p className="text-[12px] text-[#6C757D] dark:text-slate-400">
+          <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border py-8 text-center">
+            <p className="text-[12px] text-muted-foreground">
               {isOver ? "Drop here" : "No tasks"}
             </p>
             {canEdit ? (
               <button
                 onClick={() => setQuickAdd(true)}
-                className="mt-1 text-[12px] text-[#0D6EFD] hover:underline"
+                className="mt-1 text-[12px] text-primary hover:underline"
               >
                 + Add task
               </button>

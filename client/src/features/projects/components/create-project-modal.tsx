@@ -22,7 +22,10 @@ interface CreateProjectModalProps {
   onCreated?: () => void;
 }
 
-export function CreateProjectModal({ trigger, onCreated }: CreateProjectModalProps) {
+export function CreateProjectModal({
+  trigger,
+  onCreated,
+}: CreateProjectModalProps) {
   const [open, setOpen] = useState(false);
   const createProject = useCreateProjectMutation();
 
@@ -32,8 +35,6 @@ export function CreateProjectModal({ trigger, onCreated }: CreateProjectModalPro
         name: values.name,
         description: values.description || undefined,
         status: values.status,
-        startDate: values.startDate || undefined,
-        endDate: values.endDate || undefined,
       });
       toast.success(`Project "${values.name}" created!`);
       setOpen(false);

@@ -13,7 +13,7 @@ export const taskFormSchema = z.object({
   ]),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
   projectId: z.string().min(1, "Project is required"),
-  assigneeIds: z.array(z.string()).default([]),
+  assigneeIds: z.array(z.string()).optional(),
   dueDate: z.string().optional().or(z.literal("")),
 });
 

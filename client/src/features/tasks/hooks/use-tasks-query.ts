@@ -3,7 +3,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { taskApi } from "@/features/tasks/api/task.api";
-import { CreateTaskInput, TaskFilters, TaskStatus } from "@/types/task.types";
+import {
+  CreateTaskInput,
+  TaskFilters,
+  TaskStatus,
+  UpdateTaskInput,
+} from "@/types/task.types";
 
 export const tasksQueryKeys = {
   all: ["tasks"] as const,
@@ -64,7 +69,7 @@ export function useUpdateTaskMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateTaskInput> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateTaskInput }) =>
       taskApi.updateTask(id, data),
     onSuccess: async (_, variables) => {
       await Promise.all([

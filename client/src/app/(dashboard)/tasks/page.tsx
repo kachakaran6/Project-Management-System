@@ -43,6 +43,7 @@ import {
 } from "@/features/tasks/hooks/use-tasks-query";
 import { TaskBoard } from "@/features/tasks/components/task-board";
 import { EditTaskModal } from "@/features/tasks/components/edit-task-modal";
+import { CreateTaskModal } from "@/features/tasks/components/create-task-modal";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { Task, TaskStatus, TaskPriority } from "@/types/task.types";
 
@@ -110,8 +111,12 @@ export default function TasksPage() {
     [sharedFilters],
   );
 
-  const listQuery = useTasksQuery(listFilters, { enabled: viewMode === "list" });
-  const kanbanQuery = useTasksQuery(kanbanFilters, { enabled: viewMode === "kanban" });
+  const listQuery = useTasksQuery(listFilters, {
+    enabled: viewMode === "list",
+  });
+  const kanbanQuery = useTasksQuery(kanbanFilters, {
+    enabled: viewMode === "kanban",
+  });
 
   const listMeta = listQuery.data?.data.meta;
   const totalPages = Math.max(1, listMeta?.totalPages ?? 1);
@@ -120,9 +125,13 @@ export default function TasksPage() {
   const kanbanRows = kanbanQuery.data?.data.items ?? [];
 
   const getProjectName = (task: Task) => {
-    const projectValue = task.projectId as unknown as { name?: string; _id?: string; id?: string } | string;
+    const projectValue = task.projectId as unknown as
+      | { name?: string; _id?: string; id?: string }
+      | string;
     if (typeof projectValue === "string") return projectValue;
-    return projectValue?.name || projectValue?._id || projectValue?.id || "Unknown";
+    return (
+      projectValue?.name || projectValue?._id || projectValue?.id || "Unknown"
+    );
   };
 
   const getAssignee = (task: Task) => task.assigneeUsers?.[0] ?? null;
@@ -137,7 +146,10 @@ export default function TasksPage() {
     setDueDate("");
   };
 
-  const handleInlineStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+  const handleInlineStatusChange = async (
+    taskId: string,
+    newStatus: TaskStatus,
+  ) => {
     try {
       await updateStatus.mutateAsync({ id: taskId, status: newStatus });
       toast.success("Task status updated");
@@ -146,9 +158,15 @@ export default function TasksPage() {
     }
   };
 
-  const handleInlinePriorityChange = async (taskId: string, newPriority: TaskPriority) => {
+  const handleInlinePriorityChange = async (
+    taskId: string,
+    newPriority: TaskPriority,
+  ) => {
     try {
-      await updateTask.mutateAsync({ id: taskId, data: { priority: newPriority } });
+      await updateTask.mutateAsync({
+        id: taskId,
+        data: { priority: newPriority },
+      });
       toast.success("Task priority updated");
     } catch {
       toast.error("Failed to update priority");
@@ -189,9 +207,7 @@ export default function TasksPage() {
           </div>
 
           {canMutate ? (
-            <Button asChild>
-              <Link href="/tasks/create">Create Task</Link>
-            </Button>
+            <CreateTaskModal trigger={<Button>Create Task</Button>} />
           ) : null}
         </div>
       </div>
@@ -210,10 +226,13 @@ export default function TasksPage() {
           />
         </div>
 
-        <Select value={status} onValueChange={(value) => {
-          setPage(1);
-          setStatus(value);
-        }}>
+        <Select
+          value={status}
+          onValueChange={(value) => {
+            setPage(1);
+            setStatus(value);
+          }}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -228,10 +247,13 @@ export default function TasksPage() {
           </SelectContent>
         </Select>
 
-        <Select value={priority} onValueChange={(value) => {
-          setPage(1);
-          setPriority(value);
-        }}>
+        <Select
+          value={priority}
+          onValueChange={(value) => {
+            setPage(1);
+            setPriority(value);
+          }}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Priority" />
           </SelectTrigger>
@@ -244,10 +266,13 @@ export default function TasksPage() {
           </SelectContent>
         </Select>
 
-        <Select value={projectId} onValueChange={(value) => {
-          setPage(1);
-          setProjectId(value);
-        }}>
+        <Select
+          value={projectId}
+          onValueChange={(value) => {
+            setPage(1);
+            setProjectId(value);
+          }}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Project" />
           </SelectTrigger>
@@ -261,10 +286,13 @@ export default function TasksPage() {
           </SelectContent>
         </Select>
 
-        <Select value={assigneeId} onValueChange={(value) => {
-          setPage(1);
-          setAssigneeId(value);
-        }}>
+        <Select
+          value={assigneeId}
+          onValueChange={(value) => {
+            setPage(1);
+            setAssigneeId(value);
+          }}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Assignee" />
           </SelectTrigger>
@@ -325,111 +353,127 @@ export default function TasksPage() {
             {listRows.map((task) => {
               const assignee = getAssignee(task);
               return (
-              <TableRow
-                key={task.id}
-                className={canMutate ? "cursor-pointer" : ""}
-                onClick={() => {
-                  if (canMutate) setSelectedTask(task);
-                }}
-              >
-                <TableCell className="font-medium">{task.title}</TableCell>
-                <TableCell>
-                  {assignee ? (
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={assignee.avatarUrl} />
-                        <AvatarFallback>
-                          {assignee.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium">{assignee.name}</span>
-                        <span className="text-[11px] text-muted-foreground">{assignee.email}</span>
+                <TableRow
+                  key={task.id}
+                  className={canMutate ? "cursor-pointer" : ""}
+                  onClick={() => {
+                    if (canMutate) setSelectedTask(task);
+                  }}
+                >
+                  <TableCell className="font-medium">{task.title}</TableCell>
+                  <TableCell>
+                    {assignee ? (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={assignee.avatarUrl} />
+                          <AvatarFallback>
+                            {assignee.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium">
+                            {assignee.name}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {assignee.email}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Unassigned</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Select
-                    value={task.status}
-                    onValueChange={(value) => handleInlineStatusChange(task.id, value as TaskStatus)}
-                    disabled={!canMutate || updateStatus.isPending}
-                  >
-                    <SelectTrigger
-                      className="h-8 w-37.5"
-                      onClick={(event) => event.stopPropagation()}
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        Unassigned
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={task.status}
+                      onValueChange={(value) =>
+                        handleInlineStatusChange(task.id, value as TaskStatus)
+                      }
+                      disabled={!canMutate || updateStatus.isPending}
                     >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BACKLOG">Backlog</SelectItem>
-                      <SelectItem value="TODO">To Do</SelectItem>
-                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                      <SelectItem value="IN_REVIEW">In Review</SelectItem>
-                      <SelectItem value="DONE">Done</SelectItem>
-                      <SelectItem value="ARCHIVED">Archived</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Select
-                    value={task.priority}
-                    onValueChange={(value) => handleInlinePriorityChange(task.id, value as TaskPriority)}
-                    disabled={!canMutate || updateTask.isPending}
-                  >
-                    <SelectTrigger
-                      className="h-8 w-32.5"
-                      onClick={(event) => event.stopPropagation()}
+                      <SelectTrigger
+                        className="h-8 w-37.5"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BACKLOG">Backlog</SelectItem>
+                        <SelectItem value="TODO">To Do</SelectItem>
+                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                        <SelectItem value="IN_REVIEW">In Review</SelectItem>
+                        <SelectItem value="DONE">Done</SelectItem>
+                        <SelectItem value="ARCHIVED">Archived</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={task.priority}
+                      onValueChange={(value) =>
+                        handleInlinePriorityChange(
+                          task.id,
+                          value as TaskPriority,
+                        )
+                      }
+                      disabled={!canMutate || updateTask.isPending}
                     >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LOW">Low</SelectItem>
-                      <SelectItem value="MEDIUM">Medium</SelectItem>
-                      <SelectItem value="HIGH">High</SelectItem>
-                      <SelectItem value="URGENT">Urgent</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  {task.dueDate
-                    ? new Date(task.dueDate).toLocaleDateString()
-                    : <span className="text-xs text-muted-foreground">-</span>}
-                </TableCell>
-                <TableCell>{getProjectName(task)}</TableCell>
-                <TableCell className="space-x-2">
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/tasks/${task.id}`}>View</Link>
-                  </Button>
-                  {canMutate ? (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setSelectedTask(task);
-                        }}
+                      <SelectTrigger
+                        className="h-8 w-32.5"
+                        onClick={(event) => event.stopPropagation()}
                       >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setDeleteId(task.id);
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </>
-                  ) : null}
-                </TableCell>
-              </TableRow>
-            )})}
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="LOW">Low</SelectItem>
+                        <SelectItem value="MEDIUM">Medium</SelectItem>
+                        <SelectItem value="HIGH">High</SelectItem>
+                        <SelectItem value="URGENT">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    {task.dueDate ? (
+                      new Date(task.dueDate).toLocaleDateString()
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>{getProjectName(task)}</TableCell>
+                  <TableCell className="space-x-2">
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/tasks/${task.id}`}>View</Link>
+                    </Button>
+                    {canMutate ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedTask(task);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setDeleteId(task.id);
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       ) : null}

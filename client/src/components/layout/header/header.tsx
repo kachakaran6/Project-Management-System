@@ -9,7 +9,12 @@ import { HeaderOrgSwitcher } from "@/components/layout/header/org-switcher";
 import { GlobalSearch } from "@/components/layout/header/global-search";
 import { NotificationBell } from "@/components/layout/header/notification-bell";
 import { HeaderUserMenu } from "@/components/layout/header/user-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useApplyTheme } from "@/providers/theme-provider";
 import { useUIStore } from "@/store/ui-store";

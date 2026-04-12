@@ -48,7 +48,7 @@ export function CreateTaskModal({
         priority: values.priority,
         description: values.description || undefined,
         dueDate: values.dueDate || undefined,
-        assigneeIds: values.assigneeIds || [],
+        assigneeId: values.assigneeIds?.[0] || undefined,
       };
 
       await createTask.mutateAsync(payload);
@@ -79,7 +79,11 @@ export function CreateTaskModal({
         </DialogHeader>
         <TaskForm
           projects={projects}
-          initialValues={{ projectId: defaultProjectId ?? "", status: "TODO", priority: "MEDIUM" }}
+          initialValues={{
+            projectId: defaultProjectId ?? "",
+            status: "TODO",
+            priority: "MEDIUM",
+          }}
           onSubmit={handleSubmit}
           isSubmitting={createTask.isPending}
           submitLabel="Create Task"

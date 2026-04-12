@@ -19,6 +19,11 @@ export const metadata: Metadata = {
     default: "Project Management System",
   },
   description: "Enterprise-grade Multi-tenant Project Management System",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 // ─── Anti-flicker inline script ───────────────────────────────────────────────

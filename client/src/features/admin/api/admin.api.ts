@@ -367,7 +367,10 @@ async function tryGet<T>(endpoints: string[]): Promise<T> {
 }
 
 export const adminApi = {
-  async getUsers(filters?: { role?: string; status?: string }): Promise<AdminUser[]> {
+  async getUsers(filters?: {
+    role?: string;
+    status?: string;
+  }): Promise<AdminUser[]> {
     const response = await api.get<ApiResponse<RawUserRow[]>>("/admin/users", {
       params: filters,
     });
@@ -375,14 +378,16 @@ export const adminApi = {
   },
 
   async createUser(payload: CreateUserPayload) {
-    const response = await api.post<ApiResponse<{ user: RawUserRow; generatedPassword?: string }>>(
-      "/admin/users",
-      payload,
-    );
+    const response = await api.post<
+      ApiResponse<{ user: RawUserRow; generatedPassword?: string }>
+    >("/admin/users", payload);
     return response.data.data;
   },
 
-  async updateUser(userId: string, payload: Partial<CreateUserPayload> & Record<string, unknown>) {
+  async updateUser(
+    userId: string,
+    payload: Partial<CreateUserPayload> & Record<string, unknown>,
+  ) {
     const response = await api.patch<ApiResponse<RawUserRow>>(
       `/admin/users/${userId}`,
       payload,
@@ -391,7 +396,9 @@ export const adminApi = {
   },
 
   async deleteUser(userId: string) {
-    const response = await api.delete<ApiResponse<unknown>>(`/admin/users/${userId}`);
+    const response = await api.delete<ApiResponse<unknown>>(
+      `/admin/users/${userId}`,
+    );
     return response.data.data;
   },
 
@@ -402,15 +409,20 @@ export const adminApi = {
     isActive?: boolean;
     action?: "DELETE" | "REMOVE";
   }) {
-    const response = await api.post<ApiResponse<unknown>>("/admin/users/bulk", payload);
+    const response = await api.post<ApiResponse<unknown>>(
+      "/admin/users/bulk",
+      payload,
+    );
     return response.data.data;
   },
 
   async getPendingUsers(): Promise<AdminApprovalRequest[]> {
-    const response = await api.get<ApiResponse<RawUserRow[]>>("/admin/pending-users");
+    const response = await api.get<ApiResponse<RawUserRow[]>>(
+      "/admin/pending-users",
+    );
     return mapPendingUsers(response.data.data ?? []);
   },
-  
+
   async approveUser(userId: string) {
     const response = await api.patch<ApiResponse<unknown>>(
       `/admin/approve/${userId}`,
@@ -431,7 +443,11 @@ export const adminApi = {
         `/admin/users/${userId}`,
         payload,
       );
-      return { mocked: false, strategy: "patch-user", data: response.data.data };
+      return {
+        mocked: false,
+        strategy: "patch-user",
+        data: response.data.data,
+      };
     } catch {
       try {
         await api.patch(`/admin/users/${userId}/status`, {
@@ -459,9 +475,11 @@ export const adminApi = {
   },
 
   async getOrganizationById(orgId: string): Promise<AdminOrganizationDetails> {
-    const response = await api.get<ApiResponse<RawOrganizationRow & { recentMembers?: AdminOrganizationMember[] }>>(
-      `/admin/organizations/${orgId}`,
-    );
+    const response = await api.get<
+      ApiResponse<
+        RawOrganizationRow & { recentMembers?: AdminOrganizationMember[] }
+      >
+    >(`/admin/organizations/${orgId}`);
     const details = response.data.data;
     return {
       ...details,
@@ -499,10 +517,9 @@ export const adminApi = {
 
   async getProjects(): Promise<AdminProject[]> {
     try {
-      const response = await tryGet<ApiResponse<PaginatedResult<RawProjectRow>>>([
-        "/admin/projects?page=1&limit=500",
-        "/projects?page=1&limit=500",
-      ]);
+      const response = await tryGet<
+        ApiResponse<PaginatedResult<RawProjectRow>>
+      >(["/admin/projects?page=1&limit=500", "/projects?page=1&limit=500"]);
       return mapProjects(response.data?.items ?? []);
     } catch {
       return [];
@@ -622,7 +639,10 @@ export const adminApi = {
     startDate?: string;
     endDate?: string;
   }): Promise<AuditLogsResult> {
-    const response = await api.get<ApiResponse<AuditLogsApiPayload>>("/admin/logs", { params });
+    const response = await api.get<ApiResponse<AuditLogsApiPayload>>(
+      "/admin/logs",
+      { params },
+    );
     const payload = response.data.data;
     const rows = payload?.data ?? [];
 
@@ -661,7 +681,7 @@ export const adminApi = {
       total: payload?.pagination?.total ?? 0,
       page: payload?.pagination?.page ?? 1,
       limit: payload?.pagination?.limit ?? 20,
-      pages: payload?.pagination?.pages ?? 1
+      pages: payload?.pagination?.pages ?? 1,
     };
   },
 
@@ -770,9 +790,8 @@ export const adminApi = {
   },
 
   async getAnalytics(): Promise<AdminAnalyticsSummary> {
-    const response = await api.get<ApiResponse<AdminAnalyticsSummary>>(
-      "/admin/analytics",
-    );
+    const response =
+      await api.get<ApiResponse<AdminAnalyticsSummary>>("/admin/analytics");
     return response.data.data;
   },
 };

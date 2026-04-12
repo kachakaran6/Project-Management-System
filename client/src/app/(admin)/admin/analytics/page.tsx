@@ -22,23 +22,55 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="font-heading text-3xl font-semibold">Platform Analytics</h1>
+        <h1 className="font-heading text-3xl font-semibold">
+          Platform Analytics
+        </h1>
         <p className="text-muted-foreground mt-1">
           Growth, activity, and operational health for the full SaaS platform.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <MetricCard title="Total Organizations" value={counts?.totalOrganizations ?? 0} icon={Building2} />
-        <MetricCard title="Active Organizations" value={counts?.activeOrganizations ?? 0} icon={CheckCircle2} />
-        <MetricCard title="Total Users" value={counts?.totalUsers ?? 0} icon={Users} />
-        <MetricCard title="Active Users" value={counts?.activeUsers ?? 0} icon={Activity} />
-        <MetricCard title="Tasks (Active)" value={counts?.totalTasks ?? 0} icon={Activity} />
+        <MetricCard
+          title="Total Organizations"
+          value={counts?.totalOrganizations ?? 0}
+          icon={Building2}
+        />
+        <MetricCard
+          title="Active Organizations"
+          value={counts?.activeOrganizations ?? 0}
+          icon={CheckCircle2}
+        />
+        <MetricCard
+          title="Total Users"
+          value={counts?.totalUsers ?? 0}
+          icon={Users}
+        />
+        <MetricCard
+          title="Active Users"
+          value={counts?.activeUsers ?? 0}
+          icon={Activity}
+        />
+        <MetricCard
+          title="Tasks (Active)"
+          value={counts?.totalTasks ?? 0}
+          icon={Activity}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <TrendCard title="User Growth" points={userTrend} maxValue={maxTrend} color="bg-blue-500" />
-        <TrendCard title="Organization Growth" points={orgTrend} maxValue={maxTrend} color="bg-emerald-500" />
+        <TrendCard
+          title="User Growth"
+          points={userTrend}
+          maxValue={maxTrend}
+          color="bg-blue-500"
+        />
+        <TrendCard
+          title="Organization Growth"
+          points={orgTrend}
+          maxValue={maxTrend}
+          color="bg-emerald-500"
+        />
       </div>
 
       <Card>
@@ -49,21 +81,38 @@ export default function AdminAnalyticsPage() {
           {(analytics?.summaries.activityDistribution ?? []).map((item) => (
             <div key={item.level} className="space-y-1.5">
               <div className="flex items-center justify-between text-sm">
-                <Badge variant="outline" className="uppercase">{item.level}</Badge>
+                <Badge variant="outline" className="uppercase">
+                  {item.level}
+                </Badge>
                 <span className="font-medium tabular-nums">{item.count}</span>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-full rounded-full bg-primary"
                   style={{
-                    width: `${Math.max(4, Math.round((item.count / Math.max(1, (analytics?.summaries.activityDistribution ?? []).reduce((acc, cur) => Math.max(acc, cur.count), 0))) * 100))}%`,
+                    width: `${Math.max(
+                      4,
+                      Math.round(
+                        (item.count /
+                          Math.max(
+                            1,
+                            (
+                              analytics?.summaries.activityDistribution ?? []
+                            ).reduce((acc, cur) => Math.max(acc, cur.count), 0),
+                          )) *
+                          100,
+                      ),
+                    )}%`,
                   }}
                 />
               </div>
             </div>
           ))}
-          {!analyticsQuery.isLoading && (analytics?.summaries.activityDistribution?.length ?? 0) === 0 ? (
-            <p className="text-sm text-muted-foreground">No activity data available.</p>
+          {!analyticsQuery.isLoading &&
+          (analytics?.summaries.activityDistribution?.length ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No activity data available.
+            </p>
           ) : null}
         </CardContent>
       </Card>
@@ -111,19 +160,28 @@ function TrendCard({
       </CardHeader>
       <CardContent className="space-y-3">
         {points.map((point) => (
-          <div key={point.label} className="grid grid-cols-[76px_1fr_auto] items-center gap-3">
+          <div
+            key={point.label}
+            className="grid grid-cols-[76px_1fr_auto] items-center gap-3"
+          >
             <span className="text-xs text-muted-foreground">{point.label}</span>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div
                 className={`h-full rounded-full ${color}`}
-                style={{ width: `${Math.max(4, Math.round((point.value / maxValue) * 100))}%` }}
+                style={{
+                  width: `${Math.max(4, Math.round((point.value / maxValue) * 100))}%`,
+                }}
               />
             </div>
-            <span className="text-xs font-medium tabular-nums">{point.value}</span>
+            <span className="text-xs font-medium tabular-nums">
+              {point.value}
+            </span>
           </div>
         ))}
         {points.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No trend points available.</p>
+          <p className="text-sm text-muted-foreground">
+            No trend points available.
+          </p>
         ) : null}
       </CardContent>
     </Card>

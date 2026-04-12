@@ -32,7 +32,9 @@ import { cn } from "@/lib/utils";
 
 export default function AdminOrganizationsPage() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "DISABLED">("ALL");
+  const [statusFilter, setStatusFilter] = useState<
+    "ALL" | "ACTIVE" | "DISABLED"
+  >("ALL");
   const organizationsQuery = useAdminOrganizationsQuery();
   const toggleMutation = useToggleOrganizationMutation();
   const deleteMutation = useDeleteOrganizationMutation();
@@ -54,9 +56,7 @@ export default function AdminOrganizationsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="font-heading text-3xl font-semibold">
-          Organizations
-        </h1>
+        <h1 className="font-heading text-3xl font-semibold">Organizations</h1>
         <p className="text-muted-foreground mt-1">
           Platform-wide organization governance and lifecycle controls.
         </p>
@@ -74,7 +74,12 @@ export default function AdminOrganizationsPage() {
               placeholder="Search by organization name or slug"
               className="sm:max-w-sm"
             />
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                setStatusFilter(value as typeof statusFilter)
+              }
+            >
               <SelectTrigger className="sm:w-44">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -101,7 +106,10 @@ export default function AdminOrganizationsPage() {
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-40 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={7}
+                    className="h-40 text-center text-muted-foreground"
+                  >
                     <div className="flex flex-col items-center gap-2">
                       <Building2 className="h-6 w-6 opacity-40" />
                       No organizations found
@@ -114,7 +122,9 @@ export default function AdminOrganizationsPage() {
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium">{org.name}</span>
-                      <span className="text-xs text-muted-foreground">{org.slug}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {org.slug}
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
@@ -147,7 +157,10 @@ export default function AdminOrganizationsPage() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      className={cn("h-8", deleteMutation.isPending && "opacity-80")}
+                      className={cn(
+                        "h-8",
+                        deleteMutation.isPending && "opacity-80",
+                      )}
                       onClick={() => {
                         const confirmed = window.confirm(
                           `Delete organization "${org.name}"? This action cannot be undone.`,

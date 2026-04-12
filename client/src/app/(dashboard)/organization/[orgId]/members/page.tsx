@@ -45,6 +45,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { type Role } from "@/types/organization.types";
 import {
   organizationMembersApi,
   OrganizationInviteRecord,
@@ -60,7 +61,9 @@ import {
 } from "@/features/organization/hooks/use-organization-members";
 
 function initials(firstName?: string, lastName?: string) {
-  return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.trim().toUpperCase() || "U";
+  return (
+    `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.trim().toUpperCase() || "U"
+  );
 }
 
 function formatCountdown(expiresAt: string) {
@@ -72,12 +75,24 @@ function formatCountdown(expiresAt: string) {
   return `${hours}h ${minutes}m remaining`;
 }
 
-function statusBadge(status: OrganizationInviteRecord["status"] | OrganizationMemberRecord["status"]) {
+function statusBadge(
+  status:
+    | OrganizationInviteRecord["status"]
+    | OrganizationMemberRecord["status"],
+) {
   if (status === "ACCEPTED" || status === "ACTIVE") {
-    return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Active</Badge>;
+    return (
+      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+        Active
+      </Badge>
+    );
   }
   if (status === "PENDING") {
-    return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Invited</Badge>;
+    return (
+      <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+        Invited
+      </Badge>
+    );
   }
   return <Badge variant="outline">Expired</Badge>;
 }
@@ -106,7 +121,8 @@ export default function OrganizationMembersPage() {
   const [generatedInviteLink, setGeneratedInviteLink] = useState("");
 
   const currentOrg = activeOrg?.id === orgId ? activeOrg : null;
-  const canManage = currentOrg?.role === "ADMIN" || currentOrg?.role === "SUPER_ADMIN";
+  const canManage =
+    currentOrg?.role === "ADMIN" || currentOrg?.role === "SUPER_ADMIN";
 
   const members = data?.data.members ?? [];
   const invites = data?.data.invites ?? [];
@@ -115,7 +131,8 @@ export default function OrganizationMembersPage() {
     const term = search.trim().toLowerCase();
     if (!term) return members;
     return members.filter((member) => {
-      const haystack = `${member.firstName} ${member.lastName} ${member.email}`.toLowerCase();
+      const haystack =
+        `${member.firstName} ${member.lastName} ${member.email}`.toLowerCase();
       return haystack.includes(term);
     });
   }, [members, search]);
@@ -149,7 +166,11 @@ export default function OrganizationMembersPage() {
     await navigator.clipboard.writeText(link);
     setCopiedLink(invite.id);
     toast.success("Invite link copied.");
-    setTimeout(() => setCopiedLink((current) => (current === invite.id ? null : current)), 1500);
+    setTimeout(
+      () =>
+        setCopiedLink((current) => (current === invite.id ? null : current)),
+      1500,
+    );
   };
 
   if (!canManage) {
@@ -171,9 +192,12 @@ export default function OrganizationMembersPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-3xl font-semibold">Organization Members</h1>
+          <h1 className="font-heading text-3xl font-semibold">
+            Organization Members
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage roles, invitations, and access for {currentOrg?.name ?? "this organization"}.
+            Manage roles, invitations, and access for{" "}
+            {currentOrg?.name ?? "this organization"}.
           </p>
         </div>
         <Button onClick={() => setInviteOpen(true)} className="gap-2">
@@ -187,9 +211,15 @@ export default function OrganizationMembersPage() {
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
             <div>
               <p className="text-sm font-semibold">Invite link generated</p>
-              <p className="text-xs text-muted-foreground break-all">{generatedInviteLink}</p>
+              <p className="text-xs text-muted-foreground break-all">
+                {generatedInviteLink}
+              </p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(generatedInviteLink)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigator.clipboard.writeText(generatedInviteLink)}
+            >
               <Copy className="mr-2 size-4" />
               Copy Link
             </Button>
@@ -236,7 +266,10 @@ export default function OrganizationMembersPage() {
               <TableBody>
                 {filteredMembers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={5}
+                      className="h-24 text-center text-muted-foreground"
+                    >
                       No members found.
                     </TableCell>
                   </TableRow>
@@ -247,40 +280,57 @@ export default function OrganizationMembersPage() {
                         <div className="flex items-center gap-3">
                           <Avatar className="size-9">
                             <AvatarImage src={member.avatarUrl} />
-                            <AvatarFallback>{initials(member.firstName, member.lastName)}</AvatarFallback>
+                            <AvatarFallback>
+                              {initials(member.firstName, member.lastName)}
+                            </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium">{member.firstName} {member.lastName}</p>
-                            <p className="text-xs text-muted-foreground">Member since {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString() : "recently"}</p>
+                            <p className="font-medium">
+                              {member.firstName} {member.lastName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Member since{" "}
+                              {member.joinedAt
+                                ? new Date(member.joinedAt).toLocaleDateString()
+                                : "recently"}
+                            </p>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>{member.email}</TableCell>
                       <TableCell>
-                          <Select
-                            value={member.role}
-                            disabled={updateRoleMutation.isPending || member.id === user?.id}
-                            onValueChange={(value) => 
-                              updateRoleMutation.mutate({ 
-                                userId: member.id, 
-                                role: value as OrganizationMemberRole 
-                              })
-                            }
-                          >
-                            <SelectTrigger className="h-8 w-[110px] bg-background/50 border-white/5 text-[11px] font-medium">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="ADMIN">Admin</SelectItem>
-                              <SelectItem value="MANAGER">Manager</SelectItem>
-                              <SelectItem value="MEMBER">Member</SelectItem>
-                              <SelectItem value="VIEWER">Viewer</SelectItem>
-                            </SelectContent>
-                          </Select>
+                        <Select
+                          value={member.role}
+                          disabled={
+                            updateRoleMutation.isPending ||
+                            member.id === user?.id
+                          }
+                          onValueChange={(value) =>
+                            updateRoleMutation.mutate({
+                              userId: member.id,
+                              role: value as Role,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-8 w-[110px] bg-background/50 border-white/5 text-[11px] font-medium">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ADMIN">Admin</SelectItem>
+                            <SelectItem value="MANAGER">Manager</SelectItem>
+                            <SelectItem value="MEMBER">Member</SelectItem>
+                            <SelectItem value="VIEWER">Viewer</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>{statusBadge(member.status)}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => removeMemberMutation.mutate(member.id)} disabled={member.id === user?.id}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeMemberMutation.mutate(member.id)}
+                          disabled={member.id === user?.id}
+                        >
                           <Trash2 className="size-4 text-destructive" />
                         </Button>
                       </TableCell>
@@ -300,34 +350,54 @@ export default function OrganizationMembersPage() {
         <CardContent className="space-y-3">
           {invites.length === 0 ? (
             <p className="text-sm text-muted-foreground">No pending invites.</p>
-          ) : invites.map((invite) => (
-            <div key={invite.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">{invite.email}</p>
-                <p className="text-xs text-muted-foreground">
-                  {roleLabel(invite.role)} • {formatCountdown(invite.expiresAt)}
-                </p>
-                <div className="flex items-center gap-2">
-                  {statusBadge(invite.status)}
-                  <Badge variant="outline" className="text-xs">Token: {invite.token.slice(0, 8)}…</Badge>
+          ) : (
+            invites.map((invite) => (
+              <div
+                key={invite.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"
+              >
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">{invite.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {roleLabel(invite.role)} •{" "}
+                    {formatCountdown(invite.expiresAt)}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    {statusBadge(invite.status)}
+                    <Badge variant="outline" className="text-xs">
+                      Token: {invite.token.slice(0, 8)}…
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopy(invite)}
+                  >
+                    <Copy className="mr-2 size-4" />
+                    {copiedLink === invite.id ? "Copied" : "Copy Link"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => resendInviteMutation.mutate(invite.id)}
+                  >
+                    <RefreshCw className="mr-2 size-4" />
+                    Resend
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => revokeInviteMutation.mutate(invite.id)}
+                  >
+                    <UserX className="mr-2 size-4" />
+                    Cancel
+                  </Button>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleCopy(invite)}>
-                  <Copy className="mr-2 size-4" />
-                  {copiedLink === invite.id ? "Copied" : "Copy Link"}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => resendInviteMutation.mutate(invite.id)}>
-                  <RefreshCw className="mr-2 size-4" />
-                  Resend
-                </Button>
-                <Button variant="destructive" size="sm" onClick={() => revokeInviteMutation.mutate(invite.id)}>
-                  <UserX className="mr-2 size-4" />
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </CardContent>
       </Card>
 
@@ -342,25 +412,37 @@ export default function OrganizationMembersPage() {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Email</label>
-              <Input value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="name@company.com" />
+              <Input
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                placeholder="name@company.com"
+              />
             </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Initial Role</label>
-                <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as OrganizationMemberRole) }>
-                  <SelectTrigger className="h-10 bg-background/50 border-white/5">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
-                    <SelectItem value="MANAGER">Manager</SelectItem>
-                    <SelectItem value="MEMBER">Member</SelectItem>
-                    <SelectItem value="VIEWER">Viewer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+                Initial Role
+              </label>
+              <Select
+                value={inviteRole}
+                onValueChange={(value) =>
+                  setInviteRole(value as "ADMIN" | "MEMBER")
+                }
+              >
+                <SelectTrigger className="h-10 bg-background/50 border-white/5">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                  <SelectItem value="MANAGER">Manager</SelectItem>
+                  <SelectItem value="MEMBER">Member</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setInviteOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleInvite} loading={inviteMutation.isPending}>
               Send Invite
             </Button>

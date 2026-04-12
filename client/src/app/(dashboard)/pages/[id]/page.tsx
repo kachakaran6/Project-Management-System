@@ -82,7 +82,10 @@ type SlashCommand = {
 };
 
 function toPlainText(value: string) {
-  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export default function PageEditorPage() {
@@ -140,7 +143,9 @@ export default function PageEditorPage() {
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
-      Placeholder.configure({ placeholder: "Type '/' for commands, or start writing your document..." }),
+      Placeholder.configure({
+        placeholder: "Type '/' for commands, or start writing your document...",
+      }),
       Highlight,
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -242,7 +247,10 @@ export default function PageEditorPage() {
     if (!plainText) return 0;
     return plainText.split(" ").filter(Boolean).length;
   }, [plainText]);
-  const readTime = useMemo(() => Math.max(1, Math.ceil(wordCount / 220)), [wordCount]);
+  const readTime = useMemo(
+    () => Math.max(1, Math.ceil(wordCount / 220)),
+    [wordCount],
+  );
 
   useEffect(() => {
     if (!page) return;
@@ -272,7 +280,7 @@ export default function PageEditorPage() {
     hydratedPageId.current = page.id;
 
     if (editor) {
-      editor.commands.setContent(page.content || "<p></p>", false);
+      editor.commands.setContent(page.content || "<p></p>");
     }
   }, [baseline, editor, hasHydrated, page]);
 
@@ -317,7 +325,6 @@ export default function PageEditorPage() {
         setSaveStatus("error");
       }
     }, 800);
-
   }, [
     baseline,
     canEdit,
@@ -402,15 +409,16 @@ export default function PageEditorPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             {visibilityBadge(visibility)}
-            <Badge variant="outline" className="gap-1 text-xs text-muted-foreground">
+            <Badge
+              variant="outline"
+              className="gap-1 text-xs text-muted-foreground"
+            >
               <CalendarDays className="size-3" />
               Last edited {new Date(page.updatedAt).toLocaleString()}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            {canEdit
-              ? "Auto-save enabled"
-              : "Read-only mode"}
+            {canEdit ? "Auto-save enabled" : "Read-only mode"}
           </p>
         </div>
 
@@ -534,7 +542,9 @@ export default function PageEditorPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+              onClick={() =>
+                editor?.chain().focus().toggleHeading({ level: 2 }).run()
+              }
               disabled={!canEdit}
             >
               <Heading2 className="size-3.5" />
@@ -574,7 +584,9 @@ export default function PageEditorPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => editor?.chain().focus().insertContent("@teammate ").run()}
+              onClick={() =>
+                editor?.chain().focus().insertContent("@teammate ").run()
+              }
               disabled={!canEdit}
             >
               <AtSign className="size-3.5" />
@@ -582,7 +594,9 @@ export default function PageEditorPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => editor?.chain().focus().setLink({ href: "https://" }).run()}
+              onClick={() =>
+                editor?.chain().focus().setLink({ href: "https://" }).run()
+              }
               disabled={!canEdit}
             >
               <Link2 className="size-3.5" />
@@ -647,14 +661,19 @@ export default function PageEditorPage() {
           <DialogHeader>
             <DialogTitle>Delete page?</DialogTitle>
             <DialogDescription>
-              This action cannot be undone. The page and all notes inside it will be removed.
+              This action cannot be undone. The page and all notes inside it
+              will be removed.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} loading={deletePage.isPending}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              loading={deletePage.isPending}
+            >
               Delete
             </Button>
           </DialogFooter>

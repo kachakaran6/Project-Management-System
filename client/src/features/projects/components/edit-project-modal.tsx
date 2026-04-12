@@ -21,7 +21,11 @@ interface EditProjectModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function EditProjectModal({ project, open, onOpenChange }: EditProjectModalProps) {
+export function EditProjectModal({
+  project,
+  open,
+  onOpenChange,
+}: EditProjectModalProps) {
   const updateProject = useUpdateProjectMutation();
 
   const handleSubmit = async (values: ProjectFormValues) => {
@@ -32,8 +36,6 @@ export function EditProjectModal({ project, open, onOpenChange }: EditProjectMod
           name: values.name,
           description: values.description || undefined,
           status: values.status,
-          startDate: values.startDate || undefined,
-          endDate: values.endDate || undefined,
         },
       });
       toast.success(`Project "${values.name}" updated!`);
@@ -57,8 +59,6 @@ export function EditProjectModal({ project, open, onOpenChange }: EditProjectMod
             name: project.name,
             description: project.description ?? "",
             status: project.status,
-            startDate: project.startDate?.split("T")[0] ?? "",
-            endDate: project.endDate?.split("T")[0] ?? "",
           }}
           onSubmit={handleSubmit}
           isSubmitting={updateProject.isPending}

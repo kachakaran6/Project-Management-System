@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React from "react";
@@ -183,7 +184,9 @@ export function TaskForm({
         <Label>Assignees</Label>
         <MultiUserSelect
           value={form.watch("assigneeIds") || []}
-          onChange={(userIds) => form.setValue("assigneeIds", userIds, { shouldDirty: true })}
+          onChange={(userIds) =>
+            form.setValue("assigneeIds", userIds, { shouldDirty: true })
+          }
           placeholder="Select team members"
           prefilledUsers={(initialValues as any)?.assigneeUsers}
         />

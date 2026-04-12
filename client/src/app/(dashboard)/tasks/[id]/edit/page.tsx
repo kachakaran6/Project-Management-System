@@ -71,7 +71,7 @@ export default function EditTaskPage() {
               status: task.status,
               priority: task.priority,
               projectId: task.projectId,
-              assigneeId: task.assigneeId || "",
+              assigneeIds: task.assigneeUsers?.map((u) => u.id) || [],
               dueDate: task.dueDate ? task.dueDate.slice(0, 10) : "",
             }}
             isSubmitting={updateTask.isPending}
@@ -85,7 +85,7 @@ export default function EditTaskPage() {
                     projectId: values.projectId,
                     status: values.status,
                     priority: values.priority,
-                    assigneeId: values.assigneeId || undefined,
+                    assigneeId: values.assigneeIds?.[0] || undefined,
                     dueDate: values.dueDate || undefined,
                   },
                 });

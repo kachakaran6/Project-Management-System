@@ -38,7 +38,7 @@ export function AccentApplicator() {
  * correctly and all next-themes consumers stay in sync.
  */
 export function SystemModeWatcher() {
-  const mode     = useThemeStore((s) => s.mode);
+  const mode = useThemeStore((s) => s.mode);
   const { setTheme } = useTheme();
 
   // Apply mode via next-themes whenever store value changes

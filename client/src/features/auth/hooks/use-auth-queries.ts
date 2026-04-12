@@ -101,13 +101,21 @@ export function useLoginMutation() {
 
 export function useSignupMutation() {
   return useMutation({
-    mutationFn: (payload: SignupInput) =>
-      authApi.register({
-        firstName: payload.firstName,
-        lastName: payload.lastName,
-        email: payload.email,
-        password: payload.password,
-      }),
+    mutationFn: (payload: SignupInput & { role?: string }) =>
+      authApi.register(payload),
+  });
+}
+
+export function useSendOtpMutation() {
+  return useMutation({
+    mutationFn: (email: string) => authApi.sendOtp(email),
+  });
+}
+
+export function useVerifyOtpMutation() {
+  return useMutation({
+    mutationFn: (payload: { email: string; otp: string }) =>
+      authApi.verifyOtp(payload.email, payload.otp),
   });
 }
 
