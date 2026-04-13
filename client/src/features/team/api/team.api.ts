@@ -56,7 +56,7 @@ export const teamApi = {
   },
 
   async inviteMember(payload: InvitePayload): Promise<void> {
-    await api.post("/organizations/invites", payload);
+    await api.post("/organizations/0/invite", payload);
   },
 
   /**

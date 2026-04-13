@@ -17,6 +17,8 @@ router.get('/search', requirePermission(PERMISSIONS.VIEW_PROJECT), organizationC
 router.get('/:orgId/members', requirePermission(PERMISSIONS.VIEW_PROJECT), organizationController.members);
 router.get('/:orgId/search', requirePermission(PERMISSIONS.VIEW_PROJECT), organizationController.search);
 router.post('/:orgId/invite', requirePermission(PERMISSIONS.INVITE_USER), organizationController.inviteMember);
+// Backward compatibility for older clients posting to /organizations/invites.
+router.post('/invites', requirePermission(PERMISSIONS.INVITE_USER), organizationController.inviteMember);
 router.patch('/:orgId/member/:userId', requirePermission(PERMISSIONS.CHANGE_MEMBER_ROLE), organizationController.updateMember);
 router.delete('/:orgId/member/:userId', requirePermission(PERMISSIONS.MANAGE_MEMBERS), organizationController.removeMember);
 
