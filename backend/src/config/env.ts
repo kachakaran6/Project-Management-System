@@ -24,8 +24,7 @@ type Env = {
   smtpUser?: string;
   smtpPass?: string;
   emailFrom?: string;
-  emailProvider: 'smtp' | 'sendgrid';
-  sendgridApiKey?: string;
+  resendApiKey?: string;
   inviteEmailRequired: boolean;
   frontendUrl?: string;
   stripeSecretKey?: string;
@@ -78,9 +77,8 @@ export const env: Env = {
   smtpSocketTimeoutMs: parseInt(process.env.SMTP_SOCKET_TIMEOUT_MS || '10000', 10),
   smtpUser: process.env.SMTP_USER || process.env.EMAIL_USER,
   smtpPass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
-  emailFrom: process.env.SMTP_FROM || 'noreply@pms-orbit.io',
-  emailProvider: (process.env.EMAIL_PROVIDER || 'smtp') as 'smtp' | 'sendgrid',
-  sendgridApiKey: process.env.SENDGRID_API_KEY,
+  emailFrom: process.env.EMAIL_FROM || process.env.SMTP_FROM || 'noreply@pms-orbit.io',
+  resendApiKey: process.env.RESEND_API_KEY,
   inviteEmailRequired: process.env.INVITE_EMAIL_REQUIRED === 'true',
 
   // Frontend
