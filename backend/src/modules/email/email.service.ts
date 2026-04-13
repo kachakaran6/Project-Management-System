@@ -4,6 +4,27 @@ import { logger } from '../../utils/logger.js';
 
 const resend = env.resendApiKey ? new Resend(env.resendApiKey) : null;
 
+const normalizeFromAddress = (value?: string) => {
+  const fallback = 'PMS Orbit <onboarding@resend.dev>';
+
+  if (!value) {
+    return fallback;
+  }
+
+  const trimmed = value.trim().replace(/^['"]|['"]$/g, '');
+  const angleMatch = trimmed.match(/^(.+?)\s*<\s*([^<>\s]+@[^<>\s]+)\s*>$/);
+
+  if (angleMatch) {
+    return `${angleMatch[1].trim()} <${angleMatch[2].trim()}>`;
+  }
+
+  if (/^[^<>\s]+@[^<>\s]+$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  return fallback;
+};
+
 /**
  * Send a generic transactional email
  * @param {string} to - Recipient email
@@ -16,7 +37,7 @@ export const sendEmail = async ({ to, subject, html }: { to: string; subject: st
       throw new Error('RESEND_API_KEY is not configured');
     }
 
-    const from = env.emailFrom || 'noreply@pms-orbit.io';
+    const from = normalizeFromAddress(env.emailFrom);
 
     const result = await resend.emails.send({
       from,
