@@ -86,7 +86,11 @@ export const inviteMember = asyncHandler(async (req, res) => {
     invitedBy: req.user.id,
   });
 
-  return successResponse(res, invite, 'Invitation sent successfully.', 201);
+  const inviteMessage = invite?.emailDelivery?.success
+    ? 'Invitation sent successfully.'
+    : 'Invitation created, but email delivery failed. Share the invite link manually or configure a production email provider.';
+
+  return successResponse(res, invite, inviteMessage, 201);
 });
 
 export const revokeInvite = asyncHandler(async (req, res) => {
