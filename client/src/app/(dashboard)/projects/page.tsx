@@ -46,12 +46,11 @@ export default function ProjectsPage() {
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { user, activeOrg } = useAuth();
-  const userRole = activeOrg?.role || user?.role;
+  const { activeOrg } = useAuth();
   const canMutate =
-    userRole === "SUPER_ADMIN" ||
-    userRole === "ADMIN" ||
-    userRole === "MANAGER";
+    activeOrg?.role === "SUPER_ADMIN" ||
+    activeOrg?.role === "ADMIN" ||
+    activeOrg?.role === "MANAGER";
 
   const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
   const deleteProject = useDeleteProjectMutation();

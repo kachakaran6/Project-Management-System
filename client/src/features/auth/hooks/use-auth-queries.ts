@@ -26,6 +26,21 @@ function deriveMemberships(
   }));
 }
 
+function mergeMemberships(
+  primary: OrganizationMembership[] | undefined,
+  fallback: OrganizationMembership[],
+): OrganizationMembership[] {
+  if (primary && primary.length > 0) {
+    return primary.map((org) => ({
+      ...org,
+      slug: org.slug ?? org.name.toLowerCase().replace(/\s+/g, "-"),
+      role: org.role ?? fallback[0]?.role ?? "MEMBER",
+    }));
+  }
+
+  return fallback;
+}
+
 export function useLoginMutation() {
   const queryClient = useQueryClient();
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -45,7 +60,12 @@ export function useLoginMutation() {
         limit: 100,
       });
 
-      const memberships = deriveMemberships(
+      const meMemberships = mergeMemberships(
+        meResult.data.organizations,
+        [],
+      );
+
+      const workspaceMemberships = deriveMemberships(
         workspaceResult.data.items.map((item) => ({
           id: item.id,
           name: item.name,
@@ -56,13 +76,15 @@ export function useLoginMutation() {
           "MEMBER",
       );
 
+      const memberships = meMemberships.length > 0 ? meMemberships : workspaceMemberships;
+
       setAuth(
         {
           ...meResult.data.user,
           role:
-            ((meResult.data.role as string) ||
-             user.role ||
-             undefined) as import("@/types/user.types").Role | undefined,
+            (meResult.data.role as OrganizationMembership["role"]) ||
+            user.role ||
+            undefined,
           organizationId: meResult.data.organizationId || user.organizationId,
         },
         accessToken,
@@ -79,13 +101,21 @@ export function useLoginMutation() {
 
 export function useSignupMutation() {
   return useMutation({
-    mutationFn: (payload: SignupInput) =>
-      authApi.register({
-        firstName: payload.firstName,
-        lastName: payload.lastName,
-        email: payload.email,
-        password: payload.password,
-      }),
+    mutationFn: (payload: SignupInput & { role?: string }) =>
+      authApi.register(payload),
+  });
+}
+
+export function useSendOtpMutation() {
+  return useMutation({
+    mutationFn: (email: string) => authApi.sendOtp(email),
+  });
+}
+
+export function useVerifyOtpMutation() {
+  return useMutation({
+    mutationFn: (payload: { email: string; otp: string }) =>
+      authApi.verifyOtp(payload.email, payload.otp),
   });
 }
 
@@ -101,6 +131,9 @@ export function useUserQuery(enabled = true) {
   useEffect(() => {
     if (query.data?.data.user) {
       setUser(query.data.data.user);
+    }
+    if (query.data?.data.organizations) {
+      useAuthStore.getState().setOrganizations(query.data.data.organizations);
     }
   }, [query.data, setUser]);
 

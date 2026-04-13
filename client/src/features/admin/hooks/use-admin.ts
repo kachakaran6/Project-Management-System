@@ -9,6 +9,8 @@ import {
   AdminOrganization,
   AdminProject,
   AdminTask,
+  AdminOrganizationDetails,
+  AdminAnalyticsSummary,
 } from "@/features/admin/api/admin.api";
 
 const baseApiUrl =
@@ -17,7 +19,10 @@ const baseApiUrl =
 export const adminQueryKeys = {
   dashboard: ["admin", "dashboard"] as const,
   users: ["admin", "users"] as const,
+  approvals: ["admin", "approvals"] as const,
   organizations: ["admin", "organizations"] as const,
+  organizationDetails: (orgId: string) =>
+    ["admin", "organizations", orgId] as const,
   projects: ["admin", "projects"] as const,
   tasks: ["admin", "tasks"] as const,
   billing: ["admin", "billing"] as const,
@@ -45,12 +50,30 @@ export function useAdminUsersQuery() {
   });
 }
 
+export function useAdminPendingRequestsQuery() {
+  return useQuery({
+    queryKey: adminQueryKeys.approvals,
+    queryFn: () => adminApi.getPendingUsers(),
+    staleTime: 10_000,
+    refetchInterval: 15_000,
+  });
+}
+
 export function useAdminOrganizationsQuery() {
   return useQuery<AdminOrganization[]>({
     queryKey: adminQueryKeys.organizations,
     queryFn: () => adminApi.getOrganizations(),
     staleTime: 20_000,
     refetchInterval: 35_000,
+  });
+}
+
+export function useAdminOrganizationDetailsQuery(orgId?: string) {
+  return useQuery<AdminOrganizationDetails>({
+    queryKey: orgId ? adminQueryKeys.organizationDetails(orgId) : ["admin", "organizations", "empty"],
+    queryFn: () => adminApi.getOrganizationById(orgId as string),
+    enabled: Boolean(orgId),
+    staleTime: 20_000,
   });
 }
 
@@ -94,11 +117,11 @@ export function useRolePermissionsQuery() {
   });
 }
 
-export function useAuditLogsQuery() {
+export function useAuditLogsQuery(params?: Parameters<typeof adminApi.getAuditLogs>[0]) {
   return useQuery({
-    queryKey: adminQueryKeys.auditLogs,
-    queryFn: () => adminApi.getAuditLogs(),
-    refetchInterval: 10_000,
+    queryKey: [...adminQueryKeys.auditLogs, params],
+    queryFn: () => adminApi.getAuditLogs(params),
+    refetchInterval: 20_000,
   });
 }
 
@@ -111,7 +134,7 @@ export function useApiLogsQuery() {
 }
 
 export function useAnalyticsQuery() {
-  return useQuery({
+  return useQuery<AdminAnalyticsSummary>({
     queryKey: adminQueryKeys.analytics,
     queryFn: () => adminApi.getAnalytics(),
     refetchInterval: 35_000,
@@ -145,6 +168,41 @@ export function useTransferOwnershipMutation() {
   });
 }
 
+export function useApproveAdminRequestMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) => adminApi.approveUser(userId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.users }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.approvals }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard }),
+      ]);
+    },
+  });
+}
+
+export function useRejectAdminRequestMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, reason }: { userId: string; reason?: string }) =>
+      adminApi.rejectUser(userId, reason),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.users }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.approvals }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard }),
+      ]);
+    },
+  });
+}
+
+export function useApproveUserMutation() {
+  return useApproveAdminRequestMutation();
+}
+
 export function useDeleteOrganizationMutation() {
   const queryClient = useQueryClient();
 
@@ -171,6 +229,72 @@ export function useUpdateUserRoleMutation() {
     }) => adminApi.updateUserRole(userId, role),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: adminQueryKeys.users });
+    },
+  });
+}
+
+export function useCreateUserMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: Parameters<typeof adminApi.createUser>[0]) =>
+      adminApi.createUser(payload),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.users }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard }),
+      ]);
+    },
+  });
+}
+
+export function useUpdateUserMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      userId,
+      payload,
+    }: {
+      userId: string;
+      payload: Parameters<typeof adminApi.updateUser>[1];
+    }) => adminApi.updateUser(userId, payload),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.users }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.approvals }),
+      ]);
+    },
+  });
+}
+
+export function useDeleteUserMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) => adminApi.deleteUser(userId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.users }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard }),
+      ]);
+    },
+  });
+}
+
+export function useBulkUsersMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: Parameters<typeof adminApi.bulkUsersAction>[0]) =>
+      adminApi.bulkUsersAction(payload),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.users }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.approvals }),
+      ]);
     },
   });
 }
@@ -235,16 +359,5 @@ export function useApiTesterMutation() {
       headers?: Record<string, string>;
       body?: unknown;
     }) => adminApi.runApiTest(payload),
-  });
-}
-export function useApproveUserMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (userId: string) => adminApi.approveUser(userId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.users });
-      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard });
-    },
   });
 }

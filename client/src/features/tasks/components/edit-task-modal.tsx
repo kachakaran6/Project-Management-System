@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -22,12 +20,25 @@ import { Task, UpdateTaskInput } from "@/types/task.types";
 interface EditTaskModalProps {
   task: Task;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function EditTaskModal({ task, trigger }: EditTaskModalProps) {
-  const [open, setOpen] = useState(false);
+export function EditTaskModal({
+  task,
+  trigger,
+  open,
+  onOpenChange,
+}: EditTaskModalProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const updateTask = useUpdateTaskMutation();
   const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
+
+  const isControlled = open !== undefined && onOpenChange !== undefined;
+  const dialogOpen = isControlled ? open : internalOpen;
+  const handleOpenChange = isControlled ? onOpenChange : setInternalOpen;
+
+  const taskId = task.id || (task as any)._id;
 
   const projects = (projectsQuery.data?.data.items ?? []).map((p) => ({
     id: p.id,
@@ -43,24 +54,25 @@ export function EditTaskModal({ task, trigger }: EditTaskModalProps) {
         priority: values.priority,
         projectId: values.projectId,
         dueDate: values.dueDate || undefined,
+        assigneeIds: values.assigneeIds || [],
       };
-      await updateTask.mutateAsync({ id: task.id, data });
+
+      if (!taskId) {
+        toast.error("Invalid task ID.");
+        return;
+      }
+
+      await updateTask.mutateAsync({ id: taskId, data });
       toast.success("Task updated successfully!");
-      setOpen(false);
+      handleOpenChange(false);
     } catch {
       toast.error("Failed to update task.");
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button variant="ghost" size="sm">
-            <Pencil className="size-4" />
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Task</DialogTitle>
@@ -70,17 +82,31 @@ export function EditTaskModal({ task, trigger }: EditTaskModalProps) {
         </DialogHeader>
         <TaskForm
           projects={projects}
-          initialValues={{
-            title: task.title,
-            description: task.description ?? "",
-            status: task.status,
-            priority: task.priority,
-            projectId: task.projectId,
-            dueDate: task.dueDate
-              ? new Date(task.dueDate).toISOString().split("T")[0]
-              : "",
-            assigneeId: task.assigneeId ?? "",
-          }}
+          initialValues={
+            {
+              title: task.title,
+              description: task.description ?? "",
+              status: task.status,
+              priority: task.priority,
+              projectId:
+                typeof task.projectId === "string"
+                  ? task.projectId
+                  : (task.projectId as any)?._id ||
+                    (task.projectId as any)?.id ||
+                    "",
+              dueDate: task.dueDate
+                ? new Date(task.dueDate).toISOString().split("T")[0]
+                : "",
+              assigneeIds:
+                (task as any).assigneeIds ||
+                (task as any).assignees?.map(
+                  (a: any) => a.userId?._id || a.userId,
+                ) ||
+                [],
+              // Pass the full users for chips to show names immediately
+              assigneeUsers: (task as any).assigneeUsers,
+            } as any
+          }
           onSubmit={handleSubmit}
           isSubmitting={updateTask.isPending}
           submitLabel="Save Changes"

@@ -22,7 +22,10 @@ interface CreateProjectModalProps {
   onCreated?: () => void;
 }
 
-export function CreateProjectModal({ trigger, onCreated }: CreateProjectModalProps) {
+export function CreateProjectModal({
+  trigger,
+  onCreated,
+}: CreateProjectModalProps) {
   const [open, setOpen] = useState(false);
   const createProject = useCreateProjectMutation();
 
@@ -33,7 +36,7 @@ export function CreateProjectModal({ trigger, onCreated }: CreateProjectModalPro
         description: values.description || undefined,
         status: values.status,
       });
-      toast.success(`Project "${values.name}" created successfully!`);
+      toast.success(`Project "${values.name}" created!`);
       setOpen(false);
       onCreated?.();
     } catch {
@@ -53,9 +56,9 @@ export function CreateProjectModal({ trigger, onCreated }: CreateProjectModalPro
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create New Project</DialogTitle>
+          <DialogTitle className="text-xl">Create New Project</DialogTitle>
           <DialogDescription>
-            Start a new project to organize your team's work.
+            Set up a new project to organize and track your team&apos;s work.
           </DialogDescription>
         </DialogHeader>
         <ProjectForm

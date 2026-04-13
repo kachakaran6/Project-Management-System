@@ -22,8 +22,8 @@ const methods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 type HttpMethod = (typeof methods)[number];
 
 export default function AdminApiDebugPage() {
-  const { activeOrg } = useAuth();
-  const role = activeOrg?.role;
+  const { activeOrg, user } = useAuth();
+  const role = activeOrg?.role ?? user?.role;
   const isSuperAdmin = role === "SUPER_ADMIN";
 
   const [method, setMethod] = useState<HttpMethod>("GET");
@@ -130,7 +130,7 @@ export default function AdminApiDebugPage() {
             Status: {debugMutation.data?.status ?? "-"} | Duration:{" "}
             {debugMutation.data?.durationMs ?? 0} ms
           </p>
-          <pre className="max-h-[420px] overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs">
+          <pre className="max-h-105 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs">
             {prettyResponse || "No response yet."}
           </pre>
           {debugMutation.error ? (

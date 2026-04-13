@@ -109,7 +109,9 @@ export default function DashboardPage() {
     .slice(0, 8);
 
   // Map projectId → project name for tasks table
-  const projectMap = Object.fromEntries(projects.map((p) => [p.id, p.name]));
+  const projectMap = Object.fromEntries(
+    projects.map((p: any) => [p.id || p._id, p.name]),
+  );
 
   return (
     <div className="space-y-8">
@@ -169,7 +171,7 @@ export default function DashboardPage() {
               {projectsQuery.isLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
+                    <Skeleton key={`project-skeleton-${i}`} className="h-12 w-full" />
                   ))}
                 </div>
               ) : recentProjects.length === 0 ? (
@@ -183,7 +185,7 @@ export default function DashboardPage() {
                 <div className="space-y-2">
                   {recentProjects.map((project) => (
                     <div
-                      key={project.id}
+                      key={project.id || (project as any)._id}
                       className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -232,7 +234,7 @@ export default function DashboardPage() {
               {tasksQuery.isLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
+                    <Skeleton key={`task-skeleton-${i}`} className="h-12 w-full" />
                   ))}
                 </div>
               ) : recentTasks.length === 0 ? (
@@ -245,7 +247,7 @@ export default function DashboardPage() {
                 <div className="space-y-2">
                   {recentTasks.map((task) => (
                     <div
-                      key={task.id}
+                      key={task.id || (task as any)._id}
                       className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -341,19 +343,19 @@ export default function DashboardPage() {
               <CardContent className="space-y-3">
                 {(
                   [
-                    { label: "To Do", key: "TODO", color: "bg-slate-400" },
-                    { label: "In Progress", key: "IN_PROGRESS", color: "bg-blue-500" },
-                    { label: "In Review", key: "IN_REVIEW", color: "bg-amber-500" },
-                    { label: "Done", key: "DONE", color: "bg-emerald-500" },
+                    { label: "To Do", statusKey: "TODO", color: "bg-slate-400" },
+                    { label: "In Progress", statusKey: "IN_PROGRESS", color: "bg-blue-500" },
+                    { label: "In Review", statusKey: "IN_REVIEW", color: "bg-amber-500" },
+                    { label: "Done", statusKey: "DONE", color: "bg-emerald-500" },
                   ] as const
-                ).map(({ label, key, color }) => {
-                  const count = tasks.filter((t) => t.status === key).length;
+                ).map(({ label, statusKey, color }) => {
+                  const count = tasks.filter((t) => t.status === statusKey).length;
                   const pct =
                     tasks.length > 0
                       ? Math.round((count / tasks.length) * 100)
                       : 0;
                   return (
-                    <div key={key} className="space-y-1">
+                    <div key={statusKey} className="space-y-1">
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">{label}</span>
                         <span className="font-medium">

@@ -34,8 +34,8 @@ export function CreateTaskModal({
   const createTask = useCreateTaskMutation();
   const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
 
-  const projects = (projectsQuery.data?.data.items ?? []).map((p) => ({
-    id: p.id,
+  const projects = (projectsQuery.data?.data.items ?? []).map((p: any) => ({
+    id: p.id || p._id,
     name: p.name,
   }));
 
@@ -48,6 +48,7 @@ export function CreateTaskModal({
         priority: values.priority,
         description: values.description || undefined,
         dueDate: values.dueDate || undefined,
+        assigneeId: values.assigneeIds?.[0] || undefined,
       };
 
       await createTask.mutateAsync(payload);
@@ -78,7 +79,11 @@ export function CreateTaskModal({
         </DialogHeader>
         <TaskForm
           projects={projects}
-          initialValues={{ projectId: defaultProjectId ?? "", status: "TODO", priority: "MEDIUM" }}
+          initialValues={{
+            projectId: defaultProjectId ?? "",
+            status: "TODO",
+            priority: "MEDIUM",
+          }}
           onSubmit={handleSubmit}
           isSubmitting={createTask.isPending}
           submitLabel="Create Task"

@@ -7,6 +7,26 @@ export type TaskStatus =
   | "ARCHIVED";
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 
+export interface TaskAssigneeUser {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+}
+
+export interface TaskAssigneeRelation {
+  userId:
+    | string
+    | {
+        _id?: string;
+        id?: string;
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+        avatarUrl?: string;
+      };
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -14,10 +34,14 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   projectId: string;
-  assigneeId?: string;
+  // assigneeId?: string;
   creatorId: string;
   dueDate?: string;
   tags?: string[];
+  assigneeId?: string;
+  assigneeIds?: string[];
+  assigneeUsers?: TaskAssigneeUser[];
+  assignees?: TaskAssigneeRelation[];
   createdAt: string;
   updatedAt: string;
 }
@@ -35,11 +59,13 @@ export interface CreateTaskInput {
 
 export interface UpdateTaskInput extends Partial<CreateTaskInput> {
   status?: TaskStatus;
+  assigneeIds?: string[];
 }
 
 export interface TaskFilters {
   page?: number;
   limit?: number;
+  search?: string;
   workspaceId?: string;
   projectId?: string;
   status?: TaskStatus;

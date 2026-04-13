@@ -11,7 +11,10 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { activeOrg, user } = useAuth();
-  const role = activeOrg?.role ?? user?.role;
+  const role =
+    user?.role === "SUPER_ADMIN"
+      ? "SUPER_ADMIN"
+      : activeOrg?.role ?? user?.role;
   const allowed = role === "SUPER_ADMIN" || role === "ADMIN";
 
   return (

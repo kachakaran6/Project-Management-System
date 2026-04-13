@@ -1,8 +1,5 @@
-<<<<<<< Updated upstream:src/server.js
-=======
 import type { Server as HttpServer } from 'http';
 import dns from 'node:dns';
->>>>>>> Stashed changes:backend/src/server.ts
 import { env } from './config/env.js';
 import { connectDB, disconnectDB } from './config/db.js';
 import { createServer } from 'http';

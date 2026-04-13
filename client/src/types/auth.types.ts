@@ -13,6 +13,7 @@ export interface SignupInput {
   email: string;
   password: string;
   organizationName?: string;
+  role?: string;
 }
 
 export interface LoginResponse {
@@ -26,6 +27,7 @@ export interface RefreshResponse {
 
 export interface MeResponse {
   user: UserWithRole;
+  organizations?: OrganizationMembership[];
   organizationId?: string | null;
   role?: UserWithRole["role"];
 }

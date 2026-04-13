@@ -46,7 +46,40 @@ export function useRemoveMemberMutation() {
   return useMutation({
     mutationFn: (memberId: string) => teamApi.removeMember(memberId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: teamQueryKeys.all });
+      await queryClient.invalidateQueries({ queryKey: teamQueryKeys.members });
+    },
+  });
+}
+
+export function useUpdateMemberStatusMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      memberId,
+      status,
+    }: {
+      memberId: string;
+      status: "ACTIVE" | "DISABLED";
+    }) => teamApi.updateMemberStatus(memberId, status),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: teamQueryKeys.members });
+    },
+  });
+}
+
+export function useBulkActionMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: {
+      userIds: string[];
+      role?: TeamRole;
+      status?: "ACTIVE" | "DISABLED";
+      action?: "DELETE" | "REMOVE";
+    }) => teamApi.bulkUpdate(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: teamQueryKeys.members });
     },
   });
 }

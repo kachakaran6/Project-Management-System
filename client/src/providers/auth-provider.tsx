@@ -6,6 +6,21 @@ import { authApi } from "@/features/auth/api/auth.api";
 import { orgApi } from "@/features/organization/api/org.api";
 import { OrganizationMembership } from "@/types/organization.types";
 
+function mergeMemberships(
+  primary: OrganizationMembership[] | undefined,
+  fallback: OrganizationMembership[],
+): OrganizationMembership[] {
+  if (primary && primary.length > 0) {
+    return primary.map((org) => ({
+      ...org,
+      slug: org.slug ?? org.name.toLowerCase().replace(/\s+/g, "-"),
+      role: org.role ?? fallback[0]?.role ?? "MEMBER",
+    }));
+  }
+
+  return fallback;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setAuth, clearAuth, setLoading } = useAuthStore();
 
@@ -20,14 +35,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         const { user, role } = meResponse.data;
 
+        const membershipsFromProfile = mergeMemberships(
+          meResponse.data.organizations,
+          [],
+        );
+
         const memberships: OrganizationMembership[] =
-          workspaceResponse.data.items.map((workspace) => ({
+          membershipsFromProfile.length > 0
+            ? membershipsFromProfile
+            : workspaceResponse.data.items.map((workspace) => ({
             id: workspace.id,
             name: workspace.name,
             slug: workspace.name.toLowerCase().replace(/\s+/g, "-"),
             role:
               (role as OrganizationMembership["role"]) || user.role || "MEMBER",
-          }));
+            }));
 
         const state = useAuthStore.getState();
         if (state.accessToken) {
@@ -35,9 +57,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             {
               ...user,
               role:
-                ((role as string) ||
-                 user.role ||
-                 undefined) as import("@/types/user.types").Role | undefined,
+                (role as OrganizationMembership["role"]) ||
+                user.role ||
+                undefined,
               organizationId:
                 meResponse.data.organizationId || user.organizationId,
             },

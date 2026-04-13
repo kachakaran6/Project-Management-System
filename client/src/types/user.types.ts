@@ -15,6 +15,7 @@ export interface User {
 export interface UserWithRole extends User {
   role?: Role;
   organizationId?: string | null;
+  organizations?: import("./organization.types").OrganizationMembership[];
 }
 
 export interface UserListItem extends User {

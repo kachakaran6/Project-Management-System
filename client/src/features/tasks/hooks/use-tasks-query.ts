@@ -3,7 +3,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { taskApi } from "@/features/tasks/api/task.api";
-import { CreateTaskInput, TaskFilters, TaskStatus } from "@/types/task.types";
+import {
+  CreateTaskInput,
+  TaskFilters,
+  TaskStatus,
+  UpdateTaskInput,
+} from "@/types/task.types";
 
 export const tasksQueryKeys = {
   all: ["tasks"] as const,
@@ -11,11 +16,20 @@ export const tasksQueryKeys = {
   detail: (id: string) => ["tasks", "detail", id] as const,
 };
 
-export function useTasksQuery(filters: TaskFilters = {}) {
+export function useTasksQuery(
+  filters: TaskFilters = {},
+  options?: {
+    enabled?: boolean;
+    staleTime?: number;
+    refetchInterval?: number;
+  },
+) {
   return useQuery({
     queryKey: tasksQueryKeys.list(filters),
     queryFn: () => taskApi.getTasks(filters),
-    staleTime: 30_000,
+    staleTime: options?.staleTime ?? 30_000,
+    enabled: options?.enabled ?? true,
+    refetchInterval: options?.refetchInterval,
   });
 }
 
@@ -55,7 +69,7 @@ export function useUpdateTaskMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateTaskInput> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateTaskInput }) =>
       taskApi.updateTask(id, data),
     onSuccess: async (_, variables) => {
       await Promise.all([

@@ -25,8 +25,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, [pathname, setActiveRoute, setMobileSidebarOpen]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="hidden md:fixed md:inset-y-0 md:block">
+    <div className="flex h-screen w-full bg-background overflow-hidden">
+      {/* Desktop Sidebar */}
+      <div className="hidden h-full md:block transition-[width] duration-300">
         <Sidebar pathname={pathname} />
       </div>
 
@@ -36,7 +37,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       >
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-[1px] md:hidden" />
-          <DialogPrimitive.Content className="fixed left-0 top-0 z-50 h-screen w-72 border-r border-sidebar-border bg-sidebar p-0 outline-none md:hidden">
+          <DialogPrimitive.Content className="fixed left-0 top-0 z-50 h-screen w-72 border-r border-sidebar-border bg-sidebar p-0 outline-none md:hidden transition-transform duration-300">
             <div className="absolute right-3 top-3 z-10">
               <DialogPrimitive.Close
                 className="rounded-md p-1 text-sidebar-foreground hover:bg-sidebar-accent"
@@ -50,9 +51,13 @@ export function AppLayout({ children }: AppLayoutProps) {
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
 
-      <div className="md:pl-72">
+      <div className="flex flex-1 flex-col min-w-0 h-full bg-background">
         <AppHeader />
-        <main className="p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 transition-all duration-300">
+          <div className="mx-auto w-full max-w-7xl animate-in fade-in slide-in-from-bottom-2 duration-500">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );
