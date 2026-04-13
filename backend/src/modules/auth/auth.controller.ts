@@ -1,6 +1,15 @@
 import * as authService from './auth.service.js';
 import { asyncHandler } from '../../middlewares/asyncHandler.js';
 import { logInfo } from '../../services/logService.js';
+import type { CookieOptions } from 'express';
+
+const refreshCookieOptions: CookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: '/',
+};
 
 /**
  * POST /auth/register
@@ -102,12 +111,7 @@ export const login = asyncHandler(async (req, res) => {
     metadata: { method: 'PASSWORD' }
   });
 
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie('refreshToken', refreshToken, refreshCookieOptions);
 
   return res.status(200).json({
     success: true,
@@ -132,12 +136,7 @@ export const refresh = asyncHandler(async (req, res) => {
   const { accessToken, refreshToken: newRefreshToken } =
     await authService.refreshAccessToken(refreshToken);
 
-  res.cookie('refreshToken', newRefreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie('refreshToken', newRefreshToken, refreshCookieOptions);
 
   return res.status(200).json({
     success: true,
@@ -253,7 +252,10 @@ export const logout = asyncHandler(async (req, res) => {
     await authService.logoutUser(refreshToken);
   }
 
-  res.clearCookie('refreshToken');
+  res.clearCookie('refreshToken', {
+    ...refreshCookieOptions,
+    maxAge: undefined,
+  });
 
   return res.status(200).json({
     success: true,

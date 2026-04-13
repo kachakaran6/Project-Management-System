@@ -10,6 +10,33 @@ import { requestIdMiddleware, requestLogger } from "./middlewares/observability.
 
 const app = express();
 
+const normalizedAllowedOrigins = env.allowedOrigins.map((origin) =>
+  origin.replace(/\/+$/, ""),
+);
+
+const isOriginAllowed = (origin: string): boolean => {
+  const normalizedOrigin = origin.replace(/\/+$/, "");
+
+  return normalizedAllowedOrigins.some((allowedOrigin) => {
+    if (allowedOrigin === normalizedOrigin) {
+      return true;
+    }
+
+    if (!allowedOrigin.includes("*")) {
+      return false;
+    }
+
+    const wildcardPattern = new RegExp(
+      `^${allowedOrigin
+        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, ".*")}$`,
+      "i",
+    );
+
+    return wildcardPattern.test(normalizedOrigin);
+  });
+};
+
 // ─── Security ─────────────────────────────────────────────────────────────────
 app.use(helmet());
 app.use(requestIdMiddleware);
@@ -19,7 +46,7 @@ app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g., mobile apps, curl)
-      if (!origin || env.allowedOrigins.includes(origin)) {
+      if (!origin || isOriginAllowed(origin)) {
         callback(null, true);
       } else {
         callback(new Error(`CORS policy: origin '${origin}' is not allowed`));
