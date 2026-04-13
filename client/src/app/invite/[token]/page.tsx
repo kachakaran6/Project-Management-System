@@ -94,7 +94,7 @@ export default function PublicInvitePage() {
 
       await switchOrganizationMutation.mutateAsync(organizationId);
       toast.success(response.data.alreadyMember ? "Invite already accepted." : "Invite accepted.");
-      router.push(`/dashboard/organization/${organizationId}/members`);
+      router.push("/dashboard");
     } catch (acceptError: any) {
       const message = acceptError?.response?.data?.message || "Unable to accept this invitation.";
       toast.error(message);
