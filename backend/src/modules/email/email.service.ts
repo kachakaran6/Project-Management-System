@@ -5,7 +5,7 @@ import { logger } from '../../utils/logger.js';
 const resend = env.resendApiKey ? new Resend(env.resendApiKey) : null;
 
 const normalizeFromAddress = (value?: string) => {
-  const fallback = 'PMS Orbit <onboarding@resend.dev>';
+  const fallback = 'PMS Orbit <noreply@trusttracker.live>';
 
   if (!value) {
     return fallback;
