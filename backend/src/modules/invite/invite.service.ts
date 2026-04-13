@@ -7,7 +7,7 @@ import * as emailService from '../email/email.service.js';
 import { getInviteTemplate } from '../email/email.templates.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import { env } from '../../config/env.js';
-import { logInfo } from '../../services/logService.js';
+import { logInfo, logWarn } from '../../services/logService.js';
 
 /**
  * Invite Service: Handing organization invitations
@@ -71,9 +71,29 @@ export const sendInvite = async ({
   });
 
   if (!emailResult.success) {
-    // If email fails, we should handle it (rethrow or delete the newly created invite)
-    // For now, let's just throw an error so the user knows why it failed.
-    throw new AppError(`Failed to send invitation email: ${emailResult.error}`, 500);
+    await logWarn(`Organization invite created but email delivery failed for ${email}`, {
+      userId: invitedBy,
+      action: 'ORG_INVITE_EMAIL_FAILED',
+      status: 'FAILURE',
+      metadata: {
+        organizationId,
+        role: inviteRole,
+        email,
+        error: emailResult.error,
+      },
+    });
+
+    if (env.inviteEmailRequired) {
+      throw new AppError(`Failed to send invitation email: ${emailResult.error}`, 500);
+    }
+
+    return {
+      ...invite.toObject(),
+      emailDelivery: {
+        success: false,
+        error: emailResult.error,
+      },
+    };
   }
 
   await logInfo(`Organization invite sent to ${email}`, {
@@ -83,7 +103,12 @@ export const sendInvite = async ({
     metadata: { organizationId, role: inviteRole, email }
   });
 
-  return invite;
+  return {
+    ...invite.toObject(),
+    emailDelivery: {
+      success: true,
+    },
+  };
 };
 
 /**

@@ -17,9 +17,16 @@ type Env = {
   smtpHost?: string;
   smtpPort?: number;
   smtpFamily?: number;
+  smtpDebug: boolean;
+  smtpConnectionTimeoutMs: number;
+  smtpGreetingTimeoutMs: number;
+  smtpSocketTimeoutMs: number;
   smtpUser?: string;
   smtpPass?: string;
   emailFrom?: string;
+  emailProvider: 'smtp' | 'sendgrid';
+  sendgridApiKey?: string;
+  inviteEmailRequired: boolean;
   frontendUrl?: string;
   stripeSecretKey?: string;
   stripeWebhookSecret?: string;
@@ -65,9 +72,16 @@ export const env: Env = {
   smtpHost: process.env.SMTP_HOST || 'smtp.ethereal.email',
   smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
   smtpFamily: parseInt(process.env.SMTP_FAMILY || '4', 10),
-  smtpUser: process.env.SMTP_USER,
-  smtpPass: process.env.SMTP_PASS,
+  smtpDebug: process.env.SMTP_DEBUG === 'true',
+  smtpConnectionTimeoutMs: parseInt(process.env.SMTP_CONNECTION_TIMEOUT_MS || '10000', 10),
+  smtpGreetingTimeoutMs: parseInt(process.env.SMTP_GREETING_TIMEOUT_MS || '10000', 10),
+  smtpSocketTimeoutMs: parseInt(process.env.SMTP_SOCKET_TIMEOUT_MS || '10000', 10),
+  smtpUser: process.env.SMTP_USER || process.env.EMAIL_USER,
+  smtpPass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
   emailFrom: process.env.SMTP_FROM || 'noreply@pms-orbit.io',
+  emailProvider: (process.env.EMAIL_PROVIDER || 'smtp') as 'smtp' | 'sendgrid',
+  sendgridApiKey: process.env.SENDGRID_API_KEY,
+  inviteEmailRequired: process.env.INVITE_EMAIL_REQUIRED === 'true',
 
   // Frontend
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
