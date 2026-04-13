@@ -16,6 +16,7 @@ type Env = {
   jwtRefreshExpiresIn: string;
   smtpHost?: string;
   smtpPort?: number;
+  smtpFamily?: number;
   smtpUser?: string;
   smtpPass?: string;
   emailFrom?: string;
@@ -63,6 +64,7 @@ export const env: Env = {
   // SMTP
   smtpHost: process.env.SMTP_HOST || 'smtp.ethereal.email',
   smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
+  smtpFamily: parseInt(process.env.SMTP_FAMILY || '4', 10),
   smtpUser: process.env.SMTP_USER,
   smtpPass: process.env.SMTP_PASS,
   emailFrom: process.env.SMTP_FROM || 'noreply@pms-orbit.io',

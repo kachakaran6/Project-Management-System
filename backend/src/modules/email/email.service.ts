@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import SMTPTransport from 'nodemailer/lib/smtp-transport/index.js';
 import { env } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 
@@ -7,15 +8,21 @@ import { logger } from '../../utils/logger.js';
  * In a real production system, you'd use SendGrid, AWS SES or Mailgun transport.
  * This setup defaults to development-friendly Ethereal/SMTP.
  */
-const transporter = nodemailer.createTransport({
+const transportOptions: SMTPTransport.Options & { family?: number } = {
   host: env.smtpHost,
   port: env.smtpPort,
   secure: env.smtpPort === 465, // true for 465, false for 587 or other ports
+  family: env.smtpFamily,
+  connectionTimeout: 15000,
+  greetingTimeout: 10000,
+  socketTimeout: 20000,
   auth: {
     user: env.smtpUser,
     pass: env.smtpPass
   }
-});
+};
+
+const transporter = nodemailer.createTransport(transportOptions);
 
 /**
  * Send a generic transactional email
@@ -25,8 +32,10 @@ const transporter = nodemailer.createTransport({
  */
 export const sendEmail = async ({ to, subject, html }: { to: string; subject: string; html: string }) => {
   try {
+    const from = env.emailFrom || env.smtpUser || 'noreply@antigravity.io';
+
     const info = await transporter.sendMail({
-      from: `"Karan's PMS" <${env.emailFrom || 'noreply@antigravity.io'}>`,
+      from,
       to,
       subject,
       html
