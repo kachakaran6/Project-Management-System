@@ -1,9 +1,17 @@
+<<<<<<< Updated upstream:src/server.js
+=======
+import type { Server as HttpServer } from 'http';
+import dns from 'node:dns';
+>>>>>>> Stashed changes:backend/src/server.ts
 import { env } from './config/env.js';
 import { connectDB, disconnectDB } from './config/db.js';
 import { createServer } from 'http';
 import app from './app.js';
 import { initSocket } from './realtime/socket.server.js';
 import { logger } from './utils/logger.js';
+
+// Render can return IPv6 first for SMTP hosts; prefer IPv4 to avoid ENETUNREACH.
+dns.setDefaultResultOrder('ipv4first');
 
 // ─── Crash Guards (register BEFORE anything async) ────────────────────────────
 process.on('uncaughtException', (err) => {
