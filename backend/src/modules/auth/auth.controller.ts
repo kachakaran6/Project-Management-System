@@ -2,11 +2,14 @@ import * as authService from './auth.service.js';
 import { asyncHandler } from '../../middlewares/asyncHandler.js';
 import { logInfo } from '../../services/logService.js';
 import type { CookieOptions } from 'express';
+import { env } from '../../config/env.js';
 
 const refreshCookieOptions: CookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  // Secure must be true for SameSite: 'none' to work in modern browsers
+  secure: true, 
+  // 'none' is required for cross-site cookies (e.g. Localhost front-end calling Render back-end)
+  sameSite: 'none',
   maxAge: 7 * 24 * 60 * 60 * 1000,
   path: '/',
 };

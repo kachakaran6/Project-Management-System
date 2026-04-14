@@ -10,6 +10,10 @@ import { requestIdMiddleware, requestLogger } from "./middlewares/observability.
 
 const app = express();
 
+// Trust proxy is required for Render/Vercel/Cloudflare to correctly set 'Secure' cookies
+app.set("trust proxy", 1);
+
+
 const normalizedAllowedOrigins = env.allowedOrigins.map((origin) =>
   origin.replace(/\/+$/, ""),
 );
