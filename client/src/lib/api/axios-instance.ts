@@ -36,12 +36,8 @@ async function refreshAccessToken(): Promise<string | null> {
     return refreshingPromise;
   }
 
-  refreshingPromise = axios
-    .post<ApiResponse<RefreshResponse>>(
-      `${API_URL}/auth/refresh`,
-      {},
-      { withCredentials: true },
-    )
+  refreshingPromise = api
+    .post<ApiResponse<RefreshResponse>>("/auth/refresh")
     .then((response) => {
       const token = response.data.data.accessToken;
       useAuthStore.getState().setAccessToken(token);
