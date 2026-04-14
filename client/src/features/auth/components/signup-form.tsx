@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, useState, useEffect, KeyboardEvent, ClipboardEvent } from "react";
+import {
+  useRef,
+  useState,
+  useEffect,
+  KeyboardEvent,
+  ClipboardEvent,
+} from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -38,10 +44,10 @@ import {
 
 const signupSchema = z
   .object({
-    firstName:       z.string().min(2, "First name is required"),
-    lastName:        z.string().min(2, "Last name is required"),
-    email:           z.string().email("Invalid email address"),
-    password:        z.string().min(6, "Minimum 6 characters"),
+    firstName: z.string().min(2, "First name is required"),
+    lastName: z.string().min(2, "Last name is required"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Minimum 6 characters"),
     confirmPassword: z.string().min(6, "Please confirm your password"),
     registerAsAdmin: z.boolean().default(false),
   })
@@ -98,7 +104,10 @@ function OtpInput({
 
   const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_DIGITS);
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, OTP_DIGITS);
     onChange(pasted.padEnd(OTP_DIGITS, "").slice(0, OTP_DIGITS));
     // Focus last filled or next empty
     const nextIdx = Math.min(pasted.length, OTP_DIGITS - 1);
@@ -110,7 +119,9 @@ function OtpInput({
       {Array.from({ length: OTP_DIGITS }).map((_, i) => (
         <input
           key={i}
-          ref={(el) => { inputRefs.current[i] = el; }}
+          ref={(el) => {
+            inputRefs.current[i] = el;
+          }}
           type="text"
           inputMode="numeric"
           maxLength={1}
@@ -126,9 +137,7 @@ function OtpInput({
             "transition-all duration-150 outline-none",
             "border-border bg-card text-foreground",
             "focus:border-primary focus:ring-2 focus:ring-primary/20",
-            digits[i]
-              ? "border-primary/60 bg-primary/5"
-              : "border-border",
+            digits[i] ? "border-primary/60 bg-primary/5" : "border-border",
             disabled && "opacity-50 cursor-not-allowed",
           ].join(" ")}
         />
@@ -201,7 +210,11 @@ function StepRegistration({
           </div>
 
           <FormField label="Email" error={errors.email?.message}>
-            <Input {...register("email")} type="email" placeholder="name@example.com" />
+            <Input
+              {...register("email")}
+              type="email"
+              placeholder="name@example.com"
+            />
           </FormField>
 
           <FormField label="Password" error={errors.password?.message}>
@@ -218,12 +231,19 @@ function StepRegistration({
                 onClick={() => setShowPw((v) => !v)}
                 tabIndex={-1}
               >
-                {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                {showPw ? (
+                  <EyeOff className="size-4" />
+                ) : (
+                  <Eye className="size-4" />
+                )}
               </button>
             </div>
           </FormField>
 
-          <FormField label="Confirm Password" error={errors.confirmPassword?.message}>
+          <FormField
+            label="Confirm Password"
+            error={errors.confirmPassword?.message}
+          >
             <div className="relative">
               <Input
                 {...register("confirmPassword")}
@@ -237,11 +257,15 @@ function StepRegistration({
                 onClick={() => setShowConfirm((v) => !v)}
                 tabIndex={-1}
               >
-                {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                {showConfirm ? (
+                  <EyeOff className="size-4" />
+                ) : (
+                  <Eye className="size-4" />
+                )}
               </button>
             </div>
           </FormField>
-
+          {/* 
           <div className="flex items-center gap-2 py-1">
             <input
               type="checkbox"
@@ -252,7 +276,7 @@ function StepRegistration({
             <label htmlFor="registerAsAdmin" className="text-sm font-medium cursor-pointer">
               Register as Admin <span className="text-muted-foreground">(requires approval)</span>
             </label>
-          </div>
+          </div> */}
 
           <Button
             type="submit"
@@ -260,12 +284,17 @@ function StepRegistration({
             loading={isSubmitting || signupMutation.isPending}
             disabled={isSubmitting || signupMutation.isPending}
           >
-            {isSubmitting || signupMutation.isPending ? "Creating account…" : "Create Account"}
+            {isSubmitting || signupMutation.isPending
+              ? "Creating account…"
+              : "Create Account"}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="font-medium text-primary hover:underline">
+            <Link
+              href="/login"
+              className="font-medium text-primary hover:underline"
+            >
               Sign in
             </Link>
           </p>
@@ -350,7 +379,8 @@ function StepOtpVerify({
         {/* Hint */}
         <p className="text-center text-xs text-muted-foreground">
           <Mail className="mr-1 inline size-3" />
-          Check your spam folder if you don&apos;t see it. Code expires in 10 minutes.
+          Check your spam folder if you don&apos;t see it. Code expires in 10
+          minutes.
         </p>
 
         {/* Verify button */}
@@ -416,7 +446,9 @@ function StepSuccess({ onLogin }: { onLogin: () => void }) {
         <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950">
           <CheckCircle2 className="size-8 text-emerald-600 dark:text-emerald-400" />
         </div>
-        <CardTitle className="text-2xl font-bold">You&apos;re verified!</CardTitle>
+        <CardTitle className="text-2xl font-bold">
+          You&apos;re verified!
+        </CardTitle>
         <CardDescription>
           Your email has been confirmed. Your account is ready.
         </CardDescription>
@@ -447,15 +479,16 @@ export function SignupForm() {
     }
   }, []);
 
-  const callbackUrl = typeof window !== "undefined" 
-    ? new URLSearchParams(window.location.search).get("callbackUrl") 
-    : null;
+  const callbackUrl =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("callbackUrl")
+      : null;
 
   // Step indicator
   const steps = [
     { id: "register", label: "Account" },
-    { id: "otp",      label: "Verify" },
-    { id: "success",  label: "Done" },
+    { id: "otp", label: "Verify" },
+    { id: "success", label: "Done" },
   ];
   const currentIdx = steps.findIndex((s) => s.id === step);
 
@@ -465,13 +498,13 @@ export function SignupForm() {
       <div className="relative border-b border-white/[0.03] bg-white/[0.01] px-10 py-8">
         {/* Background Line */}
         <div className="absolute left-10 right-10 top-[46px] h-[2px] bg-white/5" />
-        
+
         {/* Active Progress Line */}
-        <div 
+        <div
           className="absolute left-10 top-[46px] h-[2px] bg-primary transition-all duration-500 ease-in-out"
-          style={{ 
-            width: `calc(${currentIdx * 50}% - ${currentIdx === 0 ? '0px' : currentIdx === 1 ? '0px' : '0px'})`,
-            maxWidth: 'calc(100% - 80px)'
+          style={{
+            width: `calc(${currentIdx * 50}% - ${currentIdx === 0 ? "0px" : currentIdx === 1 ? "0px" : "0px"})`,
+            maxWidth: "calc(100% - 80px)",
           }}
         />
 
@@ -479,7 +512,7 @@ export function SignupForm() {
           {steps.map((s, i) => {
             const isActive = i === currentIdx;
             const isCompleted = i < currentIdx;
-            
+
             return (
               <div key={s.id} className="flex flex-col items-center gap-3">
                 <div
@@ -488,8 +521,8 @@ export function SignupForm() {
                     isCompleted
                       ? "border-primary bg-primary text-primary-foreground"
                       : isActive
-                      ? "border-primary bg-background text-primary shadow-[0_0_15px_rgba(var(--color-primary-rgb),0.3)]"
-                      : "border-white/10 bg-surface text-muted-foreground",
+                        ? "border-primary bg-background text-primary shadow-[0_0_15px_rgba(var(--color-primary-rgb),0.3)]"
+                        : "border-white/10 bg-surface text-muted-foreground",
                   ].join(" ")}
                 >
                   {isCompleted ? (
@@ -532,10 +565,12 @@ export function SignupForm() {
       )}
 
       {step === "success" && (
-        <StepSuccess onLogin={() => {
-          const target = `/login?verified=true${callbackUrl ? `&callbackUrl=${encodeURIComponent(callbackUrl)}` : ""}`;
-          router.push(target);
-        }} />
+        <StepSuccess
+          onLogin={() => {
+            const target = `/login?verified=true${callbackUrl ? `&callbackUrl=${encodeURIComponent(callbackUrl)}` : ""}`;
+            router.push(target);
+          }}
+        />
       )}
     </Card>
   );
