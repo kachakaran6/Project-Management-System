@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader, FilterBar } from "@/components/layout/page-header";
 import {
   Dialog,
   DialogContent,
@@ -79,37 +80,29 @@ export default function ProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-3xl font-semibold">Projects</h1>
-          <p className="text-muted-foreground mt-1">
-            Create, track, and manage projects across your organization.
-          </p>
-        </div>
-        {canMutate ? (
-          <Button asChild>
-            <Link href="/projects/create">Create Project</Link>
-          </Button>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Projects"
+        description="Create, track, and manage projects across your organization."
+        actions={
+          canMutate ? (
+            <Button asChild size="sm" className="h-9 px-4 font-medium">
+              <Link href="/projects/create">Create Project</Link>
+            </Button>
+          ) : undefined
+        }
+      />
 
-      <div className="grid gap-3 md:grid-cols-[1fr_240px]">
-        <Input
-          value={search}
-          onChange={(event) => {
-            setPage(1);
-            setSearch(event.target.value);
-          }}
-          placeholder="Search projects"
-        />
-        <Select
-          value={status}
-          onValueChange={(value) => {
-            setPage(1);
-            setStatus(value);
-          }}
-        >
-          <SelectTrigger>
+      <FilterBar>
+        <div className="relative flex-1 min-w-[180px] max-w-sm">
+          <Input
+            value={search}
+            onChange={(event) => { setPage(1); setSearch(event.target.value); }}
+            placeholder="Search projects…"
+            className="h-9 text-sm"
+          />
+        </div>
+        <Select value={status} onValueChange={(v) => { setPage(1); setStatus(v); }}>
+          <SelectTrigger className="h-9 w-[160px] text-sm">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -121,7 +114,7 @@ export default function ProjectsPage() {
             <SelectItem value="ARCHIVED">Archived</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </FilterBar>
 
       {projectsQuery.isLoading ? (
         <div className="space-y-2">
@@ -140,53 +133,92 @@ export default function ProjectsPage() {
           description="Try changing filters or create a new project."
         />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="sticky top-0 bg-card">Name</TableHead>
-              <TableHead className="sticky top-0 bg-card">Status</TableHead>
-              <TableHead className="sticky top-0 bg-card">Members</TableHead>
-              <TableHead className="sticky top-0 bg-card">Created</TableHead>
-              <TableHead className="sticky top-0 bg-card">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="sticky top-0 bg-card">Name</TableHead>
+                  <TableHead className="sticky top-0 bg-card">Status</TableHead>
+                  <TableHead className="sticky top-0 bg-card">Members</TableHead>
+                  <TableHead className="sticky top-0 bg-card">Created</TableHead>
+                  <TableHead className="sticky top-0 bg-card">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((project: any) => {
+                  const pid = project.id || project._id;
+                  return (
+                    <TableRow key={pid}>
+                      <TableCell className="font-medium">{project.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{project.status}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {(project as { membersCount?: number }).membersCount ?? "-"}
+                      </TableCell>
+                      <TableCell>{new Date(project.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="space-x-2">
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/projects/${pid}`}>View</Link>
+                        </Button>
+                        {canMutate ? (
+                          <>
+                            <Button asChild size="sm" variant="secondary">
+                              <Link href={`/projects/${pid}/edit`}>Edit</Link>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => setDeleteId(pid)}
+                            >
+                              Delete
+                            </Button>
+                          </>
+                        ) : null}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="grid gap-4 md:hidden">
             {rows.map((project: any) => {
               const pid = project.id || project._id;
               return (
-                <TableRow key={pid}>
-                  <TableCell className="font-medium">{project.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{project.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {(project as { membersCount?: number }).membersCount ?? "-"}
-                  </TableCell>
-                  <TableCell>{new Date(project.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell className="space-x-2">
-                    <Button asChild size="sm" variant="outline">
+                <div key={pid} className="rounded-xl border border-border bg-card p-4 shadow-sm hover:border-primary/30 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-foreground truncate">{project.name}</h3>
+                    <Badge variant="outline" className="text-[10px] uppercase tracking-wider">{project.status}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                    <span>Members: {(project as { membersCount?: number }).membersCount ?? "0"}</span>
+                    <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button asChild size="sm" variant="outline" className="w-full">
                       <Link href={`/projects/${pid}`}>View</Link>
                     </Button>
-                    {canMutate ? (
-                      <>
-                        <Button asChild size="sm" variant="secondary">
-                          <Link href={`/projects/${pid}/edit`}>Edit</Link>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => setDeleteId(pid)}
-                        >
-                          Delete
-                        </Button>
-                      </>
-                    ) : null}
-                  </TableCell>
-                </TableRow>
+                    {canMutate && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="w-full"
+                        onClick={() => setDeleteId(pid)}
+                      >
+                        Delete
+                      </Button>
+                    )}
+                  </div>
+                </div>
               );
             })}
-          </TableBody>
-        </Table>
+          </div>
+        </>
       )}
 
       <div className="flex items-center justify-end gap-2">

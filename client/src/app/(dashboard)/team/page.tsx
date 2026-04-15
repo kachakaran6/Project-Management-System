@@ -76,6 +76,7 @@ import {
 import { TeamMember, TeamRole } from "@/features/team/api/team.api";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { PageHeader, FilterBar } from "@/components/layout/page-header";
 
 const ROLES: TeamRole[] = ["OWNER", "ADMIN", "MANAGER", "MEMBER"];
 
@@ -186,95 +187,80 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="container mx-auto space-y-8 py-8">
-      {/* ─── Header ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Team Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your organization's members, roles, and access controls.
-          </p>
-        </div>
-        {isAdmin && (
-          <Button onClick={() => setIsInviteOpen(true)} className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            Invite Member
-          </Button>
-        )}
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Team"
+        description="Manage your organization's members, roles, and access controls."
+        actions={
+          isAdmin ? (
+            <Button size="sm" className="h-9 px-4 font-medium gap-2" onClick={() => setIsInviteOpen(true)}>
+              <UserPlus className="size-4" />
+              Invite Member
+            </Button>
+          ) : undefined
+        }
+      />
 
-      {/* ─── Filters & Actions ─────────────────────────────────────────────── */}
-      <div className="bg-card flex flex-col gap-4 rounded-xl border p-4 shadow-sm md:flex-row md:items-center">
-        <div className="relative flex-1">
-          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+      <FilterBar>
+        <div className="relative flex-1 min-w-[180px] max-w-sm">
+          <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2" />
           <Input
-            placeholder="Search by name or email..."
-            className="pl-10"
+            placeholder="Search members…"
+            className="h-9 pl-9 text-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[140px]">
-              <Filter className="mr-2 h-4 w-4 opacity-50" />
-              <SelectValue placeholder="Role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Roles</SelectItem>
-              {ROLES.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {r.replace("_", " ")}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Status</SelectItem>
-              <SelectItem value="ACTIVE">Active</SelectItem>
-              <SelectItem value="DISABLED">Disabled</SelectItem>
-              <SelectItem value="PENDING">Pending</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {selectedIds.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2 border-dashed">
-                  Bulk Actions ({selectedIds.length})
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Modify Selected</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => bulkAction.mutate({ userIds: selectedIds, status: "ACTIVE" })}>
-                  <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
-                  Activate Users
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => bulkAction.mutate({ userIds: selectedIds, status: "DISABLED" })}>
-                  <XCircle className="mr-2 h-4 w-4 text-gray-500" />
-                  Disable Users
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive font-medium focus:bg-destructive/10"
-                  onClick={() => bulkAction.mutate({ userIds: selectedIds, action: "REMOVE" })}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Remove from Organization
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      </div>
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="h-9 w-[130px] text-sm">
+            <SelectValue placeholder="Role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All roles</SelectItem>
+            {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="h-9 w-[130px] text-sm">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All status</SelectItem>
+            <SelectItem value="ACTIVE">Active</SelectItem>
+            <SelectItem value="DISABLED">Disabled</SelectItem>
+            <SelectItem value="PENDING">Pending</SelectItem>
+          </SelectContent>
+        </Select>
+        {selectedIds.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 text-sm gap-2 border-dashed">
+                Bulk Actions ({selectedIds.length})
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Modify Selected</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => bulkAction.mutate({ userIds: selectedIds, status: "ACTIVE" })}>
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Activate
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => bulkAction.mutate({ userIds: selectedIds, status: "DISABLED" })}>
+                <XCircle className="mr-2 h-4 w-4 text-gray-500" /> Disable
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive font-medium focus:bg-destructive/10"
+                onClick={() => bulkAction.mutate({ userIds: selectedIds, action: "REMOVE" })}
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Remove
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </FilterBar>
 
       {/* ─── Table ─────────────────────────────────────────────────────────── */}
-      <div className="rounded-xl border shadow-sm overflow-hidden bg-card">
+      {/* Desktop Table View */}
+      <div className="hidden lg:block rounded-xl border shadow-sm overflow-hidden bg-card">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -399,12 +385,6 @@ export default function TeamPage() {
                           <UserMinus className="mr-2 h-4 w-4" />
                           Remove Member
                         </DropdownMenuItem>
-                        {isOwner && (
-                          <DropdownMenuItem className="text-destructive font-bold" onClick={() => setConfirmDeleteId(user.id)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Permanent Delete
-                          </DropdownMenuItem>
-                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -413,6 +393,50 @@ export default function TeamPage() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="grid gap-4 lg:hidden">
+        {filteredUsers.length === 0 ? (
+          <div className="h-32 flex items-center justify-center text-muted-foreground">No members found</div>
+        ) : (
+          filteredUsers.map((user) => (
+            <div key={user.id} className="bg-card border rounded-xl p-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <Avatar className="h-12 w-12 border shadow-sm">
+                  <AvatarImage src={user.avatarUrl} />
+                  <AvatarFallback>{user.firstName[0]}{user.lastName[0]}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-foreground truncate">{user.firstName} {user.lastName}</h3>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-3 border-t gap-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Role</span>
+                  <Badge variant="secondary" className="text-[10px] uppercase font-bold">{user.role}</Badge>
+                </div>
+                <div className="flex flex-col gap-1 items-end">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Status</span>
+                  <Badge variant={user.status === "ACTIVE" ? "success" : "outline"} className="text-[10px] uppercase font-bold">{user.status}</Badge>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t">
+                 <Button variant="outline" size="sm" onClick={() => setSelectedUser(user)}>View</Button>
+                 <DropdownMenu>
+                   <DropdownMenuTrigger asChild>
+                     <Button variant="secondary" size="sm">Actions</Button>
+                   </DropdownMenuTrigger>
+                   <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleOpenPermissionModal(user)}>Permissions</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => setConfirmDeleteId(user.id)}>Remove</DropdownMenuItem>
+                   </DropdownMenuContent>
+                 </DropdownMenu>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* ─── Invitation Modal ─────────────────────────────────────────────── */}
