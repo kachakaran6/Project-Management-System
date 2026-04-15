@@ -33,12 +33,13 @@
     "stripe": "^22.0.0",
     "uuid": "^13.0.0",
     "winston": "^3.19.0",
-    "winston-mongodb": "^7.0.1"
+    "winston-mongodb": "^7.0.1",
+    "@types/node": "^22.0.0",
+    "@types/jest": "^30.3.0"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
-    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/nodemailer": "^8.0.0",
