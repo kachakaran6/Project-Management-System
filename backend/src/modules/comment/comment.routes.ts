@@ -8,25 +8,38 @@ const router = express.Router();
 
 router.use(requireAuth);
 
-// All comment operations require CREATE_TASK (general task access for comments) 
-// or define a specific COMMENT_CREATE permission if needed.
-router.get('/task/:taskId', requirePermission(PERMISSIONS.VIEW_PROJECT), commentController.getAll);
+// Task-scoped list endpoint (legacy path)
+router.get('/task/:taskId', requirePermission(PERMISSIONS.VIEW_TASK), commentController.getAll);
 
 router.post(
   '/', 
-  requirePermission(PERMISSIONS.CREATE_TASK), 
+  requirePermission(PERMISSIONS.CREATE_COMMENT), 
   commentController.add
+);
+
+// REST-standard routes
+router.put(
+  '/:commentId',
+  requirePermission(PERMISSIONS.EDIT_COMMENT),
+  commentController.update
 );
 
 router.patch(
   '/:id', 
-  requirePermission(PERMISSIONS.CREATE_TASK), 
+  requirePermission(PERMISSIONS.EDIT_COMMENT), 
   commentController.update
 );
 
 router.delete(
-  '/:id', 
-  requirePermission(PERMISSIONS.CREATE_TASK), 
+  '/:commentId', 
+  requirePermission(PERMISSIONS.DELETE_COMMENT), 
+  commentController.remove
+);
+
+// Legacy delete path support
+router.delete(
+  '/:id',
+  requirePermission(PERMISSIONS.DELETE_COMMENT),
   commentController.remove
 );
 

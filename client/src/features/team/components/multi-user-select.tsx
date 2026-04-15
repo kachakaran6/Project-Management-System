@@ -28,6 +28,7 @@ interface MultiUserSelectProps {
   className?: string;
   // Optional pre-filled user objects for display when only IDs are available in value
   prefilledUsers?: UserInfo[];
+  disabled?: boolean;
 }
 
 export function MultiUserSelect({
@@ -36,6 +37,7 @@ export function MultiUserSelect({
   placeholder = "Assign to...",
   className,
   prefilledUsers = [],
+  disabled = false,
 }: MultiUserSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -103,8 +105,11 @@ export function MultiUserSelect({
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
           <div
-            className="flex min-h-10 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
-            onClick={() => setOpen(true)}
+            className={cn(
+              "flex min-h-10 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+              disabled && "opacity-60 cursor-not-allowed pointer-events-none bg-muted/20"
+            )}
+            onClick={() => !disabled && setOpen(true)}
           >
             {selectedUsers.length > 0 ? (
               <div className="flex flex-wrap gap-1">

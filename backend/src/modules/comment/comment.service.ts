@@ -3,12 +3,44 @@ import Task from '../../models/Task.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import { parseMentions } from '../../utils/mentionParser.js';
 import * as activityLog from '../../utils/systemTriggers.js';
+import mongoose from 'mongoose';
+import { emitToRoom } from '../../realtime/socket.server.js';
+import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../realtime/socket.events.js';
+
+const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'OWNER', 'ADMIN']);
+
+const isValidObjectId = (value: unknown) => mongoose.Types.ObjectId.isValid(String(value || ''));
+
+const isCommentOwner = (comment: any, userId: string) => {
+  const ownerId = comment?.userId || comment?.authorId;
+  return ownerId && String(ownerId) === String(userId);
+};
+
+const canManageComment = (comment: any, actor: { id: string; role?: string | null }) => {
+  if (isCommentOwner(comment, actor.id)) {
+    return true;
+  }
+
+  return Boolean(actor.role && ADMIN_ROLES.has(actor.role));
+};
 
 /**
  * Add a comment to a task
  */
 export const addComment = async (commentData: Record<string, any>, userId: any) => {
   const { content, taskId, organizationId, parentId } = commentData;
+
+  if (!content || !String(content).trim()) {
+    throw new AppError('Comment content is required.', 400);
+  }
+
+  if (!isValidObjectId(taskId)) {
+    throw new AppError('Invalid taskId.', 400);
+  }
+
+  if (parentId && !isValidObjectId(parentId)) {
+    throw new AppError('Invalid parentId.', 400);
+  }
 
   // 1. Validate task access
   const task = await Task.findOne({ _id: taskId, organizationId, isActive: true });
@@ -19,12 +51,18 @@ export const addComment = async (commentData: Record<string, any>, userId: any) 
 
   // 3. Create Comment
   const comment = await Comment.create({
-    content,
+    content: String(content).trim(),
     taskId,
+    userId,
     authorId: userId,
     organizationId,
     parentId,
     mentions
+  });
+
+  emitToRoom(SOCKET_ROOMS.TASK(taskId), SOCKET_EVENTS.COMMENT_ADDED, {
+    taskId,
+    commentId: comment._id,
   });
 
   // 4. Activity Logs and Notifications
@@ -65,7 +103,7 @@ export const addComment = async (commentData: Record<string, any>, userId: any) 
      });
   }
 
-  return comment;
+  return await comment.populate('userId', 'firstName lastName email avatarUrl');
 };
 
 /**
@@ -74,53 +112,121 @@ export const addComment = async (commentData: Record<string, any>, userId: any) 
 export const getComments = async (
   taskId: any,
   organizationId: any,
+  actor: { id: string; role?: string | null },
   { page = 1, limit = 20 }: { page?: number; limit?: number } = {}
 ) => {
+  if (!isValidObjectId(taskId)) {
+    throw new AppError('Invalid taskId.', 400);
+  }
+
+  const task = await Task.findOne({ _id: taskId, organizationId, isActive: true }).select('_id');
+  if (!task) {
+    throw new AppError('Task not found.', 404);
+  }
+
   const skip = (page - 1) * limit;
 
-  // Fetch all comments for the task
-  // In a really large discussion, you'd only fetch top-level and lazy-load replies
   const [comments, totalCount] = await Promise.all([
     Comment.find({ taskId, organizationId })
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('authorId', 'firstName lastName avatarUrl')
+      .populate('userId', 'firstName lastName email avatarUrl')
+      .populate('authorId', 'firstName lastName email avatarUrl')
       .lean(),
     Comment.countDocuments({ taskId, organizationId })
   ]);
 
-  // Build thread structure (optional client-side or server-side)
-  // For simplicity, we return flat array but the parentId allows building the tree client-side.
-  return { comments, totalCount };
+  const hydratedComments = comments.map((comment: any) => {
+    const user = comment.userId || comment.authorId || null;
+    const owner = isCommentOwner(comment, actor.id);
+    const admin = Boolean(actor.role && ADMIN_ROLES.has(actor.role));
+
+    return {
+      ...comment,
+      userId: user,
+      authorId: user,
+      canEdit: owner || admin,
+      canDelete: owner || admin,
+    };
+  });
+
+  return { comments: hydratedComments, totalCount };
 };
 
 /**
  * Update a comment
  */
-export const updateComment = async (commentId: any, organizationId: any, content: any, userId: any) => {
-  const comment = await Comment.findOneAndUpdate(
-    { _id: commentId, organizationId, authorId: userId },
-    { $set: { content, isEdited: true } },
-    { new: true }
-  );
+export const updateComment = async (
+  commentId: any,
+  organizationId: any,
+  content: any,
+  actor: { id: string; role?: string | null }
+) => {
+  if (!isValidObjectId(commentId)) {
+    throw new AppError('Invalid commentId.', 400);
+  }
 
-  if (!comment) throw new AppError('Comment not found or unauthorized.', 404);
+  if (!content || !String(content).trim()) {
+    throw new AppError('Comment content is required.', 400);
+  }
 
-  return comment;
+  const existing = await Comment.findOne({ _id: commentId, organizationId });
+  if (!existing) {
+    throw new AppError('Comment not found.', 404);
+  }
+
+  if (!canManageComment(existing, actor)) {
+    throw new AppError('You are not allowed to update this comment.', 403);
+  }
+
+  existing.content = String(content).trim();
+  existing.isEdited = true;
+  if (!existing.userId && existing.authorId) {
+    existing.userId = existing.authorId;
+  }
+  if (!existing.authorId && existing.userId) {
+    existing.authorId = existing.userId;
+  }
+
+  await existing.save();
+
+  emitToRoom(SOCKET_ROOMS.TASK(existing.taskId), SOCKET_EVENTS.COMMENT_UPDATED, {
+    taskId: existing.taskId,
+    commentId: existing._id,
+  });
+
+  return await existing.populate('userId', 'firstName lastName email avatarUrl');
 };
 
 /**
  * Delete a comment
  */
-export const deleteComment = async (commentId: any, organizationId: any, userId: any) => {
-  const comment = await Comment.findOneAndDelete({
-    _id: commentId,
-    organizationId,
-    authorId: userId
-  });
+export const deleteComment = async (
+  commentId: any,
+  organizationId: any,
+  actor: { id: string; role?: string | null }
+) => {
+  if (!isValidObjectId(commentId)) {
+    throw new AppError('Invalid commentId.', 400);
+  }
 
-  if (!comment) throw new AppError('Comment not found or unauthorized.', 404);
+  const comment = await Comment.findOne({ _id: commentId, organizationId });
+  if (!comment) {
+    throw new AppError('Comment not found.', 404);
+  }
+
+  if (!canManageComment(comment, actor)) {
+    throw new AppError('You are not allowed to delete this comment.', 403);
+  }
+
+  const taskId = comment.taskId;
+  await Comment.deleteOne({ _id: commentId });
+
+  emitToRoom(SOCKET_ROOMS.TASK(taskId), SOCKET_EVENTS.COMMENT_DELETED, {
+    taskId,
+    commentId,
+  });
 
   return { success: true };
 };

@@ -3,7 +3,7 @@
 
 import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  TaskFormValues,
-  taskFormSchema,
-} from "@/features/tasks/schemas/task.schema";
+import { TaskFormValues, taskFormSchema } from "@/features/tasks/schemas/task.schema";
 import { MultiUserSelect } from "@/features/team/components/multi-user-select";
+import { TaskDescriptionEditor } from "./task-description-editor";
+import { useAuthStore } from "@/store/auth-store";
 
 interface ProjectOption {
   id: string;
@@ -42,6 +40,10 @@ export function TaskForm({
   isSubmitting = false,
   submitLabel = "Save Task",
 }: TaskFormProps) {
+  const { user } = useAuthStore();
+  const currentRole = user?.role || "MEMBER";
+  const isMemberOnlySelection = currentRole === "MEMBER";
+
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
@@ -50,7 +52,9 @@ export function TaskForm({
       status: initialValues?.status ?? "TODO",
       priority: initialValues?.priority ?? "MEDIUM",
       projectId: initialValues?.projectId ?? "",
-      assigneeIds: initialValues?.assigneeIds ?? [],
+      assigneeIds: initialValues?.assigneeIds && initialValues.assigneeIds.length > 0 
+        ? initialValues.assigneeIds 
+        : (isMemberOnlySelection && user?.id ? [user.id] : []),
       dueDate: initialValues?.dueDate ?? "",
     },
   });
@@ -91,11 +95,18 @@ export function TaskForm({
 
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          rows={4}
-          {...form.register("description")}
-          placeholder="Implementation details"
+        <Controller
+          name="description"
+          control={form.control}
+          render={({ field }) => (
+            <TaskDescriptionEditor
+              value={field.value || ""}
+              onChange={field.onChange}
+              placeholder="Implementation details"
+              alwaysEditing={true}
+              className="min-h-[160px]"
+            />
+          )}
         />
       </div>
 
@@ -145,6 +156,7 @@ export function TaskForm({
               <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
               <SelectItem value="IN_REVIEW">In Review</SelectItem>
               <SelectItem value="DONE">Done</SelectItem>
+              <SelectItem value="REJECTED">Rejected</SelectItem>
               <SelectItem value="ARCHIVED">Archived</SelectItem>
             </SelectContent>
           </Select>
@@ -187,8 +199,9 @@ export function TaskForm({
           onChange={(userIds) =>
             form.setValue("assigneeIds", userIds, { shouldDirty: true })
           }
-          placeholder="Select team members"
+          placeholder={isMemberOnlySelection ? "Assigned to you" : "Select team members"}
           prefilledUsers={(initialValues as any)?.assigneeUsers}
+          disabled={isMemberOnlySelection}
         />
         {form.formState.errors.assigneeIds ? (
           <p className="text-sm text-destructive">

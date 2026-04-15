@@ -9,7 +9,7 @@ export const create = asyncHandler(async (req, res) => {
   const task = await taskService.createTask({
     ...req.body,
     organizationId: req.organizationId // Still pass if exists, but not forced
-  }, req.user.id);
+  }, req.user.id, req.role || 'MEMBER');
 
   return successResponse(res, task, 'Task created successfully.', 201);
 });
@@ -49,7 +49,7 @@ export const update = asyncHandler(async (req, res) => {
     req.params.id,
     req.body,
     req.user.id,
-    req.role
+    req.role || 'MEMBER'
   );
 
   return successResponse(res, task, 'Task updated successfully.');
@@ -64,7 +64,7 @@ export const assign = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid or missing userIds.' });
   }
 
-  await taskService.assignUsers(req.params.id, userIds, req.user.id);
+  await taskService.assignUsers(req.params.id, userIds, req.user.id, req.role || 'MEMBER');
   return successResponse(res, null, 'Users assigned successfully.');
 });
 

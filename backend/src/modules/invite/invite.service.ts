@@ -6,12 +6,71 @@ import User from '../../models/User.js';
 import * as emailService from '../email/email.service.js';
 import { getInviteTemplate } from '../email/email.templates.js';
 import { AppError } from '../../middlewares/errorHandler.js';
-import { env } from '../../config/env.js';
 import { logInfo, logWarn } from '../../services/logService.js';
+import { env } from '../../config/env.js';
+import { NOTIFICATION_TYPES } from '../../constants/index.js';
+import { triggerNotification } from '../../utils/systemTriggers.js';
 
 /**
  * Invite Service: Handing organization invitations
  */
+
+const ADMIN_ROLES = ['OWNER', 'ADMIN'];
+
+const getDisplayName = (user: any) => {
+  const fullName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+  return fullName || user?.email || 'A new user';
+};
+
+const notifyMemberJoined = async ({
+  organizationId,
+  joinedUserId,
+  joinedUserName,
+  inviteId,
+}: {
+  organizationId: any;
+  joinedUserId: any;
+  joinedUserName: string;
+  inviteId?: any;
+}) => {
+  const notifyAdminsOnly = env.notifyAdminsOnly;
+
+  const memberQuery: Record<string, any> = {
+    organizationId,
+    isActive: true,
+  };
+
+  if (notifyAdminsOnly) {
+    memberQuery.role = { $in: ADMIN_ROLES };
+  }
+
+  const recipientUserIds = await OrganizationMember.find(memberQuery).distinct('userId');
+  const recipientsExcludingActor = recipientUserIds.filter(
+    (recipientId: any) => String(recipientId) !== String(joinedUserId),
+  );
+
+  if (recipientsExcludingActor.length === 0) {
+    return;
+  }
+
+  const message = `${joinedUserName} has joined your organization successfully.`;
+
+  await triggerNotification({
+    userIds: recipientsExcludingActor,
+    organizationId,
+    actorId: joinedUserId,
+    type: NOTIFICATION_TYPES.NEW_MEMBER_JOINED,
+    message,
+    resourceId: organizationId,
+    resourceType: 'Organization',
+    metadata: {
+      joinedUserId: String(joinedUserId),
+      joinedUserName,
+      inviteId: inviteId ? String(inviteId) : undefined,
+      notifyAdminsOnly,
+    },
+  });
+};
 
 /**
  * Send invite to organization
@@ -124,7 +183,7 @@ export const acceptInvite = async (token: any, userId: any) => {
     throw new AppError('Invitation has expired.', 400);
   }
 
-  const user = await User.findById(userId).select('email');
+  const user = await User.findById(userId).select('email firstName lastName');
   if (!user) {
     throw new AppError('User not found.', 404);
   }
@@ -151,6 +210,26 @@ export const acceptInvite = async (token: any, userId: any) => {
   // Update invite status
   invite.status = 'ACCEPTED';
   await invite.save();
+
+  try {
+    await notifyMemberJoined({
+      organizationId: invite.organizationId,
+      joinedUserId: userId,
+      joinedUserName: getDisplayName(user),
+      inviteId: invite._id,
+    });
+  } catch (error: any) {
+    await logWarn('Member joined notification failed', {
+      userId,
+      action: 'ORG_MEMBER_JOINED_NOTIFICATION_FAILED',
+      status: 'FAILURE',
+      metadata: {
+        organizationId: String(invite.organizationId),
+        inviteId: String(invite._id),
+        error: error?.message,
+      },
+    });
+  }
 
   return { organizationId: invite.organizationId };
 };

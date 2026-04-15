@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { JsonViewer } from "@/features/admin/components/json-viewer";
+import { TaskComments } from "@/features/comments/components/TaskComments";
 import { useTaskQuery } from "@/features/tasks/hooks/use-tasks-query";
 
 export default function TaskDetailsPage() {
@@ -63,9 +64,7 @@ export default function TaskDetailsPage() {
           <CardTitle className="text-base">Comments</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-sm">
-            Comments integration placeholder.
-          </p>
+          <TaskComments taskId={id} />
         </CardContent>
       </Card>
 

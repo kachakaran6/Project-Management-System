@@ -1,33 +1,21 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import React, {
   useState,
   useCallback,
   useRef,
-  useOptimistic,
-  useTransition,
+  useEffect,
+  useMemo,
 } from "react";
 import { toast } from "sonner";
 import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  closestCorners,
-  DragStartEvent,
-  DragEndEvent,
-  DragOverEvent,
-  useDroppable,
-  UniqueIdentifier,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "@hello-pangea/dnd";
 
 import {
   Plus,
@@ -82,6 +70,9 @@ import {
   useCreateTaskMutation,
 } from "@/features/tasks/hooks/use-tasks-query";
 import { EditTaskModal } from "@/features/tasks/components/edit-task-modal";
+import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
+import { useAuthStore } from "@/store/auth-store";
+import { cn } from "@/lib/utils";
 
 // ─── Column definitions ────────────────────────────────────────────────────────
 
@@ -92,86 +83,83 @@ interface ColumnDef {
   dotColor: string;
 }
 
-const COLUMNS: ColumnDef[] = [
+const ALL_STATUS_CONFIG: ColumnDef[] = [
   {
     id: "BACKLOG",
     label: "Backlog",
     icon: Circle,
-    dotColor: "#6C757D",
+    dotColor: "#94a3b8", // slate-400
   },
   {
     id: "TODO",
     label: "To Do",
     icon: CircleDot,
-    dotColor: "#0D6EFD",
+    dotColor: "#3b82f6", // blue-500
   },
   {
     id: "IN_PROGRESS",
     label: "In Progress",
     icon: Clock,
-    dotColor: "#6F42C1",
+    dotColor: "#8b5cf6", // purple-500
   },
   {
     id: "IN_REVIEW",
     label: "In Review",
     icon: Eye,
-    dotColor: "#FD7E14",
+    dotColor: "#f59e0b", // amber-500
   },
   {
     id: "DONE",
     label: "Done",
     icon: CheckCircle2,
-    dotColor: "#198754",
+    dotColor: "#22c55e", // green-500
+  },
+  {
+    id: "REJECTED",
+    label: "Rejected",
+    icon: X,
+    dotColor: "#f43f5e", // rose-500
+  },
+  {
+    id: "ARCHIVED",
+    label: "Archived",
+    icon: Trash2,
+    dotColor: "#64748b", // slate-500
   },
 ];
 
-// ─── Priority config ───────────────────────────────────────────────────────────
+const CORE_STATUSES: TaskStatus[] = ["BACKLOG", "TODO", "IN_PROGRESS", "DONE"];
 
 const PRIORITY_CONFIG: Record<
   string,
   { label: string; color: string; bg: string; flagColor: string }
 > = {
-  LOW:    { label: "Low",    color: "text-slate-600 dark:text-slate-300",   bg: "bg-slate-100 dark:bg-slate-800",   flagColor: "#6C757D" },
-  MEDIUM: { label: "Medium", color: "text-blue-700 dark:text-blue-300",      bg: "bg-blue-50 dark:bg-blue-900/40",   flagColor: "#0D6EFD" },
-  HIGH:   { label: "High",   color: "text-orange-700 dark:text-orange-300",  bg: "bg-orange-50 dark:bg-orange-900/40", flagColor: "#FD7E14" },
-  URGENT: { label: "Urgent", color: "text-red-700 dark:text-red-300",        bg: "bg-red-50 dark:bg-red-900/40",      flagColor: "#dc2626" },
+  LOW:    { label: "Low",    color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10",   flagColor: "#10b981" },
+  MEDIUM: { label: "Medium", color: "text-blue-600 dark:text-blue-400",      bg: "bg-blue-500/10",      flagColor: "#3b82f6" },
+  HIGH:   { label: "High",   color: "text-amber-600 dark:text-amber-400",    bg: "bg-amber-500/10",     flagColor: "#f59e0b" },
+  URGENT: { label: "Urgent", color: "text-rose-600 dark:text-rose-400",      bg: "bg-rose-500/10",      flagColor: "#f43f5e" },
 };
-
-// ─── Helper: stable task ID ────────────────────────────────────────────────────
 
 function tid(t: Task) {
   return (t.id || (t as any)._id) as string;
 }
 
-// ─── TaskCard (Sortable) ───────────────────────────────────────────────────────
+// ─── TaskCard ───────────────────────────────────────────────────────────────
 
 interface TaskCardProps {
   task: Task;
-  isDragging?: boolean;
-  projectId?: string;
+  index: number;
   canEdit?: boolean;
 }
 
-function TaskCard({ task, isDragging = false, projectId, canEdit = true }: TaskCardProps) {
+const TaskCard = React.memo(({ task, index, canEdit = true }: TaskCardProps) => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const deleteTask = useDeleteTaskMutation();
-  const changeStatus = useUpdateTaskStatusMutation();
-
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging: sortableDragging,
-  } = useSortable({ id: tid(task), disabled: !canEdit });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: sortableDragging ? 0.35 : 1,
-  };
+  const { openPanel } = useTaskPanelStore();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   const priority = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.MEDIUM;
   const dueDate = task.dueDate
@@ -197,163 +185,140 @@ function TaskCard({ task, isDragging = false, projectId, canEdit = true }: TaskC
 
   return (
     <>
-      <div
-        ref={setNodeRef}
-        style={style}
-        className={[
-          "group rounded-[10px] border border-border bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
-          "transition-all duration-150",
-          "hover:-translate-y-px hover:shadow-[0_3px_8px_rgba(16,24,40,0.08)]",
-          isDragging ? "scale-[1.02] shadow-[0_8px_20px_rgba(16,24,40,0.14)] cursor-grabbing" : "cursor-pointer",
-        ].join(" ")}
-        onClick={() => {
-          if (canEdit) setEditOpen(true);
-        }}
-      >
-        <div className="p-3.5">
-          {/* Header row */}
-          <div className="flex items-start gap-2.5">
-            {/* Drag handle */}
-            {canEdit ? (
-              <button
-                {...attributes}
-                {...listeners}
-                onClick={(event) => event.stopPropagation()}
-                className="mt-0.5 shrink-0 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
-                aria-label="Drag task"
-              >
-                <GripVertical className="size-3.5" />
-              </button>
-            ) : (
-              <div className="mt-0.5 shrink-0 text-muted-foreground/50">
-                <GripVertical className="size-3.5" />
-              </div>
+      <Draggable draggableId={tid(task)} index={index} isDragDisabled={!canEdit}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            className={cn(
+              "group relative mb-3 rounded-xl border border-border/80 bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+              "transition-shadow duration-200 ease-in-out",
+              "hover:shadow-md hover:border-border",
+              snapshot.isDragging ? "shadow-xl border-primary/30 z-50 ring-2 ring-primary/5" : "cursor-pointer"
             )}
-
-            {/* Title */}
-            <p className="flex-1 min-w-0 text-[14px] font-semibold leading-5 text-foreground wrap-break-word">
-              {task.title}
-            </p>
-
-            {/* Actions menu */}
-            {canEdit ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <MoreHorizontal className="size-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuItem
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setEditOpen(true);
-                    }}
-                  >
-                    <Pencil className="mr-2 size-3.5" />
-                    Edit task
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setDeleteOpen(true);
-                    }}
-                  >
-                    <Trash2 className="mr-2 size-3.5" />
-                    Delete task
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
-          </div>
-
-          {/* Description snippet */}
-          {task.description && (
-            <p className="mt-1.5 ml-6 text-[12px] leading-relaxed text-muted-foreground line-clamp-2">
-              {task.description}
-            </p>
-          )}
-
-          {/* Tags */}
-          {task.tags && task.tags.length > 0 && (
-            <div className="mt-2 ml-6 flex flex-wrap gap-1">
-              {task.tags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+            onClick={() => {
+              const params = new URLSearchParams(searchParams.toString());
+              params.set("taskId", tid(task));
+              router.push(`${pathname}?${params.toString()}`, { scroll: false });
+              openPanel(tid(task));
+            }}
+          >
+            <div className="p-3.5">
+              <div className="flex items-start gap-2.5">
+                {/* Drag handle */}
+                <div
+                  {...provided.dragHandleProps}
+                  className={cn(
+                    "mt-0.5 shrink-0 cursor-grab text-muted-foreground transition-colors hover:text-foreground active:cursor-grabbing",
+                    !canEdit && "opacity-20 cursor-default pointer-events-none"
+                  )}
                 >
-                  {tag}
-                </span>
-              ))}
-              {task.tags.length > 3 && (
-                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-                  +{task.tags.length - 3}
-                </span>
-              )}
-            </div>
-          )}
+                  <GripVertical className="size-3.5" />
+                </div>
 
-          {/* Footer */}
-          <div className="mt-3 ml-6 flex items-end justify-between gap-2">
-            <TooltipProvider>
-              <div className="flex -space-x-1.5 overflow-hidden items-center">
-                {assignees.slice(0, 3).map((user) => (
-                  <Tooltip key={user.id}>
-                    <TooltipTrigger asChild>
-                      <Avatar className="h-5.5 w-5.5 border border-white dark:border-[#111827] cursor-default">
-                        <AvatarImage src={user.avatarUrl} alt={user.name} />
-                        <AvatarFallback className="text-[9px] bg-muted text-muted-foreground">
-                          {user.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p className="text-xs font-medium">{user.name}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-                {assignees.length > 3 && (
-                  <div className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-muted text-[9px] font-medium text-muted-foreground border border-background">
-                    +{assignees.length - 3}
-                  </div>
-                )}
-                {assignees.length === 0 && (
-                  <span className="text-[12px] text-muted-foreground/60">Unassigned</span>
+                {/* Title */}
+                <p className="flex-1 min-w-0 text-[14px] font-semibold leading-5 text-foreground wrap-break-word">
+                  {task.title}
+                </p>
+
+                {/* Actions */}
+                {canEdit && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="size-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem asChild>
+                        <Link href={`/tasks/${tid(task)}`} onClick={(e) => e.stopPropagation()}>
+                          <Eye className="mr-2 size-3.5" />
+                          View details
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditOpen(true); }}>
+                        <Pencil className="mr-2 size-3.5" />
+                        Edit task
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive font-medium"
+                        onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}
+                      >
+                        <Trash2 className="mr-2 size-3.5" />
+                        Delete task
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
-            </TooltipProvider>
 
-            <div className="flex items-center gap-2">
-              {dueDate ? (
-                <div
-                  className={`flex items-center gap-1 text-[11px] ${
-                    isPastDue
-                      ? "text-destructive"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  <Calendar className="size-3" />
-                  <span>{dueDate}</span>
-                  {isPastDue ? <AlertCircle className="size-3" /> : null}
+              {/* Description */}
+              {task.description && (
+                <p className="mt-1.5 ml-6 text-[12px] leading-relaxed text-muted-foreground line-clamp-2">
+                  {task.description
+                    .replace(/<[^>]*>?/gm, " ")
+                    .replace(/&nbsp;/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim()}
+                </p>
+              )}
+
+              {/* Footer */}
+              <div className="mt-3 ml-6 flex items-end justify-between gap-2">
+                <TooltipProvider>
+                  <div className="flex -space-x-1.5 overflow-hidden items-center">
+                    {assignees.slice(0, 3).map((user) => (
+                      <Tooltip key={user.id}>
+                        <TooltipTrigger asChild>
+                          <Avatar className="h-5.5 w-5.5 border-2 border-card shadow-sm">
+                            <AvatarImage src={user.avatarUrl} alt={user.name} />
+                            <AvatarFallback className="text-[9px] bg-muted font-bold">
+                              {user.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-[11px] font-medium">
+                          {user.name}
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                    {assignees.length > 3 && (
+                      <div className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground border-2 border-card">
+                        +{assignees.length - 3}
+                      </div>
+                    )}
+                  </div>
+                </TooltipProvider>
+
+                <div className="flex items-center gap-2">
+                  {dueDate && (
+                    <div className={cn(
+                      "flex items-center gap-1 text-[11px] font-medium",
+                      isPastDue ? "text-rose-500" : "text-muted-foreground/80"
+                    )}>
+                      <Calendar className="size-3" />
+                      <span>{dueDate}</span>
+                    </div>
+                  )}
+                  <span className={cn(
+                    "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-tight uppercase",
+                    priority.bg,
+                    priority.color
+                  )}>
+                    {priority.label}
+                  </span>
                 </div>
-              ) : null}
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${priority.bg} ${priority.color}`}
-              >
-                {priority.label}
-              </span>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        )}
+      </Draggable>
 
-      {/* Delete confirm dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
@@ -363,48 +328,29 @@ function TaskCard({ task, isDragging = false, projectId, canEdit = true }: TaskC
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deleteTask.isPending}
-              onClick={handleDelete}
-            >
-              {deleteTask.isPending && (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              )}
-              Delete
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteTask.isPending}>
+              {deleteTask.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Delete Task
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {canEdit ? (
-        <EditTaskModal task={task} open={editOpen} onOpenChange={setEditOpen} />
-      ) : null}
+      {editOpen && <EditTaskModal task={task} open={editOpen} onOpenChange={setEditOpen} />}
     </>
   );
-}
+});
 
-// ─── Overlay card (shown while dragging) ──────────────────────────────────────
+TaskCard.displayName = "TaskCard";
 
-function DragOverlayCard({ task }: { task: Task }) {
-  return <TaskCard task={task} isDragging />;
-}
+// ─── QuickAdd ───────────────────────────────────────────────────────────────
 
-// ─── Quick-add input ───────────────────────────────────────────────────────────
-
-interface QuickAddProps {
-  projectId?: string;
-  status: TaskStatus;
-  onDone: () => void;
-}
-
-function QuickAddInput({ projectId, status, onDone }: QuickAddProps) {
+function QuickAddInput({ projectId, status, onDone }: { projectId?: string; status: TaskStatus; onDone: () => void }) {
   const [value, setValue] = useState("");
   const createTask = useCreateTaskMutation();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuthStore();
+  const isMember = user?.role === "MEMBER";
 
   const handleSubmit = async () => {
     const title = value.trim();
@@ -415,6 +361,7 @@ function QuickAddInput({ projectId, status, onDone }: QuickAddProps) {
         projectId: projectId ?? "",
         status,
         priority: "MEDIUM",
+        assigneeId: isMember ? user?.id : undefined,
       });
       toast.success("Task created");
       onDone();
@@ -424,287 +371,203 @@ function QuickAddInput({ projectId, status, onDone }: QuickAddProps) {
   };
 
   return (
-    <div className="flex items-center gap-1.5 rounded-lg border border-[#DEE2E6] bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:border-slate-700 dark:bg-slate-900">
+    <div className="mb-3 rounded-xl border border-border/60 bg-card/50 p-3 shadow-sm ring-1 ring-primary/5">
       <Input
-        ref={inputRef}
         autoFocus
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Task name…"
-        className="h-7 border-none bg-transparent p-0 text-sm text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+        placeholder="Task title..."
+        className="h-8 border-none bg-transparent p-0 text-sm font-semibold placeholder:text-muted-foreground/40 focus-visible:ring-0"
         onKeyDown={(e) => {
           if (e.key === "Enter") handleSubmit();
           if (e.key === "Escape") onDone();
         }}
       />
-      <div className="flex gap-1">
-        {createTask.isPending ? (
-          <Loader2 className="size-4 animate-spin text-[#0D6EFD]" />
-        ) : (
-          <button
-            onClick={handleSubmit}
-            className="rounded-md p-0.5 text-primary hover:bg-primary/10"
-            aria-label="Save"
-          >
-            <Plus className="size-4" />
-          </button>
-        )}
-        <button
-          onClick={onDone}
-          className="rounded-md p-0.5 text-muted-foreground hover:bg-muted"
-          aria-label="Cancel"
-        >
-          <X className="size-4" />
-        </button>
+      <div className="mt-2 flex items-center justify-end gap-2">
+        <Button variant="ghost" size="sm" onClick={onDone} className="h-7 text-xs">Cancel</Button>
+        <Button size="sm" onClick={handleSubmit} disabled={createTask.isPending} className="h-7 text-xs font-bold">
+          {createTask.isPending && <Loader2 className="mr-1.5 size-3 animate-spin" />}
+          Add Task
+        </Button>
       </div>
     </div>
   );
 }
 
-// ─── TaskColumn ────────────────────────────────────────────────────────────────
-
-interface TaskColumnProps {
-  col: ColumnDef;
-  tasks: Task[];
-  isOver: boolean;
-  projectId?: string;
-  canEdit?: boolean;
-}
-
-function TaskColumn({ col, tasks, isOver, projectId, canEdit = true }: TaskColumnProps) {
-  const [quickAdd, setQuickAdd] = useState(false);
-  const { setNodeRef } = useDroppable({ id: col.id });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={[
-        "flex flex-col rounded-xl border border-border bg-transparent",
-        "min-h-100 w-75 shrink-0 px-1 transition-colors duration-150",
-        isOver ? "border-muted-foreground/50 ring-1 ring-border" : "",
-      ].join(" ")}
-    >
-      {/* Column header */}
-      <div className="flex items-center justify-between px-3 py-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: col.dotColor }} />
-          <span className="text-[15px] font-semibold text-foreground">{col.label}</span>
-          <span className="text-[12px] text-muted-foreground">
-            {tasks.length}
-          </span>
-        </div>
-        {canEdit ? (
-          <button
-            onClick={() => setQuickAdd(true)}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label={`Add task to ${col.label}`}
-          >
-            <Plus className="size-4" />
-          </button>
-        ) : null}
-      </div>
-
-      {/* Cards area */}
-      <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-2 py-1.5 pb-3">
-        <SortableContext
-          items={tasks.map(tid)}
-          strategy={verticalListSortingStrategy}
-        >
-          {tasks.map((task) => (
-            <TaskCard key={tid(task)} task={task} projectId={projectId} canEdit={canEdit} />
-          ))}
-        </SortableContext>
-
-        {/* Quick-add input */}
-        {quickAdd && canEdit && (
-          <QuickAddInput
-            projectId={projectId}
-            status={col.id}
-            onDone={() => setQuickAdd(false)}
-          />
-        )}
-
-        {/* Empty state */}
-        {tasks.length === 0 && !quickAdd && (
-          <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border py-8 text-center">
-            <p className="text-[12px] text-muted-foreground">
-              {isOver ? "Drop here" : "No tasks"}
-            </p>
-            {canEdit ? (
-              <button
-                onClick={() => setQuickAdd(true)}
-                className="mt-1 text-[12px] text-primary hover:underline"
-              >
-                + Add task
-              </button>
-            ) : null}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── TaskBoard (Main export) ───────────────────────────────────────────────────
+// ─── TaskBoard (Main) ───────────────────────────────────────────────────────
 
 interface TaskBoardProps {
   tasks: Task[];
   projectId?: string;
   canEdit?: boolean;
-  /** @deprecated — kept for backward compat with project detail page */
-  addTaskSlot?: React.ReactNode;
 }
 
 export function TaskBoard({ tasks: initialTasks, projectId, canEdit = true }: TaskBoardProps) {
-  // Local optimistic state
-  const [localTasks, setLocalTasks] = useState<Task[]>(initialTasks);
-  const [, startTransition] = useTransition();
+  // mapped state for dnd logic
+  const [data, setData] = useState<{
+    tasks: Record<string, Task>;
+    columns: Record<string, string[]>;
+  }>(() => {
+    const tasks: Record<string, Task> = {};
+    const columns: Record<string, string[]> = {};
+    ALL_STATUS_CONFIG.forEach(c => { columns[c.id] = []; });
 
-  // Sync when parent re-fetches
-  // (use effect-like sync via key on parent is the cleanest, but we track ref)
-  const prevInitial = useRef<Task[]>(initialTasks);
-  if (prevInitial.current !== initialTasks) {
-    prevInitial.current = initialTasks;
-    setLocalTasks(initialTasks);
-  }
-
-  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
-  const [overColumnId, setOverColumnId] = useState<TaskStatus | null>(null);
+    initialTasks.forEach(t => {
+      const id = tid(t);
+      tasks[id] = t;
+      if (columns[t.status]) columns[t.status].push(id);
+    });
+    return { tasks, columns };
+  });
 
   const changeStatus = useUpdateTaskStatusMutation();
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 6 },
-    }),
-  );
+  const visibleColumns = useMemo(() => {
+    return ALL_STATUS_CONFIG.filter(col => 
+      CORE_STATUSES.includes(col.id as TaskStatus) || 
+      (data.columns[col.id] && data.columns[col.id].length > 0)
+    );
+  }, [data.columns]);
 
-  const grouped = useCallback(() => {
-    const map: Record<TaskStatus, Task[]> = {
-      BACKLOG: [], TODO: [], IN_PROGRESS: [], IN_REVIEW: [], DONE: [], ARCHIVED: [],
-    };
-    for (const t of localTasks) {
-      const s = t.status as TaskStatus;
-      if (map[s]) map[s].push(t);
-    }
-    return map;
-  }, [localTasks]);
+  // Sync when initialTasks change, unless we are syncing/dragging
+  useEffect(() => {
+    if (isSyncing) return;
+    const tasks: Record<string, Task> = {};
+    const columns: Record<string, string[]> = {};
+    ALL_STATUS_CONFIG.forEach(c => { columns[c.id] = []; });
 
-  const activeTask = activeId
-    ? localTasks.find((t) => tid(t) === activeId)
-    : null;
-
-  // ── DnD handlers ──────────────────────────────────────────────────────────
-
-  const handleDragStart = ({ active }: DragStartEvent) => {
-    setActiveId(active.id);
-  };
-
-  const handleDragOver = ({ over }: DragOverEvent) => {
-    if (!over) { setOverColumnId(null); return; }
-    // over.id can be a column id or a task id
-    const colIds = COLUMNS.map((c) => c.id as string);
-    if (colIds.includes(over.id as string)) {
-      setOverColumnId(over.id as TaskStatus);
-    } else {
-      // Find which column the hovered task is in
-      const hovered = localTasks.find((t) => tid(t) === over.id);
-      setOverColumnId(hovered?.status ?? null);
-    }
-  };
-
-  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
-    if (!canEdit) {
-      setActiveId(null);
-      setOverColumnId(null);
-      return;
-    }
-
-    setActiveId(null);
-    setOverColumnId(null);
-    if (!over || !activeTask) return;
-
-    const colIds = COLUMNS.map((c) => c.id as string);
-    let targetStatus: TaskStatus;
-
-    if (colIds.includes(over.id as string)) {
-      targetStatus = over.id as TaskStatus;
-    } else {
-      const targetTask = localTasks.find((t) => tid(t) === over.id);
-      if (!targetTask) return;
-      targetStatus = targetTask.status;
-    }
-
-    const oldStatus = activeTask.status;
-
-    // Within same column — reorder
-    if (targetStatus === oldStatus) {
-      startTransition(() => {
-        setLocalTasks((prev) => {
-          const col = prev.filter((t) => t.status === oldStatus);
-          const rest = prev.filter((t) => t.status !== oldStatus);
-          const oldIdx = col.findIndex((t) => tid(t) === active.id);
-          const newIdx = col.findIndex((t) => tid(t) === over.id);
-          if (oldIdx === -1 || newIdx === -1) return prev;
-          return [...rest, ...arrayMove(col, oldIdx, newIdx)];
-        });
-      });
-      return;
-    }
-
-    // Cross-column — optimistic update then API call
-    startTransition(() => {
-      setLocalTasks((prev) =>
-        prev.map((t) =>
-          tid(t) === active.id ? { ...t, status: targetStatus } : t,
-        ),
-      );
+    initialTasks.forEach(t => {
+      const id = tid(t);
+      tasks[id] = t;
+      if (columns[t.status]) columns[t.status].push(id);
     });
+    setData({ tasks, columns });
+  }, [initialTasks, isSyncing]);
 
+  const onDragEnd = async (result: DropResult) => {
+    const { source, destination, draggableId } = result;
+
+    if (!destination) return;
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+
+    // PREPARE OPTIMISTIC UPDATE
+    const prevData = { ...data };
+    const sourceColId = source.droppableId;
+    const destColId = destination.droppableId;
+    
+    const newColumns = { ...data.columns };
+    const sourceTaskIds = Array.from(newColumns[sourceColId]);
+    sourceTaskIds.splice(source.index, 1);
+    
+    const destTaskIds = sourceColId === destColId 
+      ? sourceTaskIds 
+      : Array.from(newColumns[destColId]);
+    
+    destTaskIds.splice(destination.index, 0, draggableId);
+
+    newColumns[sourceColId] = sourceTaskIds;
+    newColumns[destColId] = destTaskIds;
+
+    const newTasks = { ...data.tasks };
+    if (sourceColId !== destColId) {
+      newTasks[draggableId] = { ...newTasks[draggableId], status: destColId as TaskStatus };
+    }
+
+    // APPLY OPTIMISTIC STATE
+    setData({ tasks: newTasks, columns: newColumns });
+    setIsSyncing(true);
+
+    // PERSIST TO BACKEND
     try {
-      await changeStatus.mutateAsync({ id: tid(activeTask), status: targetStatus });
-      toast.success(`Moved to ${targetStatus.replace(/_/g, " ")}`);
-    } catch {
-      // Rollback
-      startTransition(() => {
-        setLocalTasks((prev) =>
-          prev.map((t) =>
-            tid(t) === active.id ? { ...t, status: oldStatus } : t,
-          ),
-        );
+      await changeStatus.mutateAsync({ 
+        id: draggableId, 
+        status: destColId as TaskStatus,
+        position: destination.index
       });
-      toast.error("Failed to update task status.");
+      if (sourceColId !== destColId) {
+        toast.success(`Task moved to ${destColId.replace(/_/g, " ")}`);
+      }
+    } catch (err) {
+      // ROLLBACK
+      setData(prevData);
+      toast.error("Failed to sync task move.");
+    } finally {
+      setIsSyncing(false);
     }
   };
-
-  const g = grouped();
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      {/* Horizontal scroll container */}
-      <div className="flex gap-4 overflow-x-auto pb-6 pt-1">
-        {COLUMNS.map((col) => (
-          <TaskColumn
-            key={col.id}
-            col={col}
-            tasks={g[col.id] ?? []}
-            isOver={overColumnId === col.id}
-            projectId={projectId}
-            canEdit={canEdit}
-          />
-        ))}
-      </div>
+    <DragDropContext onDragEnd={onDragEnd}>
+      {/* Outer wrapper for horizontal scrolling */}
+      <div className="w-full overflow-x-auto pb-6 pt-1 custom-scrollbar">
+        <div className="flex gap-6 min-w-max px-1">
+          {visibleColumns.map((col) => {
+            const columnTasks = data.columns[col.id].map(id => data.tasks[id]);
+            return (
+              <div 
+                key={col.id} 
+                className="flex flex-col w-[300px] shrink-0 rounded-2xl bg-muted/20 border border-border/40 shadow-sm"
+              >
+                {/* Column Header */}
+                <div className="flex items-center justify-between px-4 py-4 border-b border-border/40 mb-2 bg-muted/10 rounded-t-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="h-2.5 w-2.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.1)]" style={{ backgroundColor: col.dotColor }} />
+                    <span className="text-[15px] font-bold tracking-tight text-foreground/90 uppercase">{col.label}</span>
+                    <span className="text-[11px] font-bold text-muted-foreground/60 bg-background/80 px-2 py-0.5 rounded-full ring-1 ring-border/20 shadow-inner">
+                      {columnTasks.length}
+                    </span>
+                  </div>
+                  {canEdit && <ColumnActions colId={col.id} projectId={projectId} />}
+                </div>
 
-      {/* Drag overlay (floating ghost) */}
-      <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.18,0.67,0.6,1.22)" }}>
-        {activeTask ? <DragOverlayCard task={activeTask} /> : null}
-      </DragOverlay>
-    </DndContext>
+                {/* Droppable Area */}
+                <Droppable droppableId={col.id} ignoreContainerClipping={true}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={cn(
+                        "flex flex-1 flex-col px-3 py-2 min-h-[600px] max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-hidden transition-colors duration-300",
+                        snapshot.isDraggingOver ? "bg-primary/[0.03]" : "bg-transparent"
+                      )}
+                    >
+                      <div className="space-y-3">
+                        {columnTasks.map((task, index) => (
+                          <TaskCard key={tid(task)} task={task} index={index} canEdit={canEdit} />
+                        ))}
+                      </div>
+                      {provided.placeholder}
+                      {columnTasks.length === 0 && !snapshot.isDraggingOver && (
+                        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/30 py-16 opacity-40 transition-opacity hover:opacity-60">
+                          <p className="text-[12px] font-semibold text-muted-foreground tracking-tight">No tasks in {col.label.toLowerCase()}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Droppable>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </DragDropContext>
+  );
+}
+
+function ColumnActions({ colId, projectId }: { colId: TaskStatus; projectId?: string }) {
+  const [quickAdd, setQuickAdd] = useState(false);
+  
+  if (quickAdd) {
+    return <QuickAddInput projectId={projectId} status={colId} onDone={() => setQuickAdd(false)} />;
+  }
+
+  return (
+    <button
+      onClick={() => setQuickAdd(true)}
+      className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/40 transition-all hover:bg-white hover:text-foreground hover:shadow-sm"
+    >
+      <Plus className="size-3.5" />
+    </button>
   );
 }

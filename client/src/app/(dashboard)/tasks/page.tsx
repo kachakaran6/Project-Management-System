@@ -3,7 +3,16 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Kanban, List, Search as SearchIcon } from "lucide-react";
+import { 
+  Kanban, 
+  List, 
+  Search as SearchIcon, 
+  MoreHorizontal, 
+  Eye, 
+  Pencil, 
+  Trash2, 
+  AlertCircle 
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +23,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,6 +62,7 @@ import { EditTaskModal } from "@/features/tasks/components/edit-task-modal";
 import { CreateTaskModal } from "@/features/tasks/components/create-task-modal";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { Task, TaskStatus, TaskPriority } from "@/types/task.types";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
 const VIEW_STORAGE_KEY = "tasks:view-mode";
@@ -90,13 +107,26 @@ export default function TasksPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[TasksPage] Current Filters:", {
+        search: debouncedSearch,
+        status,
+        priority,
+        projectId,
+        assigneeId,
+        page
+      });
+    }
+  }, [debouncedSearch, status, priority, projectId, assigneeId, page]);
+
   const sharedFilters = useMemo(
     () => ({
       search: debouncedSearch || undefined,
-      status: status === "ALL" ? undefined : (status as TaskStatus),
-      priority: priority === "ALL" ? undefined : (priority as TaskPriority),
-      projectId: projectId === "ALL" ? undefined : projectId,
-      assigneeId: assigneeId === "ALL" ? undefined : assigneeId,
+      status: status === "ALL" || !status ? undefined : (status as TaskStatus),
+      priority: priority === "ALL" || !priority ? undefined : (priority as TaskPriority),
+      projectId: projectId === "ALL" || !projectId ? undefined : projectId,
+      assigneeId: assigneeId === "ALL" || !assigneeId ? undefined : assigneeId,
       dueDate: dueDate || undefined,
     }),
     [debouncedSearch, status, priority, projectId, assigneeId, dueDate],
@@ -132,6 +162,11 @@ export default function TasksPage() {
     return (
       projectValue?.name || projectValue?._id || projectValue?.id || "Unknown"
     );
+  };
+
+  const getTaskId = (task: Task) => {
+    const legacyId = (task as Task & { _id?: string })._id;
+    return String(task.id || legacyId || "");
   };
 
   const getAssignee = (task: Task) => task.assigneeUsers?.[0] ?? null;
@@ -174,40 +209,52 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-3xl font-semibold">Tasks</h1>
-          <p className="text-muted-foreground mt-1">
-            Central task hub across your organization.
+    <div className="max-w-[1600px] mx-auto space-y-8 px-4 py-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="font-heading text-4xl font-bold tracking-tight text-foreground">
+            Tasks
+          </h1>
+          <p className="text-muted-foreground text-[15px]">
+            Manage, organize, and track tasks across all your active projects.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="bg-muted inline-flex rounded-lg p-1">
+        <div className="flex items-center gap-3">
+          <div className="bg-muted/50 border border-border/40 inline-flex rounded-xl p-1 shadow-inner">
             <Button
               type="button"
               variant={viewMode === "list" ? "secondary" : "ghost"}
               size="sm"
               onClick={() => setViewMode("list")}
-              className="h-8"
+              className={cn(
+                "h-8 px-4 rounded-lg transition-all duration-200",
+                viewMode === "list" && "shadow-sm"
+              )}
             >
               <List className="mr-2 size-4" />
-              List View
+              List
             </Button>
             <Button
               type="button"
               variant={viewMode === "kanban" ? "secondary" : "ghost"}
               size="sm"
               onClick={() => setViewMode("kanban")}
-              className="h-8"
+              className={cn(
+                "h-8 px-4 rounded-lg transition-all duration-200",
+                viewMode === "kanban" && "shadow-sm"
+              )}
             >
               <Kanban className="mr-2 size-4" />
-              Kanban Board
+              Board
             </Button>
           </div>
 
           {canMutate ? (
-            <CreateTaskModal trigger={<Button>Create Task</Button>} />
+            <CreateTaskModal trigger={
+              <Button size="sm" className="h-10 rounded-xl px-5 font-semibold shadow-lg shadow-primary/10">
+                Create Task
+              </Button>
+            } />
           ) : null}
         </div>
       </div>
@@ -243,6 +290,7 @@ export default function TasksPage() {
             <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
             <SelectItem value="IN_REVIEW">In Review</SelectItem>
             <SelectItem value="DONE">Done</SelectItem>
+            <SelectItem value="REJECTED">Rejected</SelectItem>
             <SelectItem value="ARCHIVED">Archived</SelectItem>
           </SelectContent>
         </Select>
@@ -270,7 +318,7 @@ export default function TasksPage() {
           value={projectId}
           onValueChange={(value) => {
             setPage(1);
-            setProjectId(value);
+            setProjectId(value || "ALL");
           }}
         >
           <SelectTrigger>
@@ -278,11 +326,18 @@ export default function TasksPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All projects</SelectItem>
-            {(projectsQuery.data?.data.items ?? []).map((project) => (
-              <SelectItem key={project.id} value={project.id}>
-                {project.name}
-              </SelectItem>
-            ))}
+            {(projectsQuery.data?.data.items ?? []).map((project) => {
+              const pId = project.id || (project as { _id?: string })._id;
+              if (!pId) return null;
+              return (
+                <SelectItem 
+                  key={pId} 
+                  value={pId}
+                >
+                  {project.name}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
 
@@ -290,7 +345,7 @@ export default function TasksPage() {
           value={assigneeId}
           onValueChange={(value) => {
             setPage(1);
-            setAssigneeId(value);
+            setAssigneeId(value || "ALL");
           }}
         >
           <SelectTrigger>
@@ -298,11 +353,14 @@ export default function TasksPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All assignees</SelectItem>
-            {(membersQuery.data?.data.members ?? []).map((member) => (
-              <SelectItem key={member.id} value={member.id}>
-                {`${member.firstName} ${member.lastName}`.trim()}
-              </SelectItem>
-            ))}
+            {(membersQuery.data?.data.members ?? []).map((member) => {
+              const memberId = member.id || (member as { _id?: string })._id;
+              return (
+                <SelectItem key={memberId} value={memberId || ""}>
+                  {`${member.firstName} ${member.lastName}`.trim()}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
 
@@ -337,145 +395,177 @@ export default function TasksPage() {
       ) : null}
 
       {viewMode === "list" && !listQuery.isLoading ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="sticky top-0 bg-card">Title</TableHead>
-              <TableHead className="sticky top-0 bg-card">Assignee</TableHead>
-              <TableHead className="sticky top-0 bg-card">Status</TableHead>
-              <TableHead className="sticky top-0 bg-card">Priority</TableHead>
-              <TableHead className="sticky top-0 bg-card">Due Date</TableHead>
-              <TableHead className="sticky top-0 bg-card">Project</TableHead>
-              <TableHead className="sticky top-0 bg-card">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {listRows.map((task) => {
-              const assignee = getAssignee(task);
-              return (
-                <TableRow
-                  key={task.id}
-                  className={canMutate ? "cursor-pointer" : ""}
-                  onClick={() => {
-                    if (canMutate) setSelectedTask(task);
-                  }}
-                >
-                  <TableCell className="font-medium">{task.title}</TableCell>
-                  <TableCell>
-                    {assignee ? (
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={assignee.avatarUrl} />
-                          <AvatarFallback>
-                            {assignee.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-medium">
-                            {assignee.name}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground">
-                            {assignee.email}
+        <div className="rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30 border-b border-border/40 hover:bg-muted/30">
+                <TableHead className="py-4 font-semibold text-foreground/70">Task Title</TableHead>
+                <TableHead className="font-semibold text-foreground/70">Assignee</TableHead>
+                <TableHead className="font-semibold text-foreground/70">Status</TableHead>
+                <TableHead className="font-semibold text-foreground/70">Priority</TableHead>
+                <TableHead className="font-semibold text-foreground/70">Due Date</TableHead>
+                <TableHead className="font-semibold text-foreground/70">Project</TableHead>
+                <TableHead className="w-[60px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {listRows.map((task, idx) => {
+                const taskId = getTaskId(task);
+                const assignee = getAssignee(task);
+                const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "DONE";
+
+                return (
+                  <TableRow
+                    key={taskId || `task-${idx}`}
+                    className="h-[72px] border-b border-border/30 last:border-0 hover:bg-muted/10 transition-colors"
+                  >
+                    <TableCell className="py-4">
+                      <div className="flex flex-col gap-0.5">
+                        <Link 
+                          href={`/tasks/${taskId}`}
+                          className="font-semibold text-[15px] hover:text-primary transition-colors line-clamp-1"
+                        >
+                          {task.title}
+                        </Link>
+                        <span className="text-[11px] font-mono text-muted-foreground/60">
+                          #{taskId.slice(-6).toUpperCase()}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {assignee ? (
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8 rounded-lg shadow-sm">
+                            <AvatarImage src={assignee.avatarUrl} />
+                            <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold rounded-lg border border-primary/10">
+                              {assignee.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-foreground/90 leading-none mb-1">
+                              {assignee.name}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground/80 leading-none">
+                              {assignee.email}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger disabled={!canMutate} asChild>
+                          <Button 
+                            variant="ghost" 
+                            className={cn(
+                              "h-7 rounded-full border-0 px-3 py-0 text-[11px] font-bold tracking-tight uppercase shadow-sm whitespace-nowrap",
+                              task.status === "DONE" && "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15",
+                              task.status === "IN_PROGRESS" && "bg-blue-500/10 text-blue-600 hover:bg-blue-500/15",
+                              task.status === "IN_REVIEW" && "bg-amber-500/10 text-amber-600 hover:bg-amber-500/15",
+                              ["TODO", "BACKLOG", "ARCHIVED"].includes(task.status || "") && "bg-slate-500/10 text-slate-600 hover:bg-slate-500/15"
+                            )}
+                          >
+                            {(task.status || "TODO").replace("_", " ")}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="rounded-xl border-border/50 shadow-xl">
+                          <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "TODO")}>To Do</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "IN_PROGRESS")}>In Progress</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "IN_REVIEW")}>In Review</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "DONE")}>Done</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "BACKLOG")}>Backlog</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "ARCHIVED")}>Archive</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger disabled={!canMutate} asChild>
+                          <Button 
+                            variant="ghost" 
+                            className={cn(
+                              "h-7 rounded-full border-0 px-3 py-0 text-[11px] font-bold tracking-tight uppercase shadow-sm",
+                              task.priority === "URGENT" && "bg-rose-500/10 text-rose-600 hover:bg-rose-500/15",
+                              task.priority === "HIGH" && "bg-orange-500/10 text-orange-600 hover:bg-orange-500/15",
+                              task.priority === "MEDIUM" && "bg-amber-500/10 text-amber-600 hover:bg-amber-500/15",
+                              task.priority === "LOW" && "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15"
+                            )}
+                          >
+                            {task.priority || "MEDIUM"}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="rounded-xl border-border/50 shadow-xl">
+                          <DropdownMenuItem onClick={() => handleInlinePriorityChange(taskId, "URGENT")}>Urgent</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleInlinePriorityChange(taskId, "HIGH")}>High</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleInlinePriorityChange(taskId, "MEDIUM")}>Medium</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleInlinePriorityChange(taskId, "LOW")}>Low</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                    <TableCell>
+                      {task.dueDate ? (
+                        <div className={cn(
+                          "flex items-center gap-1.5 text-sm font-medium transition-colors",
+                          isOverdue ? "text-rose-600" : "text-muted-foreground/90"
+                        )}>
+                          {isOverdue && <AlertCircle className="size-3.5 fill-rose-600/10" />}
+                          <span className={cn(isOverdue && "font-bold tracking-tight")}>
+                            {new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
                         </div>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">
-                        Unassigned
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground/50 tracking-widest">--/--</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs font-medium text-muted-foreground/70 truncate max-w-[120px] block">
+                        {getProjectName(task)}
                       </span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={task.status}
-                      onValueChange={(value) =>
-                        handleInlineStatusChange(task.id, value as TaskStatus)
-                      }
-                      disabled={!canMutate || updateStatus.isPending}
-                    >
-                      <SelectTrigger
-                        className="h-8 w-37.5"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="BACKLOG">Backlog</SelectItem>
-                        <SelectItem value="TODO">To Do</SelectItem>
-                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                        <SelectItem value="IN_REVIEW">In Review</SelectItem>
-                        <SelectItem value="DONE">Done</SelectItem>
-                        <SelectItem value="ARCHIVED">Archived</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={task.priority}
-                      onValueChange={(value) =>
-                        handleInlinePriorityChange(
-                          task.id,
-                          value as TaskPriority,
-                        )
-                      }
-                      disabled={!canMutate || updateTask.isPending}
-                    >
-                      <SelectTrigger
-                        className="h-8 w-32.5"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="LOW">Low</SelectItem>
-                        <SelectItem value="MEDIUM">Medium</SelectItem>
-                        <SelectItem value="HIGH">High</SelectItem>
-                        <SelectItem value="URGENT">Urgent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    {task.dueDate ? (
-                      new Date(task.dueDate).toLocaleDateString()
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>{getProjectName(task)}</TableCell>
-                  <TableCell className="space-x-2">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/tasks/${task.id}`}>View</Link>
-                    </Button>
-                    {canMutate ? (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedTask(task);
-                          }}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setDeleteId(task.id);
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </>
-                    ) : null}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted focus-visible:ring-0">
+                            <MoreHorizontal className="size-4 text-muted-foreground/70" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/50 shadow-2xl p-1.5 slide-in-from-right-2">
+                          <DropdownMenuItem 
+                            className="rounded-xl px-3 py-2 cursor-pointer focus:bg-primary/10"
+                            asChild
+                          >
+                            <Link href={`/tasks/${taskId}`} className="flex items-center">
+                              <Eye className="mr-2.5 size-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">View Details</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="rounded-xl px-3 py-2 cursor-pointer focus:bg-primary/10"
+                            onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
+                          >
+                            <Pencil className="mr-2.5 size-4 text-muted-foreground" />
+                            <span className="text-sm font-medium text-foreground">Edit Task</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="my-2 bg-border/40" />
+                          <DropdownMenuItem 
+                            className="rounded-xl px-3 py-2 cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); setDeleteId(taskId); }}
+                          >
+                            <Trash2 className="mr-2.5 size-4" />
+                            <span className="text-sm font-bold">Delete Task</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       ) : null}
 
       {viewMode === "kanban" ? (

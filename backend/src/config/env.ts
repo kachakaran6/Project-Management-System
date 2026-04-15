@@ -29,6 +29,7 @@ type Env = {
   frontendUrl?: string;
   stripeSecretKey?: string;
   stripeWebhookSecret?: string;
+  notifyAdminsOnly: boolean;
 };
 
 const requiredEnvVars = ["PORT", "MONGO_URI", "NODE_ENV"];
@@ -80,6 +81,7 @@ export const env: Env = {
   emailFrom: process.env.EMAIL_FROM || process.env.SMTP_FROM || 'noreply@pms-orbit.io',
   resendApiKey: process.env.RESEND_API_KEY,
   inviteEmailRequired: process.env.INVITE_EMAIL_REQUIRED === 'true',
+  notifyAdminsOnly: process.env.NOTIFY_ADMINS_ONLY !== 'false',
 
   // Frontend
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',

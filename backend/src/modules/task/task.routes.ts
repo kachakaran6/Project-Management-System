@@ -1,5 +1,6 @@
 import express from "express";
 import * as taskController from "./task.controller.js";
+import * as commentController from "../comment/comment.controller.js";
 import { requireAuth } from "../../middlewares/auth.middleware.js";
 import { requirePermission } from "../../middlewares/permission.middleware.js";
 import { PERMISSIONS } from "../../constants/index.js";
@@ -39,6 +40,19 @@ router.get(
   requirePermission(PERMISSIONS.VIEW_TASK),
   taskController.getById,
 );
+
+router.get(
+  "/:taskId/comments",
+  requirePermission(PERMISSIONS.VIEW_TASK),
+  commentController.getAll,
+);
+
+router.post(
+  "/:taskId/comments",
+  requirePermission(PERMISSIONS.CREATE_COMMENT),
+  commentController.add,
+);
+
 router.delete(
   "/:id",
   requirePermission(PERMISSIONS.DELETE_TASK),

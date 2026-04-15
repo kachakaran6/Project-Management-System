@@ -19,7 +19,14 @@ const projectSchema = new mongoose.Schema({
   startDate: { type: Date },
   endDate: { type: Date }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Virtual to map _id to id for API responses
+projectSchema.virtual('id').get(function() {
+  return this._id;
 });
 
 // Index for workspace-level project listing

@@ -46,7 +46,7 @@ const enrichTaskWithAssignees = (task: any, assignees: any[] = []) => {
 /**
  * Create a new task with assignees and tags
  */
-export const createTask = async (taskData: Record<string, any>, userId: any) => {
+export const createTask = async (taskData: Record<string, any>, userId: string, role: string) => {
   const { 
     title, description, projectId, workspaceId, organizationId, 
     status, priority, dueDate, assignees = [], assigneeId, tags = [] 
@@ -59,6 +59,17 @@ export const createTask = async (taskData: Record<string, any>, userId: any) => 
 
   if (!title) {
     throw new AppError('Title is required.', 400);
+  }
+
+  // VALIDATION: Assignment Rules
+  // Members can ONLY assign tasks to themselves.
+  if (assignees.length > 0) {
+    const isMember = role === ROLES.MEMBER || role === 'MEMBER';
+    const hasOtherAssignees = assignees.some((aId: string) => String(aId) !== String(userId));
+
+    if (isMember && hasOtherAssignees) {
+      throw new AppError('You can only assign tasks to yourself.', 403);
+    }
   }
 
   const session = await mongoose.startSession();
@@ -151,17 +162,37 @@ export const getTasks = async (
   const skip = (page - 1) * limit;
   const query: Record<string, any> = { isActive: true };
 
+  // Helper to safely convert string to ObjectId
+  const safeObjectId = (id: any) => {
+    if (!id) return null;
+    try {
+      return mongoose.Types.ObjectId.isValid(String(id))
+        ? new mongoose.Types.ObjectId(String(id))
+        : null;
+    } catch {
+      return null;
+    }
+  };
+
   if (filter.role === ROLES.SUPER_ADMIN) {
     // Super Admin sees all active tasks
   } else if (filter.organizationId) {
-    query.organizationId = filter.organizationId;
+    const orgId = safeObjectId(filter.organizationId);
+    if (orgId) query.organizationId = orgId;
   } else if (filter.userId) {
     // If no org, show their own tasks
-    query.creatorId = filter.userId;
+    const userId = safeObjectId(filter.userId);
+    if (userId) query.creatorId = userId;
   }
 
-  if (filter.workspaceId) query.workspaceId = filter.workspaceId;
-  if (filter.projectId) query.projectId = filter.projectId;
+  if (filter.workspaceId) {
+    const wsId = safeObjectId(filter.workspaceId);
+    if (wsId) query.workspaceId = wsId;
+  }
+  if (filter.projectId) {
+    const projId = safeObjectId(filter.projectId);
+    if (projId) query.projectId = projId;
+  }
   if (filter.status) query.status = filter.status;
   if (filter.priority) query.priority = filter.priority;
   if (filter.dueDate) query.dueDate = { $lte: new Date(filter.dueDate) };
@@ -175,25 +206,35 @@ export const getTasks = async (
 
   // Filtering by assignee requires a sub-query or aggregation
   if (filter.assigneeId) {
-    const taskIds = await TaskAssignee.find({ userId: filter.assigneeId }).distinct('taskId');
-    query._id = { $in: taskIds };
+    const assigneeId = safeObjectId(filter.assigneeId);
+    if (assigneeId) {
+      const taskIds = await TaskAssignee.find({
+        userId: assigneeId,
+      }).distinct('taskId');
+      query._id = { $in: taskIds };
+    }
   }
 
   // Filtering by tags
   if (filter.tagId) {
-    const taskIds = await TaskTag.find({ tagId: filter.tagId }).distinct('taskId');
-    if (query._id) {
-       // Combine with assignee filter if present
-       const existingIds = query._id.$in;
-       query._id.$in = existingIds.filter((id: any) => taskIds.some((tid: any) => tid.equals(id)));
-    } else {
-       query._id = { $in: taskIds };
+    const tagId = safeObjectId(filter.tagId);
+    if (tagId) {
+      const taskIds = await TaskTag.find({
+        tagId: tagId,
+      }).distinct('taskId');
+      if (query._id) {
+         // Combine with assignee filter if present
+         const existingIds = query._id.$in;
+         query._id.$in = existingIds.filter((id: any) => taskIds.some((tid: any) => tid.equals(id)));
+      } else {
+         query._id = { $in: taskIds };
+      }
     }
   }
 
   const [tasks, totalCount] = await Promise.all([
     Task.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ position: 1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate('projectId', 'name')
@@ -237,6 +278,18 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
     Object.prototype.hasOwnProperty.call(updateData, 'assigneeId') ||
     Object.prototype.hasOwnProperty.call(updateData, 'assigneeIds');
   
+  // VALIDATION: Assignment Rules for Update
+  const isMember = role === ROLES.MEMBER || role === 'MEMBER';
+  
+  if (isMember && (updateData.assigneeId || updateData.assigneeIds)) {
+    const newAssignees = updateData.assigneeIds || [updateData.assigneeId];
+    const hasOtherAssignees = newAssignees.some((aId: string) => aId && String(aId) !== String(userId));
+    
+    if (hasOtherAssignees) {
+      throw new AppError('You can only assign tasks to yourself.', 403);
+    }
+  }
+
   const task = await Task.findOneAndUpdate(
     query,
     { $set: otherData },
@@ -329,7 +382,15 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
 /**
  * Assign users to task
  */
-export const assignUsers = async (taskId: any, userIds: any[], actorId: any) => {
+export const assignUsers = async (taskId: any, userIds: any[], actorId: any, role: string) => {
+  const isMember = role === ROLES.MEMBER || role === 'MEMBER';
+  if (isMember) {
+    const hasOtherAssignees = userIds.some((uId: any) => String(uId) !== String(actorId));
+    if (hasOtherAssignees) {
+      throw new AppError('You can only assign tasks to yourself.', 403);
+    }
+  }
+
   const task = await Task.findOne({ _id: taskId });
   if (!task) throw new AppError('Task not found.', 404);
 

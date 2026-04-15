@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { io, Socket } from "socket.io-client";
+import { toast } from "sonner";
 
 import { notificationApi } from "@/features/notifications/api/notifications.api";
 import { useAuthStore } from "@/store/auth-store";
@@ -33,8 +34,9 @@ function getSocketUrl() {
 
 export function useNotificationCenter(filters: NotificationFilters = {}) {
   const queryClient = useQueryClient();
-  const { accessToken, activeOrgId, isAuthenticated } = useAuthStore();
+  const { accessToken, activeOrgId, isAuthenticated, user } = useAuthStore();
   const socketRef = useRef<Socket | null>(null);
+  const shownJoinToastIdsRef = useRef<Set<string>>(new Set());
 
   const notificationsQuery = useQuery({
     queryKey: notificationQueryKeys.list(filters),
@@ -84,6 +86,14 @@ export function useNotificationCenter(filters: NotificationFilters = {}) {
     },
   });
 
+  const userContextRef = useRef({ userId: user?.id, orgId: activeOrgId });
+
+  useEffect(() => {
+    userContextRef.current = { userId: user?.id, orgId: activeOrgId };
+  }, [user?.id, activeOrgId]);
+
+  const filtersKey = JSON.stringify(filters);
+
   useEffect(() => {
     if (!isAuthenticated || !accessToken) {
       socketRef.current?.disconnect();
@@ -101,6 +111,16 @@ export function useNotificationCenter(filters: NotificationFilters = {}) {
 
     const handleNotification = (incoming: NotificationItem | NotificationItem[]) => {
       const payload = Array.isArray(incoming) ? incoming : [incoming];
+      const { userId: currentUserIdRaw } = userContextRef.current;
+      const currentUserId = currentUserIdRaw ? String(currentUserIdRaw) : null;
+      
+      const filteredPayload = currentUserId
+        ? payload.filter((item) => String(item.recipientId) === currentUserId)
+        : payload;
+
+      if (filteredPayload.length === 0) {
+        return;
+      }
 
       queryClient.setQueryData(notificationQueryKeys.list(filters), (current: any) => {
         if (!current?.data) return current;
@@ -108,13 +128,13 @@ export function useNotificationCenter(filters: NotificationFilters = {}) {
           ...current,
           data: {
             ...current.data,
-            items: mergeById(current.data.items, payload),
+            items: mergeById(current.data.items, filteredPayload),
           },
         };
       });
 
       queryClient.setQueryData(notificationQueryKeys.unreadCount, (current: any) => {
-        const unreadFromPayload = payload.filter((item) => !item.isRead).length;
+        const unreadFromPayload = filteredPayload.filter((item) => !item.isRead).length;
         if (!current?.data) {
           return current;
         }
@@ -125,20 +145,39 @@ export function useNotificationCenter(filters: NotificationFilters = {}) {
           },
         };
       });
+
+      filteredPayload.forEach((item) => {
+        if (item.type !== "NEW_MEMBER_JOINED" || item.isRead) {
+          return;
+        }
+
+        if (shownJoinToastIdsRef.current.has(item._id)) {
+          return;
+        }
+
+        shownJoinToastIdsRef.current.add(item._id);
+
+        const joinedUserName =
+          typeof item.metadata?.joinedUserName === "string" && item.metadata.joinedUserName.trim().length > 0
+            ? item.metadata.joinedUserName.trim()
+            : null;
+
+        const toastMessage = joinedUserName
+          ? `🎉 ${joinedUserName} joined your organization`
+          : `🎉 ${item.message}`;
+
+        toast.success(toastMessage, { duration: 4000 });
+      });
     };
 
     socket.on("notification:new", handleNotification);
-
-    socket.on("connect_error", () => {
-      // polling stays active as the fallback path
-    });
 
     return () => {
       socket.off("notification:new", handleNotification);
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [accessToken, activeOrgId, filters, isAuthenticated, queryClient]);
+  }, [accessToken, activeOrgId, filtersKey, isAuthenticated, queryClient]);
 
   return useMemo(
     () => ({
