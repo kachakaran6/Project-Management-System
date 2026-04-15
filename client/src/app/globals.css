@@ -366,6 +366,25 @@ body {
   outline-offset: 2px;
 }
 
+/* ── Global Layout Reset & Responsive Typography ── */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  scroll-behavior: smooth;
+  height: 100%;
+}
+
+@layer base {
+  html {
+    font-size: 14px;
+  }
+  @media (min-width: 768px) {
+    html {
+      font-size: 16px;
+    }
+  }
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

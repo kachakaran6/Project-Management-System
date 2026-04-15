@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { PageHeader } from "@/components/layout/page-header";
 import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
 import { useTasksQuery } from "@/features/tasks/hooks/use-tasks-query";
 import { CreateProjectModal } from "@/features/projects/components/create-project-modal";
@@ -115,25 +116,20 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Welcome */}
-      <div>
-        <h1 className="font-heading text-3xl font-semibold">
-          Welcome back, {user?.firstName ?? "there"} 👋
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Here's a quick overview of your workspace.
-        </p>
-      </div>
+      <PageHeader
+        title={`Welcome back, ${user?.firstName ?? "there"} 👋`}
+        description="Here's a quick overview of your workspace."
+      />
 
       {/* Stats */}
       {projectsQuery.isLoading || tasksQuery.isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard
             label="Total Projects"
             value={projects.length}
@@ -153,9 +149,9 @@ export default function DashboardPage() {
       )}
 
       {/* Main Content Grid */}
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         {/* Left: Projects + Tasks */}
-        <div className="space-y-6 xl:col-span-2">
+        <div className="space-y-6 lg:col-span-1 xl:col-span-2">
           {/* Recent Projects */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">

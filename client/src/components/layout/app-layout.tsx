@@ -53,8 +53,8 @@ export function AppLayout({ children }: AppLayoutProps) {
 
       <div className="flex flex-1 flex-col min-w-0 h-full bg-background">
         <AppHeader />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 transition-all duration-300">
-          <div className="mx-auto w-full max-w-7xl animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="mx-auto w-full max-w-[1400px] px-4 py-6 md:px-6 md:py-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
             {children}
           </div>
         </main>

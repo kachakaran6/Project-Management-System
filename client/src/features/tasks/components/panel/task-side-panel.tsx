@@ -62,7 +62,7 @@ export function TaskSidePanel() {
         </SheetHeader>
 
         {/* Header container for close button and actions */}
-        <div className="flex items-center justify-between px-6 py-3 border-b bg-muted/5">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b bg-muted/5">
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-background">Task Details</Badge>
           </div>
@@ -76,7 +76,7 @@ export function TaskSidePanel() {
 
         <div className="flex-1 overflow-hidden">
           {isLoading ? (
-            <div className="p-8 space-y-6">
+            <div className="p-4 sm:p-8 space-y-6">
               <Skeleton className="h-10 w-3/4" />
               <div className="space-y-4">
                 <Skeleton className="h-4 w-full" />
@@ -92,7 +92,7 @@ export function TaskSidePanel() {
               </div>
             </div>
           ) : error ? (
-            <div className="p-12 text-center space-y-4">
+            <div className="p-6 sm:p-12 text-center space-y-4">
               <div className="inline-flex size-12 items-center justify-center rounded-full bg-red-100 text-red-600">
                 <X className="size-6" />
               </div>
@@ -106,7 +106,7 @@ export function TaskSidePanel() {
               </button>
             </div>
           ) : task ? (
-            <div className="h-full overflow-y-auto px-8 py-6 custom-scrollbar">
+            <div className="h-full overflow-y-auto px-4 sm:px-8 py-6 custom-scrollbar">
               <div className="max-w-3xl mx-auto space-y-2">
                 <TaskHeader task={task} />
                 <TaskProperties task={task} />

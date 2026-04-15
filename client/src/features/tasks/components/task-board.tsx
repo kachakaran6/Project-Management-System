@@ -203,7 +203,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true }: TaskCardProps) => 
               openPanel(tid(task));
             }}
           >
-            <div className="p-3.5">
+            <div className="p-3 sm:p-3.5">
               <div className="flex items-start gap-2.5">
                 {/* Drag handle */}
                 <div
@@ -499,15 +499,15 @@ export function TaskBoard({ tasks: initialTasks, projectId, canEdit = true }: Ta
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      {/* Outer wrapper for horizontal scrolling */}
-      <div className="w-full overflow-x-auto pb-6 pt-1 custom-scrollbar">
-        <div className="flex gap-6 min-w-max px-1">
+      {/* Outer wrapper for horizontal scrolling with snap */}
+      <div className="w-full overflow-x-auto pb-6 pt-1 custom-scrollbar scroll-smooth snap-x snap-mandatory md:snap-none">
+        <div className="flex gap-4 md:gap-6 min-w-max px-1 md:px-0">
           {visibleColumns.map((col) => {
             const columnTasks = data.columns[col.id].map(id => data.tasks[id]);
             return (
               <div 
                 key={col.id} 
-                className="flex flex-col w-[300px] shrink-0 rounded-2xl bg-muted/20 border border-border/40 shadow-sm"
+                className="flex flex-col w-[85vw] sm:w-[300px] shrink-0 rounded-2xl bg-muted/20 border border-border/40 shadow-sm snap-center sm:snap-start"
               >
                 {/* Column Header */}
                 <div className="flex items-center justify-between px-4 py-4 border-b border-border/40 mb-2 bg-muted/10 rounded-t-2xl">
@@ -539,8 +539,8 @@ export function TaskBoard({ tasks: initialTasks, projectId, canEdit = true }: Ta
                       </div>
                       {provided.placeholder}
                       {columnTasks.length === 0 && !snapshot.isDraggingOver && (
-                        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/30 py-16 opacity-40 transition-opacity hover:opacity-60">
-                          <p className="text-[12px] font-semibold text-muted-foreground tracking-tight">No tasks in {col.label.toLowerCase()}</p>
+                        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border/30 py-8 sm:py-16 opacity-40 transition-opacity hover:opacity-60">
+                          <p className="text-[11px] sm:text-[12px] font-semibold text-muted-foreground tracking-tight">No tasks in {col.label.toLowerCase()}</p>
                         </div>
                       )}
                     </div>

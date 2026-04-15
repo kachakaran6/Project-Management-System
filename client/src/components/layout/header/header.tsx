@@ -45,32 +45,33 @@ export function AppHeader() {
       <Button
         variant="ghost"
         size="icon"
-        className="md:hidden"
+        className="md:hidden shrink-0"
         onClick={() => setMobileSidebarOpen(true)}
         aria-label="Open navigation"
       >
         <Menu className="size-5" />
       </Button>
 
-      <div className="min-w-0">
-        <p className="text-xs text-muted-foreground">Workspace</p>
+      <div className="min-w-0 flex-1 md:flex-none hidden sm:block">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-bold mb-0.5">Workspace</p>
         <nav
           aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-sm"
+          className="flex items-center gap-2 text-[13px]"
         >
-          <span className="font-medium">Home</span>
+          <span className="font-semibold transition-colors hover:text-primary cursor-pointer">Home</span>
           {segments.map((segment, index) => (
             <span
               key={`${segment}-${index}`}
-              className="flex items-center gap-2 text-muted-foreground"
+              className="flex items-center gap-2 text-muted-foreground/50"
             >
-              <span>/</span>
+              <span className="text-[10px]">/</span>
               <span
-                className={
+                className={cn(
+                  "truncate transition-colors hover:text-foreground",
                   index === segments.length - 1
-                    ? "text-foreground font-medium"
-                    : ""
-                }
+                    ? "text-foreground font-semibold"
+                    : "font-medium"
+                )}
               >
                 {formatSegment(segment)}
               </span>
@@ -79,11 +80,12 @@ export function AppHeader() {
         </nav>
       </div>
 
-      <div className="ml-auto hidden flex-1 md:block">
+      <div className="ml-auto hidden lg:block lg:flex-1 max-w-sm">
         <GlobalSearch />
       </div>
 
-      <HeaderOrgSwitcher />
+      <div className="flex items-center gap-2 md:gap-3 ml-auto md:ml-0">
+        <HeaderOrgSwitcher />
 
       <TooltipProvider delayDuration={120}>
         <Tooltip>
@@ -122,8 +124,8 @@ export function AppHeader() {
       </TooltipProvider>
 
       <NotificationBell />
-
       <HeaderUserMenu />
+    </div>
     </header>
   );
 }
