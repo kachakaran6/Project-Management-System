@@ -6,7 +6,9 @@ import { paginate, successResponse } from '../../utils/apiResponse.js';
  * Controller: Add Comment
  */
 export const add = asyncHandler(async (req, res) => {
-  const { content, taskId, parentId } = req.body;
+  const { content, parentId } = req.body;
+  const taskId = req.params.taskId || req.body.taskId;
+
   const comment = await commentService.addComment({
     content,
     taskId,
@@ -23,8 +25,14 @@ export const add = asyncHandler(async (req, res) => {
 export const getAll = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page as string, 10) || 1;
   const limit = parseInt(req.query.limit as string, 10) || 20;
+  const taskId = req.params.taskId;
 
-  const { comments, totalCount } = await commentService.getComments(req.params.taskId, req.organizationId, { page, limit });
+  const { comments, totalCount } = await commentService.getComments(
+    taskId,
+    req.organizationId,
+    { id: req.user.id, role: req.role || req.user.role },
+    { page, limit }
+  );
   const paginatedResults = paginate(comments, totalCount, page, limit);
 
   return successResponse(res, paginatedResults, 'Comments retrieved successfully.');
@@ -35,11 +43,12 @@ export const getAll = asyncHandler(async (req, res) => {
  */
 export const update = asyncHandler(async (req, res) => {
   const { content } = req.body;
+
   const comment = await commentService.updateComment(
-    req.params.id,
+    req.params.commentId || req.params.id,
     req.organizationId,
     content,
-    req.user.id
+    { id: req.user.id, role: req.role || req.user.role }
   );
 
   return successResponse(res, comment, 'Comment updated successfully.');
@@ -49,6 +58,11 @@ export const update = asyncHandler(async (req, res) => {
  * Controller: Delete Comment
  */
 export const remove = asyncHandler(async (req, res) => {
-  await commentService.deleteComment(req.params.id, req.organizationId, req.user.id);
+  await commentService.deleteComment(
+    req.params.commentId || req.params.id,
+    req.organizationId,
+    { id: req.user.id, role: req.role || req.user.role }
+  );
+
   return successResponse(res, null, 'Comment deleted successfully.');
 });

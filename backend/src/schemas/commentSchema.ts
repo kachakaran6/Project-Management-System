@@ -11,6 +11,12 @@ const commentSchema = new mongoose.Schema({
   authorId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User', 
+    required: false,
+    index: true 
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true,
     index: true 
   },
@@ -25,10 +31,24 @@ const commentSchema = new mongoose.Schema({
   mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // New: Store mentioned user IDs
   attachments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Attachment' }]
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Index for task-level comment threads
 commentSchema.index({ taskId: 1, createdAt: 1 });
+commentSchema.index({ taskId: 1, organizationId: 1, createdAt: -1 });
+
+// Backward compatibility for existing code paths still reading authorId.
+commentSchema.pre('validate', function (next) {
+  if (!this.userId && this.authorId) {
+    this.userId = this.authorId;
+  }
+  if (!this.authorId && this.userId) {
+    this.authorId = this.userId;
+  }
+  next();
+});
 
 export default commentSchema;

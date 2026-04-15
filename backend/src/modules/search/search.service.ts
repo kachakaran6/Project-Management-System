@@ -142,8 +142,9 @@ export const searchGlobal = async (
         .sort({ updatedAt: -1, createdAt: -1 })
         .limit(5)
         .populate('taskId', 'title')
+        .populate('userId', 'firstName lastName email avatarUrl')
         .populate('authorId', 'firstName lastName email avatarUrl')
-        .select('content createdAt taskId authorId')
+        .select('content createdAt taskId authorId userId')
         .lean()
       : Promise.resolve([]),
   ]);
@@ -182,7 +183,7 @@ export const searchGlobal = async (
     id: String(comment._id),
     type: 'message' as const,
     title: comment.taskId?.title ? `Comment on ${comment.taskId.title}` : 'Comment',
-    subtitle: comment.authorId?.email || comment.content,
+    subtitle: comment.userId?.email || comment.authorId?.email || comment.content,
     href: `/tasks/${comment.taskId?._id || comment.taskId}`,
     createdAt: comment.createdAt,
     matchedText: highlightText(comment.content, sanitizedQuery),

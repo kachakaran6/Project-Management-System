@@ -53,13 +53,15 @@ app.use(
       if (!origin || isOriginAllowed(origin)) {
         callback(null, true);
       } else {
+        console.warn(`[CORS REJECTED] Origin: ${origin}. Allowed Origins: ${normalizedAllowedOrigins.join(", ")}`);
         callback(new Error(`CORS policy: origin '${origin}' is not allowed`));
       }
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-organization-id"],
-  }),
+    allowedHeaders: ["Content-Type", "Authorization", "x-organization-id", "Accept"],
+    exposedHeaders: ["Set-Cookie"],
+}),
 );
 
 // ─── Rate Limiting ─────────────────────────────────────────────────────────────

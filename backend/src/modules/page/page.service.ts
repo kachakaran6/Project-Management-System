@@ -75,8 +75,21 @@ export const getPages = async (
   const skip = (page - 1) * limit;
 
   const query: Record<string, unknown> = { isActive: true };
+  
+  const safeObjectId = (id: any) => {
+    if (!id) return null;
+    try {
+      return mongoose.Types.ObjectId.isValid(String(id))
+        ? new mongoose.Types.ObjectId(String(id))
+        : null;
+    } catch {
+      return null;
+    }
+  };
+
   if (filter.organizationId) {
-    query.organizationId = filter.organizationId;
+    const orgId = safeObjectId(filter.organizationId);
+    query.organizationId = orgId;
   } else {
     query.organizationId = null;
   }
@@ -84,9 +97,10 @@ export const getPages = async (
   const viewerCanSeeAll = filter.role === 'SUPER_ADMIN' || filter.role === 'ADMIN';
 
   if (!viewerCanSeeAll) {
+    const userId = safeObjectId(filter.currentUserId);
     query.$or = [
       { visibility: 'PUBLIC' },
-      { creatorId: new mongoose.Types.ObjectId(filter.currentUserId) },
+      { creatorId: userId },
     ];
   }
 
@@ -99,7 +113,7 @@ export const getPages = async (
   }
 
   if (toBoolean(filter.createdByMe)) {
-    query.creatorId = new mongoose.Types.ObjectId(filter.currentUserId);
+    query.creatorId = safeObjectId(filter.currentUserId);
   }
 
   if (toBoolean(filter.recentlyEdited)) {

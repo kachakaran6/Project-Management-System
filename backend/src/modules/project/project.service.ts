@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Project from '../../models/Project.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import * as activityLog from '../../utils/systemTriggers.js';
@@ -47,18 +48,35 @@ export const getProjects = async (
 ) => {
   const skip = (page - 1) * limit;
 
+  // Helper to safely convert string to ObjectId
+  const safeObjectId = (id: any) => {
+    if (!id) return null;
+    try {
+      return mongoose.Types.ObjectId.isValid(String(id))
+        ? new mongoose.Types.ObjectId(String(id))
+        : null;
+    } catch {
+      return null;
+    }
+  };
+
   // Build query
   const query: Record<string, any> = { isActive: true };
   
   if (filter.role === ROLES.SUPER_ADMIN) {
     // Super Admin sees all active projects
   } else if (filter.organizationId) {
-    query.organizationId = filter.organizationId;
+    const orgId = safeObjectId(filter.organizationId);
+    if (orgId) query.organizationId = orgId;
   } else if (filter.userId) {
-    query.ownerId = filter.userId;
+    const userId = safeObjectId(filter.userId);
+    if (userId) query.ownerId = userId;
   }
 
-  if (filter.workspaceId) query.workspaceId = filter.workspaceId;
+  if (filter.workspaceId) {
+    const wsId = safeObjectId(filter.workspaceId);
+    if (wsId) query.workspaceId = wsId;
+  }
   if (filter.status) query.status = filter.status;
 
   const [projects, totalCount] = await Promise.all([
@@ -66,8 +84,7 @@ export const getProjects = async (
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('workspaceId', 'name')
-      .lean(),
+      .populate('workspaceId', 'name'),
     Project.countDocuments(query)
   ]);
 
@@ -128,7 +145,7 @@ export const getProjectById = async (projectId: any) => {
   const project = await Project.findOne({
     _id: projectId,
     isActive: true
-  }).populate('workspaceId', 'name').lean();
+  }).populate('workspaceId', 'name');
 
   if (!project) throw new AppError('Project not found.', 404);
 

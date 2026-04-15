@@ -4,6 +4,7 @@ export type TaskStatus =
   | "IN_PROGRESS"
   | "IN_REVIEW"
   | "DONE"
+  | "REJECTED"
   | "ARCHIVED";
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 
@@ -42,6 +43,7 @@ export interface Task {
   assigneeIds?: string[];
   assigneeUsers?: TaskAssigneeUser[];
   assignees?: TaskAssigneeRelation[];
+  position?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,11 +57,15 @@ export interface CreateTaskInput {
   priority?: TaskPriority;
   assigneeId?: string;
   dueDate?: string;
+  tags?: string[];
+  position?: number;
 }
 
 export interface UpdateTaskInput extends Partial<CreateTaskInput> {
   status?: TaskStatus;
   assigneeIds?: string[];
+  tags?: string[];
+  position?: number;
 }
 
 export interface TaskFilters {

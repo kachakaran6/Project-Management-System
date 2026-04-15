@@ -48,9 +48,24 @@ export function useUpdateTaskStatusMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: TaskStatus }) =>
-      taskApi.changeStatus(id, status),
+    mutationFn: ({ 
+      id, 
+      status, 
+      position 
+    }: { 
+      id: string; 
+      status: TaskStatus; 
+      position?: number 
+    }) => {
+      // If position is provided, use the general updateTask API to update both
+      if (position !== undefined) {
+        return taskApi.updateTask(id, { status, position });
+      }
+      return taskApi.changeStatus(id, status);
+    },
     onSuccess: async () => {
+      // We don't necessarily want to invalidate immediately if we are doing local optimistic updates
+      // but it's safe to do so after the mutation settles.
       await queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all });
     },
   });
@@ -71,13 +86,44 @@ export function useUpdateTaskMutation() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateTaskInput }) =>
       taskApi.updateTask(id, data),
-    onSuccess: async (_, variables) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all }),
-        queryClient.invalidateQueries({
-          queryKey: tasksQueryKeys.detail(variables.id),
-        }),
-      ]);
+    onMutate: async ({ id, data }) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: tasksQueryKeys.detail(id) });
+      await queryClient.cancelQueries({ queryKey: tasksQueryKeys.all });
+
+      // Snapshot the previous value
+      const previousTask = queryClient.getQueryData(tasksQueryKeys.detail(id));
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(tasksQueryKeys.detail(id), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            ...data,
+          },
+        };
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousTask, id };
+    },
+    onError: (err, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousTask) {
+        queryClient.setQueryData(
+          tasksQueryKeys.detail(context.id),
+          context.previousTask,
+        );
+      }
+    },
+    onSettled: (data, error, variables) => {
+      // Always refetch after error or success to ensure we have the correct data
+      queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: tasksQueryKeys.detail(variables.id),
+      });
     },
   });
 }

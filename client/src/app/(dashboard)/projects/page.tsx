@@ -151,37 +151,40 @@ export default function ProjectsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((project) => (
-              <TableRow key={project.id}>
-                <TableCell className="font-medium">{project.name}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{project.status}</Badge>
-                </TableCell>
-                <TableCell>
-                  {(project as { membersCount?: number }).membersCount ?? "-"}
-                </TableCell>
-                <TableCell>{new Date(project.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell className="space-x-2">
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/projects/${project.id}`}>View</Link>
-                  </Button>
-                  {canMutate ? (
-                    <>
-                      <Button asChild size="sm" variant="secondary">
-                        <Link href={`/projects/${project.id}/edit`}>Edit</Link>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => setDeleteId(project.id)}
-                      >
-                        Delete
-                      </Button>
-                    </>
-                  ) : null}
-                </TableCell>
-              </TableRow>
-            ))}
+            {rows.map((project: any) => {
+              const pid = project.id || project._id;
+              return (
+                <TableRow key={pid}>
+                  <TableCell className="font-medium">{project.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{project.status}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {(project as { membersCount?: number }).membersCount ?? "-"}
+                  </TableCell>
+                  <TableCell>{new Date(project.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="space-x-2">
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/projects/${pid}`}>View</Link>
+                    </Button>
+                    {canMutate ? (
+                      <>
+                        <Button asChild size="sm" variant="secondary">
+                          <Link href={`/projects/${pid}/edit`}>Edit</Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setDeleteId(pid)}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       )}

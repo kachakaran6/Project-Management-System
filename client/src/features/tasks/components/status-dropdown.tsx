@@ -23,6 +23,7 @@ const STATUSES: { value: TaskStatus; label: string; cls: string }[] = [
   { value: "IN_PROGRESS", label: "In Progress", cls: "bg-blue-100 text-blue-800 border-blue-200" },
   { value: "IN_REVIEW",   label: "In Review",   cls: "bg-amber-100 text-amber-800 border-amber-200" },
   { value: "DONE",        label: "Done",        cls: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  { value: "REJECTED",    label: "Rejected",    cls: "bg-rose-100 text-rose-800 border-rose-200" },
   { value: "ARCHIVED",    label: "Archived",    cls: "bg-slate-100 text-slate-500 border-slate-200" },
 ];
 
@@ -89,6 +90,8 @@ export function StatusDropdown({ taskId, currentStatus, disabled }: StatusDropdo
                   ? "bg-amber-500"
                   : s.value === "DONE"
                   ? "bg-emerald-500"
+                  : s.value === "REJECTED"
+                  ? "bg-rose-500"
                   : "bg-slate-300"
               }`}
             />

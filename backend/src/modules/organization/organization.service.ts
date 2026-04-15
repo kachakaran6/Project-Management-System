@@ -147,21 +147,24 @@ export const updateOrganizationMemberRole = async (
   const targetHierarchyLevel = ROLE_HIERARCHY[normalizedCurrentRole];
   const newRoleHierarchyLevel = ROLE_HIERARCHY[normalizedNewRole];
 
-  // SECURITY: Non-owners cannot modify peers/higher roles, and cannot assign
-  // a role equal to or higher than their own role.
+  // SECURITY: Non-owners cannot modify participants with a HIGHER role, 
+  // and cannot assign a role HIGHER than their own.
+  // We allow equal-level promotion (Admin -> Admin) per SaaS best practices.
   if (normalizedActorRole !== 'OWNER') {
     const isSelfChange = String(actorId) === String(userId);
 
-    if (!isSelfChange && targetHierarchyLevel >= actorHierarchyLevel) {
+    // Block modifying someone with a strictly HIGHER role
+    if (!isSelfChange && targetHierarchyLevel > actorHierarchyLevel) {
       throw new AppError(
-        'You can only modify members with a lower role than your own.',
+        'You cannot modify members with a higher role than your own.',
         403
       );
     }
 
-    if (newRoleHierarchyLevel >= actorHierarchyLevel) {
+    // Block assigning a role strictly HIGHER than your own
+    if (newRoleHierarchyLevel > actorHierarchyLevel) {
       throw new AppError(
-        'Cannot promote members to a role equal to or higher than your own.',
+        'You cannot assign a role higher than your own.',
         403
       );
     }

@@ -182,7 +182,7 @@ export function PermissionModal({
           <DialogDescription>
             {memberName} • {memberRole}{" "}
             {customPermissions.size > 0 && (
-              <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+              <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium border border-primary/20">
                 {customPermissions.size} custom override{customPermissions.size !== 1 ? 's' : ''}
               </span>
             )}
@@ -190,8 +190,8 @@ export function PermissionModal({
         </DialogHeader>
 
         {loading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="text-center text-gray-500">Loading permissions...</div>
+          <div className="flex justify-center items-center py-12">
+            <div className="text-center text-muted-foreground animate-pulse">Loading permissions...</div>
           </div>
         ) : error ? (
           <Alert variant="destructive">
@@ -200,10 +200,10 @@ export function PermissionModal({
         ) : permissionData ? (
           <div className="space-y-4">
             {/* Info section */}
-            <Alert className="bg-blue-50 border-blue-200">
-              <AlertDescription className="text-blue-900">
-                <strong>Role defaults:</strong> {permissionData.rolePermissions.length} permissions
-                <p className="text-xs mt-1 text-blue-800">
+            <Alert className="bg-secondary border-none shadow-sm">
+              <AlertDescription className="text-secondary-foreground">
+                <strong className="opacity-90">Role defaults:</strong> {permissionData.rolePermissions.length} permissions
+                <p className="text-xs mt-1 opacity-70">
                   You can grant additional permissions beyond the {memberRole} role defaults.
                 </p>
               </AlertDescription>
@@ -217,8 +217,8 @@ export function PermissionModal({
                   onClick={() => setActiveGroup(group)}
                   className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
                     activeGroup === group
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
                   {group}
@@ -227,7 +227,7 @@ export function PermissionModal({
             </div>
 
             {/* Permission list for active group */}
-            <div className="space-y-3 border rounded-lg p-4 bg-white">
+            <div className="space-y-3 border border-border rounded-xl p-4 bg-surface shadow-sm">
               <h3 className="font-semibold text-sm">{activeGroup}</h3>
               {PERMISSION_GROUPS[activeGroup as keyof typeof PERMISSION_GROUPS]?.map((permission) => {
                 const isRoleDefault = permissionData.rolePermissions.includes(permission);
@@ -237,7 +237,7 @@ export function PermissionModal({
                 return (
                   <div
                     key={permission}
-                    className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50"
+                    className="flex items-center space-x-3 p-2 rounded-lg transition-colors hover:bg-muted/30"
                   >
                     <Checkbox
                       id={permission}
@@ -251,8 +251,8 @@ export function PermissionModal({
                     >
                       <span>{PERMISSION_LABELS[permission]}</span>
                       {isRoleDefault && (
-                        <span className="text-xs text-gray-500 ml-2">
-                          {isCustom ? "(custom)" : "(default)"}
+                        <span className="text-xs text-muted-foreground ml-2 px-1.5 py-0.5 bg-muted/50 rounded">
+                          {isCustom ? "custom" : "default"}
                         </span>
                       )}
                     </label>
@@ -262,14 +262,16 @@ export function PermissionModal({
             </div>
 
             {/* Summary */}
-            <div className="bg-gray-50 rounded-lg p-3 text-sm border border-gray-200">
-              <p>
-                <strong>Total permissions:</strong> {selectedPermissions.size}
+            {/* Summary */}
+            <div className="bg-secondary/40 rounded-xl p-4 text-sm border border-border/50">
+              <p className="flex items-center justify-between">
+                <span className="text-muted-foreground font-medium text-xs uppercase tracking-wider">Total permissions</span>
+                <span className="font-bold text-lg">{selectedPermissions.size}</span>
               </p>
               {customPermissions.size > 0 && (
                 <button
                   onClick={handleResetToRoleDefaults}
-                  className="text-xs text-blue-600 hover:text-blue-800 underline mt-2"
+                  className="text-xs text-primary hover:underline mt-2 font-medium"
                 >
                   Reset to {memberRole} defaults
                 </button>
@@ -279,7 +281,7 @@ export function PermissionModal({
         ) : null}
 
         {/* Action buttons */}
-        <div className="flex justify-end space-x-2 pt-4 border-t">
+        <div className="flex justify-end space-x-3 pt-6 border-t border-border">
           <Button variant="outline" onClick={onClose} disabled={saving || loading}>
             Cancel
           </Button>

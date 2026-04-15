@@ -6,7 +6,6 @@ import { useParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { JsonViewer } from "@/features/admin/components/json-viewer";
 import { useProjectQuery } from "@/features/projects/hooks/use-projects-query";
 import { useTasksQuery } from "@/features/tasks/hooks/use-tasks-query";
 
@@ -33,7 +32,7 @@ export default function ProjectDetailsPage() {
           </p>
         </div>
         <Button asChild variant="secondary">
-          <Link href={`/projects/${project.id}/edit`}>Edit Project</Link>
+          <Link href={`/projects/${id}/edit`}>Edit Project</Link>
         </Button>
       </div>
 
@@ -42,18 +41,18 @@ export default function ProjectDetailsPage() {
           <CardTitle className="text-base">Overview</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          <p>
-            <span className="text-muted-foreground">Status:</span>{" "}
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Status:</span>
             <Badge variant="outline">{project.status}</Badge>
-          </p>
-          <p>
+          </div>
+          <div>
             <span className="text-muted-foreground">Description:</span>{" "}
             {project.description || "No description"}
-          </p>
-          <p>
+          </div>
+          <div>
             <span className="text-muted-foreground">Created:</span>{" "}
             {new Date(project.createdAt).toLocaleString()}
-          </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -66,21 +65,12 @@ export default function ProjectDetailsPage() {
             <p className="text-muted-foreground text-sm">No tasks linked yet.</p>
           ) : (
             (tasksQuery.data?.data.items ?? []).map((task) => (
-              <div key={task.id} className="rounded-md border border-border p-3">
+              <div key={task.id || (task as any)._id} className="rounded-md border border-border p-3">
                 <p className="font-medium">{task.title}</p>
                 <p className="text-muted-foreground text-sm">{task.status}</p>
               </div>
             ))
           )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Raw JSON</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <JsonViewer data={project} />
         </CardContent>
       </Card>
     </div>

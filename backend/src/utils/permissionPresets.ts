@@ -155,8 +155,10 @@ export function hasPermission(
 export function getAvailableRolesForAssignment(actorRole: RoleType): RoleType[] {
   const actorLevel = ROLE_HIERARCHY[actorRole];
   
+  // ALLOW: Assigning a role EQUAL to or LOWER than your own.
+  // Example: Admin can assign Admin, Manager, Member, Viewer.
   return (Object.keys(ROLE_HIERARCHY) as RoleType[]).filter(
-    (role) => ROLE_HIERARCHY[role] < actorLevel
+    (role) => ROLE_HIERARCHY[role] <= actorLevel
   );
 }
 

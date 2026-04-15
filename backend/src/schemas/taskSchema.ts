@@ -36,7 +36,14 @@ const taskSchema = new mongoose.Schema({
   position: { type: Number, default: 0 }, // For drag-and-drop ordering
   isActive: { type: Boolean, default: true }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Virtual to map _id to id for API responses
+taskSchema.virtual('id').get(function() {
+  return this._id;
 });
 
 // Compound indexes for common queries

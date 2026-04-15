@@ -60,7 +60,8 @@ export const triggerNotification = async ({
   type,
   message,
   resourceId,
-  resourceType
+  resourceType,
+  metadata = {},
 }: {
   userIds: any[];
   organizationId: any;
@@ -69,6 +70,7 @@ export const triggerNotification = async ({
   message: any;
   resourceId: any;
   resourceType: any;
+  metadata?: Record<string, any>;
 }) => {
   try {
     const uniqueUserIds = [...new Set(userIds.map((userId) => String(userId)))];
@@ -85,7 +87,8 @@ export const triggerNotification = async ({
       [NOTIFICATION_TYPES.TASK_UPDATED]: 'Task updated',
       [NOTIFICATION_TYPES.COMMENT_ADDED]: 'New comment',
       [NOTIFICATION_TYPES.MENTION]: 'You were mentioned',
-      [NOTIFICATION_TYPES.PROJECT_INVITE]: 'Project invitation'
+      [NOTIFICATION_TYPES.PROJECT_INVITE]: 'Project invitation',
+      [NOTIFICATION_TYPES.NEW_MEMBER_JOINED]: 'New Member Joined',
     };
 
     const link = resourceType === 'Task' && resourceId ? `/tasks/${resourceId}` : resourceType === 'Project' && resourceId ? `/projects/${resourceId}` : undefined;
@@ -101,6 +104,7 @@ export const triggerNotification = async ({
       metadata: {
         resourceId,
         resourceType,
+        ...metadata,
       },
       resourceId,
       resourceType

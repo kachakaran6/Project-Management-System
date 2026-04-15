@@ -15,7 +15,7 @@ import { ApiResponse } from "@/types/api.types";
 import { RefreshResponse } from "@/types/auth.types";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
 type RetriableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
@@ -68,15 +68,22 @@ api.interceptors.request.use(
       config.headers.set("Authorization", `Bearer ${accessToken}`);
     }
 
-    // Auth endpoints should not include tenant header to avoid unnecessary CORS preflight issues.
     if (activeOrgId && !isAuthRoute) {
       config.headers.set("x-organization-id", activeOrgId);
+    }
+
+    // Comprehensive logging of outgoing requests (STEP 7)
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[API REQUEST] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.data || "");
     }
 
     logApiRequest(config.method ?? "GET", config.url ?? "", config.data);
     return config;
   },
-  (error: AxiosError) => Promise.reject(error),
+  (error: AxiosError) => {
+    console.error("[API REQUEST ERROR]", error);
+    return Promise.reject(error);
+  },
 );
 
 api.interceptors.response.use(
@@ -101,6 +108,24 @@ api.interceptors.response.use(
 
     const { isAuthenticated } = useAuthStore.getState();
 
+    // DIAGNOSIS: Handle "Network Error" (Connection refused, DNS failure, etc.)
+    if (!error.response) {
+      const isTimeout = error.code === "ECONNABORTED" || error.message.includes("timeout");
+      const errorMsg = isTimeout 
+        ? "Request timed out. The server might be waking up or under heavy load."
+        : "Network Error: The API server is unreachable. Please check if the backend is running and the URL is correct.";
+      
+      console.error("[API NETWORK ERROR]", {
+        message: error.message,
+        code: error.code,
+        url: originalRequest?.baseURL ? (originalRequest.baseURL + (originalRequest.url || "")) : originalRequest?.url,
+        isProduction: process.env.NODE_ENV === "production"
+      });
+
+      toast.error(errorMsg);
+      return Promise.reject(error);
+    }
+
     logApiError(
       error.config?.method ?? "GET",
       error.config?.url ?? "",
@@ -116,16 +141,15 @@ api.interceptors.response.use(
       !isLoginOrRegister
     ) {
       originalRequest._retry = true;
-      const token = await refreshAccessToken();
-
-      if (token) {
-        originalRequest.headers.set("Authorization", `Bearer ${token}`);
-        return api(originalRequest);
+      try {
+        const token = await refreshAccessToken();
+        if (token) {
+          originalRequest.headers.set("Authorization", `Bearer ${token}`);
+          return api(originalRequest);
+        }
+      } catch (err) {
+        return Promise.reject(err);
       }
-
-      // If refresh fails and we were authenticated, the toast was shown in refreshAccessToken.
-      // We don't want to show another 'Unauthorized request' toast here if it's an expected 401 for an unauthenticated user checking their profile.
-      return Promise.reject(error);
     }
 
     if (status === 403) {
@@ -134,7 +158,6 @@ api.interceptors.response.use(
     } else if (status && status >= 500) {
       toast.error("Server error. Please try again shortly.");
     } else if (status === 401 && isAuthenticated && !isMeEndpoint) {
-      // Only show unauthorized toast if previously authenticated and it's not the initial profile check
       toast.error("Session invalid. Please sign in.");
     }
 

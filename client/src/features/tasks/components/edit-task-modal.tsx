@@ -41,7 +41,7 @@ export function EditTaskModal({
   const taskId = task.id || (task as any)._id;
 
   const projects = (projectsQuery.data?.data.items ?? []).map((p) => ({
-    id: p.id,
+    id: p.id || (p as any)._id,
     name: p.name,
   }));
 
@@ -91,8 +91,8 @@ export function EditTaskModal({
               projectId:
                 typeof task.projectId === "string"
                   ? task.projectId
-                  : (task.projectId as any)?._id ||
-                    (task.projectId as any)?.id ||
+                  : (task.projectId as any)?.id ||
+                    (task.projectId as any)?._id ||
                     "",
               dueDate: task.dueDate
                 ? new Date(task.dueDate).toISOString().split("T")[0]
@@ -100,7 +100,7 @@ export function EditTaskModal({
               assigneeIds:
                 (task as any).assigneeIds ||
                 (task as any).assignees?.map(
-                  (a: any) => a.userId?._id || a.userId,
+                  (a: any) => a.userId?.id || a.userId?._id || a.userId,
                 ) ||
                 [],
               // Pass the full users for chips to show names immediately

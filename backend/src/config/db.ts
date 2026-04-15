@@ -33,7 +33,15 @@ const connect = async () => {
     }
   }
 
-  logger.error('🔴 Max retries reached. Shutting down.');
+  logger.error('🔴 MongoDB: Max connection retries reached.');
+  logger.error('💡 TIP: Check if your current IP is whitelisted in MongoDB Atlas (Network Access).');
+  logger.error('💡 TIP: Ensure your MONGO_URI is correct and port 27017 is open outbound.');
+  
+  if (env.isDevelopment) {
+    logger.warn('⚠️  Development Mode: Continuing server start despite DB failure for debugging purposes...');
+    return; // Allow server to start so health/status endpoints can be checked
+  }
+  
   throw lastError ?? new Error('MongoDB connection failed');
 };
 

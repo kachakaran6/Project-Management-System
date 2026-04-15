@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/layout/app-layout";
 import { AuthGuard } from "@/features/auth/components/guards";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { TaskSidePanel } from "@/features/tasks/components/panel/task-side-panel";
 
 export default function DashboardGroupLayout({
   children,
@@ -24,7 +25,10 @@ export default function DashboardGroupLayout({
 
   return (
     <AuthGuard>
-      <AppLayout>{isSuperAdmin ? null : children}</AppLayout>
+      <AppLayout>
+        {isSuperAdmin ? null : children}
+        <TaskSidePanel />
+      </AppLayout>
     </AuthGuard>
   );
 }
