@@ -69,18 +69,18 @@ export function EditableDate({
       
       <button
         className={cn(
-          "group flex items-center gap-2 rounded-md px-2 py-1.5 -ml-2 transition-all hover:bg-[#F8F9FA] text-sm w-full text-left focus:outline-none",
+          "group flex items-center gap-2 rounded-md px-2 py-1.5 -ml-2 transition-all hover:bg-muted text-sm w-full text-left focus:outline-none",
           className
         )}
       >
-        <CalendarIcon className={cn("size-3.5", displayDate ? "text-[#0D6EFD]" : "opacity-50")} />
+        <CalendarIcon className={cn("size-3.5", displayDate ? "text-primary" : "opacity-50")} />
         {displayDate ? (
-          <span className="font-semibold text-[#0D6EFD]">{displayDate}</span>
+          <span className="font-semibold text-primary">{displayDate}</span>
         ) : (
-          <span className="text-[#6C757D] italic">{placeholder}</span>
+          <span className="text-muted-foreground italic">{placeholder}</span>
         )}
         <div className="ml-auto flex items-center gap-1.5">
-          {isSaving && <Loader2 className="size-3 animate-spin text-[#0D6EFD]" />}
+          {isSaving && <Loader2 className="size-3 animate-spin text-primary" />}
           {displayDate && (
              <X 
               onClick={clearDate}

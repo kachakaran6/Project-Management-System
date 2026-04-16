@@ -7,21 +7,33 @@ import {
   Bold,
   CalendarDays,
   CheckSquare,
+  ChevronDown,
   Code2,
   Copy,
   Download,
+  FileText,
   Globe,
+  GripVertical,
   Highlighter,
   Heading1,
   Heading2,
+  Image as ImageIcon,
   Italic,
   Link2,
   List,
+  ListOrdered,
   Lock,
   Minus,
+  MoreHorizontal,
+  PanelRight,
   Pilcrow,
   Quote,
+  Settings2,
+  Smile,
+  Strikethrough,
+  Table as TableIcon,
   Trash2,
+  Type,
   Underline as UnderlineIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -35,6 +47,9 @@ import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Mention from "@tiptap/extension-mention";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { cn } from "@/lib/utils";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +62,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   useCreatePageMutation,
@@ -101,6 +130,7 @@ export default function PageEditorPage() {
   const createPage = useCreatePageMutation();
   const deletePage = useDeletePageMutation();
   const exportPdf = useExportPagePdfMutation();
+  const editorRef = useRef<HTMLDivElement>(null);
 
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -117,12 +147,14 @@ export default function PageEditorPage() {
 
   const canAdminOverride = role === "SUPER_ADMIN" || role === "ADMIN";
   const isCreator = page?.creatorId === user?.id;
+
   const canView = useMemo(() => {
-    if (!page) return false;
+    if (!page) return true; // Default to true while waiting to avoid blank flicker
     if (canAdminOverride) return true;
     if (page.visibility === "PUBLIC") return true;
+    if (!user) return true; // Wait for user to resolve
     return isCreator;
-  }, [canAdminOverride, isCreator, page]);
+  }, [canAdminOverride, isCreator, page, user]);
 
   const canEdit = useMemo(() => {
     if (!page) return false;
@@ -165,7 +197,7 @@ export default function PageEditorPage() {
     editorProps: {
       attributes: {
         class:
-          "min-h-[420px] rounded-2xl border border-border bg-background p-5 text-[15px] leading-7 outline-none focus-visible:ring-0",
+          "min-h-[600px] w-full max-w-none bg-transparent px-0 py-4 text-[16px] md:text-[18px] leading-relaxed outline-none prose prose-slate dark:prose-invert",
       },
       handleKeyDown: (view, event) => {
         if (event.key === "/") {
@@ -252,37 +284,32 @@ export default function PageEditorPage() {
     [wordCount],
   );
 
+  // Reset hydration when page ID changes
   useEffect(() => {
-    if (!page) return;
+    setHasHydrated(false);
+  }, [pageId]);
 
-    const serverSnapshot = JSON.stringify({
-      title: page.title,
-      content: page.content || "<p></p>",
-      visibility: page.visibility,
-    });
-
-    const isNewPage = hydratedPageId.current !== page.id;
-    const hasLocalUnsavedChanges = baseline !== lastSaved.current;
-
-    // For autosave/refetch cycles on the same page, do not overwrite active typing.
-    if (!isNewPage && hasHydrated) {
-      if (hasLocalUnsavedChanges || serverSnapshot === lastSaved.current) {
-        return;
-      }
-    }
+  // Stable hydration effect: Sync server data to local state ONCE per page load
+  useEffect(() => {
+    if (!page || hasHydrated) return;
 
     setTitle(page.title);
     setContent(page.content || "<p></p>");
     setVisibility(page.visibility);
     setHasHydrated(true);
-    setSaveStatus(isNewPage ? "idle" : "saved");
-    lastSaved.current = serverSnapshot;
+    
+    const snapshot = JSON.stringify({ 
+      title: page.title, 
+      content: page.content || "<p></p>", 
+      visibility: page.visibility 
+    });
+    lastSaved.current = snapshot;
     hydratedPageId.current = page.id;
 
-    if (editor) {
+    if (editor && editor.getHTML() !== (page.content || "<p></p>")) {
       editor.commands.setContent(page.content || "<p></p>");
     }
-  }, [baseline, editor, hasHydrated, page]);
+  }, [page, editor, hasHydrated]);
 
   useEffect(() => {
     return () => {
@@ -292,6 +319,7 @@ export default function PageEditorPage() {
     };
   }, []);
 
+  // Autosave Logic
   useEffect(() => {
     if (!hasHydrated || !canEdit) return;
 
@@ -365,316 +393,524 @@ export default function PageEditorPage() {
   };
 
   const handleExportPdf = async () => {
-    if (!page) return;
+    if (!page || !editorRef.current) return;
+
+    const toastId = toast.loading("Preparing professional PDF...");
 
     try {
-      const blob = await exportPdf.mutateAsync(page.id);
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `${title || "page"}.pdf`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-      toast.success("PDF export started.");
-    } catch {
-      toast.error("Failed to export PDF.");
+      // 1. Ensure absolute font readiness
+      await document.fonts.ready;
+      
+      // 2. Setup a completely isolated render container
+      const renderRoot = document.createElement("div");
+      renderRoot.id = "pdf-render-root";
+      Object.assign(renderRoot.style, {
+        position: "fixed",
+        top: "-20000px",
+        left: "-20000px",
+        width: "794px", // Fixed A4 width
+        backgroundColor: "#ffffff",
+        zIndex: "-10000",
+        visibility: "visible",
+      });
+      document.body.appendChild(renderRoot);
+
+      // 3. Clone and sanitize with AGGRESSIVE theme stripping
+      const clone = editorRef.current.cloneNode(true) as HTMLElement;
+      
+      // Remove ALL theme and dark-mode related classes from the entire cloned tree
+      const themeClasses = ["dark", "theme-dark", "bg-card", "bg-background", "text-foreground", "shadow-sm"];
+      const allClonedElements = [clone, ...Array.from(clone.querySelectorAll("*"))];
+      allClonedElements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          themeClasses.forEach(tc => el.classList.remove(tc));
+          // Reset background and force high-contrast text color
+          el.style.backgroundColor = "transparent";
+          el.style.color = "#1a1a1a";
+        }
+      });
+
+      // 4. Apply Document-Grade Typography & Layout (Notion/Linear style)
+      Object.assign(clone.style, {
+        width: "794px",
+        height: "auto",
+        margin: "0",
+        padding: "50px 60px", // Professional margins
+        backgroundColor: "#ffffff",
+        color: "#1a1a1a",
+        fontSize: "15px",
+        lineHeight: "1.7",
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+        border: "none",
+        boxShadow: "none",
+      });
+
+      // 4a. Format Headings
+      clone.querySelectorAll("h1").forEach(h1 => {
+        Object.assign(h1.style, {
+          fontSize: "32px",
+          fontWeight: "800",
+          color: "#000000",
+          marginBottom: "20px",
+          letterSpacing: "-0.02em",
+        });
+      });
+      
+      clone.querySelectorAll("h2").forEach(h2 => {
+        Object.assign(h2.style, {
+          fontSize: "24px",
+          fontWeight: "700",
+          color: "#000000",
+          marginTop: "32px",
+          marginBottom: "12px",
+        });
+      });
+
+      // 4b. Format Paragraphs & Lists
+      clone.querySelectorAll("p").forEach(p => {
+        (p as HTMLElement).style.marginBottom = "14px";
+      });
+
+      clone.querySelectorAll("ul, ol").forEach(list => {
+        Object.assign((list as HTMLElement).style, {
+          paddingLeft: "24px",
+          marginBottom: "16px",
+        });
+      });
+
+      // 4c. Special handling for Title (Input)
+      const titleInput = clone.querySelector("input");
+      if (titleInput) {
+        const titleH1 = document.createElement("h1");
+        titleH1.textContent = title || "Untitled Document";
+        Object.assign(titleH1.style, {
+          fontSize: "34px",
+          fontWeight: "800",
+          color: "#000000",
+          marginBottom: "30px",
+          borderBottom: "1px solid #eaeaea",
+          paddingBottom: "16px",
+        });
+        titleInput.replaceWith(titleH1);
+      }
+
+      // 4d. Scrub all UI artifacts
+      const scrubbedSelectors = [
+        "button", 
+        "nav", 
+        ".slash-menu", 
+        ".border-b", 
+        ".page-metadata", 
+        "[role='toolbar']",
+        ".ProseMirror-trailingBreak"
+      ];
+      scrubbedSelectors.forEach(s => {
+        clone.querySelectorAll(s).forEach(el => el.remove());
+      });
+
+      renderRoot.appendChild(clone);
+
+      // 5. Capture with precise configuration
+      const canvas = await html2canvas(renderRoot, {
+        scale: 2.5, // Optimized density to keep file size reasonable but crisp
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        windowWidth: 794,
+        imageTimeout: 15000,
+      });
+
+      // Cleanup immediately
+      document.body.removeChild(renderRoot);
+
+      // 6. Generate the Final PDF
+      const imgData = canvas.toDataURL("image/jpeg", 0.95); // JPEG for better compression in large docs
+      const pdf = new jsPDF({
+        orientation: "p",
+        unit: "mm",
+        format: "a4",
+        compress: true,
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Page 1
+      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, 'MEDIUM');
+      heightLeft -= pdfHeight;
+
+      // Subsequent pages if it overflows
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, 'MEDIUM');
+        heightLeft -= pdfHeight;
+      }
+
+      pdf.save(`${title.replace(/\s+/g, "_") || "Page_Export"}.pdf`);
+      toast.success("Professional PDF generated", { id: toastId });
+    } catch (error) {
+      console.error("PDF Export Critical Failure:", error);
+      toast.error("Export failed. Please check content for large images and try again.", { id: toastId });
     }
   };
 
   if (pageQuery.isLoading) {
     return (
-      <div className="space-y-3">
-        <div className="h-10 rounded-xl bg-muted/40" />
-        <div className="h-72 rounded-xl bg-muted/40" />
+      <div className="mx-auto w-full max-w-4xl px-6 py-20 animate-pulse">
+        <div className="h-10 w-48 bg-muted/50 rounded-lg mb-8" />
+        <div className="h-16 w-3/4 bg-muted/50 rounded-xl mb-12" />
+        <div className="space-y-4">
+          <div className="h-4 w-full bg-muted/30 rounded" />
+          <div className="h-4 w-full bg-muted/30 rounded" />
+          <div className="h-4 w-2/3 bg-muted/30 rounded" />
+        </div>
       </div>
     );
   }
 
   if (!page || !canView) {
+    // Only show "Unavailable" if we're sure page reached and auth resolved
+    const isActuallyForbidden = page && !canView;
+    
+    if (isActuallyForbidden) {
+      return (
+        <div className="flex items-center justify-center h-[50vh]">
+          <Alert variant="warning" className="max-w-md">
+            <AlertTitle>Page unavailable</AlertTitle>
+            <AlertDescription>
+              This page is private or you do not have permission to view it.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+
+    // Fallback to loading if we're intermediate
     return (
-      <Alert variant="warning">
-        <AlertTitle>Page unavailable</AlertTitle>
-        <AlertDescription>
-          This page is private or you do not have permission to view it.
-        </AlertDescription>
-      </Alert>
+      <div className="mx-auto w-full max-w-4xl px-6 py-20 animate-pulse">
+        <div className="h-10 w-48 bg-muted/50 rounded-lg mb-8" />
+        <div className="h-16 w-3/4 bg-muted/50 rounded-xl mb-12" />
+      </div>
     );
   }
 
+  const ToolbarButton = ({ 
+    icon: Icon, 
+    label, 
+    onClick, 
+    isActive = false,
+    disabled = false
+  }: { 
+    icon: any; 
+    label: string; 
+    onClick: () => void; 
+    isActive?: boolean;
+    disabled?: boolean;
+  }) => (
+    <TooltipProvider delayDuration={400}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-8 w-8 rounded-md transition-colors",
+              isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+              disabled && "opacity-50 cursor-not-allowed"
+            )}
+            onClick={onClick}
+            disabled={disabled}
+          >
+            <Icon className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
+          {label}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            {visibilityBadge(visibility)}
-            <Badge
-              variant="outline"
-              className="gap-1 text-xs text-muted-foreground"
-            >
-              <CalendarDays className="size-3" />
-              Last edited {new Date(page.updatedAt).toLocaleString()}
-            </Badge>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {canEdit ? "Auto-save enabled" : "Read-only mode"}
-          </p>
-        </div>
+    <div className="relative min-h-screen bg-background text-foreground selection:bg-primary/20">
+      {/* 1. Floating Toolbar */}
+      <div className="sticky top-6 z-40 flex justify-center pointer-events-none mb-12">
+        <div className="flex items-center gap-0.5 p-1 bg-background/60 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl pointer-events-auto transition-all animate-in fade-in slide-in-from-top-4 duration-500">
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+                <Type className="size-3.5" />
+                <span>Text</span>
+                <ChevronDown className="size-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48 p-1">
+              <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => editor?.chain().focus().setParagraph().run()}>
+                <Pilcrow className="size-3.5 text-muted-foreground" />
+                Paragraph
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-xs py-2 gap-2 font-bold" onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}>
+                <Heading1 className="size-3.5 text-muted-foreground" />
+                Heading 1
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-xs py-2 gap-2 font-semibold" onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}>
+                <Heading2 className="size-3.5 text-muted-foreground" />
+                Heading 2
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => editor?.chain().focus().toggleCodeBlock().run()}>
+                <Code2 className="size-3.5 text-muted-foreground" />
+                Code Block
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            {saveStatus === "saving" ? "Saving..." : null}
-            {saveStatus === "saved" ? "Saved" : null}
-            {saveStatus === "dirty" ? "Unsaved changes" : null}
-            {saveStatus === "error" ? "Save failed" : null}
-          </span>
+          <Separator orientation="vertical" className="h-4 mx-1.5" />
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportPdf}
-            disabled={exportPdf.isPending}
-          >
-            <Download className="mr-1.5 size-3.5" />
-            Export PDF
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDuplicate}
-            disabled={createPage.isPending}
-          >
-            <Copy className="mr-1.5 size-3.5" />
-            Duplicate
-          </Button>
-
-          {canEdit ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive"
-              onClick={() => setDeleteOpen(true)}
-              disabled={deletePage.isPending}
-            >
-              <Trash2 className="mr-1.5 size-3.5" />
-              Delete
-            </Button>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
-        <div className="relative rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
-          <Input
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            className="mb-4 h-12 border-0 px-0 text-3xl font-semibold shadow-none focus-visible:ring-0"
-            placeholder="Untitled"
+          <ToolbarButton 
+            icon={Bold} 
+            label="Bold" 
+            onClick={() => editor?.chain().focus().toggleBold().run()} 
+            isActive={editor?.isActive("bold")}
+            disabled={!canEdit}
+          />
+          <ToolbarButton 
+            icon={Italic} 
+            label="Italic" 
+            onClick={() => editor?.chain().focus().toggleItalic().run()} 
+            isActive={editor?.isActive("italic")}
+            disabled={!canEdit}
+          />
+          <ToolbarButton 
+            icon={UnderlineIcon} 
+            label="Underline" 
+            onClick={() => editor?.chain().focus().toggleUnderline().run()} 
+            isActive={editor?.isActive("underline")}
+            disabled={!canEdit}
+          />
+          <ToolbarButton 
+            icon={Strikethrough} 
+            label="Strikethrough" 
+            onClick={() => editor?.chain().focus().toggleStrike().run()} 
+            isActive={editor?.isActive("strike")}
             disabled={!canEdit}
           />
 
-          <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-border pb-3">
-            <div className="inline-flex rounded-xl border border-border p-1">
-              <button
-                type="button"
-                className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                  visibility === "PRIVATE"
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground"
-                }`}
-                onClick={() => setVisibility("PRIVATE")}
-                disabled={!canEdit}
-              >
-                <Lock className="size-3.5" />
-                Private
-              </button>
-              <button
-                type="button"
-                className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                  visibility === "PUBLIC"
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground"
-                }`}
-                onClick={() => setVisibility("PUBLIC")}
-                disabled={!canEdit}
-              >
-                <Globe className="size-3.5" />
-                Public
-              </button>
-            </div>
+          <Separator orientation="vertical" className="h-4 mx-1.5" />
 
-            <div className="h-5 w-px bg-border" />
+          <ToolbarButton 
+            icon={List} 
+            label="Bullet List" 
+            onClick={() => editor?.chain().focus().toggleBulletList().run()} 
+            isActive={editor?.isActive("bulletList")}
+            disabled={!canEdit}
+          />
+          <ToolbarButton 
+            icon={ListOrdered} 
+            label="Numbered List" 
+            onClick={() => editor?.chain().focus().toggleOrderedList().run()} 
+            isActive={editor?.isActive("orderedList")}
+            disabled={!canEdit}
+          />
+          <ToolbarButton 
+            icon={CheckSquare} 
+            label="Checklist" 
+            onClick={() => editor?.chain().focus().toggleTaskList().run()} 
+            isActive={editor?.isActive("taskList")}
+            disabled={!canEdit}
+          />
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editor?.chain().focus().toggleBold().run()}
-              disabled={!canEdit}
-            >
-              <Bold className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editor?.chain().focus().toggleItalic().run()}
-              disabled={!canEdit}
-            >
-              <Italic className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editor?.chain().focus().toggleUnderline().run()}
-              disabled={!canEdit}
-            >
-              <UnderlineIcon className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editor?.chain().focus().toggleHighlight().run()}
-              disabled={!canEdit}
-            >
-              <Highlighter className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                editor?.chain().focus().toggleHeading({ level: 2 }).run()
-              }
-              disabled={!canEdit}
-            >
-              <Heading2 className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editor?.chain().focus().toggleBulletList().run()}
-              disabled={!canEdit}
-            >
-              <List className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editor?.chain().focus().toggleTaskList().run()}
-              disabled={!canEdit}
-            >
-              <CheckSquare className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
-              disabled={!canEdit}
-            >
-              <Code2 className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-              disabled={!canEdit}
-            >
-              <Quote className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                editor?.chain().focus().insertContent("@teammate ").run()
-              }
-              disabled={!canEdit}
-            >
-              <AtSign className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                editor?.chain().focus().setLink({ href: "https://" }).run()
-              }
-              disabled={!canEdit}
-            >
-              <Link2 className="size-3.5" />
-            </Button>
+          <Separator orientation="vertical" className="h-4 mx-1.5" />
+
+          <ToolbarButton 
+            icon={TableIcon} 
+            label="Insert Table" 
+            onClick={() => {}} 
+            disabled={!canEdit}
+          />
+          <ToolbarButton 
+            icon={ImageIcon} 
+            label="Insert Image" 
+            onClick={() => {}} 
+            disabled={!canEdit}
+          />
+          <ToolbarButton 
+            icon={Link2} 
+            label="Insert Link" 
+            onClick={() => editor?.chain().focus().setLink({ href: "https://" }).run()} 
+            isActive={editor?.isActive("link")}
+            disabled={!canEdit}
+          />
+
+          <Separator orientation="vertical" className="h-4 mx-1.5" />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 p-1">
+               <div className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                 Document Actions
+               </div>
+               <DropdownMenuItem className="text-xs py-2 gap-2" onClick={handleExportPdf} disabled={exportPdf.isPending}>
+                 <Download className="size-3.5" />
+                 Export as PDF
+               </DropdownMenuItem>
+               <DropdownMenuItem className="text-xs py-2 gap-2" onClick={handleDuplicate} disabled={createPage.isPending}>
+                 <Copy className="size-3.5" />
+                 Duplicate Page
+               </DropdownMenuItem>
+               <DropdownMenuSeparator />
+               <DropdownMenuItem className="text-xs py-2 gap-2 text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
+                 <Trash2 className="size-3.5" />
+                 Delete Permanently
+               </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* 2. Main Content Workspace */}
+      <div className="mx-auto w-full max-w-4xl px-6 md:px-12 pb-32">
+        <div className="group/page relative flex flex-col pt-8">
+          
+          {/* Metadata/Status indicator */}
+          <div className="absolute -left-12 top-10 flex flex-col items-center gap-3 opacity-0 group-hover/page:opacity-100 transition-opacity hidden lg:flex">
+             {visibility === "PUBLIC" ? <Globe className="size-4 text-muted-foreground/40 hover:text-primary transition-colors cursor-help" /> : <Lock className="size-4 text-muted-foreground/40 hover:text-primary transition-colors cursor-help" />}
+             <div className="h-8 w-px bg-border/40" />
+             <span className="[writing-mode:vertical-lr] text-[10px] uppercase tracking-widest text-muted-foreground/30 font-medium rotate-180">
+               {saveStatus === "saving" ? "Syncing..." : "Encrypted"}
+             </span>
           </div>
 
-          <EditorContent editor={editor} />
+          <button className="flex items-center gap-1.5 w-fit px-2 py-1 -ml-2 rounded-md hover:bg-muted/50 text-muted-foreground/60 transition-colors mb-6 group">
+             <Smile className="size-4 group-hover:text-amber-400 transition-colors" />
+             <span className="text-[13px] font-medium">Add icon</span>
+          </button>
 
-          {slashOpen && canEdit ? (
-            <div
-              className="absolute z-20 w-56 rounded-xl border border-border bg-popover p-1 shadow-lg"
-              style={{
-                top: slashPos.top,
-                left: Math.max(16, slashPos.left - 70),
-              }}
-            >
-              {slashCommands.map((command) => (
-                <button
-                  key={command.id}
-                  type="button"
-                  onClick={() => insertSlashBlock(command.run)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted"
-                >
-                  <command.icon className="size-4 text-muted-foreground" />
-                  {command.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
+          <textarea
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            rows={1}
+            className="w-full resize-none border-0 bg-transparent px-0 text-4xl md:text-5xl font-bold tracking-tight text-foreground placeholder:text-muted-foreground/20 focus:outline-none focus:ring-0 leading-tight mb-8"
+            placeholder="Untitled"
+            disabled={!canEdit}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = 'auto';
+              target.style.height = target.scrollHeight + 'px';
+            }}
+          />
 
-        <div className="h-fit space-y-3 rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Page Metadata
-          </p>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
-              <span className="text-muted-foreground">Word Count</span>
-              <span className="font-medium">{wordCount}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
-              <span className="text-muted-foreground">Read Time</span>
-              <span className="font-medium">{readTime} min</span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
-              <span className="text-muted-foreground">Type</span>
-              <span className="font-medium inline-flex items-center gap-1">
-                <Pilcrow className="size-3.5" />
-                Rich Document
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
-              <span className="text-muted-foreground">Visibility</span>
-              <span className="font-medium">{visibility}</span>
-            </div>
+          <div ref={editorRef} className="relative">
+            {editor ? <EditorContent editor={editor} /> : (
+              <div className="h-64 w-full bg-muted/10 rounded-xl animate-pulse" />
+            )}
           </div>
         </div>
       </div>
 
+      {/* 3. Slash Menu */}
+      {slashOpen && canEdit ? (
+        <div
+          className="fixed z-50 w-64 rounded-xl border border-border/50 bg-background/95 backdrop-blur-md p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+          style={{
+            top: slashPos.top,
+            left: Math.max(16, slashPos.left - 20),
+          }}
+        >
+          <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+            Basic Blocks
+          </div>
+          <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+            {slashCommands.map((command) => (
+              <button
+                key={command.id}
+                type="button"
+                onClick={() => insertSlashBlock(command.run)}
+                className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-muted/80 transition-colors group"
+              >
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/30 group-hover:bg-background transition-colors">
+                  <command.icon className="size-4 text-muted-foreground group-hover:text-foreground" />
+                </div>
+                <div>
+                  <div className="font-medium">{command.label}</div>
+                  <div className="text-[10px] text-muted-foreground/60">Professional formatting</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {/* 4. Bottom Right Settings Action */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="secondary" size="icon" className="h-10 w-10 rounded-full shadow-lg border border-border/50 hover:scale-105 transition-transform">
+              <Settings2 className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64 p-2">
+            <div className="flex flex-col gap-1 p-2 mb-2 bg-muted/30 rounded-lg">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Storage Status</span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium">Cloud Synchronized</span>
+                <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+              </div>
+            </div>
+            
+            <div className="space-y-1">
+              <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => setVisibility(v => v === "PUBLIC" ? "PRIVATE" : "PUBLIC")}>
+                <Lock className="size-3.5" />
+                <span>Toggle Visibility ({visibility})</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-xs py-2 gap-2">
+                <PanelRight className="size-3.5" />
+                <span>Page Details</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-2">
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <span>Words: {wordCount}</span>
+                  <span>Read: {readTime}m</span>
+                </div>
+              </div>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Delete Confirmation */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Delete page?</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. The page and all notes inside it
-              will be removed.
+            <DialogTitle>Delete documentation?</DialogTitle>
+            <DialogDescription className="text-sm">
+              This action is permanent and cannot be reversed. All version history for this page will be lost.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Cancel
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button variant="ghost" className="text-xs" onClick={() => setDeleteOpen(false)}>
+              Keep Page
             </Button>
             <Button
               variant="destructive"
+              className="text-xs font-semibold"
               onClick={handleDelete}
               loading={deletePage.isPending}
             >
-              Delete
+              Confirm Deletion
             </Button>
           </DialogFooter>
         </DialogContent>

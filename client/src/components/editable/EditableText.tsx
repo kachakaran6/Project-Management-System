@@ -64,7 +64,7 @@ export function EditableText({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={cn(
-          "w-full bg-white border border-[#0D6EFD] rounded-md p-2 text-[15px] focus:outline-none transition-all resize-none",
+          "w-full bg-background border border-primary rounded-md p-2 text-[15px] focus:outline-none transition-all resize-none",
           inputClassName
         )}
       />
@@ -78,7 +78,7 @@ export function EditableText({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={cn(
-          "w-full bg-white border border-[#0D6EFD] rounded-md px-2 py-1 text-[15px] focus:outline-none transition-all",
+          "w-full bg-background border border-primary rounded-md px-2 py-1 text-[15px] focus:outline-none transition-all",
           inputClassName
         )}
       />
@@ -89,18 +89,18 @@ export function EditableText({
     <div
       onClick={() => setIsEditing(true)}
       className={cn(
-        "group relative cursor-text rounded-md px-2 py-1 -ml-2 transition-all hover:bg-[#F8F9FA] min-h-[1.5em] flex items-center",
+        "group relative cursor-text rounded-md px-2 py-1 -ml-2 transition-all hover:bg-muted min-h-[1.5em] flex items-center",
         className
       )}
     >
       <div className={cn(
         "w-full break-words",
-        !value && "text-[#6C757D] italic"
+        !value && "text-muted-foreground italic"
       )}>
         {value || placeholder}
       </div>
       {isSaving && (
-        <Loader2 className="size-3 animate-spin ml-2 text-[#0D6EFD] shrink-0" />
+        <Loader2 className="size-3 animate-spin ml-2 text-primary shrink-0" />
       )}
     </div>
   );

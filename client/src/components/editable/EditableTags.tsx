@@ -53,7 +53,7 @@ export function EditableTags({
         <Badge
           key={tag}
           variant="secondary"
-          className="group/tag flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium bg-[#F8F9FA] hover:bg-[#0D6EFD]/10 transition-colors"
+          className="group/tag flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium bg-secondary/50 hover:bg-primary/10 transition-colors"
         >
           {tag}
           <button
@@ -61,7 +61,7 @@ export function EditableTags({
               e.stopPropagation();
               removeTag(tag);
             }}
-            className="opacity-0 group-hover/tag:opacity-100 p-0.5 hover:text-[#DC3545]"
+            className="opacity-0 group-hover/tag:opacity-100 p-0.5 hover:text-destructive"
           >
             <X className="size-2.5" />
           </button>
@@ -79,13 +79,13 @@ export function EditableTags({
             onBlur={addTag}
             onKeyDown={handleKeyDown}
             placeholder="Tag name..."
-            className="text-[11px] font-medium border-b border-[#0D6EFD] bg-transparent outline-none w-20 px-1 py-0.5"
+            className="text-[11px] font-medium border-b border-primary bg-transparent outline-none w-20 px-1 py-0.5"
           />
         </div>
       ) : (
         <button
           onClick={() => setIsEditing(true)}
-          className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-dashed text-[11px] text-[#6C757D] hover:bg-[#F8F9FA] hover:border-[#0D6EFD] hover:text-[#0D6EFD] transition-all"
+          className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-dashed text-[11px] text-muted-foreground hover:bg-muted hover:border-primary hover:text-primary transition-all"
         >
           {isSaving ? (
             <Loader2 className="size-3 animate-spin" />
