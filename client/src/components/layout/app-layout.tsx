@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import { AppHeader } from "@/components/layout/header/header";
 import { Sidebar } from "@/components/layout/sidebar/sidebar";
 import { useUIStore } from "@/store/ui-store";
+import { cn } from "@/lib/utils";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
+  const isTasksPage = pathname.startsWith("/tasks");
   const { mobileSidebarOpen, setMobileSidebarOpen, setActiveRoute } =
     useUIStore();
 
@@ -51,10 +53,16 @@ export function AppLayout({ children }: AppLayoutProps) {
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
 
-      <div className="flex flex-1 flex-col min-w-0 h-full bg-background">
+      <div className="flex flex-1 flex-col min-w-0 h-full bg-background overflow-hidden">
         <AppHeader />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="mx-auto w-full max-w-[1400px] px-4 py-6 md:px-6 md:py-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <main className={cn(
+          "flex-1 min-h-0",
+          !isTasksPage && "overflow-y-auto overflow-x-hidden"
+        )}>
+          <div className={cn(
+            "w-full h-full animate-in fade-in animate-duration-300",
+            !isTasksPage && "mx-auto max-w-[1400px] px-4 py-6 md:px-6 md:py-8"
+          )}>
             {children}
           </div>
         </main>

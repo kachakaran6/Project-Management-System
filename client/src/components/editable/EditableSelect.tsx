@@ -49,7 +49,7 @@ export function EditableSelect({
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "group flex items-center gap-2 rounded-md px-2 py-1.5 -ml-2 transition-all hover:bg-[#F8F9FA] text-sm w-full text-left focus:outline-none",
+            "group flex items-center gap-2 rounded-md px-2 py-1.5 -ml-2 transition-all hover:bg-muted text-sm w-full text-left focus:outline-none",
             className
           )}
         >
@@ -62,10 +62,10 @@ export function EditableSelect({
               {selectedOption.label}
             </span>
           ) : (
-            <span className="text-[#6C757D] italic">{placeholder}</span>
+            <span className="text-muted-foreground italic">{placeholder}</span>
           )}
           <div className="ml-auto flex items-center gap-1.5">
-            {isSaving && <Loader2 className="size-3 animate-spin text-[#0D6EFD]" />}
+            {isSaving && <Loader2 className="size-3 animate-spin text-primary" />}
             <ChevronDown className="size-3.5 opacity-0 group-hover:opacity-50 transition-opacity" />
           </div>
         </button>
@@ -93,7 +93,7 @@ export function EditableSelect({
                     <span>{option.label}</span>
                   </div>
                   {value === option.value && (
-                    <Check className="size-4 text-[#0D6EFD]" />
+                    <Check className="size-4 text-primary" />
                   )}
                 </CommandItem>
               ))}

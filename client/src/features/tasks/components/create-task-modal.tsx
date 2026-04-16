@@ -70,13 +70,7 @@ export function CreateTaskModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Create New Task</DialogTitle>
-          <DialogDescription>
-            Add a task to a project to track work.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent hideClose className="max-w-[640px] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-2xl gap-0">
         <TaskForm
           projects={projects}
           initialValues={{
@@ -84,6 +78,7 @@ export function CreateTaskModal({
             status: "TODO",
             priority: "MEDIUM",
           }}
+          onCancel={() => setOpen(false)}
           onSubmit={handleSubmit}
           isSubmitting={createTask.isPending}
           submitLabel="Create Task"

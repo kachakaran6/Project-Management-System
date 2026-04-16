@@ -49,28 +49,28 @@ export function EditableUserSelect({
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "group flex items-center gap-2 rounded-md px-2 py-1.5 -ml-2 transition-all hover:bg-[#F8F9FA] text-sm w-full text-left focus:outline-none",
+            "group flex items-center gap-2 rounded-md px-2 py-1.5 -ml-2 transition-all hover:bg-muted text-sm w-full text-left focus:outline-none",
             className
           )}
         >
           {value ? (
             <div className="flex items-center gap-2 font-medium overflow-hidden">
-              <Avatar className="size-5 border shrink-0">
+              <Avatar className="size-5 border border-border/50 shrink-0">
                 <AvatarImage src={value.avatarUrl} />
-                <AvatarFallback className="text-[10px] bg-[#0D6EFD]/10 text-[#0D6EFD]">
+                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
                   {value.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <span className="truncate">{value.name}</span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-[#6C757D] italic">
+            <div className="flex items-center gap-2 text-muted-foreground italic">
               <User className="size-4 opacity-50" />
               <span>{placeholder}</span>
             </div>
           )}
           <div className="ml-auto flex items-center gap-1.5">
-            {isSaving && <Loader2 className="size-3 animate-spin text-[#0D6EFD]" />}
+            {isSaving && <Loader2 className="size-3 animate-spin text-primary" />}
             <ChevronDown className="size-3.5 opacity-0 group-hover:opacity-50 transition-opacity" />
           </div>
         </button>
@@ -86,7 +86,7 @@ export function EditableUserSelect({
                   onChange("");
                   setOpen(false);
                 }}
-                className="flex items-center gap-2 px-2 py-1.5 cursor-pointer text-[#DC3545]"
+                className="flex items-center gap-2 px-2 py-1.5 cursor-pointer text-destructive"
               >
                 <div className="size-6 rounded-full border border-dashed flex items-center justify-center opacity-70">
                    <User className="size-3" />
@@ -103,7 +103,7 @@ export function EditableUserSelect({
                   }}
                   className="flex items-center gap-2 px-2 py-1.5 cursor-pointer"
                 >
-                  <Avatar className="size-6 border">
+                  <Avatar className="size-6 border border-border/50">
                     <AvatarImage src={user.avatarUrl} />
                     <AvatarFallback className="text-[10px]">
                       {user.name.charAt(0)}
@@ -113,12 +113,12 @@ export function EditableUserSelect({
                     <span className="text-[13px] font-medium leading-tight truncate">
                       {user.name}
                     </span>
-                    <span className="text-[11px] text-[#6C757D] leading-tight truncate">
+                    <span className="text-[11px] text-muted-foreground leading-tight truncate">
                       {user.email}
                     </span>
                   </div>
                   {value?.id === user.id && (
-                    <Check className="size-4 text-[#0D6EFD]" />
+                    <Check className="size-4 text-primary" />
                   )}
                 </CommandItem>
               ))}

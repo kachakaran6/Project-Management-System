@@ -66,7 +66,7 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
     <div className="py-6 space-y-3">
       {/* Status */}
       <div className="grid grid-cols-3 items-center group min-h-[40px]">
-        <div className="flex items-center gap-2.5 text-[#6C757D] text-sm font-medium">
+        <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
           <CircleDot className="size-4 opacity-70" />
           <span>Status</span>
         </div>
@@ -82,7 +82,7 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
 
       {/* Priority */}
       <div className="grid grid-cols-3 items-center group min-h-[40px]">
-        <div className="flex items-center gap-2.5 text-[#6C757D] text-sm font-medium">
+        <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
           <Flag className="size-4 opacity-70" />
           <span>Priority</span>
         </div>
@@ -98,7 +98,7 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
 
       {/* Assignee */}
       <div className="grid grid-cols-3 items-center group min-h-[40px]">
-        <div className="flex items-center gap-2.5 text-[#6C757D] text-sm font-medium">
+        <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
           <User className="size-4 opacity-70" />
           <span>Assignee</span>
         </div>
@@ -114,7 +114,7 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
 
       {/* Due Date */}
       <div className="grid grid-cols-3 items-center group min-h-[40px]">
-        <div className="flex items-center gap-2.5 text-[#6C757D] text-sm font-medium">
+        <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
           <Calendar className="size-4 opacity-70" />
           <span>Due date</span>
         </div>
@@ -131,7 +131,7 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
 
       {/* Tags */}
       <div className="grid grid-cols-3 items-start group min-h-[40px]">
-        <div className="flex items-center gap-2.5 text-[#6C757D] text-sm font-medium mt-1.5">
+        <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium mt-1.5">
           <TagIcon className="size-4 opacity-70" />
           <span>Tags</span>
         </div>

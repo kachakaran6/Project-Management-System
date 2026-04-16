@@ -55,6 +55,7 @@ export function TaskSidePanel() {
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetContent 
         side="right" 
+        hideClose={true}
         className="size-full p-0 sm:max-w-[50vw] xl:max-w-[40vw] border-l shadow-2xl bg-background flex flex-col focus:outline-none"
       >
         <SheetHeader className="sr-only">

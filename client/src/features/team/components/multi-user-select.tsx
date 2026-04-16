@@ -29,6 +29,8 @@ interface MultiUserSelectProps {
   // Optional pre-filled user objects for display when only IDs are available in value
   prefilledUsers?: UserInfo[];
   disabled?: boolean;
+  trigger?: React.ReactNode;
+  hideDefaultTrigger?: boolean;
 }
 
 export function MultiUserSelect({
@@ -38,6 +40,8 @@ export function MultiUserSelect({
   className,
   prefilledUsers = [],
   disabled = false,
+  trigger,
+  hideDefaultTrigger = false,
 }: MultiUserSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -104,49 +108,53 @@ export function MultiUserSelect({
     <div className={cn("relative w-full", className)}>
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <div
-            className={cn(
-              "flex min-h-10 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
-              disabled && "opacity-60 cursor-not-allowed pointer-events-none bg-muted/20"
-            )}
-            onClick={() => !disabled && setOpen(true)}
-          >
-            {selectedUsers.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {selectedUsers.map((user) => (
-                  <Badge
-                    key={user.id}
-                    variant="secondary"
-                    className="flex items-center gap-1 pl-1 pr-1 h-6 hover:bg-secondary/80 transition-colors"
-                  >
-                    <Avatar className="h-4 w-4">
-                      <AvatarImage src={user.avatarUrl} />
-                      <AvatarFallback className="text-[8px]">
-                        {user.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="max-w-[100px] truncate">{user.name}</span>
-                    <button
-                      type="button"
-                      onClick={(e) => removeUser(e, user.id)}
-                      className="ml-0.5 rounded-full outline-none hover:bg-muted p-0.5"
-                    >
-                      <X className="h-3 w-3 text-muted-foreground" />
-                    </button>
-                  </Badge>
-                ))}
+          {trigger || (
+            !hideDefaultTrigger && (
+              <div
+                className={cn(
+                  "flex min-h-10 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+                  disabled && "opacity-60 cursor-not-allowed pointer-events-none bg-muted/20"
+                )}
+                onClick={() => !disabled && setOpen(true)}
+              >
+                {selectedUsers.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {selectedUsers.map((user) => (
+                      <Badge
+                        key={user.id}
+                        variant="secondary"
+                        className="flex items-center gap-1 pl-1 pr-1 h-6 hover:bg-secondary/80 transition-colors"
+                      >
+                        <Avatar className="h-4 w-4">
+                          <AvatarImage src={user.avatarUrl} />
+                          <AvatarFallback className="text-[8px]">
+                            {user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="max-w-[100px] truncate">{user.name}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => removeUser(e, user.id)}
+                          className="ml-0.5 rounded-full outline-none hover:bg-muted p-0.5"
+                        >
+                          <X className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground flex items-center gap-2">
+                    <AtSign className="h-4 w-4" />
+                    {placeholder}
+                  </span>
+                )}
+                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
               </div>
-            ) : (
-              <span className="text-muted-foreground flex items-center gap-2">
-                <AtSign className="h-4 w-4" />
-                {placeholder}
-              </span>
-            )}
-            <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-          </div>
+            )
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-80 p-0" align="start">
           <div className="flex items-center border-b px-3 py-2">

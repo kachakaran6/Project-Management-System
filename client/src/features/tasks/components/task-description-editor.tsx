@@ -336,10 +336,16 @@ export function TaskDescriptionEditor({
       </div>
 
       <style jsx global>{`
+        .ProseMirror:focus {
+          outline: none !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
         .ProseMirror p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
           float: left;
-          color: #adb5bd;
+          color: hsl(var(--muted-foreground));
+          opacity: 0.5;
           pointer-events: none;
           height: 0;
         }

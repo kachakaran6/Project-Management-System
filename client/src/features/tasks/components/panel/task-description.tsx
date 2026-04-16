@@ -15,7 +15,7 @@ export function TaskDescription({ task }: TaskDescriptionProps) {
   return (
     <div className="py-6 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[12px] font-bold text-[#6C757D] uppercase tracking-widest px-1">Description</h3>
+        <h3 className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest px-1">Description</h3>
       </div>
       <TaskDescriptionEditor
         value={task.description || ""}

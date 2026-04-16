@@ -11,6 +11,7 @@ import {
   CalendarDays,
   Flag,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -182,7 +183,7 @@ export default function DashboardPage() {
                   {recentProjects.map((project) => (
                     <div
                       key={project.id || (project as any)._id}
-                      className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm flex-shrink-0">
@@ -197,14 +198,14 @@ export default function DashboardPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
                         <Badge
                           variant="secondary"
-                          className={`text-xs ${PROJECT_STATUS_COLORS[project.status] ?? ""}`}
+                          className={cn("text-[10px] font-bold uppercase", PROJECT_STATUS_COLORS[project.status])}
                         >
                           {project.status}
                         </Badge>
-                        <Button asChild variant="outline" size="sm">
+                        <Button asChild variant="outline" size="sm" className="h-8 px-3 text-xs">
                           <Link href={`/projects/${project.id}`}>Open</Link>
                         </Button>
                       </div>
@@ -244,7 +245,7 @@ export default function DashboardPage() {
                   {recentTasks.map((task) => (
                     <div
                       key={task.id || (task as any)._id}
-                      className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <Flag
@@ -259,9 +260,9 @@ export default function DashboardPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0">
                         {task.dueDate && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
                             <CalendarDays className="size-3" />
                             {new Date(task.dueDate).toLocaleDateString("en-US", {
                               month: "short",
@@ -271,7 +272,7 @@ export default function DashboardPage() {
                         )}
                         <Badge
                           variant="secondary"
-                          className={`text-xs ${TASK_STATUS_COLORS[task.status] ?? ""}`}
+                          className={cn("text-[10px] font-bold uppercase", TASK_STATUS_COLORS[task.status])}
                         >
                           {task.status.replace("_", " ")}
                         </Badge>

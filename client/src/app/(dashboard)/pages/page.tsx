@@ -3,14 +3,18 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  CalendarDays,
+  FileText,
+  Filter,
   Globe,
+  Info,
   Lock,
+  MoreHorizontal,
   NotebookPen,
   Plus,
   Search,
-  UserCircle2,
+  Star,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -179,146 +183,126 @@ export default function PagesListPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Pages"
-        description="Build internal docs, notes, and knowledge pages with privacy control."
-        actions={
-          <Button size="sm" className="h-9 px-4 font-medium gap-1.5" onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" />
+    <div className="flex flex-col h-full space-y-0 overflow-hidden -mt-2">
+      {/* Header Area */}
+      <div className="flex items-center justify-between px-6 py-4">
+        <h1 className="text-lg font-semibold">Pages</h1>
+
+        <div className="flex items-center gap-2">
+          <div className="relative group">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground transition-colors group-focus-within:text-foreground" />
+            <Input 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search..." 
+              className="h-8 w-40 md:w-60 bg-transparent border-transparent hover:bg-muted/50 focus:bg-muted/50 focus:border-border transition-all pl-8 text-xs"
+            />
+          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+            <Filter className="size-3.5" />
+          </Button>
+          <Button size="sm" className="h-8 px-3 text-xs gap-1.5 font-semibold" onClick={() => setCreateOpen(true)}>
+            <Plus className="size-3.5" />
             New Page
           </Button>
-        }
-      />
-
-      {/* Stats strip */}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Total</p>
-          <p className="mt-1 text-2xl font-semibold">{stats.total}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Public</p>
-          <p className="mt-1 text-2xl font-semibold">{stats.publicCount}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Private</p>
-          <p className="mt-1 text-2xl font-semibold">{stats.privateCount}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Mine</p>
-          <p className="mt-1 text-2xl font-semibold">{stats.mineCount}</p>
         </div>
       </div>
 
-      <FilterBar>
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="h-9 pl-9 text-sm"
-            placeholder="Search by title or content…"
-          />
-        </div>
-        <Select value={visibilityFilter} onValueChange={(v) => setVisibilityFilter(v as "ALL" | PageVisibility)}>
-          <SelectTrigger className="h-9 w-[140px] text-sm">
-            <SelectValue placeholder="Visibility" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All visibility</SelectItem>
-            <SelectItem value="PUBLIC">Public</SelectItem>
-            <SelectItem value="PRIVATE">Private</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={ownershipFilter} onValueChange={(v) => setOwnershipFilter(v as "ALL" | "ME" | "SHARED")}>
-          <SelectTrigger className="h-9 w-[150px] text-sm">
-            <SelectValue placeholder="Ownership" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Everyone</SelectItem>
-            <SelectItem value="ME">Created by me</SelectItem>
-            <SelectItem value="SHARED">By others</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={recentFilter} onValueChange={(v) => setRecentFilter(v as "ALL" | "RECENT")}>
-          <SelectTrigger className="h-9 w-[140px] text-sm">
-            <SelectValue placeholder="Edited" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All time</SelectItem>
-            <SelectItem value="RECENT">Recently edited</SelectItem>
-          </SelectContent>
-        </Select>
-      </FilterBar>
-      {/* Pages Table */}
-      <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+      {/* Tabs Area */}
+      <div className="flex items-center gap-6 px-6 border-b border-border/40">
+        {[
+          { id: "PUBLIC", label: "Public" },
+          { id: "PRIVATE", label: "Private" },
+          { id: "ARCHIVED", label: "Archived" }
+        ].map((tab) => {
+          const isActive = (tab.id === "PUBLIC" && visibilityFilter === "PUBLIC") || 
+                           (tab.id === "PRIVATE" && visibilityFilter === "PRIVATE") ||
+                           (tab.id === "ARCHIVED" && recentFilter === "RECENT"); // Just for demo logic
+          
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                if (tab.id === "ARCHIVED") {
+                  setVisibilityFilter("ALL");
+                  setRecentFilter("RECENT");
+                } else {
+                  setVisibilityFilter(tab.id as PageVisibility);
+                  setRecentFilter("ALL");
+                }
+              }}
+              className={cn(
+                "relative py-3 text-sm font-medium transition-colors",
+                isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab.label}
+              {isActive && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* List Area */}
+      <div className="flex-1 overflow-y-auto min-h-0 bg-transparent">
         {pagesQuery.isLoading ? (
-          <div className="space-y-2 p-4">
-            <div className="h-12 rounded-lg bg-muted/40" />
-            <div className="h-12 rounded-lg bg-muted/40" />
-            <div className="h-12 rounded-lg bg-muted/40" />
+          <div className="px-6 py-4 space-y-4">
+             {[1,2,3,4,5].map(i => <div key={i} className="h-10 w-full rounded-md bg-muted/20 animate-pulse" />)}
           </div>
         ) : visibleRows.length === 0 ? (
-          <EmptyState
-            icon={NotebookPen}
-            title="Create your first page"
-            description="No pages match your current filters. Start writing docs for your workspace."
-            actionLabel="Create Page"
-            onAction={() => setCreateOpen(true)}
-          />
+          <div className="p-12">
+            <EmptyState
+              icon={NotebookPen}
+              title="No pages found"
+              description="Start simple. Create a page to capture your thoughts."
+              actionLabel="Create Page"
+              onAction={() => setCreateOpen(true)}
+            />
+          </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30">
-                <TableHead>Page Title</TableHead>
-                <TableHead>Visibility</TableHead>
-                <TableHead>Last Edited</TableHead>
-                <TableHead>Creator</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleRows.map((page) => (
-                <TableRow
-                  key={page.id}
-                  className="cursor-pointer hover:bg-muted/10"
-                  onClick={() => router.push(`/pages/${page.id}`)}
-                >
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{page.title}</p>
-                      <p className="line-clamp-1 text-xs text-muted-foreground">
-                        {stripHtml(page.content) || "No content yet"}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell>{visibilityBadge(page.visibility)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                      <CalendarDays className="size-3.5" />
-                      {new Date(page.updatedAt).toLocaleString()}
+          <div className="divide-y divide-border/40">
+            {visibleRows.map((page) => (
+              <div
+                key={page.id}
+                onClick={() => router.push(`/pages/${page.id}`)}
+                className="group flex items-center justify-between px-6 py-3 hover:bg-muted/30 cursor-pointer transition-colors"
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <FileText className="size-4 text-muted-foreground/60 shrink-0" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[13.5px] font-medium text-foreground/90 truncate">
+                      {page.title || "Untitled"}
                     </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="size-8">
-                        <AvatarImage src={page.creator?.avatarUrl} />
-                        <AvatarFallback>
-                          {toInitials(page.creator?.firstName, page.creator?.lastName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {page.creator ? `${page.creator.firstName} ${page.creator.lastName}`.trim() : "Unknown"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{page.creator?.email ?? "No email"}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="flex items-center -space-x-1.5">
+                    <Avatar className="size-5 border border-background shadow-sm">
+                      <AvatarImage src={page.creator?.avatarUrl} />
+                      <AvatarFallback className="text-[8px] font-bold bg-muted">
+                        {toInitials(page.creator?.firstName, page.creator?.lastName)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors">
+                      <Info className="size-3.5" />
+                    </button>
+                    <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors">
+                      <Star className="size-3.5" />
+                    </button>
+                    <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors">
+                      <MoreHorizontal className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
