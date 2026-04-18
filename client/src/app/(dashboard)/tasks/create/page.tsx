@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/next-navigation";
 
 /**
  * Redirect to tasks page - create modal is handled there
@@ -16,3 +16,4 @@ export default function CreateTaskPage() {
 
   return null;
 }
+

@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/lib/next-link";
+import { useRouter } from "@/lib/next-navigation";
 import { useMemo } from "react";
 import { Bell, CheckCheck, Loader2 } from "lucide-react";
 
@@ -67,7 +67,7 @@ export function NotificationBell() {
               Notifications
             </DropdownMenuLabel>
             <p className="text-xs text-muted-foreground">
-              {unreadCount} unread · {notifications.length} loaded
+              {unreadCount} unread Â· {notifications.length} loaded
             </p>
           </div>
           <Button

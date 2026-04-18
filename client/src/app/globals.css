@@ -4,6 +4,9 @@
    SPACING, RADIUS & SHADOW TOKENS
 ═══════════════════════════════════════════════════════════════════════════ */
 :root {
+  --font-jakarta: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+  --font-sora: "Sora", "Segoe UI", sans-serif;
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;

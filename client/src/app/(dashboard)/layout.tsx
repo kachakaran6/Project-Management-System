@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/next-navigation";
 
 import { AppLayout } from "@/components/layout/app-layout";
 import { AuthGuard } from "@/features/auth/components/guards";
@@ -32,3 +32,4 @@ export default function DashboardGroupLayout({
     </AuthGuard>
   );
 }
+

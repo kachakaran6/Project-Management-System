@@ -1,6 +1,6 @@
 export const isApiDebugEnabled =
-  process.env.NODE_ENV !== "production" &&
-  process.env.NEXT_PUBLIC_API_DEBUG !== "false";
+  !import.meta.env.PROD &&
+  import.meta.env.VITE_API_DEBUG !== "false";
 
 export interface ApiLogEntry {
   id: string;

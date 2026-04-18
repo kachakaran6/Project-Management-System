@@ -28,7 +28,7 @@ function mergeById(current: NotificationItem[] = [], incoming: NotificationItem[
 }
 
 function getSocketUrl() {
-  const baseUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const baseUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
   return baseUrl.replace(/\/api\/v1\/?$/, "");
 }
 

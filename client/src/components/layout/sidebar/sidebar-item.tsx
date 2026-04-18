@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "@/lib/next-link";
 import { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -60,3 +60,4 @@ export function SidebarItem({ item, isActive, collapsed }: SidebarItemProps) {
 
   return content;
 }
+

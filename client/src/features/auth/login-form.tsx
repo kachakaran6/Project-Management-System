@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { FormWrapper } from "@/components/shared/form-wrapper";
 import { loginSchema, LoginValues } from "./login-schema";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/next-navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -79,7 +79,7 @@ export function LoginForm() {
                   id="password"
                   {...methods.register("password")}
                   error={Boolean(methods.formState.errors.password)}
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                 />
                 <div className="flex justify-end">
                   <Button
@@ -124,3 +124,4 @@ export function LoginForm() {
     </Card>
   );
 }
+

@@ -1,4 +1,4 @@
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
+﻿import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {Button} from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,7 +23,7 @@ import {
 import {AlertCircle, Eye, MoreHorizontal, Pencil, Trash2} from "lucide-react";
 import {Dispatch, SetStateAction} from "react";
 import {useTaskPanelStore} from "../store/task-panel-store";
-import {usePathname, useRouter, useSearchParams} from "next/navigation";
+import {usePathname, useRouter, useSearchParams} from "@/lib/next-navigation";
 
 export const TaskRow = ({
   taskId,
@@ -317,3 +317,4 @@ export const TaskRow = ({
     </TableRow>
   );
 };
+
