@@ -1,6 +1,7 @@
 import Tag from '../../models/Tag.js';
 import TaskTag from '../../models/TaskTag.js';
 import { AppError } from '../../middlewares/errorHandler.js';
+import mongoose from 'mongoose';
 
 /**
  * Tag Service: Reusable metadata tagging system
@@ -33,8 +34,33 @@ export const getTags = async (organizationId: any, workspaceId: any = null) => {
  * Assign tag to a task
  */
 export const assignTagToTask = async (taskId: any, tagId: any, organizationId: any) => {
+  const rawTag = String(tagId || '').trim();
+  if (!rawTag) {
+    throw new AppError('Tag identifier or name is required.', 400);
+  }
+
+  let resolvedTagId: any = rawTag;
+
+  // Backward compatibility: accept plain label names in tagId and resolve/create tag.
+  if (!mongoose.Types.ObjectId.isValid(rawTag)) {
+    const existingTag = await Tag.findOne({
+      organizationId,
+      name: { $regex: new RegExp(`^${rawTag}$`, 'i') },
+    });
+
+    if (existingTag) {
+      resolvedTagId = existingTag._id;
+    } else {
+      const createdTag = await Tag.create({
+        name: rawTag,
+        organizationId,
+      });
+      resolvedTagId = createdTag._id;
+    }
+  }
+
   try {
-    const taskTag = await TaskTag.create({ taskId, tagId, organizationId });
+    const taskTag = await TaskTag.create({ taskId, tagId: resolvedTagId, organizationId });
     return taskTag;
   } catch (error: unknown) {
     const tagError = error as { code?: number };
@@ -47,6 +73,10 @@ export const assignTagToTask = async (taskId: any, tagId: any, organizationId: a
  * Remove tag from a task
  */
 export const removeTagFromTask = async (taskId: any, tagId: any, organizationId: any) => {
+  if (!mongoose.Types.ObjectId.isValid(String(tagId || ''))) {
+    throw new AppError('Invalid tagId. Expected a valid ObjectId.', 400);
+  }
+
   await TaskTag.findOneAndDelete({ taskId, tagId, organizationId });
   return { success: true };
 };
@@ -55,6 +85,10 @@ export const removeTagFromTask = async (taskId: any, tagId: any, organizationId:
  * Delete a tag globally (affects all tasks)
  */
 export const deleteTag = async (tagId: any, organizationId: any) => {
+  if (!mongoose.Types.ObjectId.isValid(String(tagId || ''))) {
+    throw new AppError('Invalid tagId. Expected a valid ObjectId.', 400);
+  }
+
   const tag = await Tag.findOneAndDelete({ _id: tagId, organizationId });
   if (!tag) throw new AppError('Tag not found or unauthorized.', 404);
 

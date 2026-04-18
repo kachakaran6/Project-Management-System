@@ -1,25 +1,21 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "@/lib/next-navigation";
 import {
+  CalendarDays,
   FileText,
-  Filter,
   Globe,
-  Info,
   Lock,
-  MoreHorizontal,
   NotebookPen,
   Plus,
   Search,
-  Star,
 } from "lucide-react";
-import {cn} from "@/lib/utils";
-import {toast} from "sonner";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
-import {Badge} from "@/components/ui/badge";
-import {Button} from "@/components/ui/button";
-import {PageHeader, FilterBar} from "@/components/layout/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -28,8 +24,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {EmptyState} from "@/components/ui/empty-state";
-import {Input} from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -37,22 +34,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
-import {useAuth} from "@/features/auth/hooks/use-auth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   useCreatePageMutation,
   usePagesQuery,
 } from "@/features/pages/hooks/use-pages-query";
-import {PageDoc, PageVisibility} from "@/types/page.types";
-import Link from "next/link";
+import { PageDoc, PageVisibility } from "@/types/page.types";
+import Link from "@/lib/next-link";
 
 function toInitials(firstName?: string, lastName?: string) {
   return (
@@ -70,7 +59,9 @@ function stripHtml(value: string) {
 function canSeePage(page: PageDoc, userId: string, role?: string) {
   if (role === "SUPER_ADMIN" || role === "ADMIN") return true;
   if (page.visibility === "PUBLIC") return true;
-  return page.creatorId === userId;
+  const isOwner = page.creatorId === userId;
+  const isAllowed = (page.allowedUsers || []).some(id => String(id) === userId);
+  return isOwner || isAllowed;
 }
 
 function visibilityBadge(visibility: PageVisibility) {
@@ -93,7 +84,7 @@ function visibilityBadge(visibility: PageVisibility) {
 
 export default function PagesListPage() {
   const router = useRouter();
-  const {user, activeOrg} = useAuth();
+  const { user, activeOrg } = useAuth();
 
   const [search, setSearch] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState<
@@ -107,9 +98,9 @@ export default function PagesListPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createTitle, setCreateTitle] = useState("");
   const [createVisibility, setCreateVisibility] =
-    useState<PageVisibility>("PRIVATE");
+    useState<PageVisibility>("PUBLIC");
 
-  const pagesQuery = usePagesQuery({page: 1, limit: 200});
+  const pagesQuery = usePagesQuery({ page: 1, limit: 200 });
   const createPage = useCreatePageMutation();
 
   const currentRole = activeOrg?.role ?? user?.role;
@@ -180,7 +171,7 @@ export default function PagesListPage() {
       toast.success("Page created.");
       setCreateOpen(false);
       setCreateTitle("");
-      setCreateVisibility("PRIVATE");
+      setCreateVisibility("PUBLIC");
       router.push(`/pages/${created.data.id}`);
     } catch {
       toast.error("Failed to create page.");
@@ -188,146 +179,167 @@ export default function PagesListPage() {
   };
 
   return (
-    <div className="flex flex-col h-full space-y-0 overflow-hidden -mt-2">
-      {/* Header Area */}
-      <div className="flex items-center justify-between px-6 py-4">
-        <h1 className="text-lg font-semibold">Pages</h1>
+    <div className="mx-auto flex h-[calc(100vh-50px)] w-full max-w-7xl min-h-0 flex-col space-y-4 overflow-y-auto px-4 py-5 md:px-6">
+      {/* <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          Pages
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Create and organize your internal docs and team knowledge.
+        </p>
+      </div> */}
 
-        <div className="flex items-center gap-2">
-          <div className="relative group">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground transition-colors group-focus-within:text-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..."
-              className="h-8 w-40 md:w-60 bg-transparent border-transparent hover:bg-muted/50 focus:bg-muted/50 focus:border-border transition-all pl-8 text-xs"
-            />
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground">
-            <Filter className="size-3.5" />
-          </Button>
-          <Button
-            size="sm"
-            className="h-8 px-3 text-xs gap-1.5 font-semibold"
-            onClick={() => setCreateOpen(true)}>
-            <Plus className="size-3.5" />
-            New Page
-          </Button>
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search pages by title or content"
+            className="h-10 rounded-xl border-border/60 bg-background/60 pl-10 pr-4 text-sm"
+          />
         </div>
+
+        <Select
+          value={visibilityFilter}
+          onValueChange={(value) => setVisibilityFilter(value as "ALL" | PageVisibility)}
+        >
+          <SelectTrigger className="h-10 w-full rounded-xl border-border/60 bg-background/60 px-3 text-sm sm:w-36">
+            <SelectValue placeholder="Visibility" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All visibility</SelectItem>
+            <SelectItem value="PUBLIC">Public</SelectItem>
+            <SelectItem value="PRIVATE">Private</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={ownershipFilter}
+          onValueChange={(value) => setOwnershipFilter(value as "ALL" | "ME" | "SHARED")}
+        >
+          <SelectTrigger className="h-10 w-full rounded-xl border-border/60 bg-background/60 px-3 text-sm sm:w-36">
+            <SelectValue placeholder="Ownership" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All pages</SelectItem>
+            <SelectItem value="ME">Created by me</SelectItem>
+            <SelectItem value="SHARED">Shared with me</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={recentFilter}
+          onValueChange={(value) => setRecentFilter(value as "ALL" | "RECENT")}
+        >
+          <SelectTrigger className="h-10 w-full rounded-xl border-border/60 bg-background/60 px-3 text-sm sm:w-36">
+            <SelectValue placeholder="Date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Any time</SelectItem>
+            <SelectItem value="RECENT">Edited in 3 days</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button
+          className="h-10 rounded-xl px-4 lg:ml-auto"
+          onClick={() => setCreateOpen(true)}
+          variant="secondary"
+        >
+          <Plus className="mr-1.5 size-4" />
+          Create Page
+        </Button>
       </div>
 
-      {/* Tabs Area */}
-      <div className="flex items-center gap-6 px-6 border-b border-border/40">
-        {[
-          {id: "PUBLIC", label: "Public"},
-          {id: "PRIVATE", label: "Private"},
-          {id: "ARCHIVED", label: "Archived"},
-        ].map((tab) => {
-          const isActive =
-            (tab.id === "PUBLIC" && visibilityFilter === "PUBLIC") ||
-            (tab.id === "PRIVATE" && visibilityFilter === "PRIVATE") ||
-            (tab.id === "ARCHIVED" && recentFilter === "RECENT"); // Just for demo logic
+      {pagesQuery.isLoading ? (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="rounded-2xl border border-white/5 bg-white/3 p-3.5">
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+                <div className="flex items-center gap-2 pt-2">
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
-          return (
-            <button
-              key={tab.id}
-              onClick={() => {
-                if (tab.id === "ARCHIVED") {
-                  setVisibilityFilter("ALL");
-                  setRecentFilter("RECENT");
-                } else {
-                  setVisibilityFilter(tab.id as PageVisibility);
-                  setRecentFilter("ALL");
-                }
-              }}
-              className={cn(
-                "relative py-3 text-sm font-medium transition-colors",
-                isActive
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}>
-              {tab.label}
-              {isActive && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {!pagesQuery.isLoading && visibleRows.length === 0 ? (
+        <div className="rounded-2xl border border-white/5 bg-white/3 p-6">
+          <EmptyState
+            icon={NotebookPen}
+            title="No pages found"
+            description="Start simple. Create a page to capture your team knowledge."
+            actionLabel="Create Page"
+            onAction={() => setCreateOpen(true)}
+          />
+        </div>
+      ) : null}
 
-      {/* List Area */}
-      <div className="flex-1 overflow-y-auto min-h-0 bg-transparent">
-        {pagesQuery.isLoading ? (
-          <div className="px-6 py-4 space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className="h-10 w-full rounded-md bg-muted/20 animate-pulse"
-              />
-            ))}
-          </div>
-        ) : visibleRows.length === 0 ? (
-          <div className="p-12">
-            <EmptyState
-              icon={NotebookPen}
-              title="No pages found"
-              description="Start simple. Create a page to capture your thoughts."
-              actionLabel="Create Page"
-              onAction={() => setCreateOpen(true)}
-            />
-          </div>
-        ) : (
-          <div className="divide-y divide-border/40">
-            {visibleRows.map((page) => (
+      {!pagesQuery.isLoading && visibleRows.length > 0 ? (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {visibleRows.map((page) => {
+            const excerpt = stripHtml(page.content || "").slice(0, 120) || "No content yet";
+            const ownerName = `${page.creator?.firstName || ""} ${page.creator?.lastName || ""}`.trim() || "Unknown";
+
+            return (
               <Link
                 key={page.id}
                 href={`/pages/${page.id}`}
-                className="group flex items-center justify-between px-6 py-3 hover:bg-muted/30 cursor-pointer transition-colors">
-                <div className="flex items-center gap-4 min-w-0">
-                  <FileText className="size-4 text-muted-foreground/60 shrink-0" />
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[13.5px] font-medium text-foreground/90 truncate">
+                className="group flex h-full flex-col rounded-2xl border border-white/5 bg-white/3 p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex items-start gap-2">
+                    <FileText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                    <h3 className="truncate text-[15px] font-semibold text-foreground">
                       {page.title || "Untitled"}
-                    </span>
+                    </h3>
                   </div>
+                  {visibilityBadge(page.visibility)}
                 </div>
 
-                <div className="flex items-center gap-4 shrink-0">
-                  <div className="flex items-center -space-x-1.5">
-                    <Avatar className="size-5 border border-background shadow-sm">
-                      <AvatarImage src={page.creator?.avatarUrl} />
-                      <AvatarFallback className="text-[8px] font-bold bg-muted">
-                        {toInitials(
-                          page.creator?.firstName,
-                          page.creator?.lastName,
-                        )}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
+                <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                  {excerpt}
+                </p>
 
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors">
-                      <Info className="size-3.5" />
-                    </button>
-                    <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors">
-                      <Star className="size-3.5" />
-                    </button>
-                    <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors">
-                      <MoreHorizontal className="size-3.5" />
-                    </button>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {page.creatorId === currentUserId ? (
+                    <Badge variant="secondary" className="text-[10px] uppercase">Owned</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] uppercase">Shared</Badge>
+                  )}
+                </div>
+
+                <div className="mt-auto pt-3">
+                  <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Avatar className="h-6 w-6 ring-1 ring-border/70">
+                        <AvatarImage src={page.creator?.avatarUrl} alt={ownerName} />
+                        <AvatarFallback className="text-[9px] font-semibold">
+                          {toInitials(page.creator?.firstName, page.creator?.lastName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="truncate">{ownerName}</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 shrink-0">
+                      <CalendarDays className="size-3.5" />
+                      <span>{new Date(page.updatedAt).toLocaleDateString()}</span>
+                    </div>
                   </div>
                 </div>
               </Link>
-            ))}
-          </div>
-        )}
-      </div>
+            );
+          })}
+        </div>
+      ) : null}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-110">
           <DialogHeader>
             <DialogTitle>Create New Page</DialogTitle>
             <DialogDescription>
@@ -350,22 +362,20 @@ export default function PagesListPage() {
               <div className="inline-flex rounded-xl border border-border p-1">
                 <button
                   type="button"
-                  className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                    createVisibility === "PRIVATE"
+                  className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm transition-colors ${createVisibility === "PRIVATE"
                       ? "bg-muted text-foreground"
                       : "text-muted-foreground"
-                  }`}
+                    }`}
                   onClick={() => setCreateVisibility("PRIVATE")}>
                   <Lock className="size-3.5" />
                   Private
                 </button>
                 <button
                   type="button"
-                  className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                    createVisibility === "PUBLIC"
+                  className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm transition-colors ${createVisibility === "PUBLIC"
                       ? "bg-muted text-foreground"
                       : "text-muted-foreground"
-                  }`}
+                    }`}
                   onClick={() => setCreateVisibility("PUBLIC")}>
                   <Globe className="size-3.5" />
                   Public

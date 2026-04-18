@@ -17,6 +17,7 @@ import { EditableSelect } from "@/components/editable/EditableSelect";
 import { EditableUserSelect } from "@/components/editable/EditableUserSelect";
 import { EditableDate } from "@/components/editable/EditableDate";
 import { EditableTags } from "@/components/editable/EditableTags";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface TaskPropertiesProps {
   task: Task;
@@ -65,7 +66,7 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
   return (
     <div className="py-6 space-y-3">
       {/* Status */}
-      <div className="grid grid-cols-3 items-center group min-h-[40px]">
+      <div className="grid grid-cols-3 items-center group min-h-10">
         <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
           <CircleDot className="size-4 opacity-70" />
           <span>Status</span>
@@ -81,7 +82,7 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
       </div>
 
       {/* Priority */}
-      <div className="grid grid-cols-3 items-center group min-h-[40px]">
+      <div className="grid grid-cols-3 items-center group min-h-10">
         <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
           <Flag className="size-4 opacity-70" />
           <span>Priority</span>
@@ -97,7 +98,7 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
       </div>
 
       {/* Assignee */}
-      <div className="grid grid-cols-3 items-center group min-h-[40px]">
+      <div className="grid grid-cols-3 items-center group min-h-10">
         <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
           <User className="size-4 opacity-70" />
           <span>Assignee</span>
@@ -112,8 +113,58 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
         </div>
       </div>
 
+      {/* Created by */}
+      {(() => {
+        const creatorData = (task as any).creator || (task as any).createdBy || (task as any).created_by || (task as any).creatorId;
+        const creatorMember = typeof creatorData === 'string'
+          ? members.find((member) => String(member.id) === String(creatorData))
+          : null;
+        const creatorInfo = creatorData && typeof creatorData === 'object' ? {
+          name: creatorData.name || (creatorData.firstName ? `${creatorData.firstName} ${creatorData.lastName || ''}`.trim() : 'Unknown creator'),
+          email: creatorData.email || '',
+          avatarUrl: creatorData.avatarUrl
+        } : creatorMember ? {
+          name: creatorMember.name,
+          email: creatorMember.email,
+          avatarUrl: creatorMember.avatarUrl
+        } : {
+          name: typeof creatorData === 'string' ? `Creator ID: ${creatorData}` : 'Unknown creator',
+          email: '',
+          avatarUrl: undefined
+        };
+
+        return (
+          <div className="grid grid-cols-3 items-center group min-h-10">
+            <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
+              <User className="size-4 opacity-70" />
+              <span>Created by</span>
+            </div>
+            <div className="col-span-2">
+              <div className="flex items-center gap-2.5 rounded-lg border border-white/5 bg-white/3 px-3 py-2 transition-colors hover:bg-muted/20 cursor-default">
+                <Avatar className="h-8 w-8 ring-1 ring-border/10 shadow-sm">
+                  <AvatarImage src={creatorInfo.avatarUrl} alt={creatorInfo.name} />
+                  <AvatarFallback className="text-[11px] bg-muted/50 text-muted-foreground font-extrabold uppercase">
+                    {creatorInfo.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col ml-0.5">
+                  <span className="text-sm font-semibold text-foreground/90 leading-tight">
+                    {creatorInfo.name}
+                  </span>
+                  {creatorInfo.email ? (
+                    <span className="text-xs text-muted-foreground truncate">
+                      {creatorInfo.email}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Due Date */}
-      <div className="grid grid-cols-3 items-center group min-h-[40px]">
+      <div className="grid grid-cols-3 items-center group min-h-10">
         <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
           <Calendar className="size-4 opacity-70" />
           <span>Due date</span>
@@ -130,7 +181,7 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
       <Separator className="my-2 opacity-50" />
 
       {/* Tags */}
-      <div className="grid grid-cols-3 items-start group min-h-[40px]">
+      <div className="grid grid-cols-3 items-start group min-h-10">
         <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium mt-1.5">
           <TagIcon className="size-4 opacity-70" />
           <span>Tags</span>

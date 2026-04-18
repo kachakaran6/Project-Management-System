@@ -364,8 +364,8 @@ export function TaskForm({
                 <Hash className="h-3.5 w-3.5 opacity-70" />
                 <span>
                   {tagsValue.length > 0
-                    ? `${tagsValue.length} Labels`
-                    : "Labels"}
+                    ? `${tagsValue.length} Tags`
+                    : "Tags"}
                 </span>
               </button>
             </PopoverTrigger>
@@ -373,7 +373,7 @@ export function TaskForm({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Input
-                    placeholder="Add label..."
+                    placeholder="Add tag..."
                     className="h-8 text-xs bg-muted/20 border-border/30 rounded-lg"
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
@@ -397,10 +397,10 @@ export function TaskForm({
                   <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1">
                     {tagsValue.map((tag) => (
                       <Badge
-                        key={tag}
+                        key={typeof tag === 'string' ? tag : Math.random()}
                         variant="secondary"
                         className="pl-2 pr-1 py-0.5 text-[10px] font-bold rounded-md bg-primary/10 text-primary border-none flex items-center gap-1">
-                        {tag}
+                        {String(tag)}
                         <button
                           onClick={() => removeTag(tag)}
                           className="hover:text-foreground transition-colors p-0.5">
@@ -413,7 +413,7 @@ export function TaskForm({
 
                 {tagsValue.length === 0 && (
                   <p className="text-[10px] text-muted-foreground italic text-center py-2">
-                    No labels added yet.
+                    No tags added yet.
                   </p>
                 )}
               </div>

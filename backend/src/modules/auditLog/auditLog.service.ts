@@ -1,5 +1,6 @@
 import Log from '../../models/Log.js';
 import { AppError } from '../../middlewares/errorHandler.js';
+import { createActivityLog } from '../../services/activityLogService.js';
 
 export interface AuditLogEntry {
   organizationId: string;
@@ -36,6 +37,22 @@ export const logAuditEvent = async (entry: AuditLogEntry) => {
     });
 
     await auditLog.save();
+
+    await createActivityLog({
+      userId: entry.performedBy,
+      organizationId: entry.organizationId,
+      action: String(entry.action),
+      entityType: 'USER',
+      entityId: entry.targetMember || entry.performedBy,
+      entityName: entry.targetMember || entry.performedBy,
+      targetUserId: entry.targetMember,
+      metadata: {
+        ...entry.metadata,
+        changes: entry.changes,
+        reason: entry.reason,
+      },
+    });
+
     return auditLog;
   } catch (error) {
     console.error('[AuditLog] Failed to log event:', error);

@@ -29,8 +29,8 @@ export const getAll = asyncHandler(async (req, res) => {
  * Controller: Assign Tag to Task
  */
 export const assign = asyncHandler(async (req, res) => {
-  const { tagId } = req.body;
-  await tagService.assignTagToTask(req.params.taskId, tagId, req.organizationId);
+  const tagValue = req.body?.tagId || req.body?.name || req.body?.tagName || req.body?.label;
+  await tagService.assignTagToTask(req.params.taskId, tagValue, req.organizationId);
   return successResponse(res, null, 'Tag assigned to task.');
 });
 

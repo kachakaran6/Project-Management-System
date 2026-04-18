@@ -6,6 +6,7 @@ import {
   Bug,
   FileText,
   FolderKanban,
+  History,
   LayoutDashboard,
   LineChart,
   LogOut,
@@ -60,6 +61,13 @@ const navItems: SidebarNavItem[] = [
     icon: Users,
     group: "manage",
     roles: ["SUPER_ADMIN", "ADMIN", "OWNER", "MANAGER", "MEMBER"],
+  },
+  {
+    title: "Activity Logs",
+    href: "/activity-logs",
+    icon: History,
+    group: "manage",
+    roles: ["SUPER_ADMIN", "ADMIN", "OWNER"],
   },
   {
     title: "Settings",

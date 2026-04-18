@@ -3,6 +3,7 @@ import PDFDocument from 'pdfkit';
 import Page from '../../models/Page.js';
 import User from '../../models/User.js';
 import { AppError } from '../../middlewares/errorHandler.js';
+import { createActivityLog } from '../../services/activityLogService.js';
 
 const parseOrganizationId = (value: unknown): string | null => {
   if (!value) return null;
@@ -60,10 +61,26 @@ export const createPage = async (data: {
   const page = await Page.create({
     title,
     content: data.content?.trim() || '<p></p>',
-    visibility: data.visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE',
+    visibility: data.visibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
+    allowedUsers: (data as any).allowedUsers || [],
     creatorId: data.creatorId,
     organizationId: data.organizationId || null,
   });
+
+  if (data.organizationId) {
+    await createActivityLog({
+      userId: data.creatorId,
+      organizationId: String(data.organizationId),
+      action: 'PAGE_CREATED',
+      entityType: 'PAGE',
+      entityId: String(page._id),
+      entityName: page.title,
+      metadata: {
+        visibility: page.visibility,
+        contentLength: String(page.content || '').length,
+      },
+    });
+  }
 
   return page;
 };
@@ -101,6 +118,7 @@ export const getPages = async (
     query.$or = [
       { visibility: 'PUBLIC' },
       { creatorId: userId },
+      { allowedUsers: userId }
     ];
   }
 
@@ -163,9 +181,15 @@ export const getPageById = async (
     ? String((page.creatorId as { _id: unknown })._id)
     : String(page.creatorId);
 
+  const allowedUsers = (page as any).allowedUsers || [];
+  const isAllowed = allowedUsers.some((id: any) => String(id) === currentUserId);
+
   const canAdminOverride = role === 'SUPER_ADMIN' || role === 'ADMIN';
   const canView =
-    canAdminOverride || page.visibility === 'PUBLIC' || creatorId === currentUserId;
+    canAdminOverride || 
+    page.visibility === 'PUBLIC' || 
+    creatorId === currentUserId ||
+    isAllowed;
 
   if (!canView) {
     throw new AppError('You do not have permission to view this page.', 403);
@@ -195,12 +219,10 @@ export const updatePage = async (
     throw new AppError('Page not found.', 404);
   }
 
-  const canAdminOverride = role === 'SUPER_ADMIN' || role === 'ADMIN';
   const isCreator = String(page.creatorId) === currentUserId;
-  const canEdit = canAdminOverride || isCreator || page.visibility === 'PUBLIC';
 
-  if (!canEdit) {
-    throw new AppError('You do not have permission to edit this page.', 403);
+  if (!isCreator) {
+    throw new AppError('Only the page owner can edit this page.', 403);
   }
 
   if (typeof updates.title === 'string') {
@@ -216,10 +238,31 @@ export const updatePage = async (
   }
 
   if (updates.visibility) {
-    page.visibility = updates.visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE';
+    page.visibility = updates.visibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC';
   }
 
+  if (Array.isArray((updates as any).allowedUsers)) {
+    (page as any).allowedUsers = (updates as any).allowedUsers;
+  }
+
+  const changeMetadata: Record<string, any> = {};
+  if (typeof updates.title === 'string') changeMetadata.title = updates.title.trim();
+  if (typeof updates.content === 'string') changeMetadata.contentLength = updates.content.length;
+  if (updates.visibility) changeMetadata.visibility = updates.visibility;
+
   await page.save();
+
+  if (organizationId) {
+    await createActivityLog({
+      userId: currentUserId,
+      organizationId: String(organizationId),
+      action: 'PAGE_UPDATED',
+      entityType: 'PAGE',
+      entityId: String(page._id),
+      entityName: page.title,
+      metadata: changeMetadata,
+    });
+  }
 
   return Page.findById(page._id)
     .populate('creatorId', 'firstName lastName email avatarUrl')
@@ -242,15 +285,26 @@ export const deletePage = async (
     throw new AppError('Page not found.', 404);
   }
 
-  const canAdminOverride = role === 'SUPER_ADMIN' || role === 'ADMIN';
   const isCreator = String(page.creatorId) === currentUserId;
 
-  if (!canAdminOverride && !isCreator) {
-    throw new AppError('You do not have permission to delete this page.', 403);
+  if (!isCreator) {
+    throw new AppError('Only the page owner can delete this page.', 403);
   }
 
   page.isActive = false;
   await page.save();
+
+  if (organizationId) {
+    await createActivityLog({
+      userId: currentUserId,
+      organizationId: String(organizationId),
+      action: 'PAGE_DELETED',
+      entityType: 'PAGE',
+      entityId: String(page._id),
+      entityName: page.title,
+      metadata: { visibility: page.visibility },
+    });
+  }
 
   return { success: true };
 };

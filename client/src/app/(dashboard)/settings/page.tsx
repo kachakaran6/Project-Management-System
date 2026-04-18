@@ -1,8 +1,8 @@
 "use client";
 
-import {useState, useEffect, useCallback} from "react";
-import {useTheme} from "next-themes";
-import {toast} from "sonner";
+import { useState, useEffect, useCallback } from "react";
+import { useTheme } from "next-themes";
+import { toast } from "sonner";
 import {
   User,
   KeyRound,
@@ -30,22 +30,22 @@ import {
   Lock,
 } from "lucide-react";
 
-import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
-import {Textarea} from "@/components/ui/textarea";
-import {Badge} from "@/components/ui/badge";
-import {Skeleton} from "@/components/ui/skeleton";
-import {useAuth} from "@/features/auth/hooks/use-auth";
-import {useAuthStore} from "@/store/auth-store";
-import {api} from "@/lib/api/axios-instance";
-import {authApi} from "@/features/auth/api/auth.api";
-import {useQuery, useMutation, useQueryClient} from "@tanstack/react-query";
-import {useApplyTheme} from "@/providers/theme-provider";
-import {ACCENT_COLORS} from "@/store/theme-store";
-import {organizationsApi} from "@/features/organizations/api/organizations.api";
-import {UserWithRole} from "@/types/user.types";
-import {OrganizationMembership} from "@/types/organization.types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useAuthStore } from "@/store/auth-store";
+import { api } from "@/lib/api/axios-instance";
+import { authApi } from "@/features/auth/api/auth.api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useApplyTheme } from "@/providers/theme-provider";
+import { ACCENT_COLORS } from "@/store/theme-store";
+import { organizationsApi } from "@/features/organizations/api/organizations.api";
+import { UserWithRole } from "@/types/user.types";
+import { OrganizationMembership } from "@/types/organization.types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -75,15 +75,15 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  {id: "profile", label: "Profile", icon: User},
-  {id: "account", label: "Account", icon: KeyRound},
-  {id: "appearance", label: "Appearance", icon: Paintbrush},
-  {id: "notifications", label: "Notifications", icon: Bell},
-  {id: "workspace", label: "Workspace", icon: Building2, managerPlus: true},
-  {id: "organization", label: "Organization", icon: Building2},
-  {id: "billing", label: "Billing", icon: CreditCard, adminOnly: true},
-  {id: "security", label: "Security", icon: ShieldCheck},
-  {id: "integrations", label: "Integrations", icon: Puzzle},
+  { id: "profile", label: "Profile", icon: User },
+  { id: "account", label: "Account", icon: KeyRound },
+  { id: "appearance", label: "Appearance", icon: Paintbrush },
+  { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "workspace", label: "Workspace", icon: Building2, managerPlus: true },
+  { id: "organization", label: "Organization", icon: Building2 },
+  { id: "billing", label: "Billing", icon: CreditCard, adminOnly: true },
+  { id: "security", label: "Security", icon: ShieldCheck },
+  { id: "integrations", label: "Integrations", icon: Puzzle },
 ];
 
 // ─── Shared UI Primitives ─────────────────────────────────────────────────────
@@ -150,13 +150,11 @@ function Toggle({
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 ${
-        checked ? "bg-primary" : "bg-muted"
-      }`}>
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 ${checked ? "bg-primary" : "bg-muted"
+        }`}>
       <span
-        className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ${
-          checked ? "translate-x-5" : "translate-x-0"
-        }`}
+        className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ${checked ? "translate-x-5" : "translate-x-0"
+          }`}
       />
     </button>
   );
@@ -179,7 +177,7 @@ function FormRow({
           <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
         )}
       </div>
-      <div className="flex-shrink-0">{children}</div>
+      <div className="shrink-0">{children}</div>
     </div>
   );
 }
@@ -187,7 +185,7 @@ function FormRow({
 // ─── 1. PROFILE SECTION ──────────────────────────────────────────────────────────
 
 function ProfileSection() {
-  const {user: storeUser} = useAuth();
+  const { user: storeUser } = useAuth();
   const setUser = useAuthStore((s) => s.setUser);
   const queryClient = useQueryClient();
 
@@ -219,7 +217,7 @@ function ProfileSection() {
 
   // ── Update mutation ──
   const updateMutation = useMutation({
-    mutationFn: (payload: {firstName: string; lastName: string; bio: string}) =>
+    mutationFn: (payload: { firstName: string; lastName: string; bio: string }) =>
       authApi.updateMe(payload),
     onSuccess: (res) => {
       // Normalise across response shapes: { data: { user } } or { data: user }
@@ -227,7 +225,7 @@ function ProfileSection() {
         (res as any)?.data?.user || (res as any)?.user || null;
 
       if (updatedUser) {
-        setUser({...storeUser!, ...updatedUser});
+        setUser({ ...storeUser!, ...updatedUser });
       } else {
         // Fallback: patch store with what we sent
         setUser({
@@ -238,7 +236,7 @@ function ProfileSection() {
       }
 
       // Refresh the query so the avatar / initials update too
-      queryClient.invalidateQueries({queryKey: ["auth", "me"]});
+      queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       toast.success("Profile updated successfully!");
     },
     onError: () => {
@@ -270,7 +268,7 @@ function ProfileSection() {
         description="Update your public profile details.">
         {/* Avatar & name header */}
         <div className="mb-6 flex items-center gap-4">
-          <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-md">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-md">
             {profileUser?.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -386,7 +384,7 @@ function ProfileSection() {
 // ─── 2. ACCOUNT SECTION ──────────────────────────────────────────────────────
 
 function AccountSection() {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
@@ -509,16 +507,16 @@ function AccountSection() {
 // ─── 3. APPEARANCE SECTION (Full Theme Engine UI) ───────────────────────────
 
 function AppearanceSection() {
-  const {mode, accent, changeMode, changeAccent} = useApplyTheme();
+  const { mode, accent, changeMode, changeAccent } = useApplyTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const modes = [
-    {id: "light" as const, label: "Light", icon: Sun, desc: "Clean & bright"},
-    {id: "dark" as const, label: "Dark", icon: Moon, desc: "Easy on eyes"},
-    {id: "system" as const, label: "System", icon: Monitor, desc: "Follows OS"},
+    { id: "light" as const, label: "Light", icon: Sun, desc: "Clean & bright" },
+    { id: "dark" as const, label: "Dark", icon: Moon, desc: "Easy on eyes" },
+    { id: "system" as const, label: "System", icon: Monitor, desc: "Follows OS" },
   ];
 
   const densityOptions = [
@@ -572,7 +570,7 @@ function AppearanceSection() {
         title="Theme Mode"
         description="Switch between light, dark, or follow your OS preference.">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {modes.map(({id, label, icon: Icon, desc}) => {
+          {modes.map(({ id, label, icon: Icon, desc }) => {
             const active = mode === id;
             return (
               <button
@@ -581,33 +579,28 @@ function AppearanceSection() {
                   changeMode(id);
                   toast.success(`Theme set to ${label}`);
                 }}
-                className={`group relative flex flex-col items-center gap-3 rounded-xl border-2 p-5 text-center transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm ${
-                  active
+                className={`group relative flex flex-col items-center gap-3 rounded-xl border-2 p-5 text-center transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm ${active
                     ? "border-primary bg-primary/8 shadow-sm"
                     : "border-border bg-muted/10 hover:border-primary/40 hover:bg-muted/30"
-                }`}>
+                  }`}>
                 {/* Mode thumbnail preview */}
                 <div
-                  className={`relative flex h-14 w-full max-w-[80px] overflow-hidden rounded-lg border ${
-                    active ? "border-primary/40" : "border-border"
-                  }`}>
+                  className={`relative flex h-14 w-full max-w-20 overflow-hidden rounded-lg border ${active ? "border-primary/40" : "border-border"
+                    }`}>
                   <div
-                    className={`flex-1 ${
-                      id === "dark"
+                    className={`flex-1 ${id === "dark"
                         ? "bg-slate-900"
                         : id === "light"
                           ? "bg-white"
-                          : "bg-gradient-to-r from-white to-slate-900"
-                    }`}>
+                          : "bg-linear-to-r from-white to-slate-900"
+                      }`}>
                     <div
-                      className={`m-1.5 h-1.5 w-8 rounded-full opacity-60 ${
-                        id === "dark" ? "bg-slate-500" : "bg-slate-300"
-                      }`}
+                      className={`m-1.5 h-1.5 w-8 rounded-full opacity-60 ${id === "dark" ? "bg-slate-500" : "bg-slate-300"
+                        }`}
                     />
                     <div
-                      className={`m-1.5 mt-1 h-1.5 w-5 rounded-full opacity-40 ${
-                        id === "dark" ? "bg-slate-600" : "bg-slate-200"
-                      }`}
+                      className={`m-1.5 mt-1 h-1.5 w-5 rounded-full opacity-40 ${id === "dark" ? "bg-slate-600" : "bg-slate-200"
+                        }`}
                     />
                   </div>
                 </div>
@@ -637,7 +630,7 @@ function AppearanceSection() {
         title="Accent Color"
         description="Choose a brand color that applies across all buttons, links, and highlights.">
         <div className="flex flex-wrap gap-3">
-          {ACCENT_COLORS.map(({id, label, primary, dark: darkColor}) => {
+          {ACCENT_COLORS.map(({ id, label, primary, dark: darkColor }) => {
             const active = accent === id;
             // Use dark color if currently in dark mode
             const currentMode =
@@ -657,12 +650,11 @@ function AppearanceSection() {
                   changeAccent(id);
                   toast.success(`Accent color: ${label}`);
                 }}
-                className={`group relative flex h-14 w-14 items-center justify-center rounded-2xl border-2 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${
-                  active
+                className={`group relative flex h-14 w-14 items-center justify-center rounded-2xl border-2 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${active
                     ? "border-foreground/30 scale-110 shadow-md"
                     : "border-transparent hover:border-foreground/20"
-                }`}
-                style={{background: swatchColor}}>
+                  }`}
+                style={{ background: swatchColor }}>
                 {active && (
                   <Check className="size-5 text-white drop-shadow-sm" />
                 )}
@@ -680,7 +672,7 @@ function AppearanceSection() {
           <p className="text-xs text-muted-foreground">Live preview</p>
           <button
             className="rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:brightness-95"
-            style={{background: "var(--primary)"}}>
+            style={{ background: "var(--primary)" }}>
             Primary Button
           </button>
           <span
@@ -693,9 +685,9 @@ function AppearanceSection() {
           </span>
           <span
             className="inline-block h-3 w-3 rounded-full"
-            style={{background: "var(--primary)"}}
+            style={{ background: "var(--primary)" }}
           />
-          <span className="text-xs" style={{color: "var(--primary)"}}>
+          <span className="text-xs" style={{ color: "var(--primary)" }}>
             Link color
           </span>
           <input
@@ -717,7 +709,7 @@ function AppearanceSection() {
         title="UI Density"
         description="Control how compact the interface feels.">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {densityOptions.map(({id, label, desc, emoji}) => {
+          {densityOptions.map(({ id, label, desc, emoji }) => {
             const active = density === id;
             return (
               <button
@@ -728,11 +720,10 @@ function AppearanceSection() {
                     localStorage.setItem("ui-density", id);
                   toast.success(`Density set to ${label}`);
                 }}
-                className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 ${
-                  active
+                className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 ${active
                     ? "border-primary bg-primary/5 shadow-sm"
                     : "border-border hover:border-primary/40 hover:bg-muted/20"
-                }`}>
+                  }`}>
                 <span className="text-2xl">{emoji}</span>
                 <div>
                   <p
@@ -780,7 +771,7 @@ function NotificationsSection() {
 
   const toggle = useCallback((key: string) => {
     setPrefs((prev) => {
-      const next = {...prev, [key]: !prev[key]};
+      const next = { ...prev, [key]: !prev[key] };
       if (typeof window !== "undefined")
         localStorage.setItem("notif-prefs", JSON.stringify(next));
       toast.success("Notification preference saved.");
@@ -830,7 +821,7 @@ function NotificationsSection() {
         title="Email Notifications"
         description="Control which events send you an email.">
         <div className="divide-y divide-border">
-          {emailNotifs.map(({key, label, desc}) => (
+          {emailNotifs.map(({ key, label, desc }) => (
             <FormRow key={key} label={label} description={desc}>
               <Toggle checked={!!prefs[key]} onChange={() => toggle(key)} />
             </FormRow>
@@ -842,7 +833,7 @@ function NotificationsSection() {
         title="In-App Notifications"
         description="Manage alerts within the application.">
         <div className="divide-y divide-border">
-          {inAppNotifs.map(({key, label, desc}) => (
+          {inAppNotifs.map(({ key, label, desc }) => (
             <FormRow key={key} label={label} description={desc}>
               <Toggle checked={!!prefs[key]} onChange={() => toggle(key)} />
             </FormRow>
@@ -876,7 +867,7 @@ function WorkspaceSection() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.patch("/workspaces/current", {name, description: desc});
+      await api.patch("/workspaces/current", { name, description: desc });
       toast.success("Workspace updated!");
     } catch {
       toast.error("Failed to update workspace.");
@@ -929,7 +920,7 @@ function WorkspaceSection() {
               undone.
             </p>
           </div>
-          <Button variant="destructive" size="sm" className="flex-shrink-0">
+          <Button variant="destructive" size="sm" className="shrink-0">
             <AlertTriangle className="mr-1.5 size-3.5" />
             Delete
           </Button>
@@ -942,7 +933,7 @@ function WorkspaceSection() {
 // ─── 6. ORGANIZATION SECTION ─────────────────────────────────────────────────
 
 function OrganizationSection() {
-  const {activeOrg, organizations, user} = useAuth();
+  const { activeOrg, organizations, user } = useAuth();
   const queryClient = useQueryClient();
   const role = activeOrg?.role || user?.role;
   const canManageOrg = role === "SUPER_ADMIN" || role === "ADMIN";
@@ -955,7 +946,7 @@ function OrganizationSection() {
 
   const requestAccessMutation = useMutation({
     mutationFn: (note?: string) =>
-      authApi.requestOrganizationAccess({requestedRole: "ADMIN", note}),
+      authApi.requestOrganizationAccess({ requestedRole: "ADMIN", note }),
     onSuccess: async () => {
       toast.success("Access request submitted. Super Admin will review it.");
       await queryClient.invalidateQueries({
@@ -964,7 +955,7 @@ function OrganizationSection() {
     },
     onError: (error: unknown) => {
       const message =
-        (error as {response?: {data?: {message?: string}}})?.response?.data
+        (error as { response?: { data?: { message?: string } } })?.response?.data
           ?.message || "Failed to submit access request.";
       toast.error(message);
     },
@@ -978,7 +969,7 @@ function OrganizationSection() {
   const [isCreating, setIsCreating] = useState(false);
 
   const createOrgMutation = useMutation({
-    mutationFn: (name: string) => organizationsApi.create({name}),
+    mutationFn: (name: string) => organizationsApi.create({ name }),
     onSuccess: async () => {
       // 1. Fetch updated organizations list
       const orgsRes = await organizationsApi.getMy();
@@ -1023,23 +1014,23 @@ function OrganizationSection() {
   const statusBadge =
     status === "APPROVED"
       ? {
-          label: "Approved",
-          className: "bg-emerald-100 text-emerald-700 border-emerald-200",
-        }
+        label: "Approved",
+        className: "bg-emerald-100 text-emerald-700 border-emerald-200",
+      }
       : status === "REJECTED"
         ? {
-            label: "Rejected",
-            className: "bg-red-100 text-red-700 border-red-200",
-          }
+          label: "Rejected",
+          className: "bg-red-100 text-red-700 border-red-200",
+        }
         : status === "PENDING"
           ? {
-              label: "Pending",
-              className: "bg-amber-100 text-amber-700 border-amber-200",
-            }
+            label: "Pending",
+            className: "bg-amber-100 text-amber-700 border-amber-200",
+          }
           : {
-              label: "Not Requested",
-              className: "bg-muted text-muted-foreground border-border",
-            };
+            label: "Not Requested",
+            className: "bg-muted text-muted-foreground border-border",
+          };
 
   return (
     <div className="space-y-5">
@@ -1098,8 +1089,8 @@ function OrganizationSection() {
       </SectionCard>
 
       {!canManageOrg &&
-      organizations.length === 0 &&
-      (user?.role as string) !== "MEMBER" ? (
+        organizations.length === 0 &&
+        (user?.role as string) !== "MEMBER" ? (
         <SectionCard
           title="Organization Access Request"
           description="Request elevated organization access and track approval status.">
@@ -1192,7 +1183,7 @@ function BillingSection() {
       <SectionCard
         title="Current Plan"
         description="Your subscription details and usage.">
-        <div className="overflow-hidden rounded-xl border border-border bg-gradient-to-br from-primary/5 to-transparent p-5">
+        <div className="overflow-hidden rounded-xl border border-border bg-linear-to-br from-primary/5 to-transparent p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
@@ -1269,7 +1260,7 @@ function BillingSection() {
 // ─── 8. SECURITY SECTION ─────────────────────────────────────────────────────
 
 function SecuritySection() {
-  const {logout} = useAuth();
+  const { logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogoutAll = async () => {
@@ -1291,7 +1282,7 @@ function SecuritySection() {
         description="Add an extra layer of security to your account.">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-muted">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted">
               <Lock className="size-5 text-muted-foreground" />
             </div>
             <div>
@@ -1302,7 +1293,7 @@ function SecuritySection() {
               </p>
             </div>
           </div>
-          <Badge variant="secondary" className="flex-shrink-0">
+          <Badge variant="secondary" className="shrink-0">
             Coming Soon
           </Badge>
         </div>
@@ -1345,7 +1336,7 @@ function SecuritySection() {
           <Button
             variant="destructive"
             size="sm"
-            className="flex-shrink-0"
+            className="shrink-0"
             onClick={handleLogoutAll}
             disabled={loggingOut}>
             {loggingOut ? (
@@ -1391,15 +1382,15 @@ function IntegrationsSection() {
         title="Available Integrations"
         description="Connect your favourite tools to supercharge your workflow.">
         <div className="space-y-3">
-          {INTEGRATIONS.map(({name, icon: Icon, desc, color}) => (
+          {INTEGRATIONS.map(({ name, icon: Icon, desc, color }) => (
             <div
               key={name}
               className="flex items-center justify-between rounded-xl border border-border bg-muted/10 p-4 transition-colors hover:bg-muted/20">
               <div className="flex items-center gap-3">
                 <div
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
-                  style={{background: `${color}20`}}>
-                  <Icon className="size-5" style={{color}} />
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                  style={{ background: `${color}20` }}>
+                  <Icon className="size-5" style={{ color }} />
                 </div>
                 <div>
                   <p className="text-sm font-semibold">{name}</p>
@@ -1408,7 +1399,7 @@ function IntegrationsSection() {
               </div>
               <Badge
                 variant="outline"
-                className="flex-shrink-0 text-xs text-muted-foreground">
+                className="shrink-0 text-xs text-muted-foreground">
                 Coming Soon
               </Badge>
             </div>
@@ -1448,7 +1439,7 @@ function renderSection(id: SectionId) {
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SectionId>("profile");
-  const {user, activeOrg} = useAuth();
+  const { user, activeOrg } = useAuth();
   const userRole = activeOrg?.role || user?.role;
 
   const isAdmin = userRole === "SUPER_ADMIN" || userRole === "ADMIN";
@@ -1464,41 +1455,39 @@ export default function SettingsPage() {
   const ActiveIcon = activeItem.icon;
 
   return (
-    <div className="min-h-screen">
+    <div className="mx-auto min-h-0 w-full max-w-7xl space-y-4 px-4 py-5 md:px-6">
       {/* Page Header */}
-      <div className="mb-6">
+      {/* <div className="space-y-1">
         <h1 className="font-heading text-3xl font-bold tracking-tight">
           Settings
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Manage your account, preferences, and workspace configuration.
         </p>
-      </div>
+      </div> */}
 
-      <div className="flex gap-6 lg:items-start max-lg:flex-col">
+      <div className="flex gap-4 lg:items-start max-lg:flex-col">
         {/* ── Left Sidebar ── */}
-        <aside className="w-full lg:w-56 flex-shrink-0 lg:sticky lg:top-4">
+        <aside className="w-full lg:w-56 shrink-0 lg:sticky lg:top-2">
           <nav
             className="overflow-x-auto lg:overflow-visible rounded-2xl border border-border bg-card shadow-sm"
             aria-label="Settings navigation">
             <ul className="flex lg:flex-col gap-1 px-2 py-2 lg:px-0">
-              {visibleNav.map(({id, label, icon: Icon}) => {
+              {visibleNav.map(({ id, label, icon: Icon }) => {
                 const active = activeSection === id;
 
                 return (
-                  <li key={id} className="flex-shrink-0">
+                  <li key={id} className="shrink-0">
                     <button
                       onClick={() => setActiveSection(id)}
                       className={`group flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all
-              ${
-                active
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              }`}>
+              ${active
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        }`}>
                       <Icon
-                        className={`size-4 transition-transform group-hover:scale-110 ${
-                          active ? "text-primary" : ""
-                        }`}
+                        className={`size-4 transition-transform group-hover:scale-110 ${active ? "text-primary" : ""
+                          }`}
                       />
                       <span>{label}</span>
                       {active && (
@@ -1514,7 +1503,7 @@ export default function SettingsPage() {
           {/* User card (optional hide on mobile) */}
           <div className="mt-4 hidden lg:block rounded-2xl border border-border bg-card p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
                 {user?.firstName?.[0]}
                 {user?.lastName?.[0]}
               </div>
@@ -1533,7 +1522,7 @@ export default function SettingsPage() {
         {/* ── Right Content ── */}
         <main className="min-w-0 flex-1">
           {/* Section header */}
-          <div className="mb-5 flex items-center gap-3">
+          <div className="mb-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
               <ActiveIcon className="size-5 text-primary" />
             </div>
@@ -1575,3 +1564,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

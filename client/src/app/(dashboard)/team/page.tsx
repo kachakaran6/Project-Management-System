@@ -6,7 +6,6 @@ import {
   MoreHorizontal,
   UserPlus,
   Search,
-  Filter,
   Trash2,
   ShieldAlert,
   UserMinus,
@@ -76,7 +75,6 @@ import {
 import { TeamMember, TeamRole } from "@/features/team/api/team.api";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { PageHeader, FilterBar } from "@/components/layout/page-header";
 
 const ROLES: TeamRole[] = ["OWNER", "ADMIN", "MANAGER", "MEMBER"];
 
@@ -104,6 +102,10 @@ export default function TeamPage() {
   const userRole = (activeOrg?.role || currentUser?.role || "MEMBER") as TeamRole;
   const isOwner = userRole === "OWNER";
   const isAdmin = userRole === "ADMIN" || isOwner;
+  const isManager = userRole === "MANAGER";
+  const isMember = !isAdmin && !isManager;
+  const canUseRoleControls = isAdmin;
+  const canUseBulkActions = isAdmin;
 
   // ─── Derived Data ──────────────────────────────────────────────────────────
   const filteredUsers = useMemo(() => {
@@ -170,58 +172,73 @@ export default function TeamPage() {
     );
   };
 
-  const canManageUser = (target: TeamMember) => {
-    if (isOwner) return true;
-    if (isAdmin) {
-      return target.role !== "OWNER";
-    }
+  const canOpenRoleEditor = (target: TeamMember) => {
+    if (!canUseRoleControls) return false;
+    return target.id !== currentUser?.id;
+  };
+
+  const canToggleUserStatus = (target: TeamMember) => {
+    if (!isAdmin) return false;
+    if (target.id === currentUser?.id) return false;
+    if (!isOwner && target.role === "OWNER") return false;
+    return true;
+  };
+
+  const canRemoveUser = (target: TeamMember) => {
+    if (target.id === currentUser?.id) return false;
+    if (isOwner) return target.role !== "OWNER";
+    if (userRole === "ADMIN") return target.role !== "OWNER";
+    if (isManager) return target.role === "MEMBER";
     return false;
+  };
+
+  const canManagePermissions = (target: TeamMember) => {
+    if (!isAdmin) return false;
+    return target.id !== currentUser?.id && (isOwner || target.role !== "OWNER");
   };
 
   if (isLoading) {
     return (
-      <div className="flex h-[400px] items-center justify-center">
+      <div className="flex h-100 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Team"
-        description="Manage your organization's members, roles, and access controls."
-        actions={
-          isAdmin ? (
-            <Button size="sm" className="h-9 px-4 font-medium gap-2" onClick={() => setIsInviteOpen(true)}>
-              <UserPlus className="size-4" />
-              Invite Member
-            </Button>
-          ) : undefined
-        }
-      />
+    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-5 md:px-6">
+      {/* <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          Team
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Manage members, roles, and access controls.
+        </p>
+      </div> */}
 
-      <FilterBar>
-        <div className="relative flex-1 min-w-[180px] max-w-sm">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-2">
+        <div className="relative flex-1 min-w-45 max-w-sm">
           <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2" />
           <Input
             placeholder="Search members…"
-            className="h-9 pl-9 text-sm"
+            className="h-10 pl-9 text-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="h-9 w-[130px] text-sm">
-            <SelectValue placeholder="Role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All roles</SelectItem>
-            {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        {canUseRoleControls ? (
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="h-10 w-36 text-sm">
+              <SelectValue placeholder="Role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All roles</SelectItem>
+              {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        ) : null}
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-9 w-[130px] text-sm">
+          <SelectTrigger className="h-10 w-36 text-sm">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -231,10 +248,10 @@ export default function TeamPage() {
             <SelectItem value="PENDING">Pending</SelectItem>
           </SelectContent>
         </Select>
-        {selectedIds.length > 0 && (
+        {canUseBulkActions && selectedIds.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 text-sm gap-2 border-dashed">
+              <Button variant="outline" size="sm" className="h-10 text-sm gap-2 border-dashed">
                 Bulk Actions ({selectedIds.length})
               </Button>
             </DropdownMenuTrigger>
@@ -256,7 +273,14 @@ export default function TeamPage() {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-      </FilterBar>
+
+        {isAdmin ? (
+          <Button size="sm" className="h-10 px-4 font-medium gap-2 lg:ml-auto" variant="secondary" onClick={() => setIsInviteOpen(true)}>
+            <UserPlus className="size-4" />
+            Invite Member
+          </Button>
+        ) : null}
+      </div>
 
       {/* ─── Table ─────────────────────────────────────────────────────────── */}
       {/* Desktop Table View */}
@@ -264,13 +288,15 @@ export default function TeamPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="w-12 pl-4">
-                <Checkbox
-                  checked={selectedIds.length === filteredUsers.length && filteredUsers.length > 0}
-                  onCheckedChange={toggleSelectAll}
-                />
-              </TableHead>
-              <TableHead className="w-[300px]">User</TableHead>
+              {canUseBulkActions ? (
+                <TableHead className="w-12 pl-4">
+                  <Checkbox
+                    checked={selectedIds.length === filteredUsers.length && filteredUsers.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+              ) : null}
+              <TableHead className="w-75">User</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Last Active</TableHead>
@@ -280,19 +306,21 @@ export default function TeamPage() {
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={canUseBulkActions ? 6 : 5} className="h-32 text-center text-muted-foreground">
                   No team members found.
                 </TableCell>
               </TableRow>
             ) : (
               filteredUsers.map((user) => (
                 <TableRow key={user.id} className="group hover:bg-muted/30 transition-colors">
-                  <TableCell className="pl-4">
-                    <Checkbox
-                      checked={selectedIds.includes(user.id)}
-                      onCheckedChange={() => toggleSelect(user.id)}
-                    />
-                  </TableCell>
+                  {canUseBulkActions ? (
+                    <TableCell className="pl-4">
+                      <Checkbox
+                        checked={selectedIds.includes(user.id)}
+                        onCheckedChange={() => toggleSelect(user.id)}
+                      />
+                    </TableCell>
+                  ) : null}
                   <TableCell className="cursor-pointer" onClick={() => setSelectedUser(user)}>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10 border shadow-sm">
@@ -312,16 +340,16 @@ export default function TeamPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {canManageUser(user) && user.id !== currentUser?.id ? (
+                    {canOpenRoleEditor(user) ? (
                       <Select
                         defaultValue={user.role}
                         onValueChange={(val) => handleRoleChange(user.id, val as TeamRole)}
                       >
-                        <SelectTrigger className="w-[120px] h-8 text-xs border-none bg-transparent hover:bg-muted font-medium">
+                        <SelectTrigger className="w-30 h-8 text-xs border-none bg-transparent hover:bg-muted font-medium">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {ROLES.filter(r => isOwner || r !== 'OWNER').map((r) => (
+                          {ROLES.filter((r) => isOwner || r !== "OWNER").map((r) => (
                             <SelectItem key={r} value={r} className="text-xs">
                               {r.replace("_", " ")}
                             </SelectItem>
@@ -336,11 +364,12 @@ export default function TeamPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Switch
-                        checked={user.status === "ACTIVE"}
-                        onCheckedChange={() => handleToggleStatus(user)}
-                        disabled={!canManageUser(user) || user.id === currentUser?.id}
-                      />
+                      {canToggleUserStatus(user) ? (
+                        <Switch
+                          checked={user.status === "ACTIVE"}
+                          onCheckedChange={() => handleToggleStatus(user)}
+                        />
+                      ) : null}
                       <Badge
                         variant={user.status === "ACTIVE" ? "success" : "outline"}
                         className={cn(
@@ -367,24 +396,28 @@ export default function TeamPage() {
                           <Eye className="mr-2 h-4 w-4 text-blue-500" />
                           View Profile
                         </DropdownMenuItem>
-                        {(isOwner || isAdmin) && (
+                        {canManagePermissions(user) && (
                           <DropdownMenuItem onClick={() => handleOpenPermissionModal(user)}>
                             <UserCog className="mr-2 h-4 w-4 text-orange-500" />
                             Manage Permissions
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
-                          {user.status === "ACTIVE" ? (
-                            <><XCircle className="mr-2 h-4 w-4 text-gray-500" /> Disable User</>
-                          ) : (
-                            <><CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Activate User</>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => setConfirmDeleteId(user.id)}>
-                          <UserMinus className="mr-2 h-4 w-4" />
-                          Remove Member
-                        </DropdownMenuItem>
+                        {canToggleUserStatus(user) || canRemoveUser(user) ? <DropdownMenuSeparator /> : null}
+                        {canToggleUserStatus(user) ? (
+                          <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
+                            {user.status === "ACTIVE" ? (
+                              <><XCircle className="mr-2 h-4 w-4 text-gray-500" /> Disable User</>
+                            ) : (
+                              <><CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Activate User</>
+                            )}
+                          </DropdownMenuItem>
+                        ) : null}
+                        {canRemoveUser(user) ? (
+                          <DropdownMenuItem className="text-destructive" onClick={() => setConfirmDeleteId(user.id)}>
+                            <UserMinus className="mr-2 h-4 w-4" />
+                            Remove Member
+                          </DropdownMenuItem>
+                        ) : null}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -423,16 +456,42 @@ export default function TeamPage() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t">
-                 <Button variant="outline" size="sm" onClick={() => setSelectedUser(user)}>View</Button>
-                 <DropdownMenu>
-                   <DropdownMenuTrigger asChild>
-                     <Button variant="secondary" size="sm">Actions</Button>
-                   </DropdownMenuTrigger>
-                   <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleOpenPermissionModal(user)}>Permissions</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive" onClick={() => setConfirmDeleteId(user.id)}>Remove</DropdownMenuItem>
-                   </DropdownMenuContent>
-                 </DropdownMenu>
+                <Button variant="outline" size="sm" onClick={() => setSelectedUser(user)}>View</Button>
+                {isMember ? null : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="secondary" size="sm">Actions</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setSelectedUser(user)}>
+                        <Eye className="mr-2 h-4 w-4 text-blue-500" />
+                        View Profile
+                      </DropdownMenuItem>
+                      {canManagePermissions(user) ? (
+                        <DropdownMenuItem onClick={() => handleOpenPermissionModal(user)}>
+                          <UserCog className="mr-2 h-4 w-4 text-orange-500" />
+                          Manage Permissions
+                        </DropdownMenuItem>
+                      ) : null}
+                      {canToggleUserStatus(user) || canRemoveUser(user) ? <DropdownMenuSeparator /> : null}
+                      {canToggleUserStatus(user) ? (
+                        <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
+                          {user.status === "ACTIVE" ? (
+                            <><XCircle className="mr-2 h-4 w-4 text-gray-500" /> Disable User</>
+                          ) : (
+                            <><CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Activate User</>
+                          )}
+                        </DropdownMenuItem>
+                      ) : null}
+                      {canRemoveUser(user) ? (
+                        <DropdownMenuItem className="text-destructive" onClick={() => setConfirmDeleteId(user.id)}>
+                          <UserMinus className="mr-2 h-4 w-4" />
+                          Remove Member
+                        </DropdownMenuItem>
+                      ) : null}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             </div>
           ))
@@ -521,7 +580,7 @@ export default function TeamPage() {
 
       {/* ─── Delete Confirmation ─────────────────────────────────────────── */}
       <Dialog open={!!confirmDeleteId} onOpenChange={() => setConfirmDeleteId(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-110">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <ShieldAlert className="h-5 w-5" />
@@ -566,7 +625,7 @@ function InviteModal({ open, onOpenChange, onInvite }: { open: boolean; onOpenCh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-110">
         <DialogHeader>
           <DialogTitle>Invite Member</DialogTitle>
           <DialogDescription>
