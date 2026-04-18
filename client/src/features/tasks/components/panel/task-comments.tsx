@@ -40,12 +40,6 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
     });
   };
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [comments.length]);
-
   const getAuthorInfo = (userData: any) => {
     const user = userData as CommentUser;
     const name = user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.email || 'User';
