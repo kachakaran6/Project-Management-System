@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import {useMemo, useState} from "react";
+import {toast} from "sonner";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { PageHeader, FilterBar } from "@/components/layout/page-header";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
+import {PageHeader, FilterBar} from "@/components/layout/page-header";
 import {
   Dialog,
   DialogContent,
@@ -15,9 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import {EmptyState} from "@/components/ui/empty-state";
+import {Input} from "@/components/ui/input";
+import {Skeleton} from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -33,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAuth } from "@/features/auth/hooks/use-auth";
+import {useAuth} from "@/features/auth/hooks/use-auth";
 import {
   useDeleteProjectMutation,
   useProjectsQuery,
@@ -47,13 +47,13 @@ export default function ProjectsPage() {
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { activeOrg } = useAuth();
+  const {activeOrg} = useAuth();
   const canMutate =
     activeOrg?.role === "SUPER_ADMIN" ||
     activeOrg?.role === "ADMIN" ||
     activeOrg?.role === "MANAGER";
 
-  const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
+  const projectsQuery = useProjectsQuery({page: 1, limit: 200});
   const deleteProject = useDeleteProjectMutation();
 
   const filtered = useMemo(() => {
@@ -96,12 +96,20 @@ export default function ProjectsPage() {
         <div className="relative flex-1 min-w-[180px] max-w-sm">
           <Input
             value={search}
-            onChange={(event) => { setPage(1); setSearch(event.target.value); }}
+            onChange={(event) => {
+              setPage(1);
+              setSearch(event.target.value);
+            }}
             placeholder="Search projects…"
             className="h-9 text-sm"
           />
         </div>
-        <Select value={status} onValueChange={(v) => { setPage(1); setStatus(v); }}>
+        <Select
+          value={status}
+          onValueChange={(v) => {
+            setPage(1);
+            setStatus(v);
+          }}>
           <SelectTrigger className="h-9 w-[160px] text-sm">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -141,9 +149,15 @@ export default function ProjectsPage() {
                 <TableRow>
                   <TableHead className="sticky top-0 bg-card">Name</TableHead>
                   <TableHead className="sticky top-0 bg-card">Status</TableHead>
-                  <TableHead className="sticky top-0 bg-card">Members</TableHead>
-                  <TableHead className="sticky top-0 bg-card">Created</TableHead>
-                  <TableHead className="sticky top-0 bg-card">Actions</TableHead>
+                  <TableHead className="sticky top-0 bg-card">
+                    Members
+                  </TableHead>
+                  <TableHead className="sticky top-0 bg-card">
+                    Created
+                  </TableHead>
+                  <TableHead className="sticky top-0 bg-card">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -151,17 +165,22 @@ export default function ProjectsPage() {
                   const pid = project.id || project._id;
                   return (
                     <TableRow key={pid}>
-                      <TableCell className="font-medium">{project.name}</TableCell>
+                      <TableCell className="font-medium">
+                        {project.name}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">{project.status}</Badge>
                       </TableCell>
                       <TableCell>
-                        {(project as { membersCount?: number }).membersCount ?? "-"}
+                        {(project as {membersCount?: number}).membersCount ??
+                          "-"}
                       </TableCell>
-                      <TableCell>{new Date(project.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {new Date(project.createdAt).toLocaleDateString()}
+                      </TableCell>
                       <TableCell className="space-x-2">
                         <Button asChild size="sm" variant="outline">
-                          <Link href={`/projects/${pid}`}>View</Link>
+                          <Link href={`/tasks?projectId=${pid}`}>View</Link>
                         </Button>
                         {canMutate ? (
                           <>
@@ -171,8 +190,7 @@ export default function ProjectsPage() {
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => setDeleteId(pid)}
-                            >
+                              onClick={() => setDeleteId(pid)}>
                               Delete
                             </Button>
                           </>
@@ -190,17 +208,34 @@ export default function ProjectsPage() {
             {rows.map((project: any) => {
               const pid = project.id || project._id;
               return (
-                <div key={pid} className="rounded-xl border border-border bg-card p-4 shadow-sm hover:border-primary/30 transition-colors">
+                <div
+                  key={pid}
+                  className="rounded-xl border border-border bg-card p-4 shadow-sm hover:border-primary/30 transition-colors">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-foreground truncate">{project.name}</h3>
-                    <Badge variant="outline" className="text-[10px] uppercase tracking-wider">{project.status}</Badge>
+                    <h3 className="font-semibold text-foreground truncate">
+                      {project.name}
+                    </h3>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] uppercase tracking-wider">
+                      {project.status}
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                    <span>Members: {(project as { membersCount?: number }).membersCount ?? "0"}</span>
-                    <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+                    <span>
+                      Members:{" "}
+                      {(project as {membersCount?: number}).membersCount ?? "0"}
+                    </span>
+                    <span>
+                      {new Date(project.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button asChild size="sm" variant="outline" className="w-full">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="w-full">
                       <Link href={`/projects/${pid}`}>View</Link>
                     </Button>
                     {canMutate && (
@@ -208,8 +243,7 @@ export default function ProjectsPage() {
                         size="sm"
                         variant="destructive"
                         className="w-full"
-                        onClick={() => setDeleteId(pid)}
-                      >
+                        onClick={() => setDeleteId(pid)}>
                         Delete
                       </Button>
                     )}
@@ -226,8 +260,7 @@ export default function ProjectsPage() {
           variant="outline"
           size="sm"
           disabled={currentPage <= 1}
-          onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-        >
+          onClick={() => setPage((prev) => Math.max(1, prev - 1))}>
           Previous
         </Button>
         <p className="text-sm text-muted-foreground">
@@ -237,16 +270,14 @@ export default function ProjectsPage() {
           variant="outline"
           size="sm"
           disabled={currentPage >= totalPages}
-          onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-        >
+          onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}>
           Next
         </Button>
       </div>
 
       <Dialog
         open={Boolean(deleteId)}
-        onOpenChange={(open) => !open && setDeleteId(null)}
-      >
+        onOpenChange={(open) => !open && setDeleteId(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Project</DialogTitle>
@@ -271,8 +302,7 @@ export default function ProjectsPage() {
                 } catch {
                   toast.error("Failed to delete project");
                 }
-              }}
-            >
+              }}>
               Confirm Delete
             </Button>
           </DialogFooter>
