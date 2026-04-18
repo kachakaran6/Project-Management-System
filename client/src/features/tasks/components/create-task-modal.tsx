@@ -1,23 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
-import { SquarePen } from "lucide-react";
+import {useState} from "react";
+import {toast} from "sonner";
+import {SquarePen} from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { TaskForm } from "@/features/tasks/components/task-form";
-import { TaskFormValues } from "@/features/tasks/schemas/task.schema";
-import { useCreateTaskMutation } from "@/features/tasks/hooks/use-tasks-query";
-import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
-import { CreateTaskInput } from "@/types/task.types";
+import {Button} from "@/components/ui/button";
+import {Dialog, DialogContent, DialogTrigger} from "@/components/ui/dialog";
+import {TaskForm} from "@/features/tasks/components/task-form";
+import {TaskFormValues} from "@/features/tasks/schemas/task.schema";
+import {useCreateTaskMutation} from "@/features/tasks/hooks/use-tasks-query";
+import {useProjectsQuery} from "@/features/projects/hooks/use-projects-query";
+import {CreateTaskInput} from "@/types/task.types";
 
 interface CreateTaskModalProps {
   trigger?: React.ReactNode;
@@ -32,7 +25,7 @@ export function CreateTaskModal({
 }: CreateTaskModalProps) {
   const [open, setOpen] = useState(false);
   const createTask = useCreateTaskMutation();
-  const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
+  const projectsQuery = useProjectsQuery({page: 1, limit: 200});
 
   const projects = (projectsQuery.data?.data.items ?? []).map((p: any) => ({
     id: p.id || p._id,
@@ -59,7 +52,6 @@ export function CreateTaskModal({
       toast.error("Failed to create task. Please try again.");
     }
   };
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -70,7 +62,9 @@ export function CreateTaskModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent hideClose className="max-w-[640px] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-2xl gap-0">
+      <DialogContent
+        hideClose
+        className="max-w-[640px] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-2xl gap-0">
         <TaskForm
           projects={projects}
           initialValues={{
