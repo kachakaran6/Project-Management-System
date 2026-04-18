@@ -411,6 +411,10 @@ html, body {
   background: rgba(255, 255, 255, 0.15);
 }
 
+.description-container{
+  word-break: break-all;
+}
+
 .description-container a{
   color: var(--primary);
   text-decoration: underline;

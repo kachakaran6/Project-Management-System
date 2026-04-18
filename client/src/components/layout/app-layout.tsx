@@ -57,7 +57,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <AppHeader />
         <main className={cn(
           "h-full overflow-y-auto",
-          !isTasksPage && "overflow-y-auto overflow-x-hidden"
+          !isTasksPage && "overflow-x-hidden"
         )}>
           <div className={cn(
             "w-full animate-in fade-in animate-duration-300",
