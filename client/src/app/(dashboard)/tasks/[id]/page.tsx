@@ -10,6 +10,7 @@ import {JsonViewer} from "@/features/admin/components/json-viewer";
 import {TaskComments} from "@/features/comments/components/TaskComments";
 import {useTaskQuery} from "@/features/tasks/hooks/use-tasks-query";
 import {useAuth} from "@/features/auth/hooks/use-auth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TaskDetailsPage() {
   const {user} = useAuth();
@@ -18,7 +19,24 @@ export default function TaskDetailsPage() {
   const id = String(params.id);
   const taskQuery = useTaskQuery(id, Boolean(id));
 
-  if (taskQuery.isLoading) return <p>Loading task...</p>;
+  if (taskQuery.isLoading)
+    return (
+      <div className="p-4 sm:p-8 space-y-6">
+        <Skeleton className="h-10 w-3/4" />
+        <div className="space-y-4">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+        <div className="pt-8 space-y-4">
+          <Skeleton className="h-8 w-1/4" />
+          <div className="flex gap-4">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 flex-1" />
+          </div>
+        </div>
+      </div>
+    );
   if (taskQuery.error || !taskQuery.data?.data)
     return <p className="text-destructive">Task not found.</p>;
 
