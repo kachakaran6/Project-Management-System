@@ -66,11 +66,12 @@ export default function ProjectsPage() {
         `${project.name} ${project.description ?? ""}`
           .toLowerCase()
           .includes(term);
-      const matchStatus = status === "ALL" || project.status === status;
+      const matchStatus = status === "ALL" || project.status.toLowerCase() === status.toLowerCase();
       return matchSearch && matchStatus;
     });
   }, [projectsQuery.data?.data.items, search, status]);
 
+  console.log({filtered});
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const rows = filtered.slice(
