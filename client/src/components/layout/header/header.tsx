@@ -98,7 +98,7 @@ export function AppHeader() {
               className={cn(
                 "relative h-10 w-10 rounded-full border-border/70 bg-card shadow-sm transition-all duration-300",
                 "hover:bg-primary/10 hover:shadow-md hover:shadow-primary/10",
-                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 max-md:hidden",
               )}
             >
               <SunMedium

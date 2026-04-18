@@ -67,7 +67,7 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
         size="sm"
         onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
         aria-label="Toggle theme"
-        className="max-md:hidden"
+        
       >
         {resolvedTheme === "dark" ? (
           <Sun className="size-4" />
