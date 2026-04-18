@@ -262,7 +262,7 @@ export default function DashboardPage() {
                             {task.title}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
-                            {task?.projectId?.name ?? "Unknown project"}
+                            {(task.projectId as any)?.name ?? projectMap[task.projectId as string] ?? "Unknown project"}
                           </p>
                         </div>
                       </div>
