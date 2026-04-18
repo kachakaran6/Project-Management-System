@@ -37,6 +37,7 @@ export interface Task {
   projectId: string;
   // assigneeId?: string;
   creatorId: string;
+  creator?: TaskAssigneeUser;
   dueDate?: string;
   tags?: string[];
   assigneeId?: string;
@@ -56,6 +57,7 @@ export interface CreateTaskInput {
   status?: TaskStatus;
   priority?: TaskPriority;
   assigneeId?: string;
+  assignees?: string[];
   dueDate?: string;
   tags?: string[];
   position?: number;

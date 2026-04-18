@@ -6,6 +6,7 @@ import { ROLES } from '../../constants/index.js';
 import mongoose from 'mongoose';
 import * as inviteService from '../invite/invite.service.js';
 import * as auditLogService from '../auditLog/auditLog.service.js';
+import { createActivityLog } from '../../services/activityLogService.js';
 import { ROLE_HIERARCHY, type RoleType, normalizeRoleName, DEFAULT_ROLE_PERMISSIONS } from '../../utils/permissionPresets.js';
 import { getIO } from '../../realtime/socket.server.js';
 
@@ -46,6 +47,17 @@ export const createOrganization = async (userId: string, data: { name: string; s
       isActive: true
     }], { session });
 
+    await createActivityLog({
+      userId,
+      organizationId: orgId.toString(),
+      action: 'USER_ADDED',
+      entityType: 'ORGANIZATION',
+      entityId: orgId.toString(),
+      entityName: organization[0].name,
+      targetUserId: userId,
+      metadata: { role: 'OWNER', event: 'organization_created' },
+    });
+
     // 3. Log the organization creation
     await auditLogService.logAuditEvent({
       organizationId: orgId.toString(),
@@ -83,7 +95,7 @@ export const getUserOrganizations = async (userId: string) => {
 
 export const getOrganizationMembers = async (organizationId: string) => {
   const members = await OrganizationMember.find({ organizationId, isActive: true })
-    .populate('userId', 'firstName lastName email avatarUrl status lastLogin createdAt updatedAt')
+    .populate('userId', 'firstName lastName email avatarUrl status isActive lastLogin createdAt updatedAt')
     .sort({ joinedAt: 1 })
     .lean();
 
@@ -95,7 +107,9 @@ export const getOrganizationMembers = async (organizationId: string) => {
     avatarUrl: member.userId?.avatarUrl,
     role: member.role,
     permissions: member.permissions || [],
-    status: member.userId?.status === 'PENDING_APPROVAL' ? 'PENDING' : 'ACTIVE',
+    status: member.userId?.isActive === false 
+      ? 'DISABLED' 
+      : (member.userId?.status === 'PENDING_APPROVAL' ? 'PENDING' : 'ACTIVE'),
     joinedAt: member.joinedAt,
     lastActive: member.userId?.lastLogin,
   }));
@@ -212,6 +226,21 @@ export const updateOrganizationMemberRole = async (
     reason: 'Direct role change'
   });
 
+  await createActivityLog({
+    userId: actorId,
+    organizationId: organizationId.toString(),
+    action: 'MEMBER_ROLE_CHANGED',
+    entityType: 'USER',
+    entityId: userId,
+    entityName: member.userId?.toString() || userId,
+    targetUserId: userId,
+    metadata: {
+      oldRole,
+      newRole: normalizedNewRole,
+      changes: { before: { role: oldRole, permissions: oldPermissions }, after: { role: normalizedNewRole, permissions: [] } },
+    },
+  });
+
   // REALTIME: Emit socket event for real-time UI updates
   try {
     const io = getIO();
@@ -290,6 +319,19 @@ export const updateMemberPermissions = async (
       before: { permissions: oldPermissions },
       after: { permissions }
     }
+  });
+
+  await createActivityLog({
+    userId: actorId,
+    organizationId: organizationId.toString(),
+    action: 'MEMBER_PERMISSIONS_CHANGED',
+    entityType: 'USER',
+    entityId: userId,
+    entityName: member.userId?.toString() || userId,
+    targetUserId: userId,
+    metadata: {
+      changes: { before: { permissions: oldPermissions }, after: { permissions } },
+    },
   });
 
   // REALTIME: Emit socket event
@@ -395,6 +437,17 @@ export const removeOrganizationMember = async (organizationId: string, userId: s
       before: { role: oldRole },
       after: { role: 'REMOVED' }
     }
+  });
+
+  await createActivityLog({
+    userId: actorId,
+    organizationId: organizationId.toString(),
+    action: 'MEMBER_REMOVED',
+    entityType: 'USER',
+    entityId: userId,
+    entityName: member.userId?.toString() || userId,
+    targetUserId: userId,
+    metadata: { oldRole },
   });
 
   // REALTIME: Emit socket event

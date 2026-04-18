@@ -6,9 +6,14 @@ const pageSchema = new mongoose.Schema({
   visibility: {
     type: String,
     enum: ['PUBLIC', 'PRIVATE'],
-    default: 'PRIVATE',
+    default: 'PUBLIC',
     index: true,
   },
+  allowedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: [],
+  }],
   organizationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Organization',

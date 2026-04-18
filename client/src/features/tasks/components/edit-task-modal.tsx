@@ -55,6 +55,7 @@ export function EditTaskModal({
         projectId: values.projectId,
         dueDate: values.dueDate || undefined,
         assigneeIds: values.assigneeIds || [],
+        tags: values.tags || [],
       };
 
       if (!taskId) {
@@ -93,6 +94,7 @@ export function EditTaskModal({
               dueDate: task.dueDate
                 ? new Date(task.dueDate).toISOString().split("T")[0]
                 : "",
+              tags: task.tags || [],
               assigneeIds:
                 (task as any).assigneeIds ||
                 (task as any).assignees?.map(

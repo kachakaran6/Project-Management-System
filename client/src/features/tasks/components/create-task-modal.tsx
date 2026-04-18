@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import {AxiosError} from "axios";
 import {toast} from "sonner";
 import {SquarePen} from "lucide-react";
 
@@ -10,6 +11,7 @@ import {TaskForm} from "@/features/tasks/components/task-form";
 import {TaskFormValues} from "@/features/tasks/schemas/task.schema";
 import {useCreateTaskMutation} from "@/features/tasks/hooks/use-tasks-query";
 import {useProjectsQuery} from "@/features/projects/hooks/use-projects-query";
+import {useAuthStore} from "@/store/auth-store";
 import {CreateTaskInput} from "@/types/task.types";
 
 interface CreateTaskModalProps {
@@ -26,6 +28,7 @@ export function CreateTaskModal({
   const [open, setOpen] = useState(false);
   const createTask = useCreateTaskMutation();
   const projectsQuery = useProjectsQuery({page: 1, limit: 200});
+  const {activeOrgId} = useAuthStore();
 
   const projects = (projectsQuery.data?.data.items ?? []).map((p: any) => ({
     id: p.id || p._id,
@@ -34,6 +37,9 @@ export function CreateTaskModal({
 
   const handleSubmit = async (values: TaskFormValues) => {
     try {
+      const assigneeIds = values.assigneeIds || [];
+      const canSendAssignees = Boolean(activeOrgId);
+
       const payload: CreateTaskInput = {
         title: values.title,
         projectId: values.projectId,
@@ -41,15 +47,22 @@ export function CreateTaskModal({
         priority: values.priority,
         description: values.description || undefined,
         dueDate: values.dueDate || undefined,
-        assigneeId: values.assigneeIds?.[0] || undefined,
+        tags: values.tags || [],
+        assignees: canSendAssignees ? assigneeIds : undefined,
+        assigneeId: canSendAssignees ? assigneeIds[0] || undefined : undefined,
       };
 
       await createTask.mutateAsync(payload);
       toast.success(`Task "${values.title}" created!`);
       setOpen(false);
       onCreated?.();
-    } catch {
-      toast.error("Failed to create task. Please try again.");
+    } catch (error) {
+      const apiError = error as AxiosError<{message?: string; errors?: string[]}>;
+      const message =
+        apiError.response?.data?.errors?.[0] ||
+        apiError.response?.data?.message ||
+        "Failed to create task. Please try again.";
+      toast.error(message);
     }
   };
   return (

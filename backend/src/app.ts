@@ -116,6 +116,7 @@ import inviteRoutes from "./modules/invite/invite.routes.js";
 import adminRoutes from "./modules/admin/admin.routes.js";
 import pageRoutes from "./modules/page/page.routes.js";
 import organizationRoutes from "./modules/organization/organization.routes.js";
+import activityLogRoutes from "./modules/activityLog/activityLog.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/workspaces", workspaceRoutes);
@@ -131,6 +132,8 @@ app.use("/api/v1/invite", inviteRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/pages", pageRoutes);
 app.use("/api/v1/organizations", organizationRoutes);
+app.use("/api/v1/activity-logs", activityLogRoutes);
+app.use("/api/v1/activitylogs", activityLogRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {

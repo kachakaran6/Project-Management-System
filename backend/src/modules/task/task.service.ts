@@ -1,6 +1,7 @@
 import Task from '../../models/Task.js';
 import TaskAssignee from '../../models/TaskAssignee.js';
 import TaskTag from '../../models/TaskTag.js';
+import Tag from '../../models/Tag.js';
 import OrganizationMember from '../../models/OrganizationMember.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import * as activityLog from '../../utils/systemTriggers.js';
@@ -26,6 +27,145 @@ const normalizeAssigneeUser = (assignee: any) => {
   };
 };
 
+const normalizeUser = (user: any) => {
+  if (!user) return null;
+  const id = String(user._id || user.id);
+  const firstName = user.firstName || '';
+  const lastName = user.lastName || '';
+  const name = `${firstName} ${lastName}`.trim() || user.email || 'Unknown User';
+  return { id, name, email: user.email || '', avatarUrl: user.avatarUrl };
+};
+
+/**
+ * Normalize tags from TaskTag records into a simple string array of names.
+ */
+const normalizeTags = (taskTags: any[]): string[] => {
+  if (!Array.isArray(taskTags)) return [];
+  console.log(`[TaskService] Normalizing ${taskTags.length} tags`);
+  return taskTags
+    .map((tt: any) => {
+      // 1. If populated by Mongoose (most common)
+      if (tt.tagId && typeof tt.tagId === 'object' && tt.tagId.name) {
+        return String(tt.tagId.name);
+      }
+      // 2. If for some reason name is on the link object itself
+      if (tt.name) return String(tt.name);
+      // 3. Fallback: if tagId is just a string/ID, we can't get the name easily
+      // unless we previously populated it. 
+      return null;
+    })
+    .filter(Boolean) as string[];
+};
+
+/**
+ * Validates and converts a value to a Mongoose ObjectId or returns null.
+ */
+const toObjectId = (value: any): mongoose.Types.ObjectId | null => {
+  const str = String(value || '').trim();
+  return mongoose.Types.ObjectId.isValid(str) ? new mongoose.Types.ObjectId(str) : null;
+};
+
+/**
+ * Find or create tags by name for an organization and link them to a task.
+ */
+const syncTags = async (taskId: any, tagNames: string[], organizationId: any, workspaceId?: any, session?: any) => {
+  const mongoTaskId = toObjectId(taskId);
+  if (!mongoTaskId) {
+    console.error('[syncTags] Aborting: Missing valid taskId');
+    return;
+  }
+
+  const originalNames = Array.isArray(tagNames) ? tagNames : [];
+  const uniqueNames = Array.from(new Set(originalNames.map(t => String(t || '').trim()).filter(Boolean)));
+  const mongoOrgId = toObjectId(organizationId);
+  const mongoWsId = toObjectId(workspaceId);
+
+  console.log(`[syncTags] Syncing ${uniqueNames.length} tags for Task ${mongoTaskId} (Org: ${mongoOrgId})`);
+
+  const verifiedTagIds: mongoose.Types.ObjectId[] = [];
+
+  for (const name of uniqueNames) {
+    try {
+      // 1. Strict find (case-insensitive)
+      let tag = await Tag.findOne({ 
+        organizationId: mongoOrgId || null, 
+        name: { $regex: new RegExp(`^${name}$`, 'i') } 
+      }).session(session);
+
+      // 2. Repair/Cleanup: If tag exists but ID is corrupted (non-hex string)
+      if (tag && !mongoose.Types.ObjectId.isValid(String(tag._id))) {
+        console.warn(`[syncTags] Fixing corrupted tag ID for "${name}"`);
+        await Tag.deleteOne({ _id: tag._id }).session(session);
+        tag = null;
+      }
+
+      // 3. Create if missing
+      if (!tag) {
+        const [newTag] = await Tag.create([{ 
+          name, 
+          organizationId: mongoOrgId || null, 
+          workspaceId: mongoWsId || null,
+          color: '#6366f1' 
+        }], { session });
+        tag = newTag;
+        console.log(`[syncTags] Created tag: ${name} -> ${tag._id}`);
+      }
+
+      // 4. Final verification of document ID before adding to insertion list
+      if (tag && tag._id) {
+        const cleanId = toObjectId(tag._id);
+        if (cleanId && mongoose.Types.ObjectId.isValid(String(cleanId))) {
+          // Extra check: never add name strings as IDs
+          if (String(cleanId) !== name) {
+            verifiedTagIds.push(cleanId);
+          } else {
+            console.error(`[syncTags] SECURITY BREACH: Tag ID matches Tag Name for "${name}". Skipping.`);
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`[syncTags] Failed to process tag "${name}":`, err);
+      if (session) throw err;
+    }
+  }
+
+  // 5. Atomic Update of links
+  const linkFilter = { taskId: mongoTaskId };
+  
+  // Wipe existing links
+  if (session) {
+    await TaskTag.deleteMany(linkFilter, { session });
+  } else {
+    await TaskTag.deleteMany(linkFilter);
+  }
+
+  // Insert verified links only
+  if (verifiedTagIds.length > 0) {
+    const linkDocs = verifiedTagIds.map(tId => ({
+      taskId: mongoTaskId,
+      tagId: tId,
+      organizationId: mongoOrgId || null
+    }));
+
+    console.log(`[syncTags] Finalizing link insertion for ${linkDocs.length} tags`);
+    
+    try {
+      if (session) {
+        await TaskTag.insertMany(linkDocs, { session, ordered: false });
+      } else {
+        await TaskTag.insertMany(linkDocs, { ordered: false });
+      }
+    } catch (err: any) {
+      if (err.code !== 11000) {
+        console.error('[syncTags] Database insertion error:', err);
+        if (session) throw err;
+      }
+    }
+  }
+
+  console.log(`[syncTags] COMPLETED successfully for Task ${mongoTaskId}`);
+};
+
 const enrichTaskWithAssignees = (task: any, assignees: any[] = []) => {
   const assigneeUsers = assignees
     .map(normalizeAssigneeUser)
@@ -49,13 +189,38 @@ const enrichTaskWithAssignees = (task: any, assignees: any[] = []) => {
 export const createTask = async (taskData: Record<string, any>, userId: string, role: string) => {
   const { 
     title, description, projectId, workspaceId, organizationId, 
-    status, priority, dueDate, assignees = [], assigneeId, tags = [] 
+    status,
+    priority,
+    dueDate,
+    assignees = [],
+    assigneeId,
+    assigneeIds = [],
+    tags = [],
+    labels = []
   } = taskData;
 
-  // Normalize single assigneeId into the assignees array
-  if (assigneeId && !assignees.includes(assigneeId)) {
-    assignees.push(assigneeId);
-  }
+  const normalizedAssignees = Array.from(
+    new Set(
+      [
+        ...(Array.isArray(assignees) ? assignees : []),
+        ...(Array.isArray(assigneeIds) ? assigneeIds : []),
+        assigneeId,
+      ]
+        .map((id: any) => String(id || '').trim())
+        .filter(Boolean),
+    ),
+  );
+
+  const normalizedTags = Array.from(
+    new Set(
+      [
+        ...(Array.isArray(tags) ? tags : []),
+        ...(Array.isArray(labels) ? labels : []),
+      ]
+        .map((tag: any) => String(tag || '').trim())
+        .filter(Boolean),
+    ),
+  );
 
   if (!title) {
     throw new AppError('Title is required.', 400);
@@ -63,9 +228,9 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
 
   // VALIDATION: Assignment Rules
   // Members can ONLY assign tasks to themselves.
-  if (assignees.length > 0) {
+  if (normalizedAssignees.length > 0) {
     const isMember = role === ROLES.MEMBER || role === 'MEMBER';
-    const hasOtherAssignees = assignees.some((aId: string) => String(aId) !== String(userId));
+    const hasOtherAssignees = normalizedAssignees.some((aId: string) => String(aId) !== String(userId));
 
     if (isMember && hasOtherAssignees) {
       throw new AppError('You can only assign tasks to yourself.', 403);
@@ -89,25 +254,22 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
       creatorId: userId
     }], { session });
 
+    const effectiveOrganizationId = task.organizationId || organizationId;
+
     // 2. Handle Assignees
-    if (assignees.length > 0) {
-      const assigneeDocs = assignees.map((aId: any) => ({
+    if (normalizedAssignees.length > 0 && effectiveOrganizationId) {
+      const assigneeDocs = normalizedAssignees.map((aId: any) => ({
         taskId: task._id,
         userId: aId,
-        organizationId,
+        organizationId: effectiveOrganizationId,
         assignedById: userId
       }));
       await TaskAssignee.insertMany(assigneeDocs, { session });
     }
 
     // 3. Handle Tags
-    if (tags.length > 0) {
-      const tagDocs = tags.map((tagId: any) => ({
-        taskId: task._id,
-        tagId,
-        organizationId
-      }));
-      await TaskTag.insertMany(tagDocs, { session });
+    if (normalizedTags.length > 0) {
+      await syncTags(task._id, normalizedTags, task.organizationId, task.workspaceId, session);
     }
 
     await session.commitTransaction();
@@ -124,10 +286,10 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
       metadata: { title: task.title }
     });
 
-    if (assignees.length > 0) {
+    if (normalizedAssignees.length > 0 && effectiveOrganizationId) {
       activityLog.triggerNotification({
-        userIds: assignees,
-        organizationId,
+        userIds: normalizedAssignees,
+        organizationId: effectiveOrganizationId,
         actorId: userId,
         type: 'TASK_ASSIGNED',
         message: `You have been assigned to task: ${task.title}`,
@@ -143,9 +305,16 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
       projectId
     });
 
-    return task;
-  } catch (error: unknown) {
-    await session.abortTransaction();
+    return getTaskById(task._id);
+  } catch (error: any) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+    if (error instanceof mongoose.Error.ValidationError) {
+      console.error('[TaskService] Validation Error:', Object.keys(error.errors).map(key => `${key}: ${error.errors[key].message}`).join(', '));
+    } else {
+      console.error('[TaskService] Creation Error:', error);
+    }
     throw error;
   } finally {
     session.endSession();
@@ -239,6 +408,7 @@ export const getTasks = async (
       .limit(limit)
       .populate('projectId', 'name')
       .populate('workspaceId', 'name')
+      .populate('creatorId', 'firstName lastName email avatarUrl')
       .lean(),
     Task.countDocuments(query)
   ]);
@@ -260,9 +430,32 @@ export const getTasks = async (
     assigneesByTaskId.set(key, existing);
   }
 
+  // Fetch Tags for all tasks
+  console.log(`[TaskService] Fetching tags for ${taskIds.length} tasks`);
+  const tagRows = await TaskTag.find({ taskId: { $in: taskIds } })
+    .populate('tagId', 'name color')
+    .lean();
+  console.log(`[TaskService] Found ${tagRows.length} tag rows`);
+
+  const tagsByTaskId = new Map<string, string[]>();
+  for (const row of tagRows as any[]) {
+    const key = String(row.taskId);
+    const existing = tagsByTaskId.get(key) || [];
+    if (row.tagId?.name) existing.push(row.tagId.name);
+    tagsByTaskId.set(key, existing);
+  }
+
   const enrichedTasks = tasks.map((task: any) => {
     const assignees = assigneesByTaskId.get(String(task._id)) || [];
-    return enrichTaskWithAssignees(task, assignees);
+    const tags = tagsByTaskId.get(String(task._id)) || [];
+    const enriched = enrichTaskWithAssignees(task, assignees);
+    const creator = normalizeUser(task.creatorId);
+    return {
+      ...enriched,
+      creator,
+      createdBy: creator, // Redundant for robustness
+      tags
+    };
   });
 
   return { tasks: enrichedTasks, totalCount };
@@ -272,11 +465,19 @@ export const getTasks = async (
  * Update task
  */
 export const updateTask = async (taskId: any, updateData: Record<string, any>, userId: any, role: any) => {
-  const { assigneeId, assigneeIds, ...otherData } = updateData;
+  const { assigneeId, assigneeIds, tags, labels, ...otherData } = updateData;
   const query: Record<string, any> = { _id: taskId, isActive: true };
   const assigneesProvided =
     Object.prototype.hasOwnProperty.call(updateData, 'assigneeId') ||
     Object.prototype.hasOwnProperty.call(updateData, 'assigneeIds');
+  const incomingTags = Array.from(new Set([
+    ...(Array.isArray(tags) ? tags : []),
+    ...(Array.isArray(labels) ? labels : [])
+  ].map(t => String(t || '').trim()).filter(Boolean)));
+  
+  const tagsProvided = 
+    Object.prototype.hasOwnProperty.call(updateData, 'tags') || 
+    Object.prototype.hasOwnProperty.call(updateData, 'labels');
   
   // VALIDATION: Assignment Rules for Update
   const isMember = role === ROLES.MEMBER || role === 'MEMBER';
@@ -298,6 +499,12 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
 
   if (!task) throw new AppError('Task not found.', 404);
 
+  // Handle Tag syncing
+  if (tagsProvided && Array.isArray(incomingTags)) {
+    console.log(`[TaskService] Syncing tags for task ${taskId}:`, incomingTags);
+    await syncTags(taskId, incomingTags, task.organizationId, task.workspaceId);
+  }
+
   // Handle assignment update (single + multi-assignee compatible)
   if (assigneesProvided) {
     const normalizedAssigneeIds = new Set<string>();
@@ -315,7 +522,7 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
 
     const finalAssigneeIds = Array.from(normalizedAssigneeIds);
 
-    if (finalAssigneeIds.length > 0) {
+    if (finalAssigneeIds.length > 0 && task.organizationId) {
       const validMembers = await OrganizationMember.find({
         organizationId: task.organizationId,
         userId: { $in: finalAssigneeIds },
@@ -335,7 +542,7 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
     // Replace old assignees
     await TaskAssignee.deleteMany({ taskId });
 
-    if (finalAssigneeIds.length > 0) {
+    if (finalAssigneeIds.length > 0 && task.organizationId) {
       const assigneeDocs = finalAssigneeIds.map((id: string) => ({
         taskId,
         userId: id,
@@ -376,7 +583,7 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
     metadata: { updatedFields: Object.keys(updateData) }
   });
 
-  return task;
+  return getTaskById(taskId);
 };
 
 /**
@@ -472,19 +679,25 @@ export const getTaskById = async (taskId: any) => {
   const task = await Task.findOne({ _id: taskId, isActive: true })
     .populate('projectId', 'name')
     .populate('workspaceId', 'name')
+    .populate('creatorId', 'firstName lastName email avatarUrl')
     .lean();
 
   if (!task) throw new AppError('Task not found.', 404);
 
   // Fetch assignees and tags
+  const mongoTaskId = new mongoose.Types.ObjectId(String(taskId));
   const [assignees, tags] = await Promise.all([
-    TaskAssignee.find({ taskId }).populate('userId', 'firstName lastName email avatarUrl').lean(),
-    TaskTag.find({ taskId }).populate('tagId').lean()
+    TaskAssignee.find({ taskId: mongoTaskId }).populate('userId', 'firstName lastName email avatarUrl').lean(),
+    TaskTag.find({ taskId: mongoTaskId }).populate('tagId').lean()
   ]);
 
+  const enriched = enrichTaskWithAssignees(task, assignees);
+  const creator = normalizeUser(task.creatorId);
   return {
-    ...enrichTaskWithAssignees(task, assignees),
-    tags,
+    ...enriched,
+    creator,
+    createdBy: creator, // Redundant for robustness
+    tags: normalizeTags(tags),
   };
 };
 

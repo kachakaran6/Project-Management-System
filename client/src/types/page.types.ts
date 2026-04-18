@@ -15,6 +15,7 @@ export interface PageDoc {
   visibility: PageVisibility;
   creatorId: string;
   creator?: PageAuthor;
+  allowedUsers?: string[];
   updatedAt: string;
   createdAt: string;
 }
@@ -32,10 +33,12 @@ export interface CreatePageInput {
   title: string;
   content: string;
   visibility: PageVisibility;
+  allowedUsers?: string[];
 }
 
 export interface UpdatePageInput {
   title?: string;
   content?: string;
   visibility?: PageVisibility;
+  allowedUsers?: string[];
 }

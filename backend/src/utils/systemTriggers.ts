@@ -1,4 +1,5 @@
 import { logInfo } from '../services/logService.js';
+import { createActivityLog } from '../services/activityLogService.js';
 import Notification from '../models/Notification.js';
 import OrganizationMember from '../models/OrganizationMember.js';
 import { emitToUsers } from '../realtime/socket.server.js';
@@ -34,6 +35,59 @@ export const logActivity = async (params: ActivityParams) => {
 
   // Build human readable message if not provided
   const logMessage = message || `${action.replace(/_/g, ' ')} ${resourceType ? `on ${resourceType}` : ''}`;
+
+  const normalizedAction = (() => {
+    const actionKey = String(action || '').toUpperCase();
+    const resource = String(resourceType || '').toUpperCase();
+
+    if (actionKey === 'CREATE_PROJECT' || (actionKey === 'CREATE' && resource === 'PROJECT')) return 'PROJECT_CREATED';
+    if (actionKey === 'UPDATE_PROJECT' || (actionKey === 'UPDATE' && resource === 'PROJECT')) return 'PROJECT_UPDATED';
+    if (actionKey === 'DELETE_PROJECT' || (actionKey === 'DELETE' && resource === 'PROJECT')) return 'PROJECT_DELETED';
+
+    if (actionKey === 'CREATE' && resource === 'TASK') return 'TASK_CREATED';
+    if (actionKey === 'UPDATE' && resource === 'TASK') return 'TASK_UPDATED';
+    if (actionKey === 'DELETE' && resource === 'TASK') return 'TASK_DELETED';
+    if (actionKey === 'STATUS_CHANGE' && resource === 'TASK') return 'TASK_STATUS_UPDATED';
+    if (actionKey === 'ASSIGN' && resource === 'TASK') return 'TASK_ASSIGNED';
+
+    if (actionKey === 'COMMENT') return 'COMMENT_CREATED';
+    if (actionKey === 'MEMBER_REMOVED') return 'MEMBER_REMOVED';
+    if (actionKey === 'MEMBER_ROLE_CHANGED') return 'MEMBER_ROLE_CHANGED';
+    if (actionKey === 'MEMBER_PERMISSIONS_CHANGED') return 'MEMBER_PERMISSIONS_CHANGED';
+
+    return actionKey;
+  })();
+
+  if (params.organizationId && userId && action && resourceType && resourceId) {
+    try {
+      await createActivityLog({
+        userId: String(userId),
+        organizationId: String(params.organizationId),
+        action: normalizedAction,
+        entityType: String(resourceType).toUpperCase() as any,
+        entityId: String(resourceId),
+        entityName: String(metadata?.entityName || metadata?.name || metadata?.title || message || resourceType || 'Unknown'),
+        metadata: {
+          ...metadata,
+          resourceType,
+          resourceId,
+          organizationId: params.organizationId,
+          workspaceId: params.workspaceId,
+          projectId: params.projectId,
+        },
+      });
+    } catch (error) {
+      console.error('[ActivityLog] Failed to create activity log from systemTriggers:', error);
+    }
+  } else {
+    console.warn('[ActivityLog] Skipped activity log due to missing required context:', {
+      organizationId: params.organizationId,
+      userId,
+      action,
+      resourceType,
+      resourceId,
+    });
+  }
 
   await logInfo(logMessage, {
     userId,

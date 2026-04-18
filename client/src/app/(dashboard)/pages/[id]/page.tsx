@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { ComponentType, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "@/lib/next-navigation";
@@ -35,6 +35,8 @@ import {
   Trash2,
   Type,
   Underline as UnderlineIcon,
+  UserPlus,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -50,6 +52,7 @@ import Mention from "@tiptap/extension-mention";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -85,6 +88,7 @@ import {
   usePageQuery,
   useUpdatePageMutation,
 } from "@/features/pages/hooks/use-pages-query";
+import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { PageVisibility } from "@/types/page.types";
 
 function visibilityBadge(visibility: PageVisibility) {
@@ -142,26 +146,45 @@ export default function PageEditorPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashPos, setSlashPos] = useState({ top: 0, left: 0 });
+  const [shareOpen, setShareOpen] = useState(false);
+
+  const membersQuery = useOrganizationMembersQuery(activeOrg?.id || "");
+  const members = membersQuery.data?.data.members || [];
 
   const page = pageQuery.data?.data;
 
+  const creatorId = useMemo(() => {
+    if (!page?.creatorId) return null;
+    return typeof page.creatorId === "object" ? (page.creatorId as any)._id : page.creatorId;
+  }, [page]);
+
   const canAdminOverride = role === "SUPER_ADMIN" || role === "ADMIN";
-  const isCreator = page?.creatorId === user?.id;
+  const isCreator = String(creatorId) === String(user?.id);
+
+  const isAllowed = useMemo(() => {
+    if (!page || !user) return false;
+    return (page.allowedUsers || []).some((id: string) => String(id) === user.id);
+  }, [page, user]);
 
   const canView = useMemo(() => {
-    if (!page) return true; // Default to true while waiting to avoid blank flicker
+    if (!page) return true;
     if (canAdminOverride) return true;
     if (page.visibility === "PUBLIC") return true;
-    if (!user) return true; // Wait for user to resolve
-    return isCreator;
-  }, [canAdminOverride, isCreator, page, user]);
+    if (!user) return true;
+    return isCreator || isAllowed;
+  }, [canAdminOverride, isCreator, isAllowed, page, user]);
 
   const canEdit = useMemo(() => {
     if (!page) return false;
-    if (canAdminOverride) return true;
-    if (isCreator) return true;
-    return page.visibility === "PUBLIC";
-  }, [canAdminOverride, isCreator, page]);
+    // Strict Owner rule: Only creator can edit
+    return isCreator;
+  }, [isCreator, page]);
+
+  const canDelete = useMemo(() => {
+    if (!page) return false;
+    // Strict Owner rule: Only creator can delete
+    return isCreator;
+  }, [isCreator, page]);
 
   const baseline = useMemo(
     () => JSON.stringify({ title, content, visibility }),
@@ -310,6 +333,27 @@ export default function PageEditorPage() {
       editor.commands.setContent(page.content || "<p></p>");
     }
   }, [page, editor, hasHydrated]);
+
+  const toggleUserAccess = async (userId: string) => {
+    if (!page || !canEdit) return;
+    
+    const currentAllowed = page.allowedUsers || [];
+    const isShared = currentAllowed.some(id => String(id) === userId);
+    
+    const newAllowed = isShared 
+      ? currentAllowed.filter(id => String(id) !== userId)
+      : [...currentAllowed, userId];
+
+    try {
+      await updatePage.mutateAsync({
+        id: pageId,
+        data: { allowedUsers: newAllowed }
+      });
+      toast.success(isShared ? "Access removed." : "Access granted.");
+    } catch {
+      toast.error("Failed to update access.");
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -762,19 +806,28 @@ export default function PageEditorPage() {
                <div className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                  Document Actions
                </div>
-               <DropdownMenuItem className="text-xs py-2 gap-2" onClick={handleExportPdf} disabled={exportPdf.isPending}>
-                 <Download className="size-3.5" />
-                 Export as PDF
-               </DropdownMenuItem>
-               <DropdownMenuItem className="text-xs py-2 gap-2" onClick={handleDuplicate} disabled={createPage.isPending}>
-                 <Copy className="size-3.5" />
-                 Duplicate Page
-               </DropdownMenuItem>
-               <DropdownMenuSeparator />
-               <DropdownMenuItem className="text-xs py-2 gap-2 text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
-                 <Trash2 className="size-3.5" />
-                 Delete Permanently
-               </DropdownMenuItem>
+                <DropdownMenuItem className="text-xs py-2 gap-2" onClick={handleExportPdf} disabled={exportPdf.isPending}>
+                  <Download className="size-3.5" />
+                  Export as PDF
+                </DropdownMenuItem>
+                
+                {canEdit && (
+                  <>
+                    <DropdownMenuItem className="text-xs py-2 gap-2" onClick={handleDuplicate} disabled={createPage.isPending}>
+                      <Copy className="size-3.5" />
+                      Duplicate Page
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => setShareOpen(true)}>
+                      <UserPlus className="size-3.5" />
+                      Manage Access
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-xs py-2 gap-2 text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
+                      <Trash2 className="size-3.5" />
+                      Delete Permanently
+                    </DropdownMenuItem>
+                  </>
+                )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -861,33 +914,35 @@ export default function PageEditorPage() {
               <Settings2 className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64 p-2">
-            <div className="flex flex-col gap-1 p-2 mb-2 bg-muted/30 rounded-lg">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Storage Status</span>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium">Cloud Synchronized</span>
-                <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-              </div>
-            </div>
-            
-            <div className="space-y-1">
-              <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => setVisibility(v => v === "PUBLIC" ? "PRIVATE" : "PUBLIC")}>
-                <Lock className="size-3.5" />
-                <span>Toggle Visibility ({visibility})</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-xs py-2 gap-2">
-                <PanelRight className="size-3.5" />
-                <span>Page Details</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <div className="px-2 py-2">
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                  <span>Words: {wordCount}</span>
-                  <span>Read: {readTime}m</span>
+          {canEdit && (
+            <DropdownMenuContent align="end" className="w-64 p-2">
+              <div className="flex flex-col gap-1 p-2 mb-2 bg-muted/30 rounded-lg">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Storage Status</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium">Cloud Synchronized</span>
+                  <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
                 </div>
               </div>
-            </div>
-          </DropdownMenuContent>
+              
+              <div className="space-y-1">
+                <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => setVisibility(v => v === "PUBLIC" ? "PRIVATE" : "PUBLIC")}>
+                  <Lock className="size-3.5" />
+                  <span>Toggle Visibility ({visibility})</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-xs py-2 gap-2">
+                  <PanelRight className="size-3.5" />
+                  <span>Page Details</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <div className="px-2 py-2">
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>Words: {wordCount}</span>
+                    <span>Read: {readTime}m</span>
+                  </div>
+                </div>
+              </div>
+            </DropdownMenuContent>
+          )}
         </DropdownMenu>
       </div>
 
@@ -911,6 +966,63 @@ export default function PageEditorPage() {
               loading={deletePage.isPending}
             >
               Confirm Deletion
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Share/Access Management */}
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="size-4" />
+              Manage Access
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Invite team members to view or collaborate on this private page.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <div className="space-y-4 max-h-[300px] overflow-y-auto px-1">
+              {members.filter(m => m.id !== user?.id).map((member) => {
+                const isShared = (page?.allowedUsers || []).some(id => String(id) === String(member.id));
+                return (
+                  <div key={member.id} className="flex items-center justify-between group">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={member.avatarUrl} />
+                        <AvatarFallback className="text-[10px] bg-muted font-bold">
+                          {member.firstName?.[0]}{member.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{member.firstName} {member.lastName}</span>
+                        <span className="text-[10px] text-muted-foreground">{member.email}</span>
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant={isShared ? "outline" : "secondary"} 
+                      className="h-8 text-[11px] font-semibold"
+                      onClick={() => toggleUserAccess(member.id)}
+                      disabled={updatePage.isPending}
+                    >
+                      {isShared ? "Remove" : "Invite"}
+                    </Button>
+                  </div>
+                );
+              })}
+              {members.length <= 1 && (
+                <div className="text-center py-8 text-muted-foreground text-xs italic">
+                  No other team members found.
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="text-xs" onClick={() => setShareOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

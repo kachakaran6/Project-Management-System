@@ -5,6 +5,7 @@ import QueryProvider from "./query-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./auth-provider";
 import { AccentApplicator, SystemModeWatcher } from "./theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export function RootProvider({ children }: { children: React.ReactNode }) {
   return (
@@ -22,8 +23,10 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
 
       <QueryProvider>
         <AuthProvider>
-          {children}
-          <Toaster />
+          <TooltipProvider>
+            {children}
+            <Toaster />
+          </TooltipProvider>
         </AuthProvider>
       </QueryProvider>
     </ThemeProvider>

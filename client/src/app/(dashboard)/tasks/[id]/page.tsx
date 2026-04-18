@@ -1,23 +1,27 @@
 ﻿"use client";
 
 import Link from "@/lib/next-link";
-import {useParams} from "@/lib/next-navigation";
+import { useParams } from "@/lib/next-navigation";
+import { Mail, User } from "lucide-react";
 
-import {Badge} from "@/components/ui/badge";
-import {Button} from "@/components/ui/button";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
-import {JsonViewer} from "@/features/admin/components/json-viewer";
-import {TaskComments} from "@/features/comments/components/TaskComments";
-import {useTaskQuery} from "@/features/tasks/hooks/use-tasks-query";
-import {useAuth} from "@/features/auth/hooks/use-auth";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { JsonViewer } from "@/features/admin/components/json-viewer";
+import { TaskComments } from "@/features/comments/components/TaskComments";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
+import { useTaskQuery } from "@/features/tasks/hooks/use-tasks-query";
 
 export default function TaskDetailsPage() {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const isAdmin = user?.role === "SUPER_ADMIN" || user?.role === "ADMIN";
-  const params = useParams<{id: string}>();
+  const params = useParams<{ id: string }>();
   const id = String(params.id);
   const taskQuery = useTaskQuery(id, Boolean(id));
+  const { activeOrgId } = useAuth();
+  const membersQuery = useOrganizationMembersQuery(activeOrgId || "");
 
   if (taskQuery.isLoading)
     return (
@@ -41,6 +45,7 @@ export default function TaskDetailsPage() {
     return <p className="text-destructive">Task not found.</p>;
 
   const task = taskQuery.data.data;
+  const creator = getTaskCreator(task, membersQuery.data?.data.members ?? []);
 
   return (
     <div className="space-y-6 p-3 md:p-5">
@@ -55,6 +60,38 @@ export default function TaskDetailsPage() {
           <Link href={`/tasks/${task.id}/edit`}>Edit Task</Link>
         </Button>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Task Creator</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {creator ? (
+            <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/3 px-4 py-3">
+              <Avatar className="h-11 w-11">
+                <AvatarImage src={creator.avatarUrl} alt={creator.name} />
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  {creator.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-foreground">{creator.name}</p>
+                <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Mail className="size-3.5" />
+                  <span className="truncate">
+                    {creator.email || "No email available"}
+                  </span>
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/3 px-4 py-3 text-sm text-muted-foreground">
+              <User className="size-4" />
+              Creator information is unavailable for this task.
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

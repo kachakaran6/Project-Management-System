@@ -1,8 +1,8 @@
 ﻿"use client";
 
 import Link from "@/lib/next-link";
-import {useEffect, useMemo, useState} from "react";
-import {toast} from "sonner";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   Kanban,
   List,
@@ -14,8 +14,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import {Badge} from "@/components/ui/badge";
-import {Button} from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -31,10 +31,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {EmptyState} from "@/components/ui/empty-state";
-import {Input} from "@/components/ui/input";
-import {Skeleton} from "@/components/ui/skeleton";
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -50,23 +50,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {useProjectsQuery} from "@/features/projects/hooks/use-projects-query";
-import {useAuth} from "@/features/auth/hooks/use-auth";
+import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   useDeleteTaskMutation,
   useUpdateTaskMutation,
   useUpdateTaskStatusMutation,
   useTasksQuery,
 } from "@/features/tasks/hooks/use-tasks-query";
-import {TaskBoard} from "@/features/tasks/components/task-board";
-import {EditTaskModal} from "@/features/tasks/components/edit-task-modal";
-import {CreateTaskModal} from "@/features/tasks/components/create-task-modal";
-import {useOrganizationMembersQuery} from "@/features/organization/hooks/use-organization-members";
-import {Task, TaskStatus, TaskPriority} from "@/types/task.types";
-import {cn} from "@/lib/utils";
-import {PageHeader, FilterBar} from "@/components/layout/page-header";
-import {useSearchParams, useRouter} from "@/lib/next-navigation";
-import {TaskRow} from "@/features/tasks/components/task-row";
+import { TaskBoard } from "@/features/tasks/components/task-board";
+import { EditTaskModal } from "@/features/tasks/components/edit-task-modal";
+import { CreateTaskModal } from "@/features/tasks/components/create-task-modal";
+import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
+import { Task, TaskStatus, TaskPriority } from "@/types/task.types";
+import { cn } from "@/lib/utils";
+import { useSearchParams, useRouter } from "@/lib/next-navigation";
+import { TaskRow } from "@/features/tasks/components/task-row";
 
 const PAGE_SIZE = 10;
 const VIEW_STORAGE_KEY = "tasks:view-mode";
@@ -100,9 +99,9 @@ export default function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const {activeOrg, activeOrgId} = useAuth();
+  const { activeOrg, activeOrgId } = useAuth();
   const membersQuery = useOrganizationMembersQuery(activeOrgId || "");
-  const projectsQuery = useProjectsQuery({page: 1, limit: 200});
+  const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
 
   const deleteTask = useDeleteTaskMutation();
 
@@ -172,11 +171,11 @@ export default function TasksPage() {
   );
 
   const listFilters = useMemo(
-    () => ({...sharedFilters, page, limit: PAGE_SIZE}),
+    () => ({ ...sharedFilters, page, limit: PAGE_SIZE }),
     [sharedFilters, page],
   );
   const kanbanFilters = useMemo(
-    () => ({...sharedFilters, page: 1, limit: 1000}),
+    () => ({ ...sharedFilters, page: 1, limit: 1000 }),
     [sharedFilters],
   );
 
@@ -194,7 +193,7 @@ export default function TasksPage() {
   const kanbanRows = kanbanQuery.data?.data.items ?? [];
 
   const getTaskId = (task: Task) => {
-    const legacyId = (task as Task & {_id?: string})._id;
+    const legacyId = (task as Task & { _id?: string })._id;
     return String(task.id || legacyId || "");
   };
 
@@ -215,57 +214,21 @@ export default function TasksPage() {
   return (
     <div
       className={cn(
-        "flex flex-col h-full min-h-0 p-3 md:p-5 overflow-y-auto",
-        viewMode === "kanban" ? "p-4 md:p-6 h-[calc(100vh-50px)]" : "space-y-6",
+        "mx-auto w-full max-w-7xl flex flex-col h-full min-h-0 px-4 py-5 md:px-6 overflow-y-auto",
+        viewMode === "kanban" ? "h-[calc(100vh-50px)]" : "space-y-4",
       )}>
-      <div className={cn("shrink-0", viewMode === "kanban" && "px-1")}>
-        <PageHeader
-          title="Tasks"
-          description="Manage, organize, and track tasks across all your active projects."
-          actions={
-            <div className="flex items-center gap-2">
-              <div className="inline-flex rounded-lg border border-border bg-muted/50 p-1">
-                <Button
-                  type="button"
-                  variant={viewMode === "list" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("list")}
-                  className={cn(
-                    "h-8 px-3 rounded-md text-sm gap-1.5",
-                    viewMode === "list" && "shadow-sm",
-                  )}>
-                  <List className="size-4" />
-                  List
-                </Button>
-                <Button
-                  type="button"
-                  variant={viewMode === "kanban" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("kanban")}
-                  className={cn(
-                    "h-8 px-3 rounded-md text-sm gap-1.5",
-                    viewMode === "kanban" && "shadow-sm",
-                  )}>
-                  <Kanban className="size-4" />
-                  Board
-                </Button>
-              </div>
-              {canMutate && (
-                <CreateTaskModal
-                  defaultProjectId={projectId !== "ALL" ? projectId : undefined}
-                  trigger={
-                    <Button size="sm" className="h-9 px-4 font-medium">
-                      Create Task
-                    </Button>
-                  }
-                />
-              )}
-            </div>
-          }
-        />
+      <div className={cn("shrink-0 space-y-3", viewMode === "kanban" && "px-1")}>
+        {/* <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Tasks
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Manage, organize, and track work across all active projects.
+          </p>
+        </div> */}
 
-        <FilterBar className="mt-4">
-          <div className="relative flex-1 min-w-[180px] max-w-xs">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-2">
+          <div className="relative flex-1 min-w-44 max-w-xl">
             <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
@@ -273,17 +236,18 @@ export default function TasksPage() {
                 setPage(1);
                 setSearch(event.target.value);
               }}
-              placeholder="Search tasks…"
-              className="h-9 pl-9 text-sm"
+              placeholder="Search tasks"
+              className="h-10 rounded-xl pl-9 text-sm"
             />
           </div>
+
           <Select
             value={status}
             onValueChange={(v) => {
               setPage(1);
               setStatus(v);
             }}>
-            <SelectTrigger className="h-9 w-[140px] text-sm">
+            <SelectTrigger className="h-10 w-40 text-sm">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -303,7 +267,7 @@ export default function TasksPage() {
               setPage(1);
               setPriority(v);
             }}>
-            <SelectTrigger className="h-9 w-[130px] text-sm">
+            <SelectTrigger className="h-10 w-40 text-sm">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -320,13 +284,13 @@ export default function TasksPage() {
               setPage(1);
               setProjectId(v || "ALL");
             }}>
-            <SelectTrigger className="h-9 w-[140px] text-sm">
+            <SelectTrigger className="h-10 w-40 text-sm">
               <SelectValue placeholder="Project" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All projects</SelectItem>
               {(projectsQuery.data?.data.items ?? []).map((project) => {
-                const pId = project.id || (project as {_id?: string})._id;
+                const pId = project.id || (project as { _id?: string })._id;
                 if (!pId) return null;
                 return (
                   <SelectItem key={pId} value={pId}>
@@ -342,13 +306,13 @@ export default function TasksPage() {
               setPage(1);
               setAssigneeId(v || "ALL");
             }}>
-            <SelectTrigger className="h-9 w-[140px] text-sm">
+            <SelectTrigger className="h-10 w-40 text-sm">
               <SelectValue placeholder="Assignee" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All assignees</SelectItem>
               {(membersQuery.data?.data.members ?? []).map((member) => {
-                const memberId = member.id || (member as {_id?: string})._id;
+                const memberId = member.id || (member as { _id?: string })._id;
                 return (
                   <SelectItem key={memberId} value={memberId || ""}>
                     {`${member.firstName} ${member.lastName}`.trim()}
@@ -364,25 +328,63 @@ export default function TasksPage() {
               setPage(1);
               setDueDate(e.target.value);
             }}
-            className="h-9 w-[150px] text-sm"
+            className="h-10 w-40 text-sm"
           />
           <Button
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="h-9 px-3 text-muted-foreground text-sm">
+            className="h-10 px-3 text-muted-foreground text-sm">
             Clear
           </Button>
-        </FilterBar>
+
+          {canMutate && (
+            <CreateTaskModal
+              defaultProjectId={projectId !== "ALL" ? projectId : undefined}
+              trigger={
+                <Button size="sm" className="h-10 px-4 font-medium lg:ml-auto" variant="secondary">
+                  Create Task
+                </Button>
+              }
+            />
+          )}
+
+          <div className="inline-flex rounded-xl border border-border bg-muted/40 p-1">
+            <Button
+              type="button"
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className={cn(
+                "h-8 px-3 rounded-lg text-sm gap-1.5",
+                viewMode === "list" && "shadow-sm",
+              )}>
+              <List className="size-4" />
+              List
+            </Button>
+            <Button
+              type="button"
+              variant={viewMode === "kanban" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("kanban")}
+              className={cn(
+                "h-8 px-3 rounded-lg text-sm gap-1.5",
+                viewMode === "kanban" && "shadow-sm",
+              )}>
+              <Kanban className="size-4" />
+              Board
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div
         className={cn(
           "flex-1 min-h-0",
-          viewMode === "kanban" ? "mt-4" : "mt-0",
+          viewMode === "kanban" ? "mt-3" : "mt-0",
         )}>
         {viewMode === "list" && listQuery.isLoading ? (
-          <div className="space-y-4 pt-6">
+          <div className="space-y-3 pt-4">
             <Skeleton className="h-12 w-full rounded-xl" />
             <Skeleton className="h-12 w-full rounded-xl" />
             <Skeleton className="h-12 w-full rounded-xl" />
@@ -390,9 +392,9 @@ export default function TasksPage() {
         ) : null}
 
         {viewMode === "list" &&
-        !listQuery.isLoading &&
-        listRows.length === 0 ? (
-          <div className="pt-20">
+          !listQuery.isLoading &&
+          listRows.length === 0 ? (
+          <div className="pt-14">
             <EmptyState
               title="No tasks found"
               description="Try adjusting filters or create a task."
@@ -401,7 +403,7 @@ export default function TasksPage() {
         ) : null}
 
         {viewMode === "list" && !listQuery.isLoading && listRows.length > 0 ? (
-          <div className="space-y-6 pt-6 animate-in fade-in duration-500">
+          <div className="space-y-4 pt-4 animate-in fade-in duration-500">
             {/* Desktop Table View */}
             <div className="hidden lg:block rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm shadow-sm">
               <Table>
@@ -425,7 +427,7 @@ export default function TasksPage() {
                     <TableHead className="font-semibold text-foreground/70">
                       Project
                     </TableHead>
-                    <TableHead className="w-[60px]"></TableHead>
+                    <TableHead className="w-16"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -456,7 +458,7 @@ export default function TasksPage() {
             </div>
 
             {/* Mobile Card View */}
-            <div className="grid gap-4 lg:hidden">
+            <div className="grid gap-3 lg:hidden">
               {listRows.map((task, idx) => {
                 const taskId = getTaskId(task);
                 const assignee = getAssignee(task);
@@ -491,7 +493,7 @@ export default function TasksPage() {
                             </AvatarFallback>
                           </Avatar>
                         )}
-                        <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+                        <span className="text-xs text-muted-foreground truncate max-w-24">
                           {assignee?.name || "Unassigned"}
                         </span>
                       </div>
@@ -520,7 +522,7 @@ export default function TasksPage() {
             </div>
 
             {/* Pagination for List View */}
-            <div className="flex items-center justify-end gap-2 pb-10 pt-4">
+            <div className="flex items-center justify-end gap-2 pb-4 pt-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -547,14 +549,14 @@ export default function TasksPage() {
         {viewMode === "kanban" ? (
           <div className="h-full animate-in fade-in zoom-in-95 duration-500">
             {kanbanQuery.isLoading ? (
-              <div className="flex gap-6 p-6 h-full overflow-hidden">
-                <Skeleton className="h-full w-[300px] rounded-2xl" />
-                <Skeleton className="h-full w-[300px] rounded-2xl" />
-                <Skeleton className="h-full w-[300px] rounded-2xl" />
-                <Skeleton className="h-full w-[300px] rounded-2xl shadow-sm" />
+              <div className="flex h-full gap-4 overflow-hidden p-4">
+                <Skeleton className="h-full w-72 rounded-2xl" />
+                <Skeleton className="h-full w-72 rounded-2xl" />
+                <Skeleton className="h-full w-72 rounded-2xl" />
+                <Skeleton className="h-full w-72 rounded-2xl shadow-sm" />
               </div>
             ) : kanbanRows.length === 0 ? (
-              <div className="pt-20">
+              <div className="pt-14">
                 <EmptyState
                   title="No tasks found"
                   description="Try changing filters or create a task to get started."
@@ -570,7 +572,7 @@ export default function TasksPage() {
       <Dialog
         open={Boolean(deleteId)}
         onOpenChange={(open) => !open && setDeleteId(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-110">
           <DialogHeader>
             <DialogTitle>Delete Task</DialogTitle>
             <DialogDescription>
