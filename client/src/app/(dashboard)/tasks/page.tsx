@@ -65,12 +65,14 @@ import {useOrganizationMembersQuery} from "@/features/organization/hooks/use-org
 import {Task, TaskStatus, TaskPriority} from "@/types/task.types";
 import {cn} from "@/lib/utils";
 import {PageHeader, FilterBar} from "@/components/layout/page-header";
+import {useSearchParams, useRouter} from "next/navigation";
 
 const PAGE_SIZE = 10;
 const VIEW_STORAGE_KEY = "tasks:view-mode";
 type TaskViewMode = "list" | "kanban";
 
 export default function TasksPage() {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<TaskViewMode>(() => {
     if (typeof window === "undefined") return "list";
     const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
@@ -78,11 +80,21 @@ export default function TasksPage() {
   });
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [status, setStatus] = useState<string>("ALL");
-  const [priority, setPriority] = useState<string>("ALL");
-  const [projectId, setProjectId] = useState<string>("ALL");
-  const [assigneeId, setAssigneeId] = useState<string>("ALL");
-  const [dueDate, setDueDate] = useState("");
+  const searchParams = useSearchParams();
+
+  const [status, setStatus] = useState<string>(
+    searchParams.get("status") || "ALL",
+  );
+  const [priority, setPriority] = useState<string>(
+    searchParams.get("priority") || "ALL",
+  );
+  const [projectId, setProjectId] = useState<string>(
+    searchParams.get("projectId") || "ALL",
+  );
+  const [assigneeId, setAssigneeId] = useState<string>(
+    searchParams.get("assigneeId") || "ALL",
+  );
+  const [dueDate, setDueDate] = useState(searchParams.get("dueDate") || "");
   const [page, setPage] = useState(1);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -121,6 +133,18 @@ export default function TasksPage() {
       });
     }
   }, [debouncedSearch, status, priority, projectId, assigneeId, page]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (status !== "ALL") params.set("status", status);
+    if (priority !== "ALL") params.set("priority", priority);
+    if (projectId !== "ALL") params.set("projectId", projectId);
+    if (assigneeId !== "ALL") params.set("assigneeId", assigneeId);
+    if (dueDate) params.set("dueDate", dueDate);
+
+    router.push(`?${params.toString()}`);
+  }, [status, priority, projectId, assigneeId, dueDate, router]);
 
   const sharedFilters = useMemo(
     () => ({
@@ -184,6 +208,8 @@ export default function TasksPage() {
     setProjectId("ALL");
     setAssigneeId("ALL");
     setDueDate("");
+
+    router.push("?"); // reset URL
   };
 
   const handleInlineStatusChange = async (
