@@ -24,7 +24,7 @@ import {useTasksQuery} from "@/features/tasks/hooks/use-tasks-query";
 import {CreateProjectModal} from "@/features/projects/components/create-project-modal";
 import {CreateTaskModal} from "@/features/tasks/components/create-task-modal";
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 const PROJECT_STATUS_COLORS: Record<string, string> = {
   active: "bg-emerald-100 text-emerald-800",
@@ -55,7 +55,7 @@ const TASK_STATUS_COLORS: Record<string, string> = {
   ARCHIVED: "bg-slate-100 text-slate-500",
 };
 
-// â”€â”€â”€ StatCard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── StatCard ───────────────────────────────────────────────────────────────
 
 interface StatCardProps {
   label: string;
@@ -81,7 +81,7 @@ function StatCard({label, value, icon: Icon, sub}: StatCardProps) {
   );
 }
 
-// â”€â”€â”€ Dashboard Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Dashboard Page ─────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const {user} = useAuth();
@@ -110,7 +110,7 @@ export default function DashboardPage() {
     )
     .slice(0, 8);
 
-  // Map projectId â†’ project name for tasks table
+  // Map projectId → project name for tasks table
   const projectMap = Object.fromEntries(
     projects.map((p: any) => [p.id || p._id, p.name]),
   );
@@ -118,7 +118,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title={`Welcome back, ${user?.firstName ?? "there"} ðŸ‘‹`}
+        title={`Welcome back, ${user?.firstName ?? "there"} 👋`}
         description="Here's a quick overview of your workspace."
       />
 

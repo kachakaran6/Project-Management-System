@@ -273,7 +273,7 @@ export default function TasksPage() {
                 setPage(1);
                 setSearch(event.target.value);
               }}
-              placeholder="Search tasksâ€¦"
+              placeholder="Search tasks…"
               className="h-9 pl-9 text-sm"
             />
           </div>

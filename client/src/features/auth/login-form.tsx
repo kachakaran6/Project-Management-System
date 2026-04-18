@@ -79,7 +79,7 @@ export function LoginForm() {
                   id="password"
                   {...methods.register("password")}
                   error={Boolean(methods.formState.errors.password)}
-                  placeholder="Enter your password"
+                  placeholder="••••••••"
                 />
                 <div className="flex justify-end">
                   <Button

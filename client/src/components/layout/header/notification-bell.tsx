@@ -67,7 +67,7 @@ export function NotificationBell() {
               Notifications
             </DropdownMenuLabel>
             <p className="text-xs text-muted-foreground">
-              {unreadCount} unread Â· {notifications.length} loaded
+              {unreadCount} unread · {notifications.length} loaded
             </p>
           </div>
           <Button
