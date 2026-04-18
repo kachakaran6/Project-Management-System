@@ -66,7 +66,7 @@ import {Task, TaskStatus, TaskPriority} from "@/types/task.types";
 import {cn} from "@/lib/utils";
 import {PageHeader, FilterBar} from "@/components/layout/page-header";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 const VIEW_STORAGE_KEY = "tasks:view-mode";
 type TaskViewMode = "list" | "kanban";
 
