@@ -98,17 +98,17 @@ export const TaskRow = ({
       className="h-[72px] border-b border-border/30 last:border-0 hover:bg-muted/10 transition-colors">
       <TableCell className="py-4">
         <div className="flex flex-col gap-0.5">
-          <Button
-            onClick={() => {
+          <button
+            onClick={(e) => {
+              e.preventDefault();
               const params = new URLSearchParams(searchParams.toString());
               params.set("taskId", tid(task));
               router.push(`${pathname}?${params.toString()}`, {scroll: false});
               openPanel(tid(task));
             }}
-            className="font-semibold text-[15px] hover:text-primary transition-colors line-clamp-1 cursor-pointer"
-            asChild>
-            <>{task.title}</>
-          </Button>
+            className="font-semibold text-[15px] hover:text-primary transition-colors line-clamp-1 cursor-pointer text-left">
+            {task.title}
+          </button>
           <span className="text-[11px] font-mono text-muted-foreground/60">
             #{taskId.slice(-6).toUpperCase()}
           </span>
