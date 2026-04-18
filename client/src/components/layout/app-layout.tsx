@@ -60,7 +60,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           !isTasksPage && "overflow-y-auto overflow-x-hidden"
         )}>
           <div className={cn(
-            "w-full h-full animate-in fade-in animate-duration-300",
+            "w-full animate-in fade-in animate-duration-300",
             !isTasksPage && "mx-auto max-w-[1400px] px-4 py-6 md:px-6 md:py-8"
           )}>
             {children}
