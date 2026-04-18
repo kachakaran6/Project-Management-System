@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { Bell, Building2, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/next-navigation";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -115,3 +115,4 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
     </header>
   );
 }
+

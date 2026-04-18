@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import Link from "next/link";
+import Link from "@/lib/next-link";
 import {useMemo, useState} from "react";
 import {toast} from "sonner";
 
@@ -100,7 +100,7 @@ export default function ProjectsPage() {
               setPage(1);
               setSearch(event.target.value);
             }}
-            placeholder="Search projects…"
+            placeholder="Search projectsâ€¦"
             className="h-9 text-sm"
           />
         </div>
@@ -311,3 +311,4 @@ export default function ProjectsPage() {
     </div>
   );
 }
+

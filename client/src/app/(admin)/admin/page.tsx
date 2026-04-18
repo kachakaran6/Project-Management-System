@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { Navigate } from "react-router-dom";
 
 export default function AdminIndexPage() {
-  redirect("/admin/dashboard");
+  return <Navigate to="/admin/dashboard" replace />;
 }

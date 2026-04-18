@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   useRef,
@@ -10,8 +10,8 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/lib/next-link";
+import { useRouter } from "@/lib/next-navigation";
 import { toast } from "sonner";
 import {
   CheckCircle2,
@@ -40,7 +40,7 @@ import {
   useVerifyOtpMutation,
 } from "@/features/auth/hooks/use-auth-queries";
 
-// ─── Schema ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const signupSchema = z
   .object({
@@ -58,12 +58,12 @@ const signupSchema = z
 
 type SignupValues = z.infer<typeof signupSchema>;
 
-// ─── OTP_LENGTH constant ─────────────────────────────────────────────────────
+// â”€â”€â”€ OTP_LENGTH constant â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const OTP_DIGITS = 8;
 const RESEND_COOLDOWN = 60; // seconds
 
-// ─── OTP Input component ──────────────────────────────────────────────────────
+// â”€â”€â”€ OTP Input component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function OtpInput({
   value,
@@ -146,7 +146,7 @@ function OtpInput({
   );
 }
 
-// ─── Step 1: Registration form ─────────────────────────────────────────────────
+// â”€â”€â”€ Step 1: Registration form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StepRegistration({
   initialEmail = "",
@@ -222,7 +222,7 @@ function StepRegistration({
               <Input
                 {...register("password")}
                 type={showPw ? "text" : "password"}
-                placeholder="••••••••"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                 className="pr-10"
               />
               <button
@@ -248,7 +248,7 @@ function StepRegistration({
               <Input
                 {...register("confirmPassword")}
                 type={showConfirm ? "text" : "password"}
-                placeholder="••••••••"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                 className="pr-10"
               />
               <button
@@ -285,7 +285,7 @@ function StepRegistration({
             disabled={isSubmitting || signupMutation.isPending}
           >
             {isSubmitting || signupMutation.isPending
-              ? "Creating account…"
+              ? "Creating accountâ€¦"
               : "Create Account"}
           </Button>
 
@@ -304,7 +304,7 @@ function StepRegistration({
   );
 }
 
-// ─── Step 2: OTP Verification ─────────────────────────────────────────────────
+// â”€â”€â”€ Step 2: OTP Verification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StepOtpVerify({
   email,
@@ -392,7 +392,7 @@ function StepOtpVerify({
           {verifyMutation.isPending ? (
             <>
               <Loader2 className="mr-2 size-4 animate-spin" />
-              Verifying…
+              Verifyingâ€¦
             </>
           ) : (
             <>
@@ -437,7 +437,7 @@ function StepOtpVerify({
   );
 }
 
-// ─── Step 3: Success ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Step 3: Success â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StepSuccess({ onLogin }: { onLogin: () => void }) {
   return (
@@ -462,7 +462,7 @@ function StepSuccess({ onLogin }: { onLogin: () => void }) {
   );
 }
 
-// ─── Main SignupForm ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Main SignupForm â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type Step = "register" | "otp" | "success";
 
@@ -494,7 +494,7 @@ export function SignupForm() {
 
   return (
     <Card className="w-full max-w-md shadow-lg border-white/5 bg-surface/80 backdrop-blur-md">
-      {/* ── Step progress indicator ────────────────────────────────────────── */}
+      {/* â”€â”€ Step progress indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="relative border-b border-white/[0.03] bg-white/[0.01] px-10 py-8">
         {/* Background Line */}
         <div className="absolute left-10 right-10 top-[46px] h-[2px] bg-white/5" />
@@ -545,7 +545,7 @@ export function SignupForm() {
         </div>
       </div>
 
-      {/* ── Step content ──────────────────────────────────────────────────── */}
+      {/* â”€â”€ Step content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {step === "register" && (
         <StepRegistration
           initialEmail={email}
@@ -575,3 +575,4 @@ export function SignupForm() {
     </Card>
   );
 }
+

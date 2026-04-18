@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useAuthStore } from "@/store/auth-store";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "@/lib/next-navigation";
 import { useEffect } from "react";
 
 /**
@@ -77,3 +77,4 @@ export function RoleGuard({
 
   return <>{children}</>;
 }
+

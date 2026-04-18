@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import Link from "@/lib/next-link";
+import { useParams } from "@/lib/next-navigation";
 import {
   ArrowLeft,
   Building2,
@@ -174,3 +174,4 @@ function Metric({
     </div>
   );
 }
+

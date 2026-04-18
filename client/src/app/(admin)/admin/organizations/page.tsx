@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/lib/next-link";
 import { Building2, Eye, Power, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -182,3 +182,4 @@ export default function AdminOrganizationsPage() {
     </div>
   );
 }
+

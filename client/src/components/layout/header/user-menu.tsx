@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { UserCircle2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/next-navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -85,3 +85,4 @@ export function HeaderUserMenu() {
     </DropdownMenu>
   );
 }
+

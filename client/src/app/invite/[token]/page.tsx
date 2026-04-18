@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "@/lib/next-navigation";
 import { ArrowRight, CheckCircle2, Loader2, Mail, Shield, Users } from "lucide-react";
 import { toast } from "sonner";
 
@@ -224,3 +224,4 @@ export default function PublicInvitePage() {
     </main>
   );
 }
+

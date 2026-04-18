@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/next-navigation";
 import {
   FileText,
   Filter,
@@ -369,3 +369,4 @@ export default function PagesListPage() {
     </div>
   );
 }
+

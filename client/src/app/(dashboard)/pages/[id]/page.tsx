@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { ComponentType, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "@/lib/next-navigation";
 import {
   AtSign,
   Bold,
@@ -918,3 +918,4 @@ export default function PageEditorPage() {
     </div>
   );
 }
+

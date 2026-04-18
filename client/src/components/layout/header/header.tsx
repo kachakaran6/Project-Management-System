@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { MoonStar, Menu, SunMedium } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/lib/next-navigation";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
@@ -129,3 +129,4 @@ export function AppHeader() {
     </header>
   );
 }
+

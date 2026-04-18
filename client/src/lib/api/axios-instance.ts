@@ -15,7 +15,7 @@ import { ApiResponse } from "@/types/api.types";
 import { RefreshResponse } from "@/types/auth.types";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+  import.meta.env.VITE_API_URL || "http://localhost:5001/api/v1";
 
 type RetriableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
@@ -73,7 +73,7 @@ api.interceptors.request.use(
     }
 
     // Comprehensive logging of outgoing requests (STEP 7)
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.DEV) {
       console.log(`[API REQUEST] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.data || "");
     }
 
@@ -119,7 +119,7 @@ api.interceptors.response.use(
         message: error.message,
         code: error.code,
         url: originalRequest?.baseURL ? (originalRequest.baseURL + (originalRequest.url || "")) : originalRequest?.url,
-        isProduction: process.env.NODE_ENV === "production"
+        isProduction: import.meta.env.PROD
       });
 
       toast.error(errorMsg);

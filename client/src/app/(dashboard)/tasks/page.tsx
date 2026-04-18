@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import Link from "next/link";
+import Link from "@/lib/next-link";
 import {useEffect, useMemo, useState} from "react";
 import {toast} from "sonner";
 import {
@@ -65,7 +65,7 @@ import {useOrganizationMembersQuery} from "@/features/organization/hooks/use-org
 import {Task, TaskStatus, TaskPriority} from "@/types/task.types";
 import {cn} from "@/lib/utils";
 import {PageHeader, FilterBar} from "@/components/layout/page-header";
-import {useSearchParams, useRouter} from "next/navigation";
+import {useSearchParams, useRouter} from "@/lib/next-navigation";
 import {TaskRow} from "@/features/tasks/components/task-row";
 
 const PAGE_SIZE = 10;
@@ -122,7 +122,7 @@ export default function TasksPage() {
   }, [search]);
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.DEV) {
       console.log("[TasksPage] Current Filters:", {
         search: debouncedSearch,
         status,
@@ -263,7 +263,7 @@ export default function TasksPage() {
                 setPage(1);
                 setSearch(event.target.value);
               }}
-              placeholder="Search tasks…"
+              placeholder="Search tasksâ€¦"
               className="h-9 pl-9 text-sm"
             />
           </div>
@@ -602,3 +602,4 @@ export default function TasksPage() {
     </div>
   );
 }
+
