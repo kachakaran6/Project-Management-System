@@ -135,15 +135,25 @@ export default function TasksPage() {
   }, [debouncedSearch, status, priority, projectId, assigneeId, page]);
 
   useEffect(() => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(searchParams.toString());
 
+    // Update only your filters
     if (status !== "ALL") params.set("status", status);
-    if (priority !== "ALL") params.set("priority", priority);
-    if (projectId !== "ALL") params.set("projectId", projectId);
-    if (assigneeId !== "ALL") params.set("assigneeId", assigneeId);
-    if (dueDate) params.set("dueDate", dueDate);
+    else params.delete("status");
 
-    router.push(`?${params.toString()}`);
+    if (priority !== "ALL") params.set("priority", priority);
+    else params.delete("priority");
+
+    if (projectId !== "ALL") params.set("projectId", projectId);
+    else params.delete("projectId");
+
+    if (assigneeId !== "ALL") params.set("assigneeId", assigneeId);
+    else params.delete("assigneeId");
+
+    if (dueDate) params.set("dueDate", dueDate);
+    else params.delete("dueDate");
+
+    router.replace(`?${params.toString()}`);
   }, [status, priority, projectId, assigneeId, dueDate, router]);
 
   const sharedFilters = useMemo(

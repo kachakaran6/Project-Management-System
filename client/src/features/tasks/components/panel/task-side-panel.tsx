@@ -30,7 +30,7 @@ export function TaskSidePanel() {
     const taskId = searchParams.get("taskId");
     if (taskId && taskId !== selectedTaskId) {
       openPanel(taskId);
-    } else if (!taskId) {
+    } else if (!taskId && isOpen) {
       closePanel();
     }
   }, [searchParams]);
