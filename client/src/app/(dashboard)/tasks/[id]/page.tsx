@@ -1,17 +1,20 @@
 ﻿"use client";
 
 import Link from "@/lib/next-link";
-import { useParams } from "@/lib/next-navigation";
+import {useParams} from "@/lib/next-navigation";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { JsonViewer } from "@/features/admin/components/json-viewer";
-import { TaskComments } from "@/features/comments/components/TaskComments";
-import { useTaskQuery } from "@/features/tasks/hooks/use-tasks-query";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {JsonViewer} from "@/features/admin/components/json-viewer";
+import {TaskComments} from "@/features/comments/components/TaskComments";
+import {useTaskQuery} from "@/features/tasks/hooks/use-tasks-query";
+import {useAuth} from "@/features/auth/hooks/use-auth";
 
 export default function TaskDetailsPage() {
-  const params = useParams<{ id: string }>();
+  const {user} = useAuth();
+  const isAdmin = user?.role === "SUPER_ADMIN" || user?.role === "ADMIN";
+  const params = useParams<{id: string}>();
   const id = String(params.id);
   const taskQuery = useTaskQuery(id, Boolean(id));
 
@@ -48,13 +51,21 @@ export default function TaskDetailsPage() {
             <span className="text-muted-foreground">Priority:</span>{" "}
             <Badge variant="outline">{task.priority}</Badge>
           </p>
-          <p>
-            <span className="text-muted-foreground">Description:</span>{" "}
-            {task.description || "No description"}
-          </p>
+          <div className="description-container">
+            <span className="text-muted-foreground">
+              Description:{" "}
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: task.description || "No description",
+                }}
+              />
+            </span>
+          </div>
           <p>
             <span className="text-muted-foreground">Due Date:</span>{" "}
-            {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "Not set"}
+            {task.dueDate
+              ? new Date(task.dueDate).toLocaleDateString()
+              : "Not set"}
           </p>
         </CardContent>
       </Card>
@@ -79,15 +90,16 @@ export default function TaskDetailsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Raw JSON</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <JsonViewer data={task} />
-        </CardContent>
-      </Card>
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Raw JSON</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <JsonViewer data={task} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
-
