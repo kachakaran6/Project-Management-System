@@ -56,7 +56,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="flex flex-1 flex-col min-w-0 h-full bg-background overflow-hidden">
         <AppHeader />
         <main className={cn(
-          "flex-1 min-h-0",
+          "flex-1 min-h-0 overflow-y-auto",
           !isTasksPage && "overflow-y-auto overflow-x-hidden"
         )}>
           <div className={cn(

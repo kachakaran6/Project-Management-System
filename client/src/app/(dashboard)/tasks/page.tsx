@@ -216,7 +216,7 @@ export default function TasksPage() {
     <div
       className={cn(
         "flex flex-col h-full min-h-0 p-3 md:p-5 overflow-y-auto",
-        viewMode === "kanban" ? "p-4 md:p-6" : "space-y-6",
+        viewMode === "kanban" ? "p-4 md:p-6 h-[calc(100vh-50px)]" : "space-y-6",
       )}>
       <div className={cn("shrink-0", viewMode === "kanban" && "px-1")}>
         <PageHeader
@@ -468,7 +468,7 @@ export default function TasksPage() {
                       <div className="min-w-0">
                         <Link
                           href={`/tasks/${taskId}`}
-                          className="font-bold text-sm hover:text-primary transition-colors block truncate">
+                          className="font-bold text-sm hover:text-primary transition-colors block">
                           {task.title}
                         </Link>
                         <span className="text-[10px] text-muted-foreground/60 uppercase">
