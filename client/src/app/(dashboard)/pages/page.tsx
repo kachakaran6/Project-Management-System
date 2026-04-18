@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import {useMemo, useState} from "react";
+import {useRouter} from "next/navigation";
 import {
   FileText,
   Filter,
@@ -14,12 +14,12 @@ import {
   Search,
   Star,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import {cn} from "@/lib/utils";
+import {toast} from "sonner";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { PageHeader, FilterBar } from "@/components/layout/page-header";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
+import {PageHeader, FilterBar} from "@/components/layout/page-header";
 import {
   Dialog,
   DialogContent,
@@ -28,8 +28,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/input";
+import {EmptyState} from "@/components/ui/empty-state";
+import {Input} from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -45,20 +45,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/features/auth/hooks/use-auth";
+import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
+import {useAuth} from "@/features/auth/hooks/use-auth";
 import {
   useCreatePageMutation,
   usePagesQuery,
 } from "@/features/pages/hooks/use-pages-query";
-import { PageDoc, PageVisibility } from "@/types/page.types";
+import {PageDoc, PageVisibility} from "@/types/page.types";
+import Link from "next/link";
 
 function toInitials(firstName?: string, lastName?: string) {
-  return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.trim().toUpperCase() || "U";
+  return (
+    `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.trim().toUpperCase() || "U"
+  );
 }
 
 function stripHtml(value: string) {
-  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function canSeePage(page: PageDoc, userId: string, role?: string) {
@@ -87,18 +93,23 @@ function visibilityBadge(visibility: PageVisibility) {
 
 export default function PagesListPage() {
   const router = useRouter();
-  const { user, activeOrg } = useAuth();
+  const {user, activeOrg} = useAuth();
 
   const [search, setSearch] = useState("");
-  const [visibilityFilter, setVisibilityFilter] = useState<"ALL" | PageVisibility>("ALL");
-  const [ownershipFilter, setOwnershipFilter] = useState<"ALL" | "ME" | "SHARED">("ALL");
+  const [visibilityFilter, setVisibilityFilter] = useState<
+    "ALL" | PageVisibility
+  >("ALL");
+  const [ownershipFilter, setOwnershipFilter] = useState<
+    "ALL" | "ME" | "SHARED"
+  >("ALL");
   const [recentFilter, setRecentFilter] = useState<"ALL" | "RECENT">("ALL");
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createTitle, setCreateTitle] = useState("");
-  const [createVisibility, setCreateVisibility] = useState<PageVisibility>("PRIVATE");
+  const [createVisibility, setCreateVisibility] =
+    useState<PageVisibility>("PRIVATE");
 
-  const pagesQuery = usePagesQuery({ page: 1, limit: 200 });
+  const pagesQuery = usePagesQuery({page: 1, limit: 200});
   const createPage = useCreatePageMutation();
 
   const currentRole = activeOrg?.role ?? user?.role;
@@ -112,7 +123,10 @@ export default function PagesListPage() {
     return all
       .filter((page) => canSeePage(page, currentUserId, currentRole))
       .filter((page) => {
-        if (visibilityFilter !== "ALL" && page.visibility !== visibilityFilter) {
+        if (
+          visibilityFilter !== "ALL" &&
+          page.visibility !== visibilityFilter
+        ) {
           return false;
         }
 
@@ -134,7 +148,8 @@ export default function PagesListPage() {
 
         if (!term) return true;
 
-        const indexed = `${page.title} ${stripHtml(page.content)}`.toLowerCase();
+        const indexed =
+          `${page.title} ${stripHtml(page.content)}`.toLowerCase();
         return indexed.includes(term);
       })
       .sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt));
@@ -147,16 +162,6 @@ export default function PagesListPage() {
     search,
     visibilityFilter,
   ]);
-
-  const stats = useMemo(() => {
-    const rows = visibleRows;
-    return {
-      total: rows.length,
-      publicCount: rows.filter((item) => item.visibility === "PUBLIC").length,
-      privateCount: rows.filter((item) => item.visibility === "PRIVATE").length,
-      mineCount: rows.filter((item) => item.creatorId === currentUserId).length,
-    };
-  }, [currentUserId, visibleRows]);
 
   const handleCreate = async () => {
     const title = createTitle.trim();
@@ -191,17 +196,23 @@ export default function PagesListPage() {
         <div className="flex items-center gap-2">
           <div className="relative group">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground transition-colors group-focus-within:text-foreground" />
-            <Input 
+            <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..." 
+              placeholder="Search..."
               className="h-8 w-40 md:w-60 bg-transparent border-transparent hover:bg-muted/50 focus:bg-muted/50 focus:border-border transition-all pl-8 text-xs"
             />
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground">
             <Filter className="size-3.5" />
           </Button>
-          <Button size="sm" className="h-8 px-3 text-xs gap-1.5 font-semibold" onClick={() => setCreateOpen(true)}>
+          <Button
+            size="sm"
+            className="h-8 px-3 text-xs gap-1.5 font-semibold"
+            onClick={() => setCreateOpen(true)}>
             <Plus className="size-3.5" />
             New Page
           </Button>
@@ -211,14 +222,15 @@ export default function PagesListPage() {
       {/* Tabs Area */}
       <div className="flex items-center gap-6 px-6 border-b border-border/40">
         {[
-          { id: "PUBLIC", label: "Public" },
-          { id: "PRIVATE", label: "Private" },
-          { id: "ARCHIVED", label: "Archived" }
+          {id: "PUBLIC", label: "Public"},
+          {id: "PRIVATE", label: "Private"},
+          {id: "ARCHIVED", label: "Archived"},
         ].map((tab) => {
-          const isActive = (tab.id === "PUBLIC" && visibilityFilter === "PUBLIC") || 
-                           (tab.id === "PRIVATE" && visibilityFilter === "PRIVATE") ||
-                           (tab.id === "ARCHIVED" && recentFilter === "RECENT"); // Just for demo logic
-          
+          const isActive =
+            (tab.id === "PUBLIC" && visibilityFilter === "PUBLIC") ||
+            (tab.id === "PRIVATE" && visibilityFilter === "PRIVATE") ||
+            (tab.id === "ARCHIVED" && recentFilter === "RECENT"); // Just for demo logic
+
           return (
             <button
               key={tab.id}
@@ -233,9 +245,10 @@ export default function PagesListPage() {
               }}
               className={cn(
                 "relative py-3 text-sm font-medium transition-colors",
-                isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
+                isActive
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}>
               {tab.label}
               {isActive && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
@@ -249,7 +262,12 @@ export default function PagesListPage() {
       <div className="flex-1 overflow-y-auto min-h-0 bg-transparent">
         {pagesQuery.isLoading ? (
           <div className="px-6 py-4 space-y-4">
-             {[1,2,3,4,5].map(i => <div key={i} className="h-10 w-full rounded-md bg-muted/20 animate-pulse" />)}
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className="h-10 w-full rounded-md bg-muted/20 animate-pulse"
+              />
+            ))}
           </div>
         ) : visibleRows.length === 0 ? (
           <div className="p-12">
@@ -264,11 +282,10 @@ export default function PagesListPage() {
         ) : (
           <div className="divide-y divide-border/40">
             {visibleRows.map((page) => (
-              <div
+              <Link
                 key={page.id}
-                onClick={() => router.push(`/pages/${page.id}`)}
-                className="group flex items-center justify-between px-6 py-3 hover:bg-muted/30 cursor-pointer transition-colors"
-              >
+                href={`/pages/${page.id}`}
+                className="group flex items-center justify-between px-6 py-3 hover:bg-muted/30 cursor-pointer transition-colors">
                 <div className="flex items-center gap-4 min-w-0">
                   <FileText className="size-4 text-muted-foreground/60 shrink-0" />
                   <div className="flex flex-col min-w-0">
@@ -283,11 +300,14 @@ export default function PagesListPage() {
                     <Avatar className="size-5 border border-background shadow-sm">
                       <AvatarImage src={page.creator?.avatarUrl} />
                       <AvatarFallback className="text-[8px] font-bold bg-muted">
-                        {toInitials(page.creator?.firstName, page.creator?.lastName)}
+                        {toInitials(
+                          page.creator?.firstName,
+                          page.creator?.lastName,
+                        )}
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  
+
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors">
                       <Info className="size-3.5" />
@@ -300,7 +320,7 @@ export default function PagesListPage() {
                     </button>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
@@ -335,8 +355,7 @@ export default function PagesListPage() {
                       ? "bg-muted text-foreground"
                       : "text-muted-foreground"
                   }`}
-                  onClick={() => setCreateVisibility("PRIVATE")}
-                >
+                  onClick={() => setCreateVisibility("PRIVATE")}>
                   <Lock className="size-3.5" />
                   Private
                 </button>
@@ -347,8 +366,7 @@ export default function PagesListPage() {
                       ? "bg-muted text-foreground"
                       : "text-muted-foreground"
                   }`}
-                  onClick={() => setCreateVisibility("PUBLIC")}
-                >
+                  onClick={() => setCreateVisibility("PUBLIC")}>
                   <Globe className="size-3.5" />
                   Public
                 </button>
