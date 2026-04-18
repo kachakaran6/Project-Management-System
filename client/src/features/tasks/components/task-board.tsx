@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import {useRouter, useSearchParams, usePathname} from "next/navigation";
+import {useRouter, useSearchParams, usePathname} from "@/lib/next-navigation";
 import React, {useState, useEffect, useMemo} from "react";
 import {toast} from "sonner";
 import {
@@ -638,3 +638,4 @@ function KanbanColumn({
     </div>
   );
 }
+

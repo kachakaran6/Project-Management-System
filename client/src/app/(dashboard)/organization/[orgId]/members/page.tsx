@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams } from "@/lib/next-navigation";
 import { toast } from "sonner";
 import {
   Copy,
@@ -359,13 +359,13 @@ export default function OrganizationMembersPage() {
                 <div className="space-y-1">
                   <p className="text-sm font-medium">{invite.email}</p>
                   <p className="text-xs text-muted-foreground">
-                    {roleLabel(invite.role)} •{" "}
+                    {roleLabel(invite.role)} â€¢{" "}
                     {formatCountdown(invite.expiresAt)}
                   </p>
                   <div className="flex items-center gap-2">
                     {statusBadge(invite.status)}
                     <Badge variant="outline" className="text-xs">
-                      Token: {invite.token.slice(0, 8)}…
+                      Token: {invite.token.slice(0, 8)}â€¦
                     </Badge>
                   </div>
                 </div>
@@ -452,3 +452,4 @@ export default function OrganizationMembersPage() {
     </div>
   );
 }
+

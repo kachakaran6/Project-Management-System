@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import Link from "@/lib/next-link";
+import { useParams } from "@/lib/next-navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,3 +76,4 @@ export default function ProjectDetailsPage() {
     </div>
   );
 }
+

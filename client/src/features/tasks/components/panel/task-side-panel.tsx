@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import {
@@ -15,7 +15,7 @@ import {TaskDescription} from "./task-description";
 import {TaskComments} from "./task-comments";
 import {Skeleton} from "@/components/ui/skeleton";
 import {X} from "lucide-react";
-import {useSearchParams, useRouter, usePathname} from "next/navigation";
+import {useSearchParams, useRouter, usePathname} from "@/lib/next-navigation";
 import {useEffect} from "react";
 import {Badge} from "@/components/ui/badge";
 
@@ -126,3 +126,4 @@ export function TaskSidePanel() {
     </Sheet>
   );
 }
+

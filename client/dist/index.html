@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" suppressHydrationWarning>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Management System</title>
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <link rel="apple-touch-icon" href="/icon.png" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap"
+    />
+    <script>
+      (function () {
+        try {
+          var stored = JSON.parse(localStorage.getItem("pms-theme-v1") || "{}");
+          var accent = stored && stored.state && stored.state.accent ? stored.state.accent : "blue";
+          var mode = stored && stored.state && stored.state.mode ? stored.state.mode : "system";
+
+          document.documentElement.setAttribute("data-accent", accent);
+
+          var isDark =
+            mode === "dark" ||
+            (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (isDark) {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+        } catch (e) {
+          document.documentElement.setAttribute("data-accent", "blue");
+          console.warn("Failed to parse theme from localStorage", e);
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-6IC7MlCT.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-um887_Id.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

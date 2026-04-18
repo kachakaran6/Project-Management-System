@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/lib/next-navigation";
 import { useEffect } from "react";
 
 import { AppHeader } from "@/components/layout/header/header";
@@ -70,3 +70,4 @@ export function AppLayout({ children }: AppLayoutProps) {
     </div>
   );
 }
+

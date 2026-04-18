@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "@/lib/next-navigation";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -88,3 +88,4 @@ export default function EditProjectPage() {
     </div>
   );
 }
+

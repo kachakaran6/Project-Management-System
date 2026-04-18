@@ -14,7 +14,7 @@ import {
 } from "@/features/admin/api/admin.api";
 
 const baseApiUrl =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+  import.meta.env.VITE_API_URL || "http://localhost:5001/api/v1";
 
 export const adminQueryKeys = {
   dashboard: ["admin", "dashboard"] as const,

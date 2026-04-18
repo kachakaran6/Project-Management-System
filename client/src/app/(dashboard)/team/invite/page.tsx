@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/next-navigation";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,3 +43,4 @@ export default function InviteTeamMemberPage() {
     </div>
   );
 }
+
