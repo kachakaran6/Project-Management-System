@@ -56,12 +56,12 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="flex flex-1 flex-col min-w-0 h-full bg-background overflow-hidden">
         <AppHeader />
         <main className={cn(
-          "flex-1 min-h-0 overflow-y-auto",
+          "flex-1 min-h-0 overflow-y-auto pb-16",
           !isTasksPage && "overflow-y-auto overflow-x-hidden"
         )}>
           <div className={cn(
             "w-full animate-in fade-in animate-duration-300",
-            !isTasksPage && "mx-auto max-w-[1400px] px-4 py-6 md:px-6 md:py-8"
+            !isTasksPage && "mx-auto max-w-350 px-4 py-6 md:px-6 md:py-8"
           )}>
             {children}
           </div>
