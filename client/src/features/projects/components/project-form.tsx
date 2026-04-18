@@ -37,7 +37,7 @@ export function ProjectForm({
     defaultValues: {
       name: initialValues?.name ?? "",
       description: initialValues?.description ?? "",
-      status: initialValues?.status ?? "PLANNED",
+      status: initialValues?.status?.toUpperCase() ?? "PLANNED",
     },
   });
 
