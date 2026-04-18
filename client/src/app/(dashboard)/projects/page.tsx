@@ -100,7 +100,7 @@ export default function ProjectsPage() {
               setPage(1);
               setSearch(event.target.value);
             }}
-            placeholder="Search projectsâ€¦"
+            placeholder="Search projects..."
             className="h-9 text-sm"
           />
         </div>
