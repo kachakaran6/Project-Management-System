@@ -1,21 +1,24 @@
 ﻿"use client";
 
-import { FormWrapper } from "@/components/shared/form-wrapper";
-import { loginSchema, LoginValues } from "./login-schema";
-import { useRouter } from "@/lib/next-navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FormField } from "@/components/ui/form-field";
-import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
-import { Button } from "@/components/ui/button";
-import { useLoginMutation } from "@/features/auth/hooks/use-auth-queries";
-import { toast } from "sonner";
+import {FormWrapper} from "@/components/shared/form-wrapper";
+import {loginSchema, LoginValues} from "./login-schema";
+import {useRouter} from "@/lib/next-navigation";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {FormField} from "@/components/ui/form-field";
+import {Input} from "@/components/ui/input";
+import {PasswordInput} from "@/components/ui/password-input";
+import {Button} from "@/components/ui/button";
+import {useLoginMutation} from "@/features/auth/hooks/use-auth-queries";
+import {toast} from "sonner";
 
 export function LoginForm() {
   const router = useRouter();
   const loginMutation = useLoginMutation();
 
-  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const searchParams =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : null;
   const initialEmail = searchParams?.get("email") || "";
 
   const onSubmit = async (values: LoginValues) => {
@@ -34,7 +37,7 @@ export function LoginForm() {
     } catch (error: any) {
       const status = error.response?.status;
       const message = error.response?.data?.message || "Unable to sign in.";
-      
+
       if (status === 403) {
         toast.warning(message);
       } else {
@@ -49,19 +52,17 @@ export function LoginForm() {
         <CardTitle className="text-center">Login to PMS</CardTitle>
       </CardHeader>
       <CardContent>
-        <FormWrapper 
-          schema={loginSchema} 
+        <FormWrapper
+          schema={loginSchema}
           onSubmit={onSubmit}
-          defaultValues={{ email: initialEmail } as any}
-        >
+          defaultValues={{email: initialEmail} as any}>
           {(methods) => (
             <div className="space-y-4">
               <FormField
                 id="email"
                 label="Email"
                 required
-                error={methods.formState.errors.email?.message}
-              >
+                error={methods.formState.errors.email?.message}>
                 <Input
                   id="email"
                   {...methods.register("email")}
@@ -73,13 +74,12 @@ export function LoginForm() {
                 id="password"
                 label="Password"
                 required
-                error={methods.formState.errors.password?.message}
-              >
+                error={methods.formState.errors.password?.message}>
                 <PasswordInput
                   id="password"
                   {...methods.register("password")}
                   error={Boolean(methods.formState.errors.password)}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="Enter your password"
                 />
                 <div className="flex justify-end">
                   <Button
@@ -87,8 +87,7 @@ export function LoginForm() {
                     type="button"
                     size="sm"
                     className="px-0 font-normal text-muted-foreground hover:text-primary transition-colors"
-                    onClick={() => router.push("/forgot-password")}
-                  >
+                    onClick={() => router.push("/forgot-password")}>
                     Forgot your password?
                   </Button>
                 </div>
@@ -100,8 +99,7 @@ export function LoginForm() {
                 loading={
                   methods.formState.isSubmitting || loginMutation.isPending
                 }
-                className="w-full"
-              >
+                className="w-full">
                 {methods.formState.isSubmitting || loginMutation.isPending
                   ? "Logging in..."
                   : "Sign In"}
@@ -115,8 +113,7 @@ export function LoginForm() {
             variant="ghost"
             type="button"
             className="px-1 font-medium text-primary hover:underline hover:bg-transparent"
-            onClick={() => router.push("/signup")}
-          >
+            onClick={() => router.push("/signup")}>
             Register now
           </Button>
         </div>
@@ -124,4 +121,3 @@ export function LoginForm() {
     </Card>
   );
 }
-
