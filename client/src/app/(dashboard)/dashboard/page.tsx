@@ -11,18 +11,18 @@ import {
   CalendarDays,
   Flag,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {cn} from "@/lib/utils";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/features/auth/hooks/use-auth";
-import { PageHeader } from "@/components/layout/page-header";
-import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
-import { useTasksQuery } from "@/features/tasks/hooks/use-tasks-query";
-import { CreateProjectModal } from "@/features/projects/components/create-project-modal";
-import { CreateTaskModal } from "@/features/tasks/components/create-task-modal";
+import {Button} from "@/components/ui/button";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {Badge} from "@/components/ui/badge";
+import {Skeleton} from "@/components/ui/skeleton";
+import {useAuth} from "@/features/auth/hooks/use-auth";
+import {PageHeader} from "@/components/layout/page-header";
+import {useProjectsQuery} from "@/features/projects/hooks/use-projects-query";
+import {useTasksQuery} from "@/features/tasks/hooks/use-tasks-query";
+import {CreateProjectModal} from "@/features/projects/components/create-project-modal";
+import {CreateTaskModal} from "@/features/tasks/components/create-task-modal";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -64,7 +64,7 @@ interface StatCardProps {
   sub?: string;
 }
 
-function StatCard({ label, value, icon: Icon, sub }: StatCardProps) {
+function StatCard({label, value, icon: Icon, sub}: StatCardProps) {
   return (
     <Card>
       <CardContent className="flex items-center gap-4 pt-5">
@@ -84,9 +84,9 @@ function StatCard({ label, value, icon: Icon, sub }: StatCardProps) {
 // ─── Dashboard Page ─────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
-  const tasksQuery = useTasksQuery({ page: 1, limit: 300 });
+  const {user} = useAuth();
+  const projectsQuery = useProjectsQuery({page: 1, limit: 200});
+  const tasksQuery = useTasksQuery({page: 1, limit: 300});
 
   const projects = projectsQuery.data?.data.items ?? [];
   const tasks = tasksQuery.data?.data.items ?? [];
@@ -136,11 +136,7 @@ export default function DashboardPage() {
             value={projects.length}
             icon={BriefcaseBusiness}
           />
-          <StatCard
-            label="Active Tasks"
-            value={activeTasks}
-            icon={Clock3}
-          />
+          <StatCard label="Active Tasks" value={activeTasks} icon={Clock3} />
           <StatCard
             label="Completed Tasks"
             value={completedTasks}
@@ -168,7 +164,10 @@ export default function DashboardPage() {
               {projectsQuery.isLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <Skeleton key={`project-skeleton-${i}`} className="h-12 w-full" />
+                    <Skeleton
+                      key={`project-skeleton-${i}`}
+                      className="h-12 w-full"
+                    />
                   ))}
                 </div>
               ) : recentProjects.length === 0 ? (
@@ -183,8 +182,7 @@ export default function DashboardPage() {
                   {recentProjects.map((project) => (
                     <div
                       key={project.id || (project as any)._id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
-                    >
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm flex-shrink-0">
                           {project.name.charAt(0).toUpperCase()}
@@ -201,11 +199,17 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
                         <Badge
                           variant="secondary"
-                          className={cn("text-[10px] font-bold uppercase", PROJECT_STATUS_COLORS[project.status])}
-                        >
+                          className={cn(
+                            "text-[10px] font-bold uppercase",
+                            PROJECT_STATUS_COLORS[project.status],
+                          )}>
                           {project.status}
                         </Badge>
-                        <Button asChild variant="outline" size="sm" className="h-8 px-3 text-xs">
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-3 text-xs">
                           <Link href={`/projects/${project.id}`}>Open</Link>
                         </Button>
                       </div>
@@ -231,7 +235,10 @@ export default function DashboardPage() {
               {tasksQuery.isLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <Skeleton key={`task-skeleton-${i}`} className="h-12 w-full" />
+                    <Skeleton
+                      key={`task-skeleton-${i}`}
+                      className="h-12 w-full"
+                    />
                   ))}
                 </div>
               ) : recentTasks.length === 0 ? (
@@ -245,8 +252,7 @@ export default function DashboardPage() {
                   {recentTasks.map((task) => (
                     <div
                       key={task.id || (task as any)._id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
-                    >
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
                         <Flag
                           className={`size-4 flex-shrink-0 ${PRIORITY_COLORS[task.priority] ?? ""}`}
@@ -256,7 +262,7 @@ export default function DashboardPage() {
                             {task.title}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
-                            {projectMap[task.projectId] ?? "Unknown project"}
+                            {task?.projectId?.name ?? "Unknown project"}
                           </p>
                         </div>
                       </div>
@@ -264,16 +270,21 @@ export default function DashboardPage() {
                         {task.dueDate && (
                           <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
                             <CalendarDays className="size-3" />
-                            {new Date(task.dueDate).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}
+                            {new Date(task.dueDate).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )}
                           </div>
                         )}
                         <Badge
                           variant="secondary"
-                          className={cn("text-[10px] font-bold uppercase", TASK_STATUS_COLORS[task.status])}
-                        >
+                          className={cn(
+                            "text-[10px] font-bold uppercase",
+                            TASK_STATUS_COLORS[task.status],
+                          )}>
                           {task.status.replace("_", " ")}
                         </Badge>
                       </div>
@@ -311,8 +322,7 @@ export default function DashboardPage() {
               <Button
                 asChild
                 className="w-full justify-start"
-                variant="secondary"
-              >
+                variant="secondary">
                 <Link href="/projects">
                   <BriefcaseBusiness className="mr-2 size-4" />
                   View All Projects
@@ -321,8 +331,7 @@ export default function DashboardPage() {
               <Button
                 asChild
                 className="w-full justify-start"
-                variant="secondary"
-              >
+                variant="secondary">
                 <Link href="/tasks">
                   <Clock3 className="mr-2 size-4" />
                   View All Tasks
@@ -340,13 +349,23 @@ export default function DashboardPage() {
               <CardContent className="space-y-3">
                 {(
                   [
-                    { label: "To Do", statusKey: "TODO", color: "bg-slate-400" },
-                    { label: "In Progress", statusKey: "IN_PROGRESS", color: "bg-blue-500" },
-                    { label: "In Review", statusKey: "IN_REVIEW", color: "bg-amber-500" },
-                    { label: "Done", statusKey: "DONE", color: "bg-emerald-500" },
+                    {label: "To Do", statusKey: "TODO", color: "bg-slate-400"},
+                    {
+                      label: "In Progress",
+                      statusKey: "IN_PROGRESS",
+                      color: "bg-blue-500",
+                    },
+                    {
+                      label: "In Review",
+                      statusKey: "IN_REVIEW",
+                      color: "bg-amber-500",
+                    },
+                    {label: "Done", statusKey: "DONE", color: "bg-emerald-500"},
                   ] as const
-                ).map(({ label, statusKey, color }) => {
-                  const count = tasks.filter((t) => t.status === statusKey).length;
+                ).map(({label, statusKey, color}) => {
+                  const count = tasks.filter(
+                    (t) => t.status === statusKey,
+                  ).length;
                   const pct =
                     tasks.length > 0
                       ? Math.round((count / tasks.length) * 100)
@@ -362,7 +381,7 @@ export default function DashboardPage() {
                       <div className="h-1.5 w-full rounded-full bg-muted">
                         <div
                           className={`h-1.5 rounded-full ${color} transition-all`}
-                          style={{ width: `${pct}%` }}
+                          style={{width: `${pct}%`}}
                         />
                       </div>
                     </div>
