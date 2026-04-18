@@ -216,7 +216,7 @@ export default function TasksPage() {
   return (
     <div
       className={cn(
-        "flex flex-col h-full min-h-0",
+        "flex flex-col h-full min-h-0 p-3 md:p-5 overflow-y-auto",
         viewMode === "kanban" ? "p-4 md:p-6" : "space-y-6",
       )}>
       <div className={cn("shrink-0", viewMode === "kanban" && "px-1")}>
@@ -404,7 +404,7 @@ export default function TasksPage() {
         {viewMode === "list" && !listQuery.isLoading && listRows.length > 0 ? (
           <div className="space-y-6 pt-6 animate-in fade-in duration-500">
             {/* Desktop Table View */}
-            <div className="hidden lg:block rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden shadow-sm">
+            <div className="hidden lg:block rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm shadow-sm">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30 border-b border-border/40 hover:bg-muted/30">
