@@ -1,26 +1,26 @@
 "use client";
 
 import React from "react";
-import { 
-  Sheet, 
-  SheetContent, 
+import {
+  Sheet,
+  SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
-import { useTaskQuery } from "@/features/tasks/hooks/use-tasks-query";
-import { TaskHeader } from "./task-header";
-import { TaskProperties } from "./task-properties";
-import { TaskDescription } from "./task-description";
-import { TaskComments } from "./task-comments";
-import { Skeleton } from "@/components/ui/skeleton";
-import { X } from "lucide-react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
+import {useTaskPanelStore} from "@/features/tasks/store/task-panel-store";
+import {useTaskQuery} from "@/features/tasks/hooks/use-tasks-query";
+import {TaskHeader} from "./task-header";
+import {TaskProperties} from "./task-properties";
+import {TaskDescription} from "./task-description";
+import {TaskComments} from "./task-comments";
+import {Skeleton} from "@/components/ui/skeleton";
+import {X} from "lucide-react";
+import {useSearchParams, useRouter, usePathname} from "next/navigation";
+import {useEffect} from "react";
+import {Badge} from "@/components/ui/badge";
 
 export function TaskSidePanel() {
-  const { isOpen, closePanel, openPanel, selectedTaskId } = useTaskPanelStore();
+  const {isOpen, closePanel, openPanel, selectedTaskId} = useTaskPanelStore();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -30,7 +30,7 @@ export function TaskSidePanel() {
     const taskId = searchParams.get("taskId");
     if (taskId && taskId !== selectedTaskId) {
       openPanel(taskId);
-    } else if (!taskId && isOpen) {
+    } else if (!taskId) {
       closePanel();
     }
   }, [searchParams]);
@@ -44,20 +44,19 @@ export function TaskSidePanel() {
       params.delete("taskId");
       closePanel();
     }
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    router.push(`${pathname}?${params.toString()}`);
   };
 
-  const { data, isLoading, error } = useTaskQuery(selectedTaskId || "", isOpen);
+  const {data, isLoading, error} = useTaskQuery(selectedTaskId || "", isOpen);
 
   const task = data?.data;
 
   return (
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-      <SheetContent 
-        side="right" 
+      <SheetContent
+        side="right"
         hideClose={true}
-        className="size-full p-0 sm:max-w-[50vw] xl:max-w-[40vw] border-l shadow-2xl bg-background flex flex-col focus:outline-none"
-      >
+        className="size-full p-0 sm:max-w-[50vw] xl:max-w-[40vw] border-l shadow-2xl bg-background flex flex-col focus:outline-none">
         <SheetHeader className="sr-only">
           <SheetTitle>Task Side Panel</SheetTitle>
         </SheetHeader>
@@ -65,12 +64,15 @@ export function TaskSidePanel() {
         {/* Header container for close button and actions */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b bg-muted/5">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-background">Task Details</Badge>
+            <Badge
+              variant="outline"
+              className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-background">
+              Task Details
+            </Badge>
           </div>
-          <button 
+          <button
             onClick={closePanel}
-            className="p-2 hover:bg-accent rounded-full transition-all text-muted-foreground hover:text-foreground group"
-          >
+            className="p-2 hover:bg-accent rounded-full transition-all text-muted-foreground hover:text-foreground group">
             <X className="size-4.5 group-hover:rotate-90 transition-transform duration-300" />
           </button>
         </div>
@@ -87,8 +89,8 @@ export function TaskSidePanel() {
               <div className="pt-8 space-y-4">
                 <Skeleton className="h-8 w-1/4" />
                 <div className="flex gap-4">
-                   <Skeleton className="h-10 flex-1" />
-                   <Skeleton className="h-10 flex-1" />
+                  <Skeleton className="h-10 flex-1" />
+                  <Skeleton className="h-10 flex-1" />
                 </div>
               </div>
             </div>
@@ -98,11 +100,13 @@ export function TaskSidePanel() {
                 <X className="size-6" />
               </div>
               <h3 className="text-lg font-semibold">Failed to load task</h3>
-              <p className="text-sm text-muted-foreground">This task might have been deleted or you don't have permission to view it.</p>
-              <button 
+              <p className="text-sm text-muted-foreground">
+                This task might have been deleted or you don't have permission
+                to view it.
+              </p>
+              <button
                 onClick={closePanel}
-                className="text-primary text-sm font-medium hover:underline"
-              >
+                className="text-primary text-sm font-medium hover:underline">
                 Go back
               </button>
             </div>
