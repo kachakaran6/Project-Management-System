@@ -35,7 +35,7 @@ export function CreateTaskModal({
     name: p.name,
   }));
 
-  const handleSubmit = async (values: TaskFormValues) => {
+  const handleSubmit = async (values: TaskFormValues, createMore?:boolean) => {
     try {
       const assigneeIds = values.assigneeIds || [];
       const canSendAssignees = Boolean(activeOrgId);
@@ -54,7 +54,9 @@ export function CreateTaskModal({
 
       await createTask.mutateAsync(payload);
       toast.success(`Task "${values.title}" created!`);
-      setOpen(false);
+      if(!createMore) {         
+        setOpen(false);
+      }
       onCreated?.();
     } catch (error) {
       const apiError = error as AxiosError<{message?: string; errors?: string[]}>;
@@ -86,8 +88,9 @@ export function CreateTaskModal({
             priority: "MEDIUM",
           }}
           onCancel={() => setOpen(false)}
-          onSubmit={handleSubmit}
+          onSubmit={(values, createMore)=>handleSubmit(values, createMore)}
           isSubmitting={createTask.isPending}
+          isSuccess={createTask.isSuccess}
           submitLabel="Create Task"
         />
       </DialogContent>

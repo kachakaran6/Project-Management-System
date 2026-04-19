@@ -47,11 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           membershipsFromProfile.length > 0
             ? membershipsFromProfile
             : workspaceResponse.data.items.map((workspace) => ({
-            id: workspace.id,
-            name: workspace.name,
-            slug: workspace.name.toLowerCase().replace(/\s+/g, "-"),
-            role:
-              (role as OrganizationMembership["role"]) || user.role || "MEMBER",
+              id: workspace.id,
+              name: workspace.name,
+              slug: workspace.name.toLowerCase().replace(/\s+/g, "-"),
+              role:
+                (role as OrganizationMembership["role"]) || user.role || "MEMBER",
             }));
 
         const state = useAuthStore.getState();
@@ -76,12 +76,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error: any) {
         console.error("Session restoration attempt failed", error);
-        
+
         const status = error.response?.status;
         const isNetworkError = !error.response;
 
         if (status === 401) {
           // Definitely unauthorized
+          retryCount = MAX_RETRIES; // Stop retrying
           clearAuth();
           setLoading(false);
         } else if (isNetworkError && retryCount < MAX_RETRIES) {
@@ -100,6 +101,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Actually, if we're here, we didn't return, so we should always ensure loading is false
         // unless some other part of the logic handles it. 
         // But for safety, let's keep it simple:
+        if (retryCount >= MAX_RETRIES) {
+          setLoading(false);
+        }
       }
     };
 
@@ -116,21 +120,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const payload = JSON.parse(atob(accessToken.split(".")[1]));
       const expiryTime = payload.exp * 1000; // ms
       // Refresh 2 minutes before it expires
-      const refreshBuffer = 2 * 60 * 1000; 
+      const refreshBuffer = 2 * 60 * 1000;
       const delay = expiryTime - Date.now() - refreshBuffer;
 
       if (delay > 0) {
         const timer = setTimeout(async () => {
           console.log("[AUTH] Proactive token refresh starting...");
           const { api } = await import("@/lib/api/axios-instance");
-          await api.post("/auth/refresh").catch(() => {});
+          await api.post("/auth/refresh").catch(() => { });
         }, delay);
 
         return () => clearTimeout(timer);
       } else {
         // Already close to expiry or expired, trigger refresh now
         import("@/lib/api/axios-instance").then(({ api }) => {
-          api.post("/auth/refresh").catch(() => {});
+          api.post("/auth/refresh").catch(() => { });
         });
       }
     } catch (e) {
