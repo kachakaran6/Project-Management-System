@@ -75,6 +75,7 @@ export default function EditTaskPage() {
               dueDate: task.dueDate ? task.dueDate.slice(0, 10) : "",
             }}
             isSubmitting={updateTask.isPending}
+            isSuccess={updateTask.isSuccess}
             onSubmit={async (values: TaskFormValues) => {
               try {
                 await updateTask.mutateAsync({

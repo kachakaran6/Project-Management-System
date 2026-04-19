@@ -13,6 +13,7 @@ import { TaskComments } from "@/features/comments/components/TaskComments";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { useTaskQuery } from "@/features/tasks/hooks/use-tasks-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TaskDetailsPage() {
   const { user } = useAuth();
@@ -48,7 +49,7 @@ export default function TaskDetailsPage() {
   const creator = getTaskCreator(task, membersQuery.data?.data.members ?? []);
 
   return (
-    <div className="space-y-6 p-3 md:p-5">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-heading text-3xl font-semibold">{task.title}</h1>

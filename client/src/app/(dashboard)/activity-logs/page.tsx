@@ -403,7 +403,7 @@ export default function ActivityLogsPage() {
   }
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-7xl flex-col gap-4 px-4 py-5 md:px-6 overflow-hidden">
+    <div className="mx-auto flex h-full w-full max-w-7xl flex-col gap-4 overflow-hidden">
       {/* <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Activity Logs

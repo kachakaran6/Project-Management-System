@@ -206,7 +206,7 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-5 md:px-6">
+    <div className="mx-auto w-full max-w-7xl space-y-4">
       {/* <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Team
@@ -518,7 +518,7 @@ export default function TeamPage() {
 
       {/* ─── User Details Sheet ───────────────────────────────────────────── */}
       <Sheet open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-        <SheetContent className="sm:max-w-md">
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader className="text-left border-b pb-6">
             <SheetTitle>User Details</SheetTitle>
             <SheetDescription>
