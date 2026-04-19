@@ -55,14 +55,8 @@ export function AppLayout({ children }: AppLayoutProps) {
 
       <div className="flex flex-1 flex-col min-w-0 h-full bg-background overflow-hidden">
         <AppHeader />
-        <main className={cn(
-          "h-full overflow-y-auto p-3 md:p-5",
-          !isTasksPage && "overflow-x-hidden"
-        )}>
-          <div className={cn(
-            "w-full animate-in fade-in animate-duration-300",
-            !isTasksPage && "mx-auto max-w-350"
-          )}>
+        <main className={cn("min-h-0 flex-1 overflow-y-auto p-3 md:p-5", !isTasksPage && "overflow-x-hidden")}>
+          <div className={cn("w-full min-h-full animate-in fade-in animate-duration-300", !isTasksPage && "mx-auto max-w-350")}>
             {children}
           </div>
         </main>

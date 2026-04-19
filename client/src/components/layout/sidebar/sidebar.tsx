@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 
 import {
   Bug,
+  BriefcaseBusiness,
   FileText,
   FolderKanban,
   History,
@@ -32,6 +33,13 @@ const navItems: SidebarNavItem[] = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+    group: "workspace",
+    roles: ["ADMIN", "OWNER", "MANAGER", "MEMBER", "USER"],
+  },
+  {
+    title: "Your Work",
+    href: "/your-work",
+    icon: BriefcaseBusiness,
     group: "workspace",
     roles: ["ADMIN", "OWNER", "MANAGER", "MEMBER", "USER"],
   },
