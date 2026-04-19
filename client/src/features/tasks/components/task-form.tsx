@@ -173,8 +173,9 @@ export function TaskForm({
             value={projectIdValue}
             onValueChange={(v) =>
               form.setValue("projectId", v, {shouldValidate: true})
-            }>
-            <SelectTrigger className="w-auto px-3 bg-muted/20 border-border/30 rounded-full text-[11px] font-bold text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-all ring-0 focus:ring-0">
+            }
+            >
+            <SelectTrigger className="px-3 bg-muted/20 border-border/30 text-[11px] font-bold text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-all ring-0 focus:ring-0">
               <div className="flex items-center gap-1.5">
                 <Layout className="h-3 w-3 opacity-60" />
                 <span>{currentProject?.name || "Select Project"}</span>
@@ -182,7 +183,7 @@ export function TaskForm({
             </SelectTrigger>
             <SelectContent className="rounded-xl border-border/50">
               {projects.map((p) => (
-                <SelectItem key={p.id} value={p.id} className="text-xs">
+                <SelectItem key={p.id} value={p.id}>
                   {p.name}
                 </SelectItem>
               ))}
@@ -238,7 +239,7 @@ export function TaskForm({
 
       {/* Metadata Action Bar */}
       <div className="px-6 py-4 shrink-0 overflow-x-auto no-scrollbar border-t border-border/20 bg-muted/5">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Status Select */}
           <Select
             value={statusValue}
