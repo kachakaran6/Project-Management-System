@@ -83,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (status === 401) {
           // Definitely unauthorized
           clearAuth();
+          setLoading(false);
         } else if (isNetworkError && retryCount < MAX_RETRIES) {
           // Slow server or network issue - retry!
           retryCount++;
@@ -90,14 +91,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setTimeout(initAuth, 2000 * retryCount); // Exponential-ish backoff
           return;
         } else {
-          // Other error (500, etc.) - don't logout, just log it.
-          // The user might still have a valid token but the server is down.
-          console.warn("[AUTH] Non-fatal error during initAuth. Retention of session state.");
+          // Other error (500, etc.) or network error reached max retries
+          console.warn("[AUTH] Stopping initAuth due to error or max retries.");
+          setLoading(false);
         }
       } finally {
-        if (retryCount >= MAX_RETRIES || !setLoading) {
-           setLoading(false);
-        }
+        // Only set loading false if we're NOT retrying (which returned above)
+        // Actually, if we're here, we didn't return, so we should always ensure loading is false
+        // unless some other part of the logic handles it. 
+        // But for safety, let's keep it simple:
       }
     };
 

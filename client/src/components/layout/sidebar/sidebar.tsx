@@ -19,6 +19,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { useRouter } from "next/navigation";
 import { SidebarGroup } from "@/components/layout/sidebar/sidebar-group";
 import { SidebarNavItem } from "@/components/layout/sidebar/sidebar-item";
 import { Button } from "@/components/ui/button";
@@ -140,8 +141,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ pathname, mobile = false }: SidebarProps) {
-  const { activeOrg, user } = useAuth();
+  const { activeOrg, user, logout } = useAuth();
   const { sidebarCollapsed, setSidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
+  const router = useRouter();
 
   // Persist sidebar state
   useEffect(() => {
@@ -155,6 +157,15 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
     const nextValue = !sidebarCollapsed;
     toggleSidebarCollapsed();
     localStorage.setItem("sidebarCollapsed", String(nextValue));
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   const resolvedRole =
@@ -242,7 +253,7 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
               "w-full justify-start gap-3 px-3 py-2 text-sidebar-foreground/80 hover:bg-red-500/10 hover:text-red-500 transition-colors",
               sidebarCollapsed && !mobile && "justify-center"
             )}
-            onClick={() => (window.location.href = "/logout")}
+            onClick={handleLogout}
           >
             <LogOut className="h-4 w-4 shrink-0" />
             {!(sidebarCollapsed && !mobile) && <span className="font-medium">Sign Out</span>}
