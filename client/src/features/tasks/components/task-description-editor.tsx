@@ -186,6 +186,7 @@ export function TaskDescriptionEditor({
       attributes: {
         class: cn(
           "ProseMirror min-h-[140px] w-full bg-transparent text-[15px] leading-relaxed text-foreground outline-none transition-all duration-200",
+          "md:max-h-[500px] max-h-[220px] overflow-y-auto",
           alwaysEditing && "py-0"
         ),
       },

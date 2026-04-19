@@ -13,7 +13,92 @@ import { TaskComments } from "@/features/comments/components/TaskComments";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { useTaskQuery } from "@/features/tasks/hooks/use-tasks-query";
+import type { Task } from "@/types/task.types";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { OrganizationMemberRecord } from "@/features/organization/api/organization-members.api";
+
+type CreatorInfo = {
+  name: string;
+  email?: string;
+  avatarUrl?: string;
+};
+
+function getRecordId(value: unknown) {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+
+  if (typeof value === "object") {
+    const record = value as { id?: unknown; _id?: unknown; userId?: unknown };
+    if (typeof record.id === "string") return record.id;
+    if (typeof record._id === "string") return record._id;
+    if (typeof record.userId === "string") return record.userId;
+  }
+
+  return null;
+}
+
+function getCreatorFromObject(value: unknown): CreatorInfo | null {
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as {
+    name?: unknown;
+    firstName?: unknown;
+    lastName?: unknown;
+    email?: unknown;
+    avatarUrl?: unknown;
+  };
+
+  const fullName =
+    typeof record.name === "string" && record.name.trim().length > 0
+      ? record.name.trim()
+      : [record.firstName, record.lastName]
+          .filter((part): part is string => typeof part === "string")
+          .join(" ")
+          .trim();
+
+  return {
+    name: fullName || "Unknown creator",
+    email: typeof record.email === "string" ? record.email : undefined,
+    avatarUrl:
+      typeof record.avatarUrl === "string" ? record.avatarUrl : undefined,
+  };
+}
+
+function getTaskCreator(task: Task, members: OrganizationMemberRecord[]) {
+  const creatorData =
+    (task as Task & {
+      createdBy?: unknown;
+      created_by?: unknown;
+    }).creator ??
+    (task as Task & {
+      createdBy?: unknown;
+      created_by?: unknown;
+    }).createdBy ??
+    (task as Task & {
+      createdBy?: unknown;
+      created_by?: unknown;
+    }).created_by ??
+    task.creatorId;
+
+  const creatorFromPayload = getCreatorFromObject(creatorData);
+  if (creatorFromPayload) return creatorFromPayload;
+
+  const creatorId = getRecordId(creatorData) ?? getRecordId(task.creatorId);
+  if (!creatorId) return null;
+
+  const member = members.find((m) => String(m.id) === String(creatorId));
+  if (member) {
+    return {
+      name: `${member.firstName} ${member.lastName}`.trim() || "Unknown creator",
+      email: member.email,
+      avatarUrl: member.avatarUrl,
+    };
+  }
+
+  return {
+    name: `Creator ID: ${creatorId}`,
+  };
+}
 
 export default function TaskDetailsPage() {
   const { user } = useAuth();

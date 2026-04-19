@@ -79,7 +79,7 @@ export function CreateTaskModal({
       </DialogTrigger>
       <DialogContent
         hideClose
-        className="max-w-[640px] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-2xl gap-0">
+        className="max-w-[640px] w-[95vw] md:w-full h-fit max-h-[90vh] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-2xl gap-0 flex flex-col">
         <TaskForm
           projects={projects}
           initialValues={{

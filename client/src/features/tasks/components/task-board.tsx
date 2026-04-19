@@ -51,6 +51,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import {DatePicker} from "@/components/ui/date-picker";
 
 import {Task, TaskStatus} from "@/types/task.types";
 import {
@@ -483,26 +484,14 @@ const TaskCard = React.memo(({task, index, canEdit = true}: TaskCardProps) => {
                 </PopoverTrigger>
                 <PopoverContent
                   align="start"
-                  className="w-56 rounded-lg border-border/40 p-3"
+                  className="w-auto p-0 border-border/40"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Set due date</p>
-                    <Input
-                      type="date"
-                      value={task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : ""}
-                      onChange={(e) => handleDueDateChange(e.target.value)}
-                      className="h-9"
-                    />
-                    {task.dueDate ? (
-                      <button
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => handleDueDateChange("")}
-                      >
-                        Clear date
-                      </button>
-                    ) : null}
-                  </div>
+                  <DatePicker
+                    inline
+                    value={task.dueDate}
+                    onChange={(val) => handleDueDateChange(typeof val === "string" ? val : "")}
+                  />
                 </PopoverContent>
               </Popover>
 
@@ -832,9 +821,9 @@ export function TaskBoard({
 
   return (
     <div className="relative flex-1 w-full h-full select-none overflow-hidden">
-      <div className="flex h-full w-full overflow-x-auto overflow-y-hidden custom-scrollbar-hidden md:custom-scrollbar pb-2 touch-pan-x">
-        <div className="flex gap-4 p-1 px-4 md:px-0 pr-10 min-w-max h-full">
-          <DragDropContext onDragEnd={onDragEnd}>
+      <div className="flex h-full w-full overflow-x-auto overflow-y-hidden custom-scrollbar pb-2 transition-all duration-300">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="flex gap-4 p-4 pr-12 min-w-max h-full">
             {visibleColumns.map((col) => {
               const columnTasks = data.columns[col.id].map(
                 (id) => data.tasks[id],
@@ -849,8 +838,8 @@ export function TaskBoard({
                 />
               );
             })}
-          </DragDropContext>
-        </div>
+          </div>
+        </DragDropContext>
       </div>
     </div>
   );
@@ -872,7 +861,7 @@ function KanbanColumn({
   const [isQuickAdd, setQuickAdd] = useState(false);
 
   return (
-    <div className="flex flex-col w-75 shrink-0 bg-muted/10 rounded-2xl border border-border/50 h-full overflow-hidden transition-all duration-300 shadow-sm">
+    <div className="group flex flex-col w-80 shrink-0 bg-muted/10 rounded-2xl border border-border/50 h-full overflow-hidden transition-all duration-300 shadow-sm">
       {/* Sticky Column Header */}
       <div className="flex items-center justify-between px-4 py-5 shrink-0 bg-muted/20 border-b border-border/50">
         <div className="flex items-center gap-3 min-w-0">

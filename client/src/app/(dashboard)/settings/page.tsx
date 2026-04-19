@@ -28,6 +28,7 @@ import {
   MessageSquare,
   Sparkles,
   Lock,
+  BellRing,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useAuthStore } from "@/store/auth-store";
 import { api } from "@/lib/api/axios-instance";
@@ -58,7 +60,8 @@ type SectionId =
   | "organization"
   | "billing"
   | "security"
-  | "integrations";
+  | "integrations"
+  | "org_notifications";
 
 interface UserWithOrganizations extends UserWithRole {
   organizations?: OrganizationMembership[];
@@ -84,6 +87,12 @@ const NAV_ITEMS: NavItem[] = [
   { id: "billing", label: "Billing", icon: CreditCard, adminOnly: true },
   { id: "security", label: "Security", icon: ShieldCheck },
   { id: "integrations", label: "Integrations", icon: Puzzle },
+  {
+    id: "org_notifications",
+    label: "Org Notifications",
+    icon: BellRing,
+    adminOnly: true,
+  },
 ];
 
 // ─── Shared UI Primitives ─────────────────────────────────────────────────────
@@ -1376,20 +1385,211 @@ const INTEGRATIONS = [
 ];
 
 function IntegrationsSection() {
+  const { activeOrg } = useAuth();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+  const [connectionData, setConnectionData] = useState<any>(null);
+  const [verifying, setVerifying] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await api.get("/telegram/settings");
+      setData(res.data.data);
+    } catch (error) {
+      console.error("Failed to fetch telegram data", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleConnect = async () => {
+    setConnecting(true);
+    try {
+      const res = await api.post("/telegram/initiate");
+      setConnectionData(res.data.data);
+      toast.info("Follow the instructions to connect!");
+    } catch (error) {
+      toast.error("Failed to initiate connection");
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    try {
+      const res = await api.post("/telegram/verify");
+      if (res.data.success) {
+        toast.success("Telegram connected successfully!");
+        setData({ ...data, connection: res.data.data });
+        setConnectionData(null);
+      } else {
+        toast.error(res.data.message || "Still waiting for /start...");
+      }
+    } catch (error) {
+      toast.error("Verification failed");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm("Are you sure you want to disconnect?")) return;
+    try {
+      await api.post("/telegram/disconnect");
+      setData({ ...data, connection: { isConnected: false } });
+      toast.success("Telegram disconnected");
+    } catch (error) {
+      toast.error("Failed to disconnect");
+    }
+  };
+
+  if (loading || !data) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-40 w-full rounded-2xl" />
+      </div>
+    );
+  }
+
+  const { connection } = data;
+
   return (
     <div className="space-y-5">
       <SectionCard
-        title="Available Integrations"
-        description="Connect your favourite tools to supercharge your workflow.">
+        title="Telegram Connection"
+        description="Link your Telegram account to this organization to receive alerts.">
+        {!connection?.isConnected ? (
+          <div className="space-y-4">
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/5 py-8 text-center">
+              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-500">
+                <MessageSquare className="size-8" />
+              </div>
+              <h3 className="font-heading text-base font-bold">Connect your Telegram</h3>
+              <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
+                Stay updated with tasks and alerts for this organization directly on Telegram.
+              </p>
+
+              {!connectionData ? (
+                <Button
+                  onClick={handleConnect}
+                  disabled={connecting}
+                  className="mt-5 bg-sky-500 hover:bg-sky-600 text-white gap-2">
+                  {connecting ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />}
+                  Connect Telegram
+                </Button>
+              ) : (
+                <div className="mt-6 w-full max-w-md rounded-2xl border border-border bg-card p-6 text-left animate-in fade-in zoom-in-95 duration-500 shadow-sm">
+                  <h4 className="text-sm font-bold flex items-center gap-2 mb-4">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">!</div>
+                    Complete your Integration
+                  </h4>
+                  
+                  <div className="space-y-4">
+                    {/* Step 1 */}
+                    <div className="flex gap-3">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">1</div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold">Open Telegram Bot</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Click the link below to open our global notification assistant.
+                        </p>
+                        <a
+                          href={connectionData.connectionLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-sky-500/10 px-3 py-1.5 text-xs font-bold text-sky-600 transition-colors hover:bg-sky-500/20">
+                          <MessageSquare className="size-3.5" />
+                          @{import.meta.env.VITE_TELEGRAM_BOT_NAME || "PMS_Orbit_Bot"}
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Step 2 */}
+                    <div className="flex gap-3">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">2</div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold">Press the Start Button</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Once the bot opens, click the <span className="font-bold text-foreground">START</span> button at the bottom of the chat.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Step 3 */}
+                    <div className="flex gap-3">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">3</div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold">Verify Connection</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Return here and click the verification button to finalize the link.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-border flex flex-col sm:flex-row gap-2">
+                    <Button
+                      onClick={handleVerify}
+                      disabled={verifying}
+                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white h-10 shadow-sm">
+                      {verifying ? <Loader2 className="size-4 animate-spin mr-2" /> : <Check className="size-4 mr-2" />}
+                      Verify &amp; Link Account
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setConnectionData(null)}
+                      className="h-10">
+                      Cancel
+                    </Button>
+                  </div>
+
+                  <p className="mt-4 text-[10px] text-center text-muted-foreground bg-muted/30 p-2 rounded-lg">
+                    <span className="font-bold">Pro Tip:</span> This connection is specific to <span className="font-bold text-foreground">{activeOrg?.name}</span>. Your unique verification token is automatically passed to the bot.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
+                  <Check className="size-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-emerald-700">Account Linked</p>
+                  <p className="text-xs text-emerald-600/80">You are ready to receive organization alerts.</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleDisconnect} className="text-destructive hover:bg-destructive/10">
+                Disconnect
+              </Button>
+            </div>
+            <div className="rounded-xl bg-primary/5 p-4 flex gap-3">
+              <Sparkles className="size-5 text-primary shrink-0" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Notification delivery depends on organization-level settings managed by your administrator.
+              </p>
+            </div>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard
+        title="Other Integrations"
+        description="Connect your favorite tools to supercharge your workflow.">
         <div className="space-y-3">
           {INTEGRATIONS.map(({ name, icon: Icon, desc, color }) => (
-            <div
-              key={name}
-              className="flex items-center justify-between rounded-xl border border-border bg-muted/10 p-4 transition-colors hover:bg-muted/20">
+            <div key={name} className="flex items-center justify-between rounded-xl border border-border bg-muted/10 p-4 opacity-50">
               <div className="flex items-center gap-3">
-                <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                  style={{ background: `${color}20` }}>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${color}20` }}>
                   <Icon className="size-5" style={{ color }} />
                 </div>
                 <div>
@@ -1397,13 +1597,178 @@ function IntegrationsSection() {
                   <p className="text-xs text-muted-foreground">{desc}</p>
                 </div>
               </div>
-              <Badge
-                variant="outline"
-                className="shrink-0 text-xs text-muted-foreground">
-                Coming Soon
-              </Badge>
+              <Badge variant="outline" className="text-[10px]">Coming Soon</Badge>
             </div>
           ))}
+        </div>
+      </SectionCard>
+    </div>
+  );
+}
+
+// ─── 10. ORGANIZATION NOTIFICATIONS SECTION ───────────────────────────────────
+
+function TelegramOrgSection() {
+  const { activeOrg } = useAuth();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await api.get("/telegram/settings");
+      setData(res.data.data);
+    } catch (error) {
+      console.error("Failed to fetch org telegram data", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const toggleEvent = async (key: string) => {
+    const updatedPrefs = {
+      ...data.orgSettings.preferences,
+      [key]: !data.orgSettings.preferences[key],
+    };
+    await updateSettings({ preferences: updatedPrefs });
+  };
+
+  const updateSettings = async (updates: any) => {
+    setSaving(true);
+    try {
+      const res = await api.patch("/telegram/org-settings", {
+        ...data.orgSettings,
+        ...updates
+      });
+      setData({ ...data, orgSettings: res.data.data });
+      toast.success("Settings updated");
+    } catch (error) {
+      toast.error("Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading || !data) return <Skeleton className="h-64 w-full rounded-2xl" />;
+
+  const { orgSettings } = data;
+
+  return (
+    <div className="space-y-5">
+      <SectionCard 
+        title="Global Notifications Control" 
+        description="Enable or disable automated Telegram alerts for high-level organization events.">
+        <div className="flex items-center justify-between p-1">
+          <div>
+            <p className="text-sm font-semibold">Enable Telegram Notifications</p>
+            <p className="text-xs text-muted-foreground">Turn off to silence all bot messages for this organization.</p>
+          </div>
+          <Switch 
+            checked={orgSettings.isEnabled} 
+            onCheckedChange={() => updateSettings({ isEnabled: !orgSettings.isEnabled })} 
+          />
+        </div>
+
+        <div className="mt-4 rounded-xl bg-sky-500/5 border border-sky-500/10 p-4 flex gap-3">
+          <AlertTriangle className="size-5 text-sky-600 shrink-0" />
+          <div className="space-y-1">
+            <p className="text-xs font-bold text-sky-700">How Broadcaster Works</p>
+            <p className="text-[11px] text-sky-600/80 leading-relaxed">
+              When an event occurs, we check these settings and then look for members who have securely linked their Telegram account to <span className="font-bold underline">{activeOrg?.name}</span>. Only connected members will receive the alerts.
+            </p>
+          </div>
+        </div>
+
+        {orgSettings.isEnabled && (
+          <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-top-2">
+            <div>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 block px-1">Event Toggles</Label>
+              <div className="divide-y divide-border rounded-xl border border-border bg-muted/5">
+                {[
+                  { key: "notify_admin_logins", label: "Admin Logins", desc: "Alert when an admin logs in (security tracking)" },
+                  { key: "notify_task_created", label: "Task Created", desc: "Alert when a new task is created" },
+                  { key: "notify_task_updated", label: "Task Updates", desc: "Alert on status changes and edits" },
+                  { key: "notify_task_deleted", label: "Task Deletion", desc: "Alert when content is removed" },
+                  { key: "notify_mentions", label: "Individual Mentions", desc: "Allow users to receive direct mention alerts" },
+                  { key: "notify_all_activity", label: "All Activity", desc: "Broadcasters all system logs and activities" },
+                ].map((item) => (
+                  <div key={item.key} className="flex items-center justify-between p-4 transition-colors hover:bg-muted/10">
+                    <div>
+                      <p className="text-sm font-medium">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                    <Switch 
+                      checked={orgSettings.preferences?.[item.key]} 
+                      onCheckedChange={() => toggleEvent(item.key)} 
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 block px-1">Audience</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { id: 'ONLY_ADMINS', label: 'Admins Only', desc: 'Secure alerts' },
+                  { id: 'ALL_MEMBERS', label: 'All Connected', desc: 'Broad updates' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => updateSettings({ audience: opt.id })}
+                    className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${
+                      orgSettings.audience === opt.id 
+                        ? 'border-primary bg-primary/5 ring-1 ring-primary' 
+                        : 'border-border bg-card hover:bg-muted/50'
+                    }`}>
+                    <span className="text-sm font-bold">{opt.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard 
+        title="Connectivity Status" 
+        description="View members who have linked their Telegram accounts.">
+        <div className="space-y-4">
+          {data.activeConnections && data.activeConnections.length > 0 ? (
+            <div className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+              {data.activeConnections.map((conn: any, idx: number) => (
+                <div key={idx} className="flex items-center justify-between p-4 hover:bg-muted/5 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 font-bold text-xs">
+                      {conn.name[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{conn.name}</p>
+                      <p className="text-[10px] text-muted-foreground font-mono">ID: {conn.chatId.substring(0, 4)}****</p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 uppercase tracking-tight">
+                    {conn.role}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-10 text-center border-2 border-dashed border-border rounded-2xl bg-muted/5">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/30 text-muted-foreground/40">
+                <MessageSquare className="size-8" />
+              </div>
+              <h4 className="text-sm font-bold text-foreground">No Connections Found</h4>
+              <p className="mt-1 px-10 text-center text-xs text-muted-foreground leading-relaxed">
+                Connect your own account in the <span className="font-bold underline">Integrations</span> tab to start receiving alerts for {activeOrg?.name}.
+              </p>
+            </div>
+          )}
         </div>
       </SectionCard>
     </div>
@@ -1432,6 +1797,8 @@ function renderSection(id: SectionId) {
       return <SecuritySection />;
     case "integrations":
       return <IntegrationsSection />;
+    case "org_notifications":
+      return <TelegramOrgSection />;
   }
 }
 

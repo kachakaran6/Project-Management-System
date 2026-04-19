@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {useForm, Controller} from "react-hook-form";
 import {
@@ -17,6 +17,9 @@ import {
   AlertCircle,
   Hash,
   PlusCircle,
+  Sparkles,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
 
 import {Button} from "@/components/ui/button";
@@ -39,6 +42,8 @@ import {Switch} from "@/components/ui/switch";
 import {Label} from "@/components/ui/label";
 import {Badge} from "@/components/ui/badge";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import {DatePicker} from "@/components/ui/date-picker";
+import { useTaskDuplicateSuggestions } from "@/features/tasks/hooks/use-task-duplicate-suggestions";
 
 interface ProjectOption {
   id: string;
@@ -91,6 +96,7 @@ export function TaskForm({
   const {user} = useAuthStore();
   const [createMore, setCreateMore] = useState(false);
   const [newTag, setNewTag] = useState("");
+  const [dismissedQuery, setDismissedQuery] = useState<string | null>(null);
 
   const currentRole = user?.role || "MEMBER";
   const isMemberOnlySelection = currentRole === "MEMBER";
@@ -115,6 +121,7 @@ export function TaskForm({
   });
 
   const statusValue = form.watch("status");
+  const titleValue = form.watch("title") || "";
   const priorityValue = form.watch("priority");
   const projectIdValue = form.watch("projectId");
   const assigneeIdsValue = form.watch("assigneeIds") || [];
@@ -122,6 +129,17 @@ export function TaskForm({
   const tagsValue = form.watch("tags") || [];
   const currentProject = projects.find((p) => p.id === projectIdValue);
   const StatusIcon = statusConfig[statusValue]?.icon || CircleDot;
+  const {
+    suggestions,
+    isLoading: isLoadingSimilar,
+    normalizedQuery,
+    canSearch,
+  } = useTaskDuplicateSuggestions(titleValue, projectIdValue || undefined);
+
+  const showSuggestionsPanel =
+    canSearch &&
+    dismissedQuery !== normalizedQuery &&
+    (isLoadingSimilar || suggestions.length > 0);
 
   useEffect(() => {
     if (isSuccess) {
@@ -132,6 +150,52 @@ export function TaskForm({
       });
     }
   }, [isSuccess])
+
+  useEffect(() => {
+    if (!canSearch) {
+      setDismissedQuery(null);
+      return;
+    }
+
+    if (dismissedQuery && dismissedQuery !== normalizedQuery) {
+      setDismissedQuery(null);
+    }
+  }, [canSearch, dismissedQuery, normalizedQuery]);
+
+  const queryTokens = useMemo(() => {
+    return normalizedQuery
+      .split(" ")
+      .filter((token) => token.length > 1)
+      .slice(0, 6);
+  }, [normalizedQuery]);
+
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const renderHighlightedTitle = (title: string) => {
+    if (queryTokens.length === 0) return <>{title}</>;
+
+    const pattern = new RegExp(`(${queryTokens.map(escapeRegExp).join("|")})`, "ig");
+    const parts = title.split(pattern);
+
+    return (
+      <>
+        {parts.map((part, index) => {
+          const isMatch = queryTokens.some(
+            (token) => token.toLowerCase() === part.toLowerCase(),
+          );
+
+          return (
+            <span
+              key={`${part}-${index}`}
+              className={isMatch ? "font-semibold text-foreground" : undefined}
+            >
+              {part}
+            </span>
+          );
+        })}
+      </>
+    );
+  };
   
 
 
@@ -216,7 +280,7 @@ export function TaskForm({
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 custom-scrollbar">
         {/* Professional Title Input */}
-        <div className="space-y-1">
+        <div className="space-y-1 relative">
           <Controller
           name="title"
           control={form.control}
@@ -236,6 +300,62 @@ export function TaskForm({
             />
           )}
           />
+
+          {showSuggestionsPanel && (
+            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-xl border border-[#E5E7EB] bg-background/98 shadow-lg backdrop-blur-sm overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/20">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Sparkles className="size-3.5 text-primary" />
+                  Similar existing tasks
+                </div>
+                <button
+                  type="button"
+                  className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setDismissedQuery(normalizedQuery)}
+                >
+                  Continue creating anyway
+                </button>
+              </div>
+
+              {isLoadingSimilar && suggestions.length === 0 ? (
+                <div className="px-3 py-3 text-xs text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Checking for duplicates...
+                </div>
+              ) : (
+                <div className="max-h-64 overflow-y-auto">
+                  {suggestions.map((task) => (
+                    <div
+                      key={task.id}
+                      className="group px-3 py-2.5 border-b last:border-b-0 border-border/50 hover:bg-muted/25 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm text-foreground truncate">
+                            {renderHighlightedTitle(task.title)}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                            {task.status.replace(/_/g, " ")} • {task.project} • {task.assignee}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() =>
+                            window.open(`/tasks/${task.id}`, "_blank", "noopener,noreferrer")
+                          }
+                          aria-label="Open similar task"
+                        >
+                          <ExternalLink className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {form.formState.errors.title && (
             <p className="text-[11px] font-semibold text-destructive ml-1">
               {form.formState.errors.title.message}
@@ -260,8 +380,8 @@ export function TaskForm({
       </div>
 
       {/* Metadata Action Bar */}
-      <div className="px-6 py-4 shrink-0 overflow-x-auto no-scrollbar border-t border-border/20 bg-muted/5">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="px-4 md:px-6 py-4 shrink-0 overflow-x-auto no-scrollbar border-t border-border/20 bg-muted/5">
+        <div className="flex items-center gap-2 flex-nowrap md:flex-wrap">
           {/* Status Select */}
           <Select
             value={statusValue}
@@ -353,25 +473,25 @@ export function TaskForm({
             />
           </div>
 
-          {/* Due Date - Native Picker Fix */}
+          {/* Due Date - custom DatePicker */}
           <div className="relative group">
-            <input
-              type="date"
-              id="date-input"
-              {...form.register("dueDate")}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-              onFocus={(e) => (e.target as any).showPicker?.()}
+            <Controller
+              name="dueDate"
+              control={form.control}
+              render={({ field }) => (
+                <DatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Due date"
+                  className={cn(
+                    "h-8 px-3 rounded-full text-[13px] border-border/40",
+                    field.value
+                      ? "text-primary border-primary/30 bg-primary/5"
+                      : "bg-background hover:bg-muted"
+                  )}
+                />
+              )}
             />
-            <div
-              className={cn(
-                "inline-flex items-center gap-2 h-8 px-3 bg-background border border-border/40 rounded-full text-[13px] text-muted-foreground transition-all",
-                dueDateValue
-                  ? "text-primary border-primary/30 bg-primary/5"
-                  : "hover:bg-muted",
-              )}>
-              <CalendarIcon className="h-3.5 w-3.5 opacity-70" />
-              <span>{dueDateValue || "Due date"}</span>
-            </div>
           </div>
 
           {/* Labels / Tags - Functional Implementation */}
@@ -446,7 +566,7 @@ export function TaskForm({
       </div>
 
       {/* Footer Area */}
-      <div className="px-6 py-4 flex items-center justify-between shrink-0 bg-background border-t border-border/10">
+      <div className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shrink-0 bg-background border-t border-border/10">
         <div className="flex items-center gap-2">
           <Switch
             id="create-more"
@@ -489,17 +609,6 @@ export function TaskForm({
         .no-scrollbar {
           -ms-overflow-style: none;
           scrollbar-width: none;
-        }
-        /* Fix for native date picker appearing behind modal */
-        #date-input::-webkit-calendar-picker-indicator {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          width: 100%;
-          height: 100%;
-          cursor: pointer;
         }
       `}</style>
     </div>

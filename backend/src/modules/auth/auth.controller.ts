@@ -112,6 +112,30 @@ export const login = asyncHandler(async (req, res) => {
     metadata: { method: 'PASSWORD' }
   });
 
+  // Telegram Notification for login (Multi-tenant)
+  if (organizationId) {
+    try {
+      const { broadcastToOrg, formatTelegramMessage } = await import('../notification/telegram.service.js');
+      const Organization = (await import('../../models/Organization.js')).default;
+      const org = await Organization.findById(organizationId).lean();
+      
+      const tgMessage = formatTelegramMessage('Admin Login', org?.name || 'Platform', {
+        'User': `${user.firstName} ${user.lastName}`,
+        'IP Address': ip,
+        'Device': userAgent.substring(0, 50) + (userAgent.length > 50 ? '...' : '')
+      });
+
+      await broadcastToOrg({
+        organizationId,
+        eventType: 'ADMIN_LOGINS',
+        message: tgMessage,
+        excludeUserId: (user as any).id || (user as any)._id
+      });
+    } catch (err) {
+      console.error('Login telegram notification failed:', err);
+    }
+  }
+
   res.cookie('refreshToken', refreshToken, refreshCookieOptions);
 
   return res.status(200).json({
