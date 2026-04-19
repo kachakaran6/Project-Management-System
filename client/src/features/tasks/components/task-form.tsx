@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {useForm, Controller} from "react-hook-form";
 import {
@@ -53,6 +53,8 @@ interface TaskFormProps {
     createMore?: boolean,
   ) => Promise<void> | void;
   onCancel?: () => void;
+  onCreated?: () => void;
+  isSuccess: boolean;
   isSubmitting?: boolean;
   submitLabel?: string;
   title?: string;
@@ -80,6 +82,7 @@ export function TaskForm({
   initialValues,
   onSubmit,
   onCancel,
+  isSuccess,
   isSubmitting = false,
   submitLabel = "Save",
   title = "Create new work item",
@@ -111,6 +114,27 @@ export function TaskForm({
     },
   });
 
+  const statusValue = form.watch("status");
+  const priorityValue = form.watch("priority");
+  const projectIdValue = form.watch("projectId");
+  const assigneeIdsValue = form.watch("assigneeIds") || [];
+  const dueDateValue = form.watch("dueDate");
+  const tagsValue = form.watch("tags") || [];
+  const currentProject = projects.find((p) => p.id === projectIdValue);
+  const StatusIcon = statusConfig[statusValue]?.icon || CircleDot;
+
+  useEffect(() => {
+    if (isSuccess) {
+      form.reset({
+        projectId: projectIdValue ?? "",
+        status: statusValue ?? "TODO",
+        priority: priorityValue ?? "MEDIUM",
+      });
+    }
+  }, [isSuccess])
+  
+
+
   const handleTitleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -118,15 +142,7 @@ export function TaskForm({
     }
   };
 
-  const statusValue = form.watch("status");
-  const priorityValue = form.watch("priority");
-  const projectIdValue = form.watch("projectId");
-  const assigneeIdsValue = form.watch("assigneeIds") || [];
-  const dueDateValue = form.watch("dueDate");
-  const tagsValue = form.watch("tags") || [];
 
-  const currentProject = projects.find((p) => p.id === projectIdValue);
-  const StatusIcon = statusConfig[statusValue]?.icon || CircleDot;
 
   const addTag = () => {
     const tag = newTag.trim();
@@ -181,9 +197,9 @@ export function TaskForm({
                 <span>{currentProject?.name || "Select Project"}</span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-border/50">
+            <SelectContent className="rounded-xl border-border/50 w-80">
               {projects.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
+                <SelectItem key={p.id} value={p.id} className="w-80">
                   {p.name}
                 </SelectItem>
               ))}
@@ -201,18 +217,24 @@ export function TaskForm({
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 custom-scrollbar">
         {/* Professional Title Input */}
         <div className="space-y-1">
-          <Input
-            id="title"
-            {...form.register("title")}
-            onKeyDown={handleTitleKeyDown}
-            placeholder="What needs to be done?"
-            className={cn(
-              "h-12 px-4 text-lg font-medium bg-muted/10 border border-border/20 rounded-xl transition-all duration-200",
-              "placeholder:text-muted-foreground/30 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:bg-background",
-              form.formState.errors.title &&
-                "border-destructive/40 focus:border-destructive/40 focus:ring-destructive/5",
-            )}
-            autoFocus
+          <Controller
+          name="title"
+          control={form.control}
+          render={({field}) => (
+            <Input
+              id="title"
+              {...field}
+              onKeyDown={handleTitleKeyDown}
+              placeholder="What needs to be done?"
+              className={cn(
+                "h-12 px-4 text-lg font-medium bg-muted/10 border border-border/20 rounded-xl transition-all duration-200",
+                "placeholder:text-muted-foreground/30 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:bg-background",
+                form.formState.errors.title &&
+                  "border-destructive/40 focus:border-destructive/40 focus:ring-destructive/5",
+              )}
+              autoFocus
+            />
+          )}
           />
           {form.formState.errors.title && (
             <p className="text-[11px] font-semibold text-destructive ml-1">
