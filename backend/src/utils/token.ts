@@ -1,5 +1,7 @@
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import type { Secret, SignOptions } from 'jsonwebtoken';
+import { env } from '../config/env.js';
 
 type TokenPayload = jwt.JwtPayload & {
   userId?: string;
@@ -14,10 +16,10 @@ type TokenPayload = jwt.JwtPayload & {
  */
 export const generateAccessToken = (payload: Record<string, unknown>) => {
   const options: SignOptions = {
-    expiresIn: (process.env.JWT_ACCESS_EXPIRY || '15m') as SignOptions['expiresIn']
+    expiresIn: env.jwtAccessExpiresIn as SignOptions['expiresIn']
   };
 
-  return jwt.sign(payload, process.env.JWT_ACCESS_SECRET! as Secret, options);
+  return jwt.sign(payload, env.jwtAccessSecret! as Secret, options);
 };
 
 /**
@@ -27,10 +29,11 @@ export const generateAccessToken = (payload: Record<string, unknown>) => {
  */
 export const generateRefreshToken = (payload: Record<string, unknown>) => {
   const options: SignOptions = {
-    expiresIn: (process.env.JWT_REFRESH_EXPIRY || '7d') as SignOptions['expiresIn']
+    expiresIn: env.jwtRefreshExpiresIn as SignOptions['expiresIn'],
+    jwtid: crypto.randomUUID()
   };
 
-  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET! as Secret, options);
+  return jwt.sign(payload, env.jwtRefreshSecret! as Secret, options);
 };
 
 /**
