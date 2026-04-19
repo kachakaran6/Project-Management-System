@@ -186,9 +186,9 @@ export default function DashboardPage() {
                       className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm shrink-0">
+                        <Link className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm shrink-0">
                           {project.name.charAt(0).toUpperCase()}
-                        </div>
+                        </Link>
                         <div className="min-w-0">
                           <p className="text-sm font-medium">{project.name}</p>
                           <p className="text-xs text-muted-foreground">
@@ -206,6 +206,14 @@ export default function DashboardPage() {
                         >
                           {project.status}
                         </Badge>
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-3 text-xs"
+                        >
+                          <Link href={`/tasks?projectId=${project.id}`}>View Tasks</Link>
+                        </Button>
                         <Button
                           asChild
                           variant="outline"
@@ -261,7 +269,9 @@ export default function DashboardPage() {
                           className={`size-4 shrink-0 ${PRIORITY_COLORS[task.priority] ?? ""}`}
                         />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium">{task.title}</p>
+                          <Link href={`/tasks/${(task as any)._id}`} className="text-sm font-medium">
+                            {task.title}
+                          </Link>
                           <p className="text-xs text-muted-foreground">
                             {(task.projectId as any)?.name ??
                               projectMap[task.projectId as string] ??
