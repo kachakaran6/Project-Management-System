@@ -472,16 +472,19 @@ export default function TasksPage() {
                   </div>
                 )}
                 {viewMode === "table" && (
-                  <div className="rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm shadow-sm overflow-x-auto">
-                    <Table className="min-w-[600px] md:min-w-0">
-                      <TableHeader>
-                        <TableRow className="bg-muted/30 border-b">
-                          <TableHead className="py-4">Task Title</TableHead>
-                          <TableHead>Assignee</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="hidden md:table-cell">Priority</TableHead>
-                          <TableHead className="hidden md:table-cell">Due Date</TableHead>
-                          <TableHead className="hidden md:table-cell">Project</TableHead>
+                  <div className="rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm shadow-sm overflow-x-auto relative no-scrollbar md:custom-scrollbar">
+                    <Table className="min-w-[800px] md:min-w-0 border-separate border-spacing-0">
+                      <TableHeader className="bg-muted/30">
+                        <TableRow className="hover:bg-transparent border-b">
+                          <TableHead className="py-4 pl-6 min-w-[200px]">Task Title</TableHead>
+                          <TableHead className="min-w-[150px]">Assignee</TableHead>
+                          <TableHead className="min-w-[120px]">Status</TableHead>
+                          <TableHead className="min-w-[120px]">Priority</TableHead>
+                          <TableHead className="min-w-[150px]">Created By</TableHead>
+                          <TableHead className="min-w-[150px]">Created Time</TableHead>
+                          <TableHead className="min-w-[150px]">Project</TableHead>
+                          <TableHead className="min-w-[140px]">Due Date</TableHead>
+                          <TableHead className="min-w-[150px]">Tags</TableHead>
                           <TableHead className="w-16"></TableHead>
                         </TableRow>
                       </TableHeader>
