@@ -5,6 +5,10 @@ import OrganizationMember from '../models/OrganizationMember.js';
 import { emitToUsers } from '../realtime/socket.server.js';
 import { SOCKET_EVENTS } from '../realtime/socket.events.js';
 import { NOTIFICATION_TYPES } from '../constants/index.js';
+import * as telegramService from '../modules/notification/telegram.service.js';
+import User from '../models/User.js';
+
+import Organization from '../models/Organization.js';
 
 interface ActivityParams {
   userId: any;
@@ -76,17 +80,51 @@ export const logActivity = async (params: ActivityParams) => {
           projectId: params.projectId,
         },
       });
+
+      // Telegram Broadcast Logic (Multi-tenant)
+      const telegramEventMap: Record<string, string> = {
+        'TASK_CREATED': 'TASK_CREATED',
+        'TASK_UPDATED': 'TASK_UPDATED',
+        'TASK_DELETED': 'TASK_DELETED',
+        'TASK_STATUS_UPDATED': 'TASK_UPDATED',
+        'COMMENT_CREATED': 'MENTIONS',
+        'PROJECT_CREATED': 'ALL_ACTIVITY',
+        'PROJECT_UPDATED': 'ALL_ACTIVITY',
+        'PROJECT_DELETED': 'ALL_ACTIVITY',
+        'ADMIN_LOGINS': 'ADMIN_LOGINS'
+      };
+
+      const eventType = telegramEventMap[normalizedAction];
+      if (eventType) {
+        const [user, org] = await Promise.all([
+          User.findById(userId).lean(),
+          Organization.findById(params.organizationId).lean()
+        ]);
+        
+        const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown';
+        const orgName = org?.name || 'Unknown Organization';
+        
+        const tgMessage = telegramService.formatTelegramMessage(
+          normalizedAction.replace(/_/g, ' '),
+          orgName,
+          {
+            'By': userName,
+            'Resource': resourceType,
+            'Title': metadata?.title || metadata?.name || logMessage
+          }
+        );
+
+        await telegramService.broadcastToOrg({
+          organizationId: params.organizationId,
+          eventType,
+          message: tgMessage,
+          // excludeUserId: userId // Commented out so you can see your own notifications for testing
+        });
+      }
+
     } catch (error) {
       console.error('[ActivityLog] Failed to create activity log from systemTriggers:', error);
     }
-  } else {
-    console.warn('[ActivityLog] Skipped activity log due to missing required context:', {
-      organizationId: params.organizationId,
-      userId,
-      action,
-      resourceType,
-      resourceId,
-    });
   }
 
   await logInfo(logMessage, {
@@ -170,6 +208,39 @@ export const triggerNotification = async ({
 
     const createdNotifications = await Notification.insertMany(notifications);
     emitToUsers(validUserIds, SOCKET_EVENTS.NOTIFICATION_NEW, createdNotifications);
+
+    // Telegram Notifications for affected users (Direct mapped via connection)
+    for (const recipientId of validUserIds) {
+      const typeMap: Record<string, string> = {
+        [NOTIFICATION_TYPES.MENTION]: 'MENTIONS',
+        [NOTIFICATION_TYPES.TASK_ASSIGNED]: 'TASK_CREATED', 
+      };
+
+      const eventType = typeMap[type];
+      if (eventType) {
+        const [actor, org] = await Promise.all([
+          User.findById(actorId).lean(),
+          Organization.findById(organizationId).lean()
+        ]);
+        
+        const actorName = actor ? `${actor.firstName} ${actor.lastName}` : 'System';
+        const orgName = org?.name || 'Unknown';
+        
+        const tgMessage = telegramService.formatTelegramMessage(
+          titleMap[type] || 'Notification',
+          orgName,
+          {
+            'From': actorName,
+            'Message': message,
+            'Resource': resourceType,
+            'Link': `[View online](${process.env.FRONTEND_URL || 'https://pms-orbit.com'}${link || ''})`
+          }
+        );
+
+        await telegramService.sendDirectNotification(String(recipientId), String(organizationId), tgMessage);
+      }
+    }
+
     return createdNotifications;
   } catch (error) {
     console.error('Notification trigger failed:', error);

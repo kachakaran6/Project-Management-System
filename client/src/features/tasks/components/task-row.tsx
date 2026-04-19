@@ -98,7 +98,15 @@ export const TaskRow = ({
 
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const createdByUser = (task as any).createdBy;
+  const createdByUser =
+    (task as any).createdBy ?? (task as any).creator ?? (task as any).created_by;
+  const createdByName =
+    createdByUser?.name ||
+    [createdByUser?.firstName, createdByUser?.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim() ||
+    "System";
   const createdAt = task.createdAt;
   const tags = task.tags || [];
 
@@ -193,10 +201,10 @@ export const TaskRow = ({
         <div className="flex items-center gap-2">
            <Avatar className="h-6 w-6 rounded-md">
             <AvatarFallback className="bg-primary/5 text-primary text-[8px] font-bold">
-              {createdByUser?.name?.charAt(0) || "S"}
+              {createdByName.charAt(0)}
             </AvatarFallback>
           </Avatar>
-          <span className="text-xs font-semibold whitespace-nowrap">{createdByUser?.name || "System"}</span>
+          <span className="text-xs font-semibold whitespace-nowrap">{createdByName}</span>
         </div>
       </TableCell>
       <TableCell>

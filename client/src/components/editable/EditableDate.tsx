@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React from "react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon, ChevronDown, Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface EditableDateProps {
   value?: string | Date;
@@ -20,76 +20,24 @@ export function EditableDate({
   className,
   isSaving = false,
 }: EditableDateProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const displayDate = value ? format(new Date(value), "MMM d, yyyy") : null;
-  const isoDate = value ? format(new Date(value), "yyyy-MM-dd") : "";
-
-  const handleOpen = () => {
-    setIsEditing(true);
-    // Timeout to allow the element to render if it was hidden, though here it's always in DOM technically if we use a hidden input trick
-  };
-
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    // We only close if we are not clicking the input again
-    // Native date picker often stays open or handles blurs differently
-    setIsEditing(false);
-  };
-
-  const clearDate = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onChange("");
-  };
-
   return (
-    <div className="relative group/date-wrapper">
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          type="date"
-          value={isoDate}
-          autoFocus
-          onBlur={handleBlur}
-          onChange={(e) => {
-            onChange(e.target.value);
-            setIsEditing(false);
-          }}
-          className={cn(
-            "absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full",
-            className
-          )}
-        />
-      ) : (
-        <div 
-          onClick={handleOpen}
-          className="absolute inset-0 cursor-pointer z-10 w-full h-full" 
-        />
-      )}
-      
-      <button
+    <div className={cn("relative group/date-wrapper", className)}>
+      <DatePicker
+        value={value}
+        onChange={(val) => onChange(typeof val === 'string' ? val : "")}
+        placeholder={placeholder}
+        showClear={true}
         className={cn(
-          "group flex items-center gap-2 rounded-md px-2 py-1.5 -ml-2 transition-all hover:bg-muted text-sm w-full text-left focus:outline-none",
-          className
+          "group flex items-center gap-2 rounded-md px-2 py-1.5 -ml-2 transition-all hover:bg-muted text-sm w-full text-left border-none focus-visible:ring-0",
+          !value && "text-muted-foreground italic",
+          value && "font-semibold text-primary"
         )}
-      >
-        <CalendarIcon className={cn("size-3.5", displayDate ? "text-primary" : "opacity-50")} />
-        {displayDate ? (
-          <span className="font-semibold text-primary">{displayDate}</span>
-        ) : (
-          <span className="text-muted-foreground italic">{placeholder}</span>
-        )}
-        <div className="ml-auto flex items-center gap-1.5">
-          {isSaving && <Loader2 className="size-3 animate-spin text-primary" />}
-          {displayDate && (
-             <X 
-              onClick={clearDate}
-              className="size-3.5 opacity-0 group-hover:opacity-50 hover:opacity-100 transition-opacity z-20" 
-             />
-          )}
-          <ChevronDown className="size-3.5 opacity-0 group-hover:opacity-50 transition-opacity" />
+      />
+      {isSaving && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+          <Loader2 className="size-3 animate-spin text-primary" />
         </div>
-      </button>
+      )}
     </div>
   );
 }

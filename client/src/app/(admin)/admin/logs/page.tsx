@@ -57,6 +57,7 @@ import { useAuditLogsQuery, useAdminOrganizationsQuery, useAdminUsersQuery } fro
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { AuditLogEntry } from "@/features/admin/api/admin.api";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type ViewMode = "table" | "timeline";
 
@@ -326,24 +327,21 @@ export default function SystemLogsPage() {
               <div className="flex items-center gap-2 flex-1">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Date Range</span>
                 <div className="flex items-center gap-2">
-                  <Input 
-                    type="date" 
-                    className="h-8 text-[11px] w-35 bg-background/30 border-white/5" 
-                    value={startDate}
-                    onChange={(e) => {
+                  <DatePicker 
+                    mode="range"
+                    value={{ from: startDate ? new Date(startDate) : undefined, to: endDate ? new Date(endDate) : undefined } as any}
+                    onChange={(val) => {
                       setPage(1);
-                      setStartDate(e.target.value);
+                      if (typeof val === "object" && val !== null) {
+                        setStartDate(val.from);
+                        setEndDate(val.to);
+                      } else {
+                        setStartDate("");
+                        setEndDate("");
+                      }
                     }}
-                  />
-                  <span className="text-muted-foreground text-xs">to</span>
-                  <Input 
-                    type="date" 
-                    className="h-8 text-[11px] w-35 bg-background/30 border-white/5" 
-                    value={endDate}
-                    onChange={(e) => {
-                      setPage(1);
-                      setEndDate(e.target.value);
-                    }}
+                    placeholder="Select date range"
+                    className="h-8 text-[11px] w-[220px] bg-background/30 border-white/5" 
                   />
                   {(startDate || endDate) && (
                     <Button 

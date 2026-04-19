@@ -79,6 +79,7 @@ export interface TaskFilters {
   status?: TaskStatus;
   priority?: TaskPriority;
   assigneeId?: string;
+  creatorId?: string;
   tagId?: string;
   dueDate?: string;
 }

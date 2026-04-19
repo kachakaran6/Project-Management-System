@@ -63,6 +63,7 @@ import {
 } from "@/features/admin/hooks/use-admin";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type ReviewStatus = AdminApprovalStatus;
 
@@ -356,18 +357,20 @@ export default function AdminApprovalsPage() {
               </SelectContent>
             </Select>
 
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(event) => setDateFrom(event.target.value)}
-              aria-label="From date"
-            />
-
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(event) => setDateTo(event.target.value)}
-              aria-label="To date"
+            <DatePicker
+              mode="range"
+              value={{ from: dateFrom ? new Date(dateFrom) : undefined, to: dateTo ? new Date(dateTo) : undefined } as any}
+              onChange={(val) => {
+                if (typeof val === "object" && val !== null) {
+                  setDateFrom(val.from);
+                  setDateTo(val.to);
+                } else {
+                  setDateFrom("");
+                  setDateTo("");
+                }
+              }}
+              placeholder="Select registration date range"
+              className="lg:col-span-2"
             />
           </div>
 

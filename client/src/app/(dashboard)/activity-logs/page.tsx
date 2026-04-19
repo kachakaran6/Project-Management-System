@@ -16,6 +16,7 @@ import { useOrganizationMembersQuery } from '@/features/organization/hooks/use-o
 import { useActivityLogsQuery } from '@/features/activity-logs/hooks/use-activity-logs';
 import { ActivityLogEntry } from '@/features/activity-logs/types/activity-log.types';
 import { cn } from '@/lib/utils';
+import { DatePicker } from '@/components/ui/date-picker';
 
 const PAGE_SIZE = 20;
 const ACTION_OPTIONS = [
@@ -466,22 +467,21 @@ export default function ActivityLogsPage() {
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <CalendarDays className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="date"
-              className="h-10 w-36 pl-7 text-xs"
-              value={startDate}
-              onChange={(event) => setStartDate(event.target.value)}
-            />
-          </div>
-          <span className="text-xs text-muted-foreground">to</span>
-          <Input
-            type="date"
-            className="h-10 w-36 text-xs"
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
+        <div className="flex items-center">
+          <DatePicker
+            mode="range"
+            value={{ from: startDate ? new Date(startDate) : undefined, to: endDate ? new Date(endDate) : undefined } as any}
+            onChange={(val) => {
+              if (typeof val === "object" && val !== null) {
+                setStartDate(val.from);
+                setEndDate(val.to);
+              } else {
+                setStartDate("");
+                setEndDate("");
+              }
+            }}
+            placeholder="Filter by date range"
+            className="h-10 w-[240px] px-3 text-xs"
           />
         </div>
       </div>
