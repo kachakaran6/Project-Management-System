@@ -82,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (status === 401) {
           // Definitely unauthorized
+          retryCount = MAX_RETRIES; // Stop retrying
           clearAuth();
         } else if (isNetworkError && retryCount < MAX_RETRIES) {
           // Slow server or network issue - retry!
@@ -95,8 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.warn("[AUTH] Non-fatal error during initAuth. Retention of session state.");
         }
       } finally {
-        if (retryCount >= MAX_RETRIES || !setLoading) {
-           setLoading(false);
+        if (retryCount >= MAX_RETRIES) {
+          setLoading(false);
         }
       }
     };
