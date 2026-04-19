@@ -77,7 +77,7 @@ export function EditableUserSelect({
       </PopoverTrigger>
       <PopoverContent className="p-0 w-[240px]" align="start">
         <Command>
-          <CommandInput placeholder="Search members..." className="h-9" />
+          <CommandInput placeholder="Search members..." className="h-9 focus-visible:outline-none!" />
           <CommandList>
             <CommandEmpty>No member found.</CommandEmpty>
             <CommandGroup heading="Project Members">

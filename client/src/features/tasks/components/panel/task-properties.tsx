@@ -1,7 +1,6 @@
 "use client";
 
-import React from "react";
-import { Task, TaskPriority, TaskStatus } from "@/types/task.types";
+import { Task } from "@/types/task.types";
 import { 
   Calendar, 
   Flag, 
