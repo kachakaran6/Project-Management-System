@@ -25,6 +25,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setAuth, clearAuth, setLoading } = useAuthStore();
 
   useEffect(() => {
+    let retryCount = 0;
+    const MAX_RETRIES = 2;
+
     const initAuth = async () => {
       try {
         setLoading(true);
@@ -67,18 +70,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             memberships,
           );
         } else {
+          // If no token exists, we just stop loading (user is guest/not logged in)
+          // clearAuth() is not strictly needed if state is already empty, but safe
           clearAuth();
         }
-      } catch (error) {
-        console.error("Session restoration failed", error);
-        clearAuth();
+      } catch (error: any) {
+        console.error("Session restoration attempt failed", error);
+        
+        const status = error.response?.status;
+        const isNetworkError = !error.response;
+
+        if (status === 401) {
+          // Definitely unauthorized
+          clearAuth();
+        } else if (isNetworkError && retryCount < MAX_RETRIES) {
+          // Slow server or network issue - retry!
+          retryCount++;
+          console.log(`[AUTH] Retrying session restoration (${retryCount}/${MAX_RETRIES})...`);
+          setTimeout(initAuth, 2000 * retryCount); // Exponential-ish backoff
+          return;
+        } else {
+          // Other error (500, etc.) - don't logout, just log it.
+          // The user might still have a valid token but the server is down.
+          console.warn("[AUTH] Non-fatal error during initAuth. Retention of session state.");
+        }
       } finally {
-        setLoading(false);
+        if (retryCount >= MAX_RETRIES || !setLoading) {
+           setLoading(false);
+        }
       }
     };
 
     initAuth();
   }, [setAuth, clearAuth, setLoading]);
+
+  // AUTO-REFRESH Logic (Step 9)
+  useEffect(() => {
+    const { accessToken } = useAuthStore.getState();
+    if (!accessToken) return;
+
+    // Decode JWT to get 'exp'
+    try {
+      const payload = JSON.parse(atob(accessToken.split(".")[1]));
+      const expiryTime = payload.exp * 1000; // ms
+      // Refresh 2 minutes before it expires
+      const refreshBuffer = 2 * 60 * 1000; 
+      const delay = expiryTime - Date.now() - refreshBuffer;
+
+      if (delay > 0) {
+        const timer = setTimeout(async () => {
+          console.log("[AUTH] Proactive token refresh starting...");
+          const { api } = await import("@/lib/api/axios-instance");
+          await api.post("/auth/refresh").catch(() => {});
+        }, delay);
+
+        return () => clearTimeout(timer);
+      } else {
+        // Already close to expiry or expired, trigger refresh now
+        import("@/lib/api/axios-instance").then(({ api }) => {
+          api.post("/auth/refresh").catch(() => {});
+        });
+      }
+    } catch (e) {
+      console.warn("[AUTH] Failed to schedule auto-refresh", e);
+    }
+  }, [useAuthStore().accessToken]);
 
   return <>{children}</>;
 }

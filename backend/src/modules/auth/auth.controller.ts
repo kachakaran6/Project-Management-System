@@ -6,10 +6,8 @@ import { env } from '../../config/env.js';
 
 const refreshCookieOptions: CookieOptions = {
   httpOnly: true,
-  // Secure must be true for SameSite: 'none' to work in modern browsers
-  secure: true, 
-  // 'none' is required for cross-site cookies (e.g. Localhost front-end calling Render back-end)
-  sameSite: 'none',
+  secure: env.isProduction, 
+  sameSite: env.isProduction ? 'none' : 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000,
   path: '/',
 };

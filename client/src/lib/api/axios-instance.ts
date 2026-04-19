@@ -22,8 +22,6 @@ type RetriableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
 };
 
-let refreshingPromise: Promise<string | null> | null = null;
-
 export const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
@@ -32,24 +30,45 @@ export const api = axios.create({
   },
 });
 
+let refreshingPromise: Promise<string | null> | null = null;
+const authChannel = typeof window !== "undefined" ? new BroadcastChannel("auth_refresh") : null;
+
+if (authChannel) {
+  authChannel.onmessage = (event) => {
+    if (event.data.type === "REFRESH_STARTED") {
+      // If another tab started refreshing, we just wait for the result
+      // But we can't easily share the promise itself across processes
+      // So we'll trigger a refresh check or just let the interceptor handle the 401
+    } else if (event.data.type === "REFRESH_SUCCESS") {
+      useAuthStore.getState().setAccessToken(event.data.accessToken);
+    }
+  };
+}
+
 async function refreshAccessToken(): Promise<string | null> {
   if (refreshingPromise) {
     return refreshingPromise;
   }
 
   refreshingPromise = api
-    .post<ApiResponse<RefreshResponse>>("/auth/refresh")
+    .post<ApiResponse<RefreshResponse>>("/auth/refresh", {}, { withCredentials: true })
     .then((response) => {
       const token = response.data.data.accessToken;
       useAuthStore.getState().setAccessToken(token);
+
+      // Notify other tabs
+      authChannel?.postMessage({ type: "REFRESH_SUCCESS", accessToken: token });
+
       return token;
     })
-    .catch(() => {
-      const { isAuthenticated, clearAuth } = useAuthStore.getState();
-      if (isAuthenticated) {
-        toast.error("Session expired. Please sign in again.");
+    .catch((error) => {
+      if (error.response?.status === 401) {
+        const { isAuthenticated, clearAuth } = useAuthStore.getState();
+        if (isAuthenticated) {
+          toast.error("Session expired. Please sign in again.");
+        }
+        clearAuth();
       }
-      clearAuth();
       return null;
     })
     .finally(() => {
@@ -73,7 +92,7 @@ api.interceptors.request.use(
       config.headers.set("x-organization-id", activeOrgId);
     }
 
-    // Comprehensive logging of outgoing requests (STEP 7)
+    // Comprehensive logging of outgoing requests 
     if (import.meta.env.DEV) {
       console.log(`[API REQUEST] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.data || "");
     }
@@ -102,27 +121,24 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const requestUrl = originalRequest?.url ?? "";
     const isRefreshEndpoint = requestUrl.startsWith("/auth/refresh");
-    const isMeEndpoint = requestUrl.startsWith("/auth/me");
     const isLoginOrRegister =
       requestUrl.startsWith("/auth/login") ||
       requestUrl.startsWith("/auth/register");
 
-    const { isAuthenticated } = useAuthStore.getState();
-
-    // DIAGNOSIS: Handle "Network Error" (Connection refused, DNS failure, etc.)
+    // 1. Handle Network Errors (Render cold starts, timeout, offline)
     if (!error.response) {
       const isTimeout = error.code === "ECONNABORTED" || error.message.includes("timeout");
-      const errorMsg = isTimeout 
+      const errorMsg = isTimeout
         ? "Request timed out. The server might be waking up or under heavy load."
-        : "Network Error: The API server is unreachable. Please check if the backend is running and the URL is correct.";
-      
+        : "Network Error: The API server is unreachable. Please check your connection.";
+
       console.error("[API NETWORK ERROR]", {
         message: error.message,
         code: error.code,
         url: originalRequest?.baseURL ? (originalRequest.baseURL + (originalRequest.url || "")) : originalRequest?.url,
-        isProduction: import.meta.env.PROD
       });
 
+      // DO NOT clearAuth() here. Just notify the user.
       toast.error(errorMsg);
       return Promise.reject(error);
     }
@@ -134,6 +150,7 @@ api.interceptors.response.use(
       error.response?.data || error.message,
     );
 
+    // 2. Handle 401 Unauthorized (Token expired)
     if (
       status === 401 &&
       originalRequest &&
@@ -149,18 +166,19 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (err) {
+        // If refresh failed, reject original request
         return Promise.reject(err);
       }
     }
 
+    // 3. Handle Other Errors
     if (status === 403) {
       const message = (error.response?.data as any)?.message || "Permission denied for this action.";
       toast.error(message);
     } else if (status && status >= 500) {
       toast.error("Server error. Please try again shortly.");
-    } else if (status === 401 && isAuthenticated && !isMeEndpoint) {
-      toast.error("Session invalid. Please sign in.");
     }
+    // Note: 401 on non-retryable requests or failed refresh is handled by throwing or auth store state
 
     return Promise.reject(error);
   },

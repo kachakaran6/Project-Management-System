@@ -65,7 +65,7 @@ export const env: Env = {
   // JWT
   jwtAccessSecret: process.env.JWT_ACCESS_SECRET || "fallback-access-secret",
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || "fallback-refresh-secret",
-  jwtAccessExpiresIn: process.env.JWT_JWT_ACCESS_EXPIRY || "15m",
+  jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRY || "15m",
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRY || "7d",
 
   // SMTP
