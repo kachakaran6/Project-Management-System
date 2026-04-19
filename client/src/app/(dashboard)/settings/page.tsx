@@ -1455,7 +1455,7 @@ export default function SettingsPage() {
   const ActiveIcon = activeItem.icon;
 
   return (
-    <div className="mx-auto min-h-0 w-full max-w-7xl space-y-4 px-4 py-5 md:px-6">
+    <div className="mx-auto min-h-0 w-full max-w-7xl space-y-4">
       {/* Page Header */}
       {/* <div className="space-y-1">
         <h1 className="font-heading text-3xl font-bold tracking-tight">

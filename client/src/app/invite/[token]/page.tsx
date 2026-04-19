@@ -107,7 +107,7 @@ export default function PublicInvitePage() {
     loadingInvite || accepting || isLoading || !invite || invite.status !== "PENDING";
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(52,211,153,0.12),transparent_35%),linear-gradient(180deg,#050816_0%,#0b1020_100%)] px-4 py-10 text-slate-100">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(52,211,153,0.12),transparent_35%),linear-gradient(180deg,#050816_0%,#0b1020_100%)] text-slate-100">
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center justify-center">
         <div className="grid w-full gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <section className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-2xl shadow-black/30">

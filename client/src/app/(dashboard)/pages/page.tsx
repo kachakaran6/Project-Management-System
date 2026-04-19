@@ -179,7 +179,7 @@ export default function PagesListPage() {
   };
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-50px)] w-full max-w-7xl min-h-0 flex-col space-y-4 overflow-y-auto px-4 py-5 md:px-6">
+    <div className="mx-auto flex h-[calc(100vh-50px)] w-full max-w-7xl min-h-0 flex-col space-y-4 overflow-y-auto">
       {/* <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Pages

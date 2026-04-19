@@ -607,7 +607,7 @@ export default function PageEditorPage() {
 
   if (pageQuery.isLoading) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-6 py-20 animate-pulse">
+      <div className="mx-auto w-full max-w-4xl animate-pulse">
         <div className="h-10 w-48 bg-muted/50 rounded-lg mb-8" />
         <div className="h-16 w-3/4 bg-muted/50 rounded-xl mb-12" />
         <div className="space-y-4">
@@ -638,7 +638,7 @@ export default function PageEditorPage() {
 
     // Fallback to loading if we're intermediate
     return (
-      <div className="mx-auto w-full max-w-4xl px-6 py-20 animate-pulse">
+      <div className="mx-auto w-full max-w-4xl animate-pulse">
         <div className="h-10 w-48 bg-muted/50 rounded-lg mb-8" />
         <div className="h-16 w-3/4 bg-muted/50 rounded-xl mb-12" />
       </div>
@@ -834,7 +834,7 @@ export default function PageEditorPage() {
       </div>
 
       {/* 2. Main Content Workspace */}
-      <div className="mx-auto w-full max-w-4xl px-6 md:px-12 pb-32">
+      <div className="mx-auto w-full max-w-4xl pb-32">
         <div className="group/page relative flex flex-col pt-8">
           
           {/* Metadata/Status indicator */}

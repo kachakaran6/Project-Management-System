@@ -189,7 +189,7 @@ export default function TasksPage() {
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-7xl flex flex-col px-4 py-4 md:px-6 overflow-hidden",
+        "mx-auto w-full max-w-7xl flex flex-col overflow-hidden",
         "h-[calc(100vh-64px)]", // Constrain height to viewport minus header
       )}>
       <div className={cn("shrink-0 space-y-3", viewMode === "kanban" && "px-1")}>
