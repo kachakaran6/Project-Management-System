@@ -280,7 +280,7 @@ export default function ProjectsPage() {
             ) : null}
           </div>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 mt-4">
             <div className="col-span-full hidden items-center justify-between px-1 pb-1 text-xs text-muted-foreground md:flex">
               <span>{filtered.length} projects</span>
               <span>{totalMembers} members on page</span>
