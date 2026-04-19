@@ -1,15 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { AppLayout } from "@/components/layout/app-layout";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AuthGuard } from "@/features/auth/components/guards";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useRouter } from "@/lib/next-navigation";
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const { activeOrg, user } = useAuth();
   const role =
     user?.role === "SUPER_ADMIN"
@@ -17,21 +16,27 @@ export default function AdminLayout({
       : activeOrg?.role ?? user?.role;
   const allowed = role === "SUPER_ADMIN" || role === "ADMIN";
 
+  useEffect(() => {
+    if (!allowed) {
+      router.replace("/dashboard");
+    }
+  }, [allowed, router]);
+
+  if (!allowed) {
+    return null;
+  }
+
+  return <AppLayout>{children}</AppLayout>;
+}
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <AuthGuard>
-      <AppLayout>
-        {allowed ? (
-          children
-        ) : (
-          <Alert variant="destructive">
-            <AlertTitle>Admin access required</AlertTitle>
-            <AlertDescription>
-              You need ADMIN or SUPER_ADMIN role in the active organization to
-              access this area.
-            </AlertDescription>
-          </Alert>
-        )}
-      </AppLayout>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
     </AuthGuard>
   );
 }

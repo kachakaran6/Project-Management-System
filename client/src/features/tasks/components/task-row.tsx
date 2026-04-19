@@ -1,4 +1,4 @@
-﻿import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
+import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {Button} from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -194,7 +194,7 @@ export const TaskRow = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
-      <TableCell>
+      <TableCell className="hidden md:table-cell">
         <DropdownMenu>
           <DropdownMenuTrigger disabled={!canMutate} asChild>
             <Button
@@ -235,7 +235,7 @@ export const TaskRow = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
-      <TableCell>
+      <TableCell className="hidden md:table-cell">
         {task.dueDate ? (
           <div
             className={cn(
@@ -256,7 +256,7 @@ export const TaskRow = ({
           </span>
         )}
       </TableCell>
-      <TableCell>
+      <TableCell className="hidden md:table-cell">
         <span className="text-xs font-medium text-muted-foreground/70 truncate max-w-[120px] block">
           {getProjectName(task)}
         </span>

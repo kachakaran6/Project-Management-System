@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
+import AdminLayout from "@/app/(admin)/admin/layout";
 import DashboardGroupLayout from "@/app/(dashboard)/layout";
 
 type PageModule = {
@@ -22,6 +23,10 @@ function toRoutePath(modulePath: string) {
 
 function wrapElement(modulePath: string, PageComponent: ComponentType) {
   const pageElement = <PageComponent />;
+
+  if (modulePath.includes("/(admin)/")) {
+    return <AdminLayout>{pageElement}</AdminLayout>;
+  }
 
   if (modulePath.includes("/(dashboard)/")) {
     return <DashboardGroupLayout>{pageElement}</DashboardGroupLayout>;

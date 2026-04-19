@@ -17,6 +17,8 @@ import {
   type SidebarNavItem,
 } from "@/components/layout/sidebar/sidebar-nav";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useRouter } from "next/navigation";
 
 const navItems: SidebarNavItem[] = [
   {
@@ -65,6 +67,18 @@ export function AppSidebar({
   role = "manager",
   pathname = "/",
 }: AppSidebarProps) {
+  const { logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
   return (
     <aside
       className={cn(
@@ -112,7 +126,7 @@ export function AppSidebar({
             "w-full justify-start gap-3 px-3 py-2 text-sidebar-foreground/80 hover:bg-red-500/10 hover:text-red-500 transition-colors",
             collapsed && "justify-center"
           )}
-          onClick={() => (window.location.href = "/logout")}
+          onClick={handleLogout}
         >
           <LogOut className="h-5 w-5 shrink-0" />
           {!collapsed && <span className="font-medium">Sign Out</span>}
