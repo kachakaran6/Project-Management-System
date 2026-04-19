@@ -72,7 +72,7 @@ export function EditableSelect({
       </PopoverTrigger>
       <PopoverContent className="p-0 w-[200px]" align="start">
         <Command>
-          <CommandInput placeholder="Search..." className="h-9" />
+          <CommandInput placeholder="Search..." className="h-9 focus-visible:outline-none!" />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
