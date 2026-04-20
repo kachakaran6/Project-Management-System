@@ -14,6 +14,8 @@ export const taskFormSchema = z.object({
   ]),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
   projectId: z.string().min(1, "Project is required"),
+  visibility: z.enum(["PUBLIC", "PRIVATE", "DRAFT"]).default("PUBLIC"),
+  visibleToUsers: z.array(z.string()).optional(),
   assigneeIds: z.array(z.string()).optional(),
   dueDate: z.string().optional().or(z.literal("")),
   tags: z.array(z.string()).optional(),

@@ -1,5 +1,7 @@
 import Comment from '../../models/Comment.js';
 import Task from '../../models/Task.js';
+import Project from '../../models/Project.js';
+import User from '../../models/User.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import { parseMentions } from '../../utils/mentionParser.js';
 import * as activityLog from '../../utils/systemTriggers.js';
@@ -48,6 +50,8 @@ export const addComment = async (commentData: Record<string, any>, userId: any) 
 
   // 2. Parse Mentions
   const mentions = await parseMentions(content, organizationId);
+  const project = task.projectId ? await Project.findById(task.projectId).select('name').lean() : null;
+  const projectName = project?.name || 'General';
 
   // 3. Create Comment
   const comment = await Comment.create({
@@ -79,6 +83,11 @@ export const addComment = async (commentData: Record<string, any>, userId: any) 
 
   // Trigger notification for mentions
   if (mentions.length > 0) {
+    const actor = await User.findById(userId).select('firstName lastName email').lean();
+    const actorName = actor 
+      ? `${actor.firstName || ''} ${actor.lastName || ''}`.trim() || actor.email 
+      : 'Someone';
+      
     activityLog.triggerNotification({
       userIds: mentions,
       organizationId,
@@ -86,12 +95,25 @@ export const addComment = async (commentData: Record<string, any>, userId: any) 
       type: 'MENTION',
       message: `You were mentioned in a comment on task: ${task.title}`,
       resourceId: taskId,
-      resourceType: 'Task'
+      resourceType: 'Task',
+      metadata: {
+        taskId: String(taskId),
+        taskTitle: task.title,
+        projectName,
+        actorName,
+        comment: String(content).trim().slice(0, 150),
+        timestamp: new Date(),
+      }
     });
   }
 
   // Trigger notification for task creator if not the actor
   if (task.creatorId && task.creatorId.toString() !== userId.toString()) {
+    const actor = await User.findById(userId).select('firstName lastName email').lean();
+    const actorName = actor 
+      ? `${actor.firstName || ''} ${actor.lastName || ''}`.trim() || actor.email 
+      : 'Someone';
+      
      activityLog.triggerNotification({
         userIds: [task.creatorId],
         organizationId,
@@ -99,7 +121,16 @@ export const addComment = async (commentData: Record<string, any>, userId: any) 
         type: 'COMMENT_ADDED',
         message: `New comment on your task: ${task.title}`,
         resourceId: taskId,
-        resourceType: 'Task'
+        resourceType: 'Task',
+        metadata: {
+         taskId: String(taskId),
+         taskTitle: task.title,
+         projectName,
+         actorName,
+         changedFields: ['Comment'],
+         comment: String(content).trim().slice(0, 150),
+         timestamp: new Date(),
+        }
      });
   }
 

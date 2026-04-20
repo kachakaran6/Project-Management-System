@@ -48,6 +48,8 @@ import { ACCENT_COLORS } from "@/store/theme-store";
 import { organizationsApi } from "@/features/organizations/api/organizations.api";
 import { UserWithRole } from "@/types/user.types";
 import { OrganizationMembership } from "@/types/organization.types";
+import * as LucideIcons from "lucide-react";
+import { TagManagement } from "@/features/tags/components/tag-management";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -61,6 +63,7 @@ type SectionId =
   | "billing"
   | "security"
   | "integrations"
+  | "tags"
   | "org_notifications";
 
 interface UserWithOrganizations extends UserWithRole {
@@ -87,6 +90,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "billing", label: "Billing", icon: CreditCard, adminOnly: true },
   { id: "security", label: "Security", icon: ShieldCheck },
   { id: "integrations", label: "Integrations", icon: Puzzle },
+  { id: "tags", label: "Tags", icon: LucideIcons.Tag, managerPlus: true },
   {
     id: "org_notifications",
     label: "Org Notifications",
@@ -1656,6 +1660,7 @@ function TelegramOrgSection() {
   if (loading || !data) return <Skeleton className="h-64 w-full rounded-2xl" />;
 
   const { orgSettings } = data;
+  const isMasterAllEnabled = Boolean(orgSettings.preferences?.track_all);
 
   return (
     <div className="space-y-5">
@@ -1687,6 +1692,11 @@ function TelegramOrgSection() {
           <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-top-2">
             <div>
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 block px-1">Event Toggles</Label>
+              {isMasterAllEnabled && (
+                <p className="text-[11px] text-amber-600 mb-2 px-1">
+                  All Activity is enabled. Individual event toggles are temporarily overridden.
+                </p>
+              )}
               <div className="divide-y divide-border rounded-xl border border-border bg-muted/5">
                 {[
                   { key: "track_logins", label: "User Logins", desc: "Alert when a user logs in or out" },
@@ -1702,7 +1712,8 @@ function TelegramOrgSection() {
                     </div>
                     <Switch 
                       checked={orgSettings.preferences?.[item.key]} 
-                      onCheckedChange={() => toggleEvent(item.key)} 
+                      onCheckedChange={() => toggleEvent(item.key)}
+                      disabled={isMasterAllEnabled && item.key !== "track_all"}
                     />
                   </div>
                 ))}
@@ -1829,6 +1840,8 @@ function renderSection(id: SectionId) {
       return <IntegrationsSection />;
     case "org_notifications":
       return <TelegramOrgSection />;
+    case "tags":
+      return <TagManagement />;
   }
 }
 
@@ -1946,6 +1959,8 @@ export default function SettingsPage() {
                   "Protect your account with security controls"}
                 {activeSection === "integrations" &&
                   "Connect third-party tools to your workflow"}
+                {activeSection === "tags" &&
+                  "Define organization-wide labels for tasks"}
               </p>
             </div>
           </div>

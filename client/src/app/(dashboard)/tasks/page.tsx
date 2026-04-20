@@ -96,6 +96,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DatePicker } from "@/components/ui/date-picker";
+import { TagSelect } from "@/features/tags/components/tag-select";
+import { useTagsQuery } from "@/features/tags/hooks/use-tags";
 
 const PAGE_SIZE = 10;
 const VIEW_STORAGE_KEY = "tasks:view-mode";
@@ -166,6 +168,9 @@ export default function TasksPage() {
   const [page, setPage] = useState(1);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [tagIds, setTagIds] = useState<string[]>(
+    searchParams.get("tagIds")?.split(",").filter(Boolean) || [],
+  );
   const [isExporting, setIsExporting] = useState(false);
 
   const { activeOrg, activeOrgId } = useAuth();
@@ -202,8 +207,10 @@ export default function TasksPage() {
     else params.delete("creatorId");
     if (dueDate) params.set("dueDate", dueDate);
     else params.delete("dueDate");
+    if (tagIds.length > 0) params.set("tagIds", tagIds.join(","));
+    else params.delete("tagIds");
     router.replace(`?${params.toString()}`);
-  }, [status, priority, projectId, assigneeId, creatorId, dueDate, router]);
+  }, [status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, router]);
 
   const sharedFilters = useMemo(
     () => ({
@@ -217,8 +224,9 @@ export default function TasksPage() {
       assigneeId: assigneeId === "ALL" || !assigneeId ? undefined : assigneeId,
       creatorId: creatorId === "ALL" || !creatorId ? undefined : creatorId,
       dueDate: dueDate || undefined,
+      tagIds: tagIds.length > 0 ? tagIds : undefined,
     }),
-    [debouncedSearch, status, priority, projectId, assigneeId, creatorId, dueDate],
+    [debouncedSearch, status, priority, projectId, assigneeId, creatorId, dueDate, tagIds],
   );
 
   const listFilters = useMemo(
@@ -252,8 +260,9 @@ export default function TasksPage() {
     if (assigneeId !== "ALL") count++;
     if (creatorId !== "ALL") count++;
     if (dueDate) count++;
+    if (tagIds.length > 0) count += tagIds.length;
     return count;
-  }, [status, priority, projectId, assigneeId, creatorId, dueDate]);
+  }, [status, priority, projectId, assigneeId, creatorId, dueDate, tagIds]);
 
   const clearFilters = () => {
     setPage(1);
@@ -264,6 +273,7 @@ export default function TasksPage() {
     setAssigneeId("ALL");
     setCreatorId("ALL");
     setDueDate("");
+    setTagIds([]);
     router.push("?");
   };
 
@@ -353,6 +363,8 @@ export default function TasksPage() {
       setIsExporting(false);
     }
   };
+
+  const { data: allTags = [] } = useTagsQuery(activeOrgId || "");
 
   const FilterContent = ({ isMobileView = false }) => (
     <div className={cn("flex flex-col h-full", !isMobileView && "max-h-[480px]")}>
@@ -452,6 +464,17 @@ export default function TasksPage() {
               inline
             />
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Tags (AND Logic)</label>
+          <TagSelect 
+            selectedTagIds={tagIds}
+            onChange={(ids) => {
+              setPage(1);
+              setTagIds(ids);
+            }}
+          />
         </div>
       </div>
 
@@ -603,15 +626,17 @@ export default function TasksPage() {
                 <List className="size-3.5" />
                 <span className="hidden sm:inline">List</span>
               </Button>
-              <Button
-                variant={viewMode === "kanban" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("kanban")}
-                className="h-7 px-4 rounded-full text-xs gap-1.5 font-bold transition-all"
-              >
-                <Kanban className="size-3.5" />
-                <span className="hidden sm:inline">Board</span>
-              </Button>
+              {!isMobile && (
+                <Button
+                  variant={viewMode === "kanban" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("kanban")}
+                  className="h-7 px-4 rounded-full text-xs gap-1.5 font-bold transition-all"
+                >
+                  <Kanban className="size-3.5" />
+                  <span className="hidden sm:inline">Board</span>
+                </Button>
+              )}
               {isMobile && (
                 <Button
                   variant={viewMode === "table" ? "secondary" : "ghost"}
@@ -702,6 +727,24 @@ export default function TasksPage() {
                 />
               </Badge>
             )}
+            {tagIds.map(tid => {
+              const tag = allTags.find(t => t.id === tid);
+              if (!tag) return null;
+              return (
+                <Badge
+                  key={tag.id}
+                  variant="outline"
+                  className="h-7 px-3 rounded-full text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap"
+                  style={{ borderColor: `${tag.color}40`, color: tag.color, backgroundColor: `${tag.color}10` }}
+                >
+                  {tag.label}
+                  <X
+                    className="size-3 opacity-50 hover:opacity-100 cursor-pointer"
+                    onClick={() => setTagIds(tagIds.filter(id => id !== tag.id))}
+                  />
+                </Badge>
+              );
+            })}
             {activeFilterCount > 1 && (
               <Button
                 variant="ghost"

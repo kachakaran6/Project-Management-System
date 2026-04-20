@@ -95,9 +95,17 @@ export const getProjects = async (
  * Update project
  */
 export const updateProject = async (projectId: any, updateData: Record<string, any>, userId: any) => {
+  const normalizedUpdateData = {
+    ...updateData,
+    status:
+      typeof updateData?.status === 'string'
+        ? updateData.status.toLowerCase()
+        : updateData?.status,
+  };
+
   const project = await Project.findOneAndUpdate(
     { _id: projectId, isActive: true },
-    { $set: updateData },
+    { $set: normalizedUpdateData },
     { new: true, runValidators: true }
   );
 
@@ -109,7 +117,7 @@ export const updateProject = async (projectId: any, updateData: Record<string, a
     resourceId: project._id,
     resourceType: 'Project',
     action: 'UPDATE_PROJECT',
-    metadata: { updatedFields: Object.keys(updateData) }
+    metadata: { updatedFields: Object.keys(normalizedUpdateData) }
   });
 
   return project;

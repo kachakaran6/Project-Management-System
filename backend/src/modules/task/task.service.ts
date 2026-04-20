@@ -1,10 +1,13 @@
 import Task from '../../models/Task.js';
 import TaskAssignee from '../../models/TaskAssignee.js';
 import TaskTag from '../../models/TaskTag.js';
+import TaskVisibilityUser from '../../models/TaskVisibilityUser.js';
 import Tag from '../../models/Tag.js';
+import Project from '../../models/Project.js';
 import OrganizationMember from '../../models/OrganizationMember.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import * as activityLog from '../../utils/systemTriggers.js';
+import * as visibilityHelpers from '../../utils/visibilityHelpers.js';
 import mongoose from 'mongoose';
 import { emitToRoom, emitToUsers } from '../../realtime/socket.server.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../realtime/socket.events.js';
@@ -37,133 +40,83 @@ const normalizeUser = (user: any) => {
 };
 
 /**
- * Normalize tags from TaskTag records into a simple string array of names.
+ * Normalize tags from TaskTag records into rich objects.
  */
-const normalizeTags = (taskTags: any[]): string[] => {
+const normalizeTags = (taskTags: any[]): any[] => {
   if (!Array.isArray(taskTags)) return [];
-  console.log(`[TaskService] Normalizing ${taskTags.length} tags`);
   return taskTags
     .map((tt: any) => {
-      // 1. If populated by Mongoose (most common)
-      if (tt.tagId && typeof tt.tagId === 'object' && tt.tagId.name) {
-        return String(tt.tagId.name);
+      const tag = tt.tagId;
+      if (tag && typeof tag === 'object' && tag._id) {
+        return {
+          id: String(tag._id),
+          name: tag.name,
+          label: tag.label || tag.name,
+          color: tag.color || '#6366f1',
+          icon: tag.icon || 'Tag'
+        };
       }
-      // 2. If for some reason name is on the link object itself
-      if (tt.name) return String(tt.name);
-      // 3. Fallback: if tagId is just a string/ID, we can't get the name easily
-      // unless we previously populated it. 
       return null;
     })
-    .filter(Boolean) as string[];
+    .filter(Boolean);
 };
 
-/**
- * Validates and converts a value to a Mongoose ObjectId or returns null.
- */
 const toObjectId = (value: any): mongoose.Types.ObjectId | null => {
   const str = String(value || '').trim();
   return mongoose.Types.ObjectId.isValid(str) ? new mongoose.Types.ObjectId(str) : null;
 };
 
+const resolveProjectName = async (projectId: any) => {
+  const normalizedProjectId = toObjectId(projectId);
+  if (!normalizedProjectId) return 'General';
+  const project = await Project.findById(normalizedProjectId).select('name').lean();
+  return project?.name || 'General';
+};
+
 /**
- * Find or create tags by name for an organization and link them to a task.
+ * Find or create tags and link them to a task.
  */
-const syncTags = async (taskId: any, tagNames: string[], organizationId: any, workspaceId?: any, session?: any) => {
+const syncTags = async (taskId: any, tags: any[], organizationId: any, workspaceId?: any, session?: any) => {
   const mongoTaskId = toObjectId(taskId);
-  if (!mongoTaskId) {
-    console.error('[syncTags] Aborting: Missing valid taskId');
-    return;
-  }
+  if (!mongoTaskId) return;
 
-  const originalNames = Array.isArray(tagNames) ? tagNames : [];
-  const uniqueNames = Array.from(new Set(originalNames.map(t => String(t || '').trim()).filter(Boolean)));
   const mongoOrgId = toObjectId(organizationId);
-  const mongoWsId = toObjectId(workspaceId);
+  const tagIds: mongoose.Types.ObjectId[] = [];
 
-  console.log(`[syncTags] Syncing ${uniqueNames.length} tags for Task ${mongoTaskId} (Org: ${mongoOrgId})`);
-
-  const verifiedTagIds: mongoose.Types.ObjectId[] = [];
-
-  for (const name of uniqueNames) {
-    try {
-      // 1. Strict find (case-insensitive)
-      let tag = await Tag.findOne({ 
-        organizationId: mongoOrgId || null, 
-        name: { $regex: new RegExp(`^${name}$`, 'i') } 
-      }).session(session);
-
-      // 2. Repair/Cleanup: If tag exists but ID is corrupted (non-hex string)
-      if (tag && !mongoose.Types.ObjectId.isValid(String(tag._id))) {
-        console.warn(`[syncTags] Fixing corrupted tag ID for "${name}"`);
-        await Tag.deleteOne({ _id: tag._id }).session(session);
-        tag = null;
-      }
-
-      // 3. Create if missing
+  for (const item of tags) {
+    if (mongoose.Types.ObjectId.isValid(String(item))) {
+      tagIds.push(new mongoose.Types.ObjectId(String(item)));
+    } else if (typeof item === 'string' && item.trim()) {
+      const name = item.trim().toLowerCase().replace(/\s+/g, '-');
+      let tag = await Tag.findOne({ organizationId: mongoOrgId, name }).session(session);
       if (!tag) {
-        const [newTag] = await Tag.create([{ 
-          name, 
-          organizationId: mongoOrgId || null, 
-          workspaceId: mongoWsId || null,
-          color: '#6366f1' 
+        const [newTag] = await Tag.create([{
+          name,
+          label: item.trim(),
+          organizationId: mongoOrgId,
+          workspaceId: toObjectId(workspaceId),
+          createdBy: toObjectId(organizationId) 
         }], { session });
         tag = newTag;
-        console.log(`[syncTags] Created tag: ${name} -> ${tag._id}`);
       }
-
-      // 4. Final verification of document ID before adding to insertion list
-      if (tag && tag._id) {
-        const cleanId = toObjectId(tag._id);
-        if (cleanId && mongoose.Types.ObjectId.isValid(String(cleanId))) {
-          // Extra check: never add name strings as IDs
-          if (String(cleanId) !== name) {
-            verifiedTagIds.push(cleanId);
-          } else {
-            console.error(`[syncTags] SECURITY BREACH: Tag ID matches Tag Name for "${name}". Skipping.`);
-          }
-        }
-      }
-    } catch (err) {
-      console.error(`[syncTags] Failed to process tag "${name}":`, err);
-      if (session) throw err;
+      if (tag) tagIds.push(tag._id as mongoose.Types.ObjectId);
     }
   }
 
-  // 5. Atomic Update of links
-  const linkFilter = { taskId: mongoTaskId };
-  
-  // Wipe existing links
-  if (session) {
-    await TaskTag.deleteMany(linkFilter, { session });
-  } else {
-    await TaskTag.deleteMany(linkFilter);
-  }
+  const uniqueTagIds = Array.from(new Set(tagIds.map(id => String(id)))).map(id => new mongoose.Types.ObjectId(id));
 
-  // Insert verified links only
-  if (verifiedTagIds.length > 0) {
-    const linkDocs = verifiedTagIds.map(tId => ({
+  await TaskTag.deleteMany({ taskId: mongoTaskId }, { session });
+
+  if (uniqueTagIds.length > 0) {
+    const linkDocs = uniqueTagIds.map(tId => ({
       taskId: mongoTaskId,
       tagId: tId,
-      organizationId: mongoOrgId || null
+      organizationId: mongoOrgId
     }));
-
-    console.log(`[syncTags] Finalizing link insertion for ${linkDocs.length} tags`);
-    
-    try {
-      if (session) {
-        await TaskTag.insertMany(linkDocs, { session, ordered: false });
-      } else {
-        await TaskTag.insertMany(linkDocs, { ordered: false });
-      }
-    } catch (err: any) {
-      if (err.code !== 11000) {
-        console.error('[syncTags] Database insertion error:', err);
-        if (session) throw err;
-      }
-    }
+    await TaskTag.insertMany(linkDocs, { session, ordered: false }).catch(err => {
+      if (err.code !== 11000) throw err;
+    });
   }
-
-  console.log(`[syncTags] COMPLETED successfully for Task ${mongoTaskId}`);
 };
 
 const enrichTaskWithAssignees = (task: any, assignees: any[] = []) => {
@@ -173,6 +126,7 @@ const enrichTaskWithAssignees = (task: any, assignees: any[] = []) => {
 
   return {
     ...task,
+    id: String(task._id),
     assignees,
     assigneeUsers,
     assigneeId: assigneeUsers[0]?.id,
@@ -180,141 +134,99 @@ const enrichTaskWithAssignees = (task: any, assignees: any[] = []) => {
 };
 
 /**
- * Task Service: Business Logic for task management
- */
-
-/**
- * Create a new task with assignees and tags
+ * Create a new task
  */
 export const createTask = async (taskData: Record<string, any>, userId: string, role: string) => {
   const { 
     title, description, projectId, workspaceId, organizationId, 
-    status,
-    priority,
-    dueDate,
-    assignees = [],
-    assigneeId,
-    assigneeIds = [],
+    status, priority, dueDate,
+    assignees = [], assigneeId, assigneeIds = [],
     tags = [],
-    labels = []
+    visibility = 'PUBLIC',
+    visibleToUsers = []
   } = taskData;
 
-  const normalizedAssignees = Array.from(
-    new Set(
-      [
-        ...(Array.isArray(assignees) ? assignees : []),
-        ...(Array.isArray(assigneeIds) ? assigneeIds : []),
-        assigneeId,
-      ]
-        .map((id: any) => String(id || '').trim())
-        .filter(Boolean),
-    ),
-  );
+  const normalizedAssignees = Array.from(new Set([
+    ...(Array.isArray(assignees) ? assignees : []),
+    ...(Array.isArray(assigneeIds) ? assigneeIds : []),
+    assigneeId
+  ].map(id => String(id || '').trim()).filter(Boolean)));
 
-  const normalizedTags = Array.from(
-    new Set(
-      [
-        ...(Array.isArray(tags) ? tags : []),
-        ...(Array.isArray(labels) ? labels : []),
-      ]
-        .map((tag: any) => String(tag || '').trim())
-        .filter(Boolean),
-    ),
-  );
-
-  if (!title) {
-    throw new AppError('Title is required.', 400);
-  }
-
-  // VALIDATION: Assignment Rules
-  // Members can ONLY assign tasks to themselves.
-  if (normalizedAssignees.length > 0) {
-    const isMember = role === ROLES.MEMBER || role === 'MEMBER';
-    const hasOtherAssignees = normalizedAssignees.some((aId: string) => String(aId) !== String(userId));
-
-    if (isMember && hasOtherAssignees) {
-      throw new AppError('You can only assign tasks to yourself.', 403);
-    }
-  }
+  if (!title) throw new AppError('Title is required.', 400);
 
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    // 1. Create the Task
     const [task] = await Task.create([{
-      title,
-      description,
-      projectId: (projectId && String(projectId).trim()) ? projectId : undefined,
-      workspaceId: (workspaceId && String(workspaceId).trim()) ? workspaceId : undefined,
+      title, description, 
+      projectId: toObjectId(projectId), 
+      workspaceId: toObjectId(workspaceId), 
       organizationId,
       status: status || 'TODO',
       priority: priority || 'MEDIUM',
-      dueDate,
-      creatorId: userId
+      dueDate, creatorId: userId,
+      visibility: visibility || 'PUBLIC'
     }], { session });
 
-    const effectiveOrganizationId = task.organizationId || organizationId;
-
-    // 2. Handle Assignees
-    if (normalizedAssignees.length > 0 && effectiveOrganizationId) {
-      const assigneeDocs = normalizedAssignees.map((aId: any) => ({
+    // Add visibility users if private
+    if (visibility === 'PRIVATE' && visibleToUsers.length > 0) {
+      const visibilityDocs = visibleToUsers.map((uid: any) => ({
         taskId: task._id,
-        userId: aId,
-        organizationId: effectiveOrganizationId,
-        assignedById: userId
+        userId: toObjectId(uid),
+        organizationId
       }));
-      await TaskAssignee.insertMany(assigneeDocs, { session });
+      await TaskVisibilityUser.insertMany(visibilityDocs, { session });
     }
 
-    // 3. Handle Tags
-    if (normalizedTags.length > 0) {
-      await syncTags(task._id, normalizedTags, task.organizationId, task.workspaceId, session);
+    if (normalizedAssignees.length > 0) {
+      await TaskAssignee.insertMany(normalizedAssignees.map(aId => ({
+        taskId: task._id, userId: aId, organizationId, assignedById: userId
+      })), { session });
+    }
+
+    if (tags.length > 0) {
+      await syncTags(task._id, tags, organizationId, workspaceId, session);
     }
 
     await session.commitTransaction();
 
-    // 4. Activity Logging & Notifications (Async)
+    const projectName = await resolveProjectName(task.projectId);
+
     activityLog.logActivity({
-      userId,
-      organizationId,
-      workspaceId,
-      projectId,
-      resourceId: task._id,
-      resourceType: 'Task',
-      action: 'CREATE',
-      metadata: { title: task.title }
+      userId, organizationId, workspaceId, projectId,
+      resourceId: task._id, resourceType: 'Task', action: 'CREATE',
+      metadata: {
+        taskId: String(task._id),
+        taskTitle: task.title,
+        title: task.title,
+        projectName,
+        newStatus: task.status,
+        assignedTo: '-',
+        changedFields: ['Title', 'Description', 'Status'],
+        timestamp: new Date(),
+      }
     });
 
-    if (normalizedAssignees.length > 0 && effectiveOrganizationId) {
+    if (normalizedAssignees.length > 0) {
       activityLog.triggerNotification({
-        userIds: normalizedAssignees,
-        organizationId: effectiveOrganizationId,
-        actorId: userId,
-        type: 'TASK_ASSIGNED',
-        message: `You have been assigned to task: ${task.title}`,
-        resourceId: task._id,
-        resourceType: 'Task'
+        userIds: normalizedAssignees, organizationId, actorId: userId,
+        type: 'TASK_ASSIGNED', message: `Assigned: ${task.title}`,
+        resourceId: task._id, resourceType: 'Task',
+        metadata: {
+          taskId: String(task._id),
+          taskTitle: task.title,
+          projectName,
+          timestamp: new Date(),
+        }
       });
     }
 
-    // Real-time notify
-    emitToRoom(SOCKET_ROOMS.WORKSPACE(workspaceId), SOCKET_EVENTS.TASK_CREATED, {
-      taskId: task._id,
-      title: task.title,
-      projectId
-    });
+    emitToRoom(SOCKET_ROOMS.WORKSPACE(workspaceId), SOCKET_EVENTS.TASK_CREATED, { taskId: task._id, title: task.title });
 
-    return getTaskById(task._id);
-  } catch (error: any) {
-    if (session.inTransaction()) {
-      await session.abortTransaction();
-    }
-    if (error instanceof mongoose.Error.ValidationError) {
-      console.error('[TaskService] Validation Error:', Object.keys(error.errors).map(key => `${key}: ${error.errors[key].message}`).join(', '));
-    } else {
-      console.error('[TaskService] Creation Error:', error);
-    }
+    return getTaskById(task._id, userId, role);
+  } catch (error) {
+    if (session.inTransaction()) await session.abortTransaction();
     throw error;
   } finally {
     session.endSession();
@@ -322,396 +234,342 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
 };
 
 /**
- * Get tasks with advanced filtering
+ * Get tasks
  */
-export const getTasks = async (
-  filter: Record<string, any>,
-  { page = 1, limit = 10 }: { page?: number; limit?: number } = {}
-) => {
+export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 10 } = {}, userId?: string, userRole?: string) => {
   const skip = (page - 1) * limit;
   const query: Record<string, any> = { isActive: true };
 
-  // Helper to safely convert string to ObjectId
-  const safeObjectId = (id: any) => {
-    if (!id) return null;
-    try {
-      return mongoose.Types.ObjectId.isValid(String(id))
-        ? new mongoose.Types.ObjectId(String(id))
-        : null;
-    } catch {
-      return null;
-    }
-  };
+  const orgId = toObjectId(filter.organizationId);
+  if (orgId) query.organizationId = orgId;
 
-  if (filter.role === ROLES.SUPER_ADMIN) {
-    // Super Admin sees all active tasks
-  } else if (filter.organizationId) {
-    const orgId = safeObjectId(filter.organizationId);
-    if (orgId) query.organizationId = orgId;
-  } else if (filter.userId) {
-    // If no org, show their own tasks
-    const userId = safeObjectId(filter.userId);
-    if (userId) query.creatorId = userId;
-  }
-
-  if (filter.workspaceId) {
-    const wsId = safeObjectId(filter.workspaceId);
-    if (wsId) query.workspaceId = wsId;
-  }
-  if (filter.projectId) {
-    const projId = safeObjectId(filter.projectId);
-    if (projId) query.projectId = projId;
-  }
+  if (filter.workspaceId) query.workspaceId = toObjectId(filter.workspaceId);
+  if (filter.projectId) query.projectId = toObjectId(filter.projectId);
   if (filter.status) query.status = filter.status;
   if (filter.priority) query.priority = filter.priority;
+  if (filter.visibility) query.visibility = filter.visibility;
   if (filter.dueDate) query.dueDate = { $lte: new Date(filter.dueDate) };
   if (filter.search) {
     const regex = new RegExp(String(filter.search).trim(), 'i');
+    query.$or = [{ title: regex }, { description: regex }];
+  }
+
+  if (filter.assigneeId) {
+    const tIds = await TaskAssignee.find({ userId: toObjectId(filter.assigneeId) }).distinct('taskId');
+    query._id = { $in: tIds };
+  }
+
+  if (filter.creatorOrAssigneeId) {
+    const userId = toObjectId(filter.creatorOrAssigneeId);
+    const assignedTIds = await TaskAssignee.find({ userId }).distinct("taskId");
     query.$or = [
-      { title: regex },
-      { description: regex },
+      { creatorId: userId },
+      { _id: { $in: assignedTIds } }
     ];
   }
 
-  // Filtering by assignee requires a sub-query or aggregation
-  if (filter.assigneeId) {
-    const assigneeId = safeObjectId(filter.assigneeId);
-    if (assigneeId) {
-      const taskIds = await TaskAssignee.find({
-        userId: assigneeId,
-      }).distinct('taskId');
-      query._id = { $in: taskIds };
-    }
+  if (filter.tagIds && Array.isArray(filter.tagIds) && filter.tagIds.length > 0) {
+    const tagIds = filter.tagIds.map(toObjectId).filter(Boolean);
+    const tasksWithTags = await TaskTag.aggregate([
+      { $match: { tagId: { $in: tagIds }, organizationId: query.organizationId } },
+      { $group: { _id: '$taskId', count: { $sum: 1 } } },
+      { $match: { count: tagIds.length } }
+    ]);
+    const matchedIds = tasksWithTags.map(t => t._id);
+    if (query._id) query._id.$in = query._id.$in.filter((id: any) => matchedIds.some(m => String(m) === String(id)));
+    else query._id = { $in: matchedIds };
   }
 
-  // Filtering by tags
-  if (filter.tagId) {
-    const tagId = safeObjectId(filter.tagId);
-    if (tagId) {
-      const taskIds = await TaskTag.find({
-        tagId: tagId,
-      }).distinct('taskId');
-      if (query._id) {
-         // Combine with assignee filter if present
-         const existingIds = query._id.$in;
-         query._id.$in = existingIds.filter((id: any) => taskIds.some((tid: any) => tid.equals(id)));
-      } else {
-         query._id = { $in: taskIds };
+  // Apply visibility filtering
+  let tasks: any[] = [];
+  let totalCount: number = 0;
+
+  if (userId) {
+    // Use aggregation pipeline for visibility enforcement
+    const pipeline: any[] = [
+      { $match: query },
+      {
+        $lookup: {
+          from: 'taskvisibilityusers',
+          let: { taskId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$taskId', '$$taskId'] },
+                    { $eq: ['$userId', new mongoose.Types.ObjectId(userId)] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: 'visibilityAccess'
+        }
       }
+    ];
+
+    const isAdmin = userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userRole);
+
+    if (!isAdmin) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { visibility: 'PUBLIC' },
+            { visibility: null },
+            { visibility: { $exists: false } },
+            {
+              $and: [
+                { visibility: 'DRAFT' },
+                { creatorId: new mongoose.Types.ObjectId(userId) }
+              ]
+            },
+            {
+              $and: [
+                { visibility: 'PRIVATE' },
+                {
+                  $or: [
+                    { creatorId: new mongoose.Types.ObjectId(userId) },
+                    { visibilityAccess: { $size: 1 } }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      });
     }
+
+    pipeline.push(
+      { $sort: { position: 1, createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: 'projects',
+          localField: 'projectId',
+          foreignField: '_id',
+          as: 'projectId'
+        }
+      },
+      { $unwind: { path: '$projectId', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'workspaces',
+          localField: 'workspaceId',
+          foreignField: '_id',
+          as: 'workspaceId'
+        }
+      },
+      { $unwind: { path: '$workspaceId', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'creatorId',
+          foreignField: '_id',
+          as: 'creatorId'
+        }
+      },
+      { $unwind: { path: '$creatorId', preserveNullAndEmptyArrays: true } }
+    );
+
+    const countPipeline = [...pipeline.slice(0, pipeline.findIndex(p => p.$skip) || pipeline.length)];
+    countPipeline.push({ $count: 'count' });
+
+    const [countResult, taskResults] = await Promise.all([
+      Task.aggregate(countPipeline),
+      Task.aggregate(pipeline)
+    ]);
+
+    totalCount = countResult[0]?.count || 0;
+    tasks = taskResults;
+  } else {
+    // No user specified - return all public and draft tasks visible by default
+    query.$or = [{ visibility: 'PUBLIC' }, { visibility: { $exists: false } }];
+    
+    const [fetchedTasks, count] = await Promise.all([
+      Task.find(query).sort({ position: 1, createdAt: -1 }).skip(skip).limit(limit)
+        .populate('projectId', 'name').populate('workspaceId', 'name').populate('creatorId', 'firstName lastName email avatarUrl').lean(),
+      Task.countDocuments(query)
+    ]);
+    
+    tasks = fetchedTasks;
+    totalCount = count;
   }
 
-  const [tasks, totalCount] = await Promise.all([
-    Task.find(query)
-      .sort({ position: 1, createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('projectId', 'name')
-      .populate('workspaceId', 'name')
-      .populate('creatorId', 'firstName lastName email avatarUrl')
-      .lean(),
-    Task.countDocuments(query)
+  if (tasks.length === 0) return { tasks, totalCount };
+
+  const taskIds = tasks.map(t => t._id);
+  const [assigneeRows, tagRows] = await Promise.all([
+    TaskAssignee.find({ taskId: { $in: taskIds } }).populate('userId', 'firstName lastName email avatarUrl').lean(),
+    TaskTag.find({ taskId: { $in: taskIds } }).populate('tagId').lean()
   ]);
 
-  if (tasks.length === 0) {
-    return { tasks, totalCount };
-  }
-
-  const taskIds = tasks.map((task: any) => task._id);
-  const assigneeRows = await TaskAssignee.find({ taskId: { $in: taskIds } })
-    .populate('userId', 'firstName lastName email avatarUrl')
-    .lean();
-
-  const assigneesByTaskId = new Map<string, any[]>();
-  for (const row of assigneeRows) {
-    const key = String(row.taskId);
-    const existing = assigneesByTaskId.get(key) || [];
+  const assigneesByTaskId = new Map();
+  assigneeRows.forEach(row => {
+    const existing = assigneesByTaskId.get(String(row.taskId)) || [];
     existing.push(row);
-    assigneesByTaskId.set(key, existing);
-  }
-
-  // Fetch Tags for all tasks
-  console.log(`[TaskService] Fetching tags for ${taskIds.length} tasks`);
-  const tagRows = await TaskTag.find({ taskId: { $in: taskIds } })
-    .populate('tagId', 'name color')
-    .lean();
-  console.log(`[TaskService] Found ${tagRows.length} tag rows`);
-
-  const tagsByTaskId = new Map<string, string[]>();
-  for (const row of tagRows as any[]) {
-    const key = String(row.taskId);
-    const existing = tagsByTaskId.get(key) || [];
-    if (row.tagId?.name) existing.push(row.tagId.name);
-    tagsByTaskId.set(key, existing);
-  }
-
-  const enrichedTasks = tasks.map((task: any) => {
-    const assignees = assigneesByTaskId.get(String(task._id)) || [];
-    const tags = tagsByTaskId.get(String(task._id)) || [];
-    const enriched = enrichTaskWithAssignees(task, assignees);
-    const creator = normalizeUser(task.creatorId);
-    return {
-      ...enriched,
-      creator,
-      createdBy: creator, // Redundant for robustness
-      tags
-    };
+    assigneesByTaskId.set(String(row.taskId), existing);
   });
 
-  return { tasks: enrichedTasks, totalCount };
+  const tagsByTaskId = new Map();
+  tagRows.forEach((row: any) => {
+    const existing = tagsByTaskId.get(String(row.taskId)) || [];
+    const normalized = normalizeTags([row]);
+    if (normalized.length > 0) existing.push(normalized[0]);
+    tagsByTaskId.set(String(row.taskId), existing);
+  });
+
+  return {
+    tasks: tasks.map(t => ({
+      ...enrichTaskWithAssignees(t, assigneesByTaskId.get(String(t._id))),
+      creator: normalizeUser(t.creatorId),
+      tags: tagsByTaskId.get(String(t._id)) || [],
+      visibility: t.visibility || 'PUBLIC'
+    })),
+    totalCount
+  };
 };
 
 /**
  * Update task
  */
 export const updateTask = async (taskId: any, updateData: Record<string, any>, userId: any, role: any) => {
-  const { assigneeId, assigneeIds, tags, labels, ...otherData } = updateData;
-  const query: Record<string, any> = { _id: taskId, isActive: true };
-  const assigneesProvided =
-    Object.prototype.hasOwnProperty.call(updateData, 'assigneeId') ||
-    Object.prototype.hasOwnProperty.call(updateData, 'assigneeIds');
-  const incomingTags = Array.from(new Set([
-    ...(Array.isArray(tags) ? tags : []),
-    ...(Array.isArray(labels) ? labels : [])
-  ].map(t => String(t || '').trim()).filter(Boolean)));
-  
-  const tagsProvided = 
-    Object.prototype.hasOwnProperty.call(updateData, 'tags') || 
-    Object.prototype.hasOwnProperty.call(updateData, 'labels');
-  
-  // VALIDATION: Assignment Rules for Update
-  const isMember = role === ROLES.MEMBER || role === 'MEMBER';
-  
-  if (isMember && (updateData.assigneeId || updateData.assigneeIds)) {
-    const newAssignees = updateData.assigneeIds || [updateData.assigneeId];
-    const hasOtherAssignees = newAssignees.some((aId: string) => aId && String(aId) !== String(userId));
-    
-    if (hasOtherAssignees) {
-      throw new AppError('You can only assign tasks to yourself.', 403);
-    }
+  const { assigneeId, assigneeIds, tags, visibility, visibleToUsers, ...otherData } = updateData;
+  const previousTask = await Task.findOne({ _id: taskId, isActive: true }).lean();
+  if (!previousTask) throw new AppError('Task not found.', 404);
+
+  // Check permissions: only creator or admin can change visibility
+  const isCreator = String(previousTask.creatorId) === String(userId);
+  const isAdmin = role && ['ADMIN', 'SUPER_ADMIN'].includes(role);
+
+  if (visibility && !isCreator && !isAdmin) {
+    throw new AppError('Only creator or admin can change task visibility.', 403);
   }
 
-  const task = await Task.findOneAndUpdate(
-    query,
-    { $set: otherData },
-    { new: true, runValidators: true }
-  );
+  const updatePayload: Record<string, any> = { ...otherData };
+  if (visibility) {
+    updatePayload.visibility = visibility;
+  }
 
+  const task = await Task.findOneAndUpdate({ _id: taskId, isActive: true }, { $set: updatePayload }, { new: true });
   if (!task) throw new AppError('Task not found.', 404);
 
-  // Handle Tag syncing
-  if (tagsProvided && Array.isArray(incomingTags)) {
-    console.log(`[TaskService] Syncing tags for task ${taskId}:`, incomingTags);
-    await syncTags(taskId, incomingTags, task.organizationId, task.workspaceId);
+  // Handle visibility users update
+  if (visibility === 'PRIVATE' && visibleToUsers) {
+    await visibilityHelpers.clearTaskVisibilityUsers(taskId);
+    if (Array.isArray(visibleToUsers) && visibleToUsers.length > 0) {
+      await visibilityHelpers.addTaskVisibilityUsers(taskId, visibleToUsers, task.organizationId);
+    }
+  } else if (visibility !== 'PRIVATE') {
+    // Clear visibility users if changing from private to public/draft
+    await visibilityHelpers.clearTaskVisibilityUsers(taskId);
   }
 
-  // Handle assignment update (single + multi-assignee compatible)
-  if (assigneesProvided) {
-    const normalizedAssigneeIds = new Set<string>();
+  const projectName = await resolveProjectName(task.projectId);
+  const changedFields = Object.keys(updateData);
+  const statusUpdated =
+    Object.prototype.hasOwnProperty.call(updateData, 'status') &&
+    String(previousTask.status || '') !== String(task.status || '');
 
-    if (Array.isArray(assigneeIds)) {
-      assigneeIds
-        .map((id: any) => String(id).trim())
-        .filter(Boolean)
-        .forEach((id: string) => normalizedAssigneeIds.add(id));
-    }
+  if (Array.isArray(tags)) {
+    await syncTags(taskId, tags, task.organizationId, task.workspaceId);
+  }
 
-    if (assigneeId !== undefined && assigneeId !== null && String(assigneeId).trim()) {
-      normalizedAssigneeIds.add(String(assigneeId).trim());
-    }
+  const normalizedAssigneeIds = Array.from(new Set([
+    ...(Array.isArray(assigneeIds) ? assigneeIds : []),
+    assigneeId
+  ].map(id => String(id || '').trim()).filter(Boolean)));
 
-    const finalAssigneeIds = Array.from(normalizedAssigneeIds);
-
-    if (finalAssigneeIds.length > 0 && task.organizationId) {
-      const validMembers = await OrganizationMember.find({
-        organizationId: task.organizationId,
-        userId: { $in: finalAssigneeIds },
-        isActive: true,
-      })
-        .select('userId')
-        .lean();
-
-      const validMemberIds = new Set(validMembers.map((member: any) => String(member.userId)));
-      const invalidAssignees = finalAssigneeIds.filter((id: string) => !validMemberIds.has(id));
-
-      if (invalidAssignees.length > 0) {
-        throw new AppError('One or more assignees are not members of this organization.', 400);
-      }
-    }
-
-    // Replace old assignees
+  if (normalizedAssigneeIds.length > 0) {
     await TaskAssignee.deleteMany({ taskId });
+    await TaskAssignee.insertMany(normalizedAssigneeIds.map(aId => ({
+      taskId, userId: aId, organizationId: task.organizationId, assignedById: userId
+    })));
 
-    if (finalAssigneeIds.length > 0 && task.organizationId) {
-      const assigneeDocs = finalAssigneeIds.map((id: string) => ({
-        taskId,
-        userId: id,
-        organizationId: task.organizationId,
-        assignedById: userId,
-      }));
-      await TaskAssignee.insertMany(assigneeDocs, { ordered: false });
-
-       // Trigger Notification
-       activityLog.triggerNotification({
-        userIds: finalAssigneeIds,
-         organizationId: task.organizationId,
-         actorId: userId,
-         type: 'TASK_ASSIGNED',
-         message: `You have been reassigned to task: ${task.title}`,
-         resourceId: taskId,
-         resourceType: 'Task'
-       });
-
-       // Real-time notify
-       emitToUsers(finalAssigneeIds, SOCKET_EVENTS.TASK_ASSIGNED, {
-         taskId,
-         title: task.title,
-         actorId: userId
-       });
-    }
+    activityLog.triggerNotification({
+      userIds: normalizedAssigneeIds,
+      organizationId: task.organizationId,
+      actorId: userId,
+      type: 'TASK_ASSIGNED',
+      message: `Assigned: ${task.title}`,
+      resourceId: taskId,
+      resourceType: 'Task',
+      metadata: {
+        taskId: String(taskId),
+        taskTitle: task.title,
+        projectName,
+        timestamp: new Date(),
+      }
+    });
   }
 
-  // Log activity
   activityLog.logActivity({
-    userId,
-    organizationId: task.organizationId,
-    workspaceId: task.workspaceId,
+    userId, organizationId: task.organizationId, workspaceId: task.workspaceId,
     projectId: task.projectId,
-    resourceId: task._id,
-    resourceType: 'TASK',
-    action: 'UPDATE',
-    metadata: { updatedFields: Object.keys(updateData) }
-  });
-
-  return getTaskById(taskId);
-};
-
-/**
- * Assign users to task
- */
-export const assignUsers = async (taskId: any, userIds: any[], actorId: any, role: string) => {
-  const isMember = role === ROLES.MEMBER || role === 'MEMBER';
-  if (isMember) {
-    const hasOtherAssignees = userIds.some((uId: any) => String(uId) !== String(actorId));
-    if (hasOtherAssignees) {
-      throw new AppError('You can only assign tasks to yourself.', 403);
-    }
-  }
-
-  const task = await Task.findOne({ _id: taskId });
-  if (!task) throw new AppError('Task not found.', 404);
-
-  const assigneeDocs = userIds.map((uId: any) => ({
-    taskId,
-    userId: uId,
-    organizationId: task.organizationId,
-    assignedById: actorId
-  }));
-
-  // Using ordered: false to skip duplicates without failing the whole operation
-  await TaskAssignee.insertMany(assigneeDocs, { ordered: false }).catch((err: any) => {
-    // Expected duplicate key errors are handled by MongoDB (unique index)
-    if (err.code !== 11000) throw err;
-  });
-
-  activityLog.triggerNotification({
-    userIds,
-    organizationId: task.organizationId,
-    actorId,
-    type: 'TASK_ASSIGNED',
-    message: `You were assigned to task: ${task.title}`,
     resourceId: taskId,
-    resourceType: 'Task'
+    resourceType: 'TASK',
+    action: statusUpdated ? 'STATUS_CHANGE' : 'UPDATE',
+    metadata: {
+      taskId: String(taskId),
+      taskTitle: task.title,
+      title: task.title,
+      projectName,
+      oldStatus: previousTask.status,
+      newStatus: task.status,
+      updatedFields: changedFields,
+      changedFields,
+      timestamp: new Date(),
+    }
   });
 
-  // Real-time notify affected users
-  emitToUsers(userIds, SOCKET_EVENTS.TASK_ASSIGNED, {
-    taskId,
-    title: task.title,
-    actorId
-  });
-
-  return { success: true };
+  return getTaskById(taskId, userId, role);
 };
 
-/**
- * Change task status with validation
- */
-export const changeStatus = async (taskId: any, newStatus: any, userId: any) => {
-  const allowedStatuses = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'ARCHIVED'];
-  if (!allowedStatuses.includes(newStatus)) {
-    throw new AppError('Invalid status transition.', 400);
+export const getTaskById = async (taskId: any, userId?: string, userRole?: string) => {
+  const task = await Task.findOne({ _id: taskId, isActive: true })
+    .populate('projectId', 'name').populate('workspaceId', 'name').populate('creatorId', 'firstName lastName email avatarUrl').lean();
+  if (!task) throw new AppError('Task not found.', 404);
+
+  // Check visibility if userId provided
+  if (userId) {
+    const hasAccess = await visibilityHelpers.canUserAccessTask(
+      task._id,
+      userId,
+      task.creatorId?._id || task.creatorId,
+      task.visibility,
+      userRole
+    );
+    if (!hasAccess) {
+      throw new AppError('Access denied to this task.', 403);
+    }
   }
 
-  const task = await Task.findOneAndUpdate(
-    { _id: taskId },
-    { $set: { status: newStatus } },
-    { new: true }
-  );
-
-  if (!task) throw new AppError('Task not found.', 404);
-
-  activityLog.logActivity({
-    userId,
-    organizationId: task.organizationId,
-    workspaceId: task.workspaceId,
-    projectId: task.projectId,
-    resourceId: task._id,
-    resourceType: 'Task',
-    action: 'STATUS_CHANGE',
-    metadata: { newStatus }
-  });
-
-  // Real-time notify
-  emitToRoom(SOCKET_ROOMS.WORKSPACE(task.workspaceId), SOCKET_EVENTS.TASK_UPDATED, {
-    taskId: task._id,
-    newStatus,
-    projectId: task.projectId
-  });
-
-  return task;
-};
-
-/**
- * Get single task by ID with assignees and tags populated
- */
-export const getTaskById = async (taskId: any) => {
-  const task = await Task.findOne({ _id: taskId, isActive: true })
-    .populate('projectId', 'name')
-    .populate('workspaceId', 'name')
-    .populate('creatorId', 'firstName lastName email avatarUrl')
-    .lean();
-
-  if (!task) throw new AppError('Task not found.', 404);
-
-  // Fetch assignees and tags
-  const mongoTaskId = new mongoose.Types.ObjectId(String(taskId));
-  const [assignees, tags] = await Promise.all([
-    TaskAssignee.find({ taskId: mongoTaskId }).populate('userId', 'firstName lastName email avatarUrl').lean(),
-    TaskTag.find({ taskId: mongoTaskId }).populate('tagId').lean()
+  const [assignees, tags, visibilityUsers] = await Promise.all([
+    TaskAssignee.find({ taskId: task._id }).populate('userId', 'firstName lastName email avatarUrl').lean(),
+    TaskTag.find({ taskId: task._id }).populate('tagId').lean(),
+    task.visibility === 'PRIVATE' ? visibilityHelpers.getTaskVisibilityUsers(task._id, task.organizationId) : Promise.resolve([])
   ]);
 
-  const enriched = enrichTaskWithAssignees(task, assignees);
-  const creator = normalizeUser(task.creatorId);
-  return {
-    ...enriched,
-    creator,
-    createdBy: creator, // Redundant for robustness
+  return { 
+    ...enrichTaskWithAssignees(task, assignees), 
+    creator: normalizeUser(task.creatorId), 
     tags: normalizeTags(tags),
+    visibility: task.visibility,
+    visibilityUsers: visibilityUsers.map((vu: any) => ({
+      id: String(vu.userId?._id || vu.userId),
+      name: vu.userId?.firstName ? `${vu.userId.firstName} ${vu.userId.lastName || ''}`.trim() : 'Unknown',
+      email: vu.userId?.email,
+      avatarUrl: vu.userId?.avatarUrl
+    }))
   };
 };
 
-/**
- * Delete (Soft-delete) task
- */
 export const deleteTask = async (taskId: any, userId: any) => {
-  const task = await Task.findOneAndUpdate(
-    { _id: taskId, isActive: true },
-    { $set: { isActive: false } }
-  );
-
+  const task = await Task.findOneAndUpdate({ _id: taskId, isActive: true }, { $set: { isActive: false } });
   if (!task) throw new AppError('Task not found.', 404);
 
+  const projectName = await resolveProjectName(task.projectId);
   activityLog.logActivity({
     userId,
     organizationId: task.organizationId,
@@ -720,12 +578,110 @@ export const deleteTask = async (taskId: any, userId: any) => {
     resourceId: taskId,
     resourceType: 'Task',
     action: 'DELETE',
-    metadata: { title: task.title }
+    metadata: {
+      taskId: String(taskId),
+      taskTitle: task.title,
+      title: task.title,
+      projectName,
+      timestamp: new Date(),
+    }
+  });
+};
+
+export const changeStatus = async (taskId: any, newStatus: any, userId: any) => {
+  const previousTask = await Task.findOne({ _id: taskId }).lean();
+  if (!previousTask) throw new AppError('Task not found.', 404);
+
+  const task = await Task.findOneAndUpdate({ _id: taskId }, { $set: { status: newStatus } }, { new: true });
+  if (!task) throw new AppError('Task not found.', 404);
+
+  const projectName = await resolveProjectName(task.projectId);
+  activityLog.logActivity({
+    userId,
+    organizationId: task.organizationId,
+    workspaceId: task.workspaceId,
+    projectId: task.projectId,
+    resourceId: task._id,
+    resourceType: 'Task',
+    action: 'STATUS_CHANGE',
+    metadata: {
+      taskId: String(task._id),
+      taskTitle: task.title,
+      title: task.title,
+      projectName,
+      oldStatus: previousTask.status,
+      newStatus,
+      timestamp: new Date(),
+    }
   });
 
-  // Real-time notify
-  emitToRoom(SOCKET_ROOMS.WORKSPACE(task.workspaceId), SOCKET_EVENTS.TASK_DELETED, {
-    taskId,
-    projectId: task.projectId
-  });
+  return task;
+};
+
+export const assignUsers = async (taskId: any, userIds: any[], actorId: any, role?: string) => {
+  const task = await Task.findOne({ _id: taskId });
+  if (!task) throw new AppError('Task not found.', 404);
+  const projectName = await resolveProjectName(task.projectId);
+  await TaskAssignee.deleteMany({ taskId });
+  await TaskAssignee.insertMany(userIds.map(uId => ({ taskId, userId: uId, organizationId: task.organizationId, assignedById: actorId })));
+
+  if (userIds.length > 0) {
+    activityLog.triggerNotification({
+      userIds,
+      organizationId: task.organizationId,
+      actorId,
+      type: 'TASK_ASSIGNED',
+      message: `Assigned: ${task.title}`,
+      resourceId: taskId,
+      resourceType: 'Task',
+      metadata: {
+        taskId: String(taskId),
+        taskTitle: task.title,
+        projectName,
+        timestamp: new Date(),
+      }
+    });
+  }
+
+  return { success: true };
+};
+
+/**
+ * Add users to a private task's visibility list
+ */
+export const addTaskVisibilityUsers = async (taskId: any, userIds: string[], actorId: any, role?: string) => {
+  const task = await Task.findOne({ _id: taskId, isActive: true }).lean();
+  if (!task) throw new AppError('Task not found.', 404);
+
+  // Check permissions: only creator or admin can manage visibility
+  const isCreator = String(task.creatorId) === String(actorId);
+  const isAdmin = role && ['ADMIN', 'SUPER_ADMIN'].includes(role);
+
+  if (!isCreator && !isAdmin) {
+    throw new AppError('Only creator or admin can manage task visibility.', 403);
+  }
+
+  if (task.visibility !== 'PRIVATE') {
+    throw new AppError('Can only add users to private tasks.', 400);
+  }
+
+  await visibilityHelpers.addTaskVisibilityUsers(taskId, userIds, task.organizationId);
+};
+
+/**
+ * Remove users from a private task's visibility list
+ */
+export const removeTaskVisibilityUsers = async (taskId: any, userIds: string[], actorId: any, role?: string) => {
+  const task = await Task.findOne({ _id: taskId, isActive: true }).lean();
+  if (!task) throw new AppError('Task not found.', 404);
+
+  // Check permissions: only creator or admin can manage visibility
+  const isCreator = String(task.creatorId) === String(actorId);
+  const isAdmin = role && ['ADMIN', 'SUPER_ADMIN'].includes(role);
+
+  if (!isCreator && !isAdmin) {
+    throw new AppError('Only creator or admin can manage task visibility.', 403);
+  }
+
+  await visibilityHelpers.removeTaskVisibilityUsers(taskId, userIds);
 };

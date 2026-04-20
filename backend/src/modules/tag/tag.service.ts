@@ -4,20 +4,71 @@ import { AppError } from '../../middlewares/errorHandler.js';
 import mongoose from 'mongoose';
 
 /**
- * Tag Service: Reusable metadata tagging system
+ * Tag Service: Reusable metadata tagging system with color and icon support
  */
+
+/**
+ * Normalize tag for frontend
+ */
+export const normalizeTag = (tag: any) => {
+  if (!tag) return null;
+  const t = tag.toObject ? tag.toObject() : tag;
+  return {
+    id: String(t._id),
+    name: t.name,
+    label: t.label,
+    color: t.color,
+    icon: t.icon,
+    organizationId: String(t.organizationId),
+    workspaceId: t.workspaceId ? String(t.workspaceId) : undefined,
+    createdBy: t.createdBy ? String(t.createdBy) : undefined,
+    createdAt: t.createdAt
+  };
+};
 
 /**
  * Create a new tag
  */
 export const createTag = async (tagData: Record<string, any>) => {
-  const { name, color, organizationId, workspaceId } = tagData;
+  const { name, label, color, icon, organizationId, workspaceId, createdBy } = tagData;
 
-  const existing = await Tag.findOne({ name, organizationId });
+  const tagName = String(name || label || '').trim().toLowerCase().replace(/\s+/g, '-');
+  if (!tagName) throw new AppError('Tag name or label is required.', 400);
+
+  const existing = await Tag.findOne({ name: tagName, organizationId });
   if (existing) throw new AppError('Tag with this name already exists in organization.', 400);
 
-  const tag = await Tag.create({ name, color, organizationId, workspaceId });
-  return tag;
+  const tag = await Tag.create({ 
+    name: tagName, 
+    label: label || name, 
+    color: color || '#6366f1', 
+    icon: icon || 'Tag',
+    organizationId, 
+    workspaceId,
+    createdBy
+  });
+  
+  return normalizeTag(tag);
+};
+
+/**
+ * Update a tag
+ */
+export const updateTag = async (id: string, updateData: Record<string, any>, organizationId: any) => {
+  const { name, label, color, icon } = updateData;
+  
+  const query: Record<string, any> = { _id: id, organizationId };
+  const update: Record<string, any> = {};
+  
+  if (label) update.label = label;
+  if (color) update.color = color;
+  if (icon) update.icon = icon;
+  if (name) update.name = String(name).trim().toLowerCase().replace(/\s+/g, '-');
+
+  const tag = await Tag.findOneAndUpdate(query, { $set: update }, { new: true });
+  if (!tag) throw new AppError('Tag not found or unauthorized.', 404);
+  
+  return normalizeTag(tag);
 };
 
 /**
@@ -27,56 +78,57 @@ export const getTags = async (organizationId: any, workspaceId: any = null) => {
   const query: Record<string, any> = { organizationId };
   if (workspaceId) query.workspaceId = workspaceId;
 
-  return Tag.find(query).sort({ name: 1 }).lean();
+  const tags = await Tag.find(query).sort({ label: 1 }).lean();
+  return tags.map(normalizeTag);
 };
 
 /**
- * Assign tag to a task
+ * Assign tag to a task (Support multiple)
  */
-export const assignTagToTask = async (taskId: any, tagId: any, organizationId: any) => {
-  const rawTag = String(tagId || '').trim();
-  if (!rawTag) {
-    throw new AppError('Tag identifier or name is required.', 400);
-  }
-
-  let resolvedTagId: any = rawTag;
-
-  // Backward compatibility: accept plain label names in tagId and resolve/create tag.
-  if (!mongoose.Types.ObjectId.isValid(rawTag)) {
-    const existingTag = await Tag.findOne({
-      organizationId,
-      name: { $regex: new RegExp(`^${rawTag}$`, 'i') },
-    });
-
-    if (existingTag) {
-      resolvedTagId = existingTag._id;
-    } else {
-      const createdTag = await Tag.create({
-        name: rawTag,
-        organizationId,
-      });
-      resolvedTagId = createdTag._id;
+export const assignTagsToTask = async (taskId: any, tagIds: any[], organizationId: any) => {
+  if (!Array.isArray(tagIds)) tagIds = [tagIds];
+  
+  const bulkOps = tagIds.map(tagId => ({
+    updateOne: {
+      filter: { taskId, tagId, organizationId },
+      update: { taskId, tagId, organizationId },
+      upsert: true
     }
-  }
+  }));
 
-  try {
-    const taskTag = await TaskTag.create({ taskId, tagId: resolvedTagId, organizationId });
-    return taskTag;
-  } catch (error: unknown) {
-    const tagError = error as { code?: number };
-    if (tagError.code === 11000) return { success: true, message: 'Already tagged' };
-    throw error;
+  if (bulkOps.length > 0) {
+    await TaskTag.bulkWrite(bulkOps);
   }
+  
+  return { success: true };
+};
+
+/**
+ * Sync tags for a task (Replace all)
+ */
+export const syncTaskTags = async (taskId: any, tagIds: string[], organizationId: any) => {
+  // Clear old
+  await TaskTag.deleteMany({ taskId, organizationId });
+  
+  // Assign new
+  if (tagIds.length > 0) {
+    const docs = tagIds.map(tagId => ({
+      taskId,
+      tagId,
+      organizationId
+    }));
+    await TaskTag.insertMany(docs, { ordered: false }).catch(err => {
+      if (err.code !== 11000) throw err;
+    });
+  }
+  
+  return { success: true };
 };
 
 /**
  * Remove tag from a task
  */
 export const removeTagFromTask = async (taskId: any, tagId: any, organizationId: any) => {
-  if (!mongoose.Types.ObjectId.isValid(String(tagId || ''))) {
-    throw new AppError('Invalid tagId. Expected a valid ObjectId.', 400);
-  }
-
   await TaskTag.findOneAndDelete({ taskId, tagId, organizationId });
   return { success: true };
 };
@@ -85,10 +137,6 @@ export const removeTagFromTask = async (taskId: any, tagId: any, organizationId:
  * Delete a tag globally (affects all tasks)
  */
 export const deleteTag = async (tagId: any, organizationId: any) => {
-  if (!mongoose.Types.ObjectId.isValid(String(tagId || ''))) {
-    throw new AppError('Invalid tagId. Expected a valid ObjectId.', 400);
-  }
-
   const tag = await Tag.findOneAndDelete({ _id: tagId, organizationId });
   if (!tag) throw new AppError('Tag not found or unauthorized.', 404);
 

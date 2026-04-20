@@ -385,17 +385,55 @@ function TaskRow({ task, label }: { task: Task; label: string }) {
   );
 }
 
+import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ChevronDown, Globe, Users, Check, User2, X } from "lucide-react";
+
 export default function YourWorkPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, activeOrgId } = useAuth();
   const [activeTab, setActiveTab] = useState<WorkTab>("summary");
+  const [projectScope, setProjectScope] = useState<"my" | "all">("my");
+  const [viewingUserId, setViewingUserId] = useState<string>("me");
+  const [showProfile, setShowProfile] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("work-show-profile");
+      return saved !== "false";
+    }
+    return true;
+  });
+
+  const toggleProfile = (val: boolean) => {
+    setShowProfile(val);
+    localStorage.setItem("work-show-profile", String(val));
+  };
+
+  const membersQuery = useOrganizationMembersQuery(activeOrgId || "");
+  const members = membersQuery.data?.data.members ?? [];
+  const isAdmin = ["ADMIN", "SUPER_ADMIN", "MANAGER"].includes(user?.role || "");
+
+  const effectiveUserId = viewingUserId === "me" ? user?.id : viewingUserId;
+  const userId = user?.id;
 
   const tasksQuery = useTasksQuery(
-    { page: 1, limit: 500 },
+    { 
+      page: 1, 
+      limit: 500,
+      userId: viewingUserId === "me" ? undefined : viewingUserId 
+    },
     { enabled: Boolean(user?.id), staleTime: 60_000 },
   );
 
   const tasks = tasksQuery.data?.data.items ?? [];
-  const userId = user?.id;
 
   const derived = useMemo(() => {
     const created: Task[] = [];
@@ -403,10 +441,20 @@ export default function YourWorkPage() {
     const relevant = new Map<string, Task>();
 
     for (const task of tasks) {
-      const createdByUser = Boolean(
-        userId && getTaskCreatorId(task) === userId,
-      );
-      const assignedToUser = Boolean(userId && isAssignedToUser(task, userId));
+      let createdByUser = false;
+      let assignedToUser = false;
+
+      if (viewingUserId === "all") {
+        // In "All" view, everything fetched is relevant
+        createdByUser = true;
+        assignedToUser = true;
+      } else {
+        const targetId = viewingUserId === "me" ? user?.id : viewingUserId;
+        createdByUser = Boolean(
+          targetId && getTaskCreatorId(task) === targetId,
+        );
+        assignedToUser = Boolean(targetId && isAssignedToUser(task, targetId));
+      }
 
       if (createdByUser) created.push(task);
       if (assignedToUser) assigned.push(task);
@@ -458,6 +506,7 @@ export default function YourWorkPage() {
       }),
     );
 
+    // Calculate project summaries based on selected scope
     const projectMap = new Map<
       string,
       {
@@ -474,7 +523,9 @@ export default function YourWorkPage() {
       }
     >();
 
-    for (const task of relevantTasks) {
+    const scopeTasks = projectScope === "my" ? relevantTasks : tasks;
+
+    for (const task of scopeTasks) {
       const id = getTaskProjectId(task);
       if (!id) {
         continue;
@@ -530,28 +581,35 @@ export default function YourWorkPage() {
       projectMap.set(id, summary);
     }
 
-    const projectSummaries = [...projectMap.values()]
+    let projectSummaries = [...projectMap.values()]
       .map((project) => ({
         ...project,
         completion: project.total > 0 ? Math.round((project.completed / project.total) * 100) : 0,
-      }))
-      .sort((left, right) => {
+      }));
+
+    // Filter out Demo Project if other projects exist
+    const nonDemoProjects = projectSummaries.filter(p => !p.name.toLowerCase().includes("demo"));
+    if (nonDemoProjects.length > 0) {
+      projectSummaries = nonDemoProjects;
+    }
+
+    projectSummaries.sort((left, right) => {
         const completionDelta = right.completion - left.completion;
         if (completionDelta !== 0) return completionDelta;
         return right.total - left.total;
       });
 
-    return {
-      created,
-      assigned,
-      relevantTasks,
-      rawStatusCounts,
-      priorityCounts,
-      statusChartData,
-      priorityChartData,
-      projectSummaries,
-    };
-  }, [tasks, userId]);
+      return {
+        created,
+        assigned,
+        relevantTasks,
+        rawStatusCounts,
+        priorityCounts,
+        statusChartData,
+        priorityChartData,
+        projectSummaries,
+      };
+    }, [tasks, user?.id, viewingUserId, projectScope]);
 
   const recentActivity = [...derived.relevantTasks].slice(0, 8);
   const assignedTasks = [...derived.assigned].sort(
@@ -563,40 +621,186 @@ export default function YourWorkPage() {
 
   const loading = isLoading || tasksQuery.isLoading;
 
-  return (
-    <div className="flex h-[calc(100vh-64px)] min-h-0 w-full gap-4 px-4 py-4 md:px-6">
-      <section className="min-h-0 flex-1 overflow-y-auto pr-0 xl:pr-2">
-        <div className="space-y-6 pb-4">
-          {/* <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground">
-                Your Work
-              </h1>
-              <Badge variant="secondary" className="rounded-full px-3 text-[10px] uppercase tracking-[0.18em]">
-                Personal workspace
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Overview of your tasks and activity.
-            </p>
-          </div> */}
+  const selectedUser = members.find((m) => m.id === viewingUserId);
 
-          <div className="inline-flex flex-wrap gap-2 rounded-full border border-border bg-card p-1 shadow-sm">
-            {TAB_ITEMS.map((tab) => (
-              <Button
-                key={tab.id}
-                type="button"
-                variant={activeTab === tab.id ? "primary" : "ghost"}
-                className={cn(
-                  "h-9 rounded-full px-4 text-sm",
-                  activeTab !== tab.id &&
-                    "text-muted-foreground hover:text-foreground",
-                )}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </Button>
-            ))}
+  return (
+    <div className="flex flex-col xl:flex-row h-full xl:h-[calc(100vh-64px)] w-full gap-4 px-4 py-4 md:px-6 overflow-y-auto xl:overflow-hidden">
+      <section className="min-h-0 flex-1 overflow-y-auto xl:pr-2 xl:overflow-y-auto">
+        <div className="space-y-6 pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex w-full items-center overflow-x-auto pb-1 scrollbar-hide md:w-auto md:pb-0">
+              <div className="inline-flex min-w-max gap-1 rounded-full border border-border bg-card p-1 shadow-sm md:gap-2">
+                {TAB_ITEMS.map((tab) => (
+                  <Button
+                    key={tab.id}
+                    type="button"
+                    variant={activeTab === tab.id ? "primary" : "ghost"}
+                    className={cn(
+                      "h-8 rounded-full px-3 text-[13px] font-medium transition-all md:h-9 md:px-4 md:text-sm",
+                      activeTab !== tab.id &&
+                        "text-muted-foreground hover:text-foreground",
+                    )}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    {tab.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {isAdmin && (
+              <div className="flex w-full flex-col items-start gap-1.5 md:w-auto md:flex-row md:items-center md:gap-3">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 md:text-[11px] md:tracking-widest">
+                  <span className="shrink-0">VIEWING:</span>
+                  <span className="text-foreground font-semibold">
+                    {viewingUserId === "me" 
+                      ? "Me" 
+                      : viewingUserId === "all" 
+                        ? "All Members" 
+                        : selectedUser 
+                          ? `${selectedUser.firstName} ${selectedUser.lastName}` 
+                          : "User"
+                    }
+                  </span>
+                </div>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      className={cn(
+                        "inline-flex items-center gap-2 h-9 px-3 rounded-xl md:rounded-full w-full md:w-auto",
+                        "border border-border bg-muted/30 hover:bg-muted/50",
+                        "transition-colors duration-120 cursor-pointer",
+                        "text-[13px] font-medium text-foreground"
+                      )}
+                    >
+                      {viewingUserId === "all" ? (
+                        <Globe className="h-4 w-4 text-primary shrink-0" />
+                      ) : (
+                        <Avatar className="h-5 w-5 shrink-0">
+                          {viewingUserId === "me" && user?.avatarUrl ? (
+                            <AvatarImage src={user.avatarUrl} />
+                          ) : viewingUserId !== "me" && viewingUserId !== "all" && selectedUser?.avatarUrl ? (
+                            <AvatarImage src={selectedUser.avatarUrl} />
+                          ) : (
+                            <AvatarFallback className="text-[10px] font-bold">
+                              {viewingUserId === "me" ? "ME" : selectedUser?.firstName?.[0] || "U"}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                      )}
+                      <span>
+                        {viewingUserId === "me" ? "Me (Default)" : viewingUserId === "all" ? "All Members" : `${selectedUser?.firstName}`}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 opacity-60 ml-auto md:ml-1" />
+                    </button>
+                  </PopoverTrigger>
+
+                  <PopoverContent
+                    className={cn(
+                      "w-56 p-1.5 rounded-xl border border-border/60",
+                      "bg-card/95 backdrop-blur-lg",
+                      "shadow-lg animate-in fade-in zoom-in-95",
+                      "data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95"
+                    )}
+                    align="start"
+                    side="bottom"
+                    sideOffset={8}
+                  >
+                    <div className="space-y-0.5">
+                      {/* Me Section */}
+                      <button
+                        onClick={() => setViewingUserId("me")}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-colors duration-100",
+                          "text-[13px]",
+                          viewingUserId === "me"
+                            ? "bg-muted text-foreground"
+                            : "text-foreground/80 hover:bg-muted/60"
+                        )}
+                      >
+                        <Avatar className="h-5 w-5 shrink-0">
+                          {user?.avatarUrl ? (
+                            <AvatarImage src={user.avatarUrl} />
+                          ) : (
+                            <AvatarFallback className="text-[10px] font-bold">
+                              ME
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        <span className="flex-1 text-left font-medium">Me (Default)</span>
+                        {viewingUserId === "me" && (
+                          <Check className="h-4 w-4 text-primary shrink-0" />
+                        )}
+                      </button>
+
+                      {/* Divider */}
+                      <div className="h-px bg-border/40 my-1" />
+
+                      {/* All Members Section */}
+                      <button
+                        onClick={() => setViewingUserId("all")}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-colors duration-100",
+                          "text-[13px]",
+                          viewingUserId === "all"
+                            ? "bg-muted text-foreground"
+                            : "text-foreground/80 hover:bg-muted/60"
+                        )}
+                      >
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 shrink-0">
+                          <Globe className="h-3 w-3 text-primary" />
+                        </div>
+                        <span className="flex-1 text-left font-medium">All Members</span>
+                        {viewingUserId === "all" && (
+                          <Check className="h-4 w-4 text-primary shrink-0" />
+                        )}
+                      </button>
+
+                      {/* Divider */}
+                      {members.filter((m) => m.id !== user?.id).length > 0 && (
+                        <div className="h-px bg-border/40 my-1" />
+                      )}
+
+                      {/* Team Members List */}
+                      <div className="max-h-64 overflow-y-auto space-y-0.5 pr-1">
+                        {members
+                          .filter((m) => m.id !== user?.id)
+                          .map((member) => (
+                            <button
+                              key={member.id}
+                              onClick={() => setViewingUserId(member.id)}
+                              className={cn(
+                                "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-colors duration-100",
+                                "text-[13px]",
+                                viewingUserId === member.id
+                                  ? "bg-muted text-foreground"
+                                  : "text-foreground/80 hover:bg-muted/60"
+                              )}
+                            >
+                              <Avatar className="h-5 w-5 shrink-0">
+                                {member.avatarUrl ? (
+                                  <AvatarImage src={member.avatarUrl} />
+                                ) : (
+                                  <AvatarFallback className="text-[10px] font-bold">
+                                    {member.firstName[0]}
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
+                              <span className="flex-1 text-left font-medium">
+                                {member.firstName} {member.lastName}
+                              </span>
+                              {viewingUserId === member.id && (
+                                <Check className="h-4 w-4 text-primary shrink-0" />
+                              )}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
           </div>
 
           {loading ? (
@@ -614,51 +818,54 @@ export default function YourWorkPage() {
             </div>
           ) : (
             <>
-              <div className="grid gap-4 md:grid-cols-2">
-                <MetricCard
-                  label="Work items created"
-                  value={derived.created.length}
-                  icon={BriefcaseBusiness}
-                  description="Tasks you opened or authored."
-                />
-                <MetricCard
-                  label="Work items assigned"
-                  value={derived.assigned.length}
-                  icon={UserRoundCheck}
-                  description="Tasks currently assigned to you."
-                />
-              </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <MetricCard
+                    label="Work items created"
+                    value={derived.created.length}
+                    icon={BriefcaseBusiness}
+                    description={
+                      viewingUserId === "me"
+                        ? "Tasks you opened or authored."
+                        : `Tasks created by ${selectedUser?.firstName || "this user"}.`
+                    }
+                  />
+                  <MetricCard
+                    label="Work items assigned"
+                    value={derived.assigned.length}
+                    icon={UserRoundCheck}
+                    description={
+                      viewingUserId === "me"
+                        ? "Tasks currently assigned to you."
+                        : `Tasks assigned to ${selectedUser?.firstName || "this user"}.`
+                    }
+                  />
+                </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                {WORKLOAD_STATUS_ITEMS.map((status) => {
-                  const value = derived.rawStatusCounts.get(status) ?? 0;
-                  const label = STATUS_CARD_LABELS[status] ?? status.replace(/_/g, " ");
-                  const dotColor = STATUS_COLORS[status] ?? "#64748b";
-                  return (
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6">
+                  {WORKLOAD_STATUS_ITEMS.map((key) => (
                     <Card
-                      key={status}
-                      className="min-h-25.5 border-border/60 bg-card/80 transition-all duration-150 hover:-translate-y-0.5 hover:bg-card"
+                      key={key}
+                      className="border-border/60 bg-card/50 transition-colors hover:bg-card"
                     >
-                      <CardContent className="flex h-full flex-col items-start justify-between gap-2 p-4">
+                      <CardContent className="flex h-full flex-col justify-center p-3 md:p-4">
                         <div className="flex items-center gap-2">
-                          <span
-                            className="size-2 rounded-full"
-                            style={{ backgroundColor: dotColor }}
+                          <div
+                            className="size-1.5 shrink-0 rounded-full md:size-2"
+                            style={{ backgroundColor: STATUS_COLORS[key] }}
                           />
-                          <p className="text-[12px] font-medium text-muted-foreground">
-                            {label}
+                          <p className="truncate text-[10px] font-medium text-muted-foreground md:text-[11px]">
+                            {STATUS_CARD_LABELS[key]}
                           </p>
                         </div>
-                        <p className="text-2xl font-semibold tracking-tight text-foreground">
-                          {value}
+                        <p className="mt-1 text-lg font-bold text-foreground md:mt-2 md:text-2xl">
+                          {derived.rawStatusCounts.get(key) ?? 0}
                         </p>
                       </CardContent>
                     </Card>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
 
-              <div className="grid gap-4 xl:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">
@@ -805,7 +1012,7 @@ export default function YourWorkPage() {
                     ) : (
                       recentActivity.map((task) => {
                         const relation =
-                          getTaskCreatorId(task) === userId
+                          getTaskCreatorId(task) === effectiveUserId
                             ? "Created"
                             : "Assigned";
                         return (
@@ -822,7 +1029,7 @@ export default function YourWorkPage() {
                   <CardHeader>
                     <CardTitle className="text-base">Assigned work</CardTitle>
                     <CardDescription>
-                      Tasks currently assigned to you.
+                      Tasks currently assigned to {viewingUserId === "me" ? "you" : "this user"}.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -844,13 +1051,13 @@ export default function YourWorkPage() {
                   <CardHeader>
                     <CardTitle className="text-base">Created work</CardTitle>
                     <CardDescription>
-                      Tasks you created for the workspace.
+                      Tasks created by {viewingUserId === "me" ? "you" : "this user"}.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {createdTasks.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
-                        You have not created any tasks yet.
+                        {viewingUserId === "me" ? "You have" : "This user has"} not created any tasks yet.
                       </p>
                     ) : (
                       createdTasks.map((task) => (
@@ -887,99 +1094,122 @@ export default function YourWorkPage() {
         </div>
       </section>
 
-      <aside className="hidden lg:flex lg:w-80 lg:shrink-0">
-        <div className="sticky top-4 flex h-[calc(100vh-96px)] w-full flex-col gap-3 overflow-hidden">
-          <Card className="flex-none border-border/60 bg-card/85">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Profile</CardTitle>
-              <CardDescription>Your current work context.</CardDescription>
+      <aside className="w-full shrink-0 space-y-4 pb-6 xl:w-80 xl:pb-0 xl:space-y-6">
+        {showProfile ? (
+          <Card className="group/profile relative border-border/60 bg-card/40 shadow-sm backdrop-blur-sm transition-all hover:bg-card/50">
+            <CardHeader className="flex flex-row items-center justify-between p-4 pb-2 md:p-5 md:pb-3">
+              <CardTitle className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground md:text-sm md:text-foreground/80">
+                Profile
+              </CardTitle>
+              <button
+                onClick={() => toggleProfile(false)}
+                className="rounded-md p-1 text-muted-foreground/40 transition-colors hover:bg-muted hover:text-foreground md:opacity-0 md:group-hover/profile:opacity-100"
+              >
+                <X className="size-3.5" />
+              </button>
             </CardHeader>
-            <CardContent className="space-y-3 pt-0">
-              <div className="flex items-center gap-3">
-                <Avatar className="size-10 rounded-xl">
-                  <AvatarImage
-                    src={user?.avatarUrl}
-                    alt={user ? `${user.firstName} ${user.lastName}` : "User"}
-                  />
-                  <AvatarFallback className="rounded-xl bg-primary/10 text-primary">
-                    {initials(
-                      user ? `${user.firstName} ${user.lastName}` : undefined,
-                    )}
+            <CardContent className="px-4 pb-4 md:px-5 md:pb-6">
+              <div className="flex items-center gap-3 md:gap-4">
+                <Avatar className="size-10 ring-2 ring-primary/10 ring-offset-2 ring-offset-background md:size-16">
+                  <AvatarImage src={user?.avatarUrl} />
+                  <AvatarFallback className="bg-primary/5 text-sm font-bold text-primary md:text-xl">
+                    {initials(user?.name)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {user
-                      ? `${user.firstName} ${user.lastName}`.trim()
-                      : "Your account"}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-base font-bold tracking-tight text-foreground md:text-lg">
+                    {user?.name}
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {user?.email ?? "Signed in user"}
-                  </p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 md:mt-1 md:gap-2">
+                    <Badge
+                      variant="outline"
+                      className="h-4 border-primary/20 bg-primary/5 px-1.5 text-[9px] font-bold uppercase tracking-wider text-primary md:h-auto md:text-[10px]"
+                    >
+                      {user?.role}
+                    </Badge>
+                    <p className="truncate text-[11px] text-muted-foreground md:text-xs">
+                      {user?.email}
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
+        ) : (
+          <button
+            onClick={() => toggleProfile(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 py-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+          >
+            <User2 className="size-3.5" />
+            Restore Profile Card
+          </button>
+        )}
 
-          <Card className="flex min-h-0 flex-col border-border/60 bg-card/85">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Projects</CardTitle>
-              <CardDescription>
-                Your task scope grouped by project.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1 pt-0">
+        <Card className="border-border/60 bg-card/40 shadow-sm backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between p-4 pb-2 md:p-5 md:pb-3">
+            <CardTitle className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground md:text-sm md:text-foreground/80">
+              Projects
+            </CardTitle>
+            <div className="flex items-center overflow-hidden rounded-full border border-border/80 bg-muted/40 p-0.5">
+              <button
+                onClick={() => setProjectScope("my")}
+                className={cn(
+                  "px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider transition-all md:px-2.5 md:py-1 md:text-[10px]",
+                  projectScope === "my"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted/60",
+                )}
+              >
+                My
+              </button>
+              <button
+                onClick={() => setProjectScope("all")}
+                className={cn(
+                  "px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider transition-all md:px-2.5 md:py-1 md:text-[10px]",
+                  projectScope === "all"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted/60",
+                )}
+              >
+                Overall
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 px-4 pb-4 md:px-5 md:pb-6">
+            <div className="scrollbar-hide max-h-[400px] space-y-4 overflow-y-auto pr-1 xl:max-h-[500px]">
               {derived.projectSummaries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No project activity found in your current task scope.
-                </p>
+                <div className="py-8 text-center">
+                  <p className="text-xs italic text-muted-foreground">
+                    No projects found with current filter
+                  </p>
+                </div>
               ) : (
                 derived.projectSummaries.map((project) => (
-                  <div
-                    key={project.id}
-                    className="space-y-2.5 rounded-xl border border-border/60 bg-muted/10 p-3 transition-all duration-150 hover:-translate-y-0.5 hover:bg-muted/15"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {project.name}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {project.total} total tasks · {project.completed} done
-                        </p>
-                      </div>
-                      <div className="rounded-full border border-border/60 bg-background/80 px-2.5 py-0.5 text-xs font-semibold text-foreground">
+                  <div key={project.id} className="group flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-3 text-[13px] font-semibold text-foreground/90">
+                      <span className="min-w-0 flex-1 truncate transition-colors group-hover:text-primary">
+                        {project.name}
+                      </span>
+                      <span className="text-[11px] font-bold text-primary tabular-nums">
                         {project.completion}%
-                      </div>
+                      </span>
                     </div>
-
-                    <div className="h-1.5 overflow-hidden rounded-full bg-background/80">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted/40 p-0">
                       <div
-                        className="h-full rounded-full bg-primary transition-all"
+                        className="h-full bg-primary transition-all duration-700 ease-out sm:duration-1000"
                         style={{ width: `${project.completion}%` }}
                       />
                     </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                      <div className="rounded-lg border border-border/60 bg-background/60 px-2.5 py-1.5">
-                        <p>In progress</p>
-                        <p className="mt-0.5 text-sm font-semibold text-foreground">
-                          {project.inProgress}
-                        </p>
-                      </div>
-                      <div className="rounded-lg border border-border/60 bg-background/60 px-2.5 py-1.5">
-                        <p>Open</p>
-                        <p className="mt-0.5 text-sm font-semibold text-foreground">
-                          {project.total - project.completed}
-                        </p>
-                      </div>
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                      <span>{project.completed} DONE</span>
+                      <span>{project.total} TOTAL</span>
                     </div>
                   </div>
                 ))
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </aside>
     </div>
   );

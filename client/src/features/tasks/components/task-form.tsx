@@ -20,6 +20,9 @@ import {
   Sparkles,
   Loader2,
   ExternalLink,
+  Lock,
+  Globe,
+  FileText,
 } from "lucide-react";
 
 import {Button} from "@/components/ui/button";
@@ -44,6 +47,7 @@ import {Badge} from "@/components/ui/badge";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {DatePicker} from "@/components/ui/date-picker";
 import { useTaskDuplicateSuggestions } from "@/features/tasks/hooks/use-task-duplicate-suggestions";
+import { TagSelect } from "@/features/tags/components/tag-select";
 
 interface ProjectOption {
   id: string;
@@ -82,6 +86,12 @@ const priorityConfig: Record<string, {color: string}> = {
   URGENT: {color: "text-red-500"},
 };
 
+const visibilityConfig: Record<string, {icon: any; label: string; description: string}> = {
+  PUBLIC: {icon: Globe, label: "Public", description: "Visible to all"},
+  PRIVATE: {icon: Lock, label: "Private", description: "Only selected users"},
+  DRAFT: {icon: FileText, label: "Draft", description: "Creator only"},
+};
+
 export function TaskForm({
   projects,
   initialValues,
@@ -95,7 +105,6 @@ export function TaskForm({
 }: TaskFormProps) {
   const {user} = useAuthStore();
   const [createMore, setCreateMore] = useState(false);
-  const [newTag, setNewTag] = useState("");
   const [dismissedQuery, setDismissedQuery] = useState<string | null>(null);
 
   const currentRole = user?.role || "MEMBER";
@@ -108,6 +117,8 @@ export function TaskForm({
       description: initialValues?.description ?? "",
       status: initialValues?.status ?? "TODO",
       priority: initialValues?.priority ?? "MEDIUM",
+      visibility: initialValues?.visibility ?? "PUBLIC",
+      visibleToUsers: initialValues?.visibleToUsers ?? [],
       projectId: initialValues?.projectId ?? "",
       assigneeIds:
         initialValues?.assigneeIds && initialValues.assigneeIds.length > 0
@@ -123,10 +134,12 @@ export function TaskForm({
   const statusValue = form.watch("status");
   const titleValue = form.watch("title") || "";
   const priorityValue = form.watch("priority");
+  const visibilityValue = form.watch("visibility");
   const projectIdValue = form.watch("projectId");
   const assigneeIdsValue = form.watch("assigneeIds") || [];
   const dueDateValue = form.watch("dueDate");
   const tagsValue = form.watch("tags") || [];
+  const visibleToUsersValue = form.watch("visibleToUsers") || [];
   const currentProject = projects.find((p) => p.id === projectIdValue);
   const StatusIcon = statusConfig[statusValue]?.icon || CircleDot;
   const {
@@ -204,23 +217,6 @@ export function TaskForm({
       e.preventDefault();
       form.handleSubmit((values) => onSubmit(values, createMore))();
     }
-  };
-
-
-
-  const addTag = () => {
-    const tag = newTag.trim();
-    if (tag && !tagsValue.includes(tag)) {
-      form.setValue("tags", [...tagsValue, tag]);
-    }
-    setNewTag("");
-  };
-
-  const removeTag = (tag: string) => {
-    form.setValue(
-      "tags",
-      tagsValue.filter((t) => t !== tag),
-    );
   };
 
   return (
@@ -440,6 +436,46 @@ export function TaskForm({
             </SelectContent>
           </Select>
 
+          {/* Visibility Select */}
+          <Select
+            value={visibilityValue}
+            onValueChange={(v) => {
+              form.setValue("visibility", v as any);
+              // Reset visible users if changing to non-private
+              if (v !== "PRIVATE") {
+                form.setValue("visibleToUsers", []);
+              }
+            }}>
+            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-full text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
+              <div className="flex items-center gap-2">
+                {visibilityConfig[visibilityValue]?.icon && 
+                  React.createElement(visibilityConfig[visibilityValue].icon, {
+                    className: "h-3.5 w-3.5 opacity-70"
+                  })
+                }
+                <span className="capitalize">
+                  {visibilityConfig[visibilityValue]?.label || visibilityValue}
+                </span>
+              </div>
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-border/30 w-56">
+              {Object.entries(visibilityConfig).map(([key, config]) => (
+                <SelectItem
+                  key={key}
+                  value={key}
+                  className="text-xs focus:bg-primary/10">
+                  <div className="flex items-center gap-2">
+                    {React.createElement(config.icon, {className: "h-4 w-4"})}
+                    <div>
+                      <div className="font-medium">{config.label}</div>
+                      <div className="text-[11px] text-muted-foreground">{config.description}</div>
+                    </div>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           {/* Assignees Selector */}
           <div className="flex-shrink-0">
             <Controller
@@ -494,74 +530,51 @@ export function TaskForm({
             />
           </div>
 
-          {/* Labels / Tags - Functional Implementation */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  "inline-flex items-center gap-2 h-8 px-3 bg-background border border-border/40 rounded-full text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all",
-                  tagsValue.length > 0 &&
-                    "border-primary/30 bg-primary/5 text-primary",
-                )}>
-                <Hash className="h-3.5 w-3.5 opacity-70" />
-                <span>
-                  {tagsValue.length > 0
-                    ? `${tagsValue.length} Tags`
-                    : "Tags"}
-                </span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-3 bg-background border-border/50 shadow-2xl rounded-2xl">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Add tag..."
-                    className="h-8 text-xs bg-muted/20 border-border/30 rounded-lg"
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addTag();
-                      }
-                    }}
+          {/* Visible To Users - Only show for PRIVATE tasks */}
+          {visibilityValue === "PRIVATE" && (
+            <div className="flex-shrink-0">
+              <Controller
+                name="visibleToUsers"
+                control={form.control}
+                render={({field}) => (
+                  <MultiUserSelect
+                    value={field.value || []}
+                    onChange={field.onChange}
+                    trigger={
+                      <button
+                        type="button"
+                        className={cn(
+                          "inline-flex items-center gap-2 h-8 px-3 bg-background border border-border/40 rounded-full text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all",
+                          visibleToUsersValue.length > 0 &&
+                            "border-blue-500/30 bg-blue-500/5 text-blue-500",
+                        )}>
+                        <UserPlus className="h-3.5 w-3.5 opacity-70" />
+                        <span>
+                          {visibleToUsersValue.length > 0
+                            ? `${visibleToUsersValue.length} user${visibleToUsersValue.length > 1 ? "s" : ""}`
+                            : "Share with"}
+                        </span>
+                      </button>
+                    }
                   />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 rounded-lg"
-                    onClick={addTag}>
-                    <PlusCircle className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {tagsValue.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto pr-1">
-                    {tagsValue.map((tag) => (
-                      <Badge
-                        key={typeof tag === 'string' ? tag : Math.random()}
-                        variant="secondary"
-                        className="pl-2 pr-1 py-0.5 text-[10px] font-bold rounded-md bg-primary/10 text-primary border-none flex items-center gap-1">
-                        {String(tag)}
-                        <button
-                          onClick={() => removeTag(tag)}
-                          className="hover:text-foreground transition-colors p-0.5">
-                          <X className="h-2.5 w-2.5" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
                 )}
+              />
+            </div>
+          )}
 
-                {tagsValue.length === 0 && (
-                  <p className="text-[10px] text-muted-foreground italic text-center py-2">
-                    No tags added yet.
-                  </p>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
+          {/* Labels / Tags - New Searchable Implementation */}
+          <div className="flex-shrink-0">
+            <Controller
+              name="tags"
+              control={form.control}
+              render={({field}) => (
+                <TagSelect
+                  selectedTagIds={field.value || []}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+          </div>
         </div>
       </div>
 
