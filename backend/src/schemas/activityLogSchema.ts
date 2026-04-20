@@ -45,6 +45,11 @@ const ACTIVITY_LOG_ACTIONS = [
   'DB_CONNECTED',
   'API_ERROR',
   'API_REQUEST',
+  'USER_LOGIN',
+  'USER_LOGOUT',
+  'FAILED_LOGIN',
+  'PAGE_OPENED',
+  'ACTION_PERFORMED',
 ] as const;
 
 const activityLogSchema = new mongoose.Schema(
@@ -75,7 +80,7 @@ const activityLogSchema = new mongoose.Schema(
     },
     entityType: {
       type: String,
-      enum: ['TASK', 'PROJECT', 'PAGE', 'USER', 'TEAM', 'WORKSPACE', 'ORGANIZATION', 'COMMENT', 'SYSTEM'],
+      enum: ['TASK', 'PROJECT', 'PAGE', 'USER', 'TEAM', 'WORKSPACE', 'ORGANIZATION', 'COMMENT', 'SYSTEM', 'AUTH', 'ACTIVITY'],
       required: true,
       index: true,
     },

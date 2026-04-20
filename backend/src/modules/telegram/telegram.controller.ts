@@ -27,12 +27,11 @@ export const getSettings = async (req: Request, res: Response) => {
       orgSettings: orgSettings || { 
         isEnabled: false, 
         preferences: {
-          notify_admin_logins: true,
-          notify_task_created: true,
-          notify_task_updated: true,
-          notify_task_deleted: true,
-          notify_mentions: true,
-          notify_all_activity: false
+          track_logins: true,
+          track_tasks: true,
+          track_comments: true,
+          track_activity: true,
+          track_all: false
         },
         audience: 'ONLY_ADMINS'
       },
@@ -140,4 +139,26 @@ export const disconnect = async (req: Request, res: Response) => {
     success: true,
     message: 'Disconnected successfully'
   });
+};
+
+export const trackActivity = async (req: Request, res: Response) => {
+  const { action, metadata, resourceId, resourceType } = req.body;
+  const userId = req.user.id;
+  const orgId = req.organizationId;
+
+  if (!orgId) return res.status(400).json({ success: false, message: 'Organization context required' });
+
+  const { logActivity } = await import('../../utils/systemTriggers.js');
+
+  await logActivity({
+    userId,
+    organizationId: orgId,
+    action: action || 'ACTION_PERFORMED',
+    resourceType: resourceType || 'ACTIVITY',
+    resourceId: resourceId || userId,
+    message: metadata?.message,
+    metadata: metadata || {}
+  });
+
+  res.json({ success: true });
 };

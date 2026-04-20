@@ -82,20 +82,26 @@ export const logActivity = async (params: ActivityParams) => {
       });
 
       // Telegram Broadcast Logic (Multi-tenant)
-      const telegramEventMap: Record<string, string> = {
-        'TASK_CREATED': 'TASK_CREATED',
-        'TASK_UPDATED': 'TASK_UPDATED',
-        'TASK_DELETED': 'TASK_DELETED',
-        'TASK_STATUS_UPDATED': 'TASK_UPDATED',
-        'COMMENT_CREATED': 'MENTIONS',
-        'PROJECT_CREATED': 'ALL_ACTIVITY',
-        'PROJECT_UPDATED': 'ALL_ACTIVITY',
-        'PROJECT_DELETED': 'ALL_ACTIVITY',
-        'ADMIN_LOGINS': 'ADMIN_LOGINS'
+      const telegramEventMap: Record<string, { type: 'LOGINS' | 'TASKS' | 'COMMENTS' | 'ACTIVITY', emoji: string }> = {
+        'TASK_CREATED': { type: 'TASKS', emoji: '📌' },
+        'TASK_UPDATED': { type: 'TASKS', emoji: '🔄' },
+        'TASK_DELETED': { type: 'TASKS', emoji: '🗑️' },
+        'TASK_STATUS_UPDATED': { type: 'TASKS', emoji: '🚥' },
+        'TASK_ASSIGNED': { type: 'TASKS', emoji: '👤' },
+        'COMMENT_CREATED': { type: 'COMMENTS', emoji: '💬' },
+        'MENTIONS': { type: 'COMMENTS', emoji: '🆔' },
+        'USER_LOGIN': { type: 'LOGINS', emoji: '🔐' },
+        'USER_LOGOUT': { type: 'LOGINS', emoji: '🔌' },
+        'FAILED_LOGIN': { type: 'LOGINS', emoji: '⚠️' },
+        'PAGE_OPENED': { type: 'ACTIVITY', emoji: '👀' },
+        'ACTION_PERFORMED': { type: 'ACTIVITY', emoji: '⚡' },
+        'PROJECT_CREATED': { type: 'TASKS', emoji: '📁' },
+        'PROJECT_UPDATED': { type: 'TASKS', emoji: '📁' },
+        'PROJECT_DELETED': { type: 'TASKS', emoji: '📁' },
       };
 
-      const eventType = telegramEventMap[normalizedAction];
-      if (eventType) {
+      const eventConfig = telegramEventMap[normalizedAction];
+      if (eventConfig) {
         const [user, org] = await Promise.all([
           User.findById(userId).lean(),
           Organization.findById(params.organizationId).lean()
@@ -104,21 +110,33 @@ export const logActivity = async (params: ActivityParams) => {
         const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown';
         const orgName = org?.name || 'Unknown Organization';
         
+        const details: Record<string, any> = {
+          'User': userName
+        };
+
+        if (eventConfig.type === 'TASKS') {
+          details['Title'] = metadata?.title || metadata?.name || logMessage;
+          if (metadata?.status) details['Status'] = metadata.status;
+          if (metadata?.projectName) details['Project'] = metadata.projectName;
+        } else if (eventConfig.type === 'LOGINS') {
+          if (metadata?.device) details['Device'] = metadata.device;
+          if (metadata?.ip) details['IP'] = metadata.ip;
+        } else if (eventConfig.type === 'ACTIVITY') {
+          details['Action'] = message || logMessage;
+        }
+
         const tgMessage = telegramService.formatTelegramMessage(
           normalizedAction.replace(/_/g, ' '),
           orgName,
-          {
-            'By': userName,
-            'Resource': resourceType,
-            'Title': metadata?.title || metadata?.name || logMessage
-          }
+          details,
+          eventConfig.emoji
         );
 
-        await telegramService.broadcastToOrg({
+        telegramService.broadcastToOrg({
           organizationId: params.organizationId,
-          eventType,
+          eventType: eventConfig.type,
           message: tgMessage,
-          // excludeUserId: userId // Commented out so you can see your own notifications for testing
+          excludeUserId: userId 
         });
       }
 

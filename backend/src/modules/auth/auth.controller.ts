@@ -90,50 +90,45 @@ export const login = asyncHandler(async (req, res) => {
   const ip        = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'Unknown';
   const userAgent = req.headers['user-agent'] || '';
 
-  const { accessToken, refreshToken, user } = await authService.loginUser(
-    email,
-    password,
-    organizationId,
-    { ip, userAgent },
-  );
-
-  // Structured Audit Log
-  await logInfo(`User logged in: ${user.email}`, {
-    module: 'AUTH',
-    action: 'LOGIN_SUCCESS',
-    performedBy: {
-      userId: (user as any).id || (user as any)._id,
-      name: `${user.firstName} ${user.lastName}`,
-      email: user.email
-    },
-    ip,
-    userAgent,
-    organizationId: organizationId || null,
-    metadata: { method: 'PASSWORD' }
-  });
-
-  // Telegram Notification for login (Multi-tenant)
-  if (organizationId) {
-    try {
-      const { broadcastToOrg, formatTelegramMessage } = await import('../notification/telegram.service.js');
-      const Organization = (await import('../../models/Organization.js')).default;
-      const org = await Organization.findById(organizationId).lean();
-      
-      const tgMessage = formatTelegramMessage('Admin Login', org?.name || 'Platform', {
-        'User': `${user.firstName} ${user.lastName}`,
-        'IP Address': ip,
-        'Device': userAgent.substring(0, 50) + (userAgent.length > 50 ? '...' : '')
-      });
-
-      await broadcastToOrg({
-        organizationId,
-        eventType: 'ADMIN_LOGINS',
-        message: tgMessage,
-        excludeUserId: (user as any).id || (user as any)._id
-      });
-    } catch (err) {
-      console.error('Login telegram notification failed:', err);
+  let result;
+  try {
+    result = await authService.loginUser(email, password, organizationId, { ip, userAgent });
+  } catch (error: any) {
+    if (organizationId) {
+      import('../../utils/systemTriggers.js').then(({ logActivity }) => {
+        logActivity({
+          userId: '000000000000000000000000',
+          organizationId,
+          action: 'FAILED_LOGIN',
+          resourceType: 'AUTH',
+          resourceId: organizationId,
+          message: `Failed login attempt for ${email}`,
+          metadata: { ip, userAgent, email }
+        });
+      }).catch(() => {});
     }
+    throw error;
+  }
+
+  const { accessToken, refreshToken, user } = result;
+
+  // Capture Activity for System Pipeline (includes Telegram)
+  if (organizationId) {
+    import('../../utils/systemTriggers.js').then(({ logActivity }) => {
+      logActivity({
+        userId: (user as any).id || (user as any)._id,
+        organizationId,
+        action: 'USER_LOGIN',
+        resourceType: 'AUTH',
+        resourceId: (user as any).id || (user as any)._id,
+        message: `User logged in from ${userAgent.substring(0, 20)}...`,
+        metadata: {
+          ip,
+          device: userAgent.substring(0, 50) + (userAgent.length > 50 ? '...' : ''),
+          method: 'PASSWORD'
+        }
+      });
+    }).catch(err => console.error('Failed to log login activity:', err));
   }
 
   res.cookie('refreshToken', refreshToken, refreshCookieOptions);
@@ -275,6 +270,20 @@ export const logout = asyncHandler(async (req, res) => {
 
   if (refreshToken) {
     await authService.logoutUser(refreshToken);
+    
+    // Capture Activity for System Pipeline
+    if (req.user && req.organizationId) {
+       import('../../utils/systemTriggers.js').then(({ logActivity }) => {
+        logActivity({
+          userId: req.user.id,
+          organizationId: req.organizationId,
+          action: 'USER_LOGOUT',
+          resourceType: 'AUTH',
+          resourceId: req.user.id,
+          message: 'User logged out'
+        });
+      }).catch(err => console.error('Failed to log logout activity:', err));
+    }
   }
 
   res.clearCookie('refreshToken', {
