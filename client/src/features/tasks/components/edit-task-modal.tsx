@@ -56,6 +56,8 @@ export function EditTaskModal({
         dueDate: values.dueDate || undefined,
         assigneeIds: values.assigneeIds || [],
         tags: values.tags || [],
+        visibility: values.visibility || "PUBLIC",
+        visibleToUsers: values.visibility === "PRIVATE" ? (values.visibleToUsers || []) : undefined,
       };
 
       if (!taskId) {
@@ -85,6 +87,8 @@ export function EditTaskModal({
               description: task.description ?? "",
               status: task.status,
               priority: task.priority,
+              visibility: task.visibility || "PUBLIC",
+              visibleToUsers: task.visibilityUsers?.map((u: any) => u.id) || [],
               projectId:
                 typeof task.projectId === "string"
                   ? task.projectId
@@ -94,7 +98,7 @@ export function EditTaskModal({
               dueDate: task.dueDate
                 ? new Date(task.dueDate).toISOString().split("T")[0]
                 : "",
-              tags: task.tags || [],
+              tags: (task.tags || []).map((t: any) => typeof t === "string" ? t : t.id),
               assigneeIds:
                 (task as any).assigneeIds ||
                 (task as any).assignees?.map(

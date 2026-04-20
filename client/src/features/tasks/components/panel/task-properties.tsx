@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { EditableSelect } from "@/components/editable/EditableSelect";
 import { EditableUserSelect } from "@/components/editable/EditableUserSelect";
 import { EditableDate } from "@/components/editable/EditableDate";
-import { EditableTags } from "@/components/editable/EditableTags";
+import { TagSelect } from "@/features/tags/components/tag-select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface TaskPropertiesProps {
@@ -185,11 +185,10 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
           <TagIcon className="size-4 opacity-70" />
           <span>Tags</span>
         </div>
-        <div className="col-span-2 px-1 py-1">
-          <EditableTags
-            tags={task.tags || []}
-            onChange={(tags) => handleUpdate({ tags })}
-            isSaving={isSaving}
+        <div className="col-span-2">
+          <TagSelect
+            selectedTagIds={(task.tags || []).map((t: any) => typeof t === 'string' ? t : t.id)}
+            onChange={(tagIds) => handleUpdate({ tags: tagIds })}
           />
         </div>
       </div>

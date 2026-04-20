@@ -48,6 +48,8 @@ export function CreateTaskModal({
         description: values.description || undefined,
         dueDate: values.dueDate || undefined,
         tags: values.tags || [],
+        visibility: values.visibility || "PUBLIC",
+        visibleToUsers: values.visibility === "PRIVATE" ? (values.visibleToUsers || []) : undefined,
         assignees: canSendAssignees ? assigneeIds : undefined,
         assigneeId: canSendAssignees ? assigneeIds[0] || undefined : undefined,
       };

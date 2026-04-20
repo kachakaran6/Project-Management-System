@@ -143,10 +143,19 @@ export default function ProjectsPage() {
   const deleteProject = useDeleteProjectMutation();
 
   const filtered = useMemo(() => {
-    const rows = projectsQuery.data?.data.items ?? [];
+    let allProjects = projectsQuery.data?.data.items ?? [];
+    
+    // Filter out Demo Project if other projects exist
+    const nonDemoProjects = allProjects.filter(
+      (p) => !p.name.toLowerCase().includes("demo"),
+    );
+    if (nonDemoProjects.length > 0) {
+      allProjects = nonDemoProjects;
+    }
+
     const term = search.trim().toLowerCase();
 
-    return rows.filter((project) => {
+    return allProjects.filter((project) => {
       const matchSearch =
         !term ||
         `${project.name} ${project.description ?? ""}`

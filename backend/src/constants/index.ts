@@ -50,6 +50,12 @@ export const TASK_PRIORITY = {
   URGENT: 'URGENT',
 };
 
+export const TASK_VISIBILITY = {
+  PUBLIC: 'PUBLIC',
+  PRIVATE: 'PRIVATE',
+  DRAFT: 'DRAFT',
+};
+
 export const ACTIVITY_ACTIONS = {
   CREATE: 'CREATE',
   UPDATE: 'UPDATE',

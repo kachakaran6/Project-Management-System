@@ -268,23 +268,46 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
           </Button>
         </div>
 
-        <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/50 p-2.5">
-          <p
-            className={cn(
-              "text-[10px] uppercase font-bold tracking-tighter text-sidebar-foreground/40",
-              sidebarCollapsed && !mobile ? "text-center" : "",
-            )}
-          >
-            Role
-          </p>
-          <p
-            className={cn(
-              "text-xs font-semibold text-white mt-0.5",
-              sidebarCollapsed && !mobile ? "text-center" : "",
-            )}
-          >
-            {role.replace("_", " ")}
-          </p>
+        <div 
+          className={cn(
+            "transition-all duration-300",
+            sidebarCollapsed && !mobile 
+              ? "flex justify-center px-1" 
+              : "rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-3 mx-1"
+          )}
+        >
+          {sidebarCollapsed && !mobile ? (
+            <div 
+              className={cn(
+                "size-8 rounded-lg flex items-center justify-center transition-all duration-500 shadow-lg",
+                role === "SUPER_ADMIN" ? "bg-orange-500/20 text-orange-500 border border-orange-500/30 ring-1 ring-orange-500/10" :
+                role === "ADMIN" ? "bg-primary/20 text-primary border border-primary/30 ring-1 ring-primary/10" :
+                role === "MANAGER" ? "bg-blue-500/20 text-blue-500 border border-blue-500/30 ring-1 ring-blue-500/10" :
+                "bg-sidebar-foreground/10 text-sidebar-foreground/60 border border-sidebar-border/50"
+              )}
+            >
+              <span className="text-[11px] font-black tracking-tighter">
+                {role === "SUPER_ADMIN" ? "SA" : role.charAt(0)}
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5 animate-in fade-in duration-500">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-sidebar-foreground/30">
+                  Account Role
+                </span>
+                <div className={cn(
+                  "size-1.5 rounded-full ring-2 ring-background shadow-sm animate-pulse",
+                  role === "SUPER_ADMIN" ? "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]" :
+                  role === "ADMIN" ? "bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]" :
+                  "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"
+                )} />
+              </div>
+              <p className="text-[13px] font-extrabold text-white tracking-tight flex items-center gap-2 capitalize">
+                {role.toLowerCase().replace("_", " ")}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </aside>

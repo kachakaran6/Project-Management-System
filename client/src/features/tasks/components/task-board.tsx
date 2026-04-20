@@ -2,6 +2,7 @@
 
 import {useRouter, useSearchParams, usePathname} from "@/lib/next-navigation";
 import React, {useState, useEffect, useMemo} from "react";
+import {TaskContextMenu} from "./task-context-menu";
 import {toast} from "sonner";
 import {
   DragDropContext,
@@ -61,6 +62,8 @@ import {
   useUpdateTaskMutation,
 } from "@/features/tasks/hooks/use-tasks-query";
 import {EditTaskModal} from "@/features/tasks/components/edit-task-modal";
+import { useTaskDuplicateSuggestions } from "@/features/tasks/hooks/use-task-duplicate-suggestions";
+import { TagPill } from "@/features/tags/components/tag-pill";
 import {useTaskPanelStore} from "@/features/tasks/store/task-panel-store";
 import {useAuthStore} from "@/store/auth-store";
 import {cn} from "@/lib/utils";
@@ -162,9 +165,10 @@ interface TaskCardProps {
   task: Task;
   index: number;
   canEdit?: boolean;
+  onContextMenu: (e: React.MouseEvent, taskId: string) => void;
 }
 
-const TaskCard = React.memo(({task, index, canEdit = true}: TaskCardProps) => {
+const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskCardProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -180,6 +184,12 @@ const TaskCard = React.memo(({task, index, canEdit = true}: TaskCardProps) => {
   const [openChip, setOpenChip] = useState<
     "status" | "priority" | "date" | "assignee" | null
   >(null);
+
+  const createdByUser = (task as any).creatorUser ?? (task as any).createdBy ?? (task as any).creator ?? (task as any).created_by;
+  const createdByName = createdByUser?.firstName 
+    ? `${createdByUser.firstName} ${createdByUser.lastName}`.trim() 
+    : createdByUser?.name || "System";
+  const createdByEmail = createdByUser?.email || "";
 
   const priority = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.MEDIUM;
   const dueDate = task.dueDate
@@ -327,6 +337,12 @@ const TaskCard = React.memo(({task, index, canEdit = true}: TaskCardProps) => {
             ref={provided.innerRef}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
+            onContextMenu={(e) => {
+              if (canEdit) {
+                e.preventDefault();
+                onContextMenu(e, tid(task));
+              }
+            }}
             className={cn(
               "group relative flex flex-col gap-2 rounded-xl border border-border/40 bg-card p-3 mx-0.5",
               "transition-all duration-200 ease-in-out select-none",
@@ -398,6 +414,24 @@ const TaskCard = React.memo(({task, index, canEdit = true}: TaskCardProps) => {
 
             {/* Metadata Footer */}
             <div className="flex items-center flex-wrap gap-2 mt-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="shrink-0 cursor-default">
+                    <Avatar className="h-5 w-5 rounded-full border border-border/20 shadow-sm opacity-80 hover:opacity-100 transition-opacity">
+                      <AvatarImage src={createdByUser?.avatarUrl} alt={createdByName} />
+                      <AvatarFallback className="text-[7px] bg-muted text-muted-foreground font-bold">
+                        {createdByName.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="flex flex-col gap-0.5 p-2 rounded-lg border-border/40 bg-card/95 backdrop-blur-md shadow-xl z-[100]">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Created By</span>
+                  <span className="text-xs font-semibold">{createdByName}</span>
+                  {createdByEmail && <span className="text-[11px] text-muted-foreground font-medium">{createdByEmail}</span>}
+                </TooltipContent>
+              </Tooltip>
+
               <DropdownMenu
                 open={openChip === "status"}
                 onOpenChange={(open) => setOpenChip(open ? "status" : null)}>
@@ -577,16 +611,30 @@ const TaskCard = React.memo(({task, index, canEdit = true}: TaskCardProps) => {
               </Popover>
             </div>
 
+            {/* Professional Tags Display */}
             {Array.isArray(task.tags) && task.tags.length > 0 ? (
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                {task.tags.slice(0, 3).map((tag) => (
-                  <span
-                    key={String(tag)}
-                    className="rounded-full border border-border/30 px-2 py-0.5 text-[10px] text-muted-foreground"
-                  >
-                    {String(tag)}
+              <div className="flex flex-wrap items-center gap-1 mt-1.5 min-h-[18px]">
+                {task.tags.slice(0, 2).map((tag: any, i: number) => {
+                  const isObject = typeof tag === "object" && tag !== null;
+                  const label = isObject ? tag.label : tag;
+                  const color = isObject ? tag.color : "#64748b";
+                  const icon = isObject ? tag.icon : "Tag";
+                  
+                  return (
+                    <TagPill
+                      key={isObject ? tag.id : i}
+                      label={label}
+                      color={color}
+                      iconName={icon}
+                      className="px-1.5 py-0 h-4.5 text-[9px] gap-1 font-bold border-none"
+                    />
+                  );
+                })}
+                {task.tags.length > 2 && (
+                  <span className="text-[9px] font-bold text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-default pl-0.5">
+                    +{task.tags.length - 2} more
                   </span>
-                ))}
+                )}
               </div>
             ) : null}
           </div>
@@ -744,7 +792,64 @@ export function TaskBoard({
   });
 
   const changeStatus = useUpdateTaskStatusMutation();
+  const createTask = useCreateTaskMutation();
+  const deleteTask = useDeleteTaskMutation();
+  
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const {openPanel} = useTaskPanelStore();
+
   const [isSyncing, setIsSyncing] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; taskId: string } | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+
+  const handleOpen = (id: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("taskId", id);
+    router.push(`${pathname}?${params.toString()}`, {scroll: false});
+    openPanel(id);
+  };
+
+  const handleOpenNewTab = (id: string) => {
+    window.open(`${window.location.origin}/tasks/${id}`, "_blank");
+  };
+
+  const handleDuplicate = async (id: string) => {
+    const task = data.tasks[id];
+    if (!task) return;
+    try {
+      const assigneeIds = (task as any).assigneeIds || (task.assigneeUsers ?? []).map((u: any) => u.id);
+      await createTask.mutateAsync({
+        title: `${task.title} (Copy)`,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        projectId: task.projectId || projectId || "",
+        assigneeIds,
+        tags: task.tags,
+      });
+      toast.success("Task duplicated");
+    } catch {
+      toast.error("Failed to duplicate task");
+    }
+  };
+
+  const handleCopyLink = (id: string) => {
+    const url = `${window.location.origin}/tasks/${id}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link copied to clipboard");
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+    try {
+      await deleteTask.mutateAsync(id);
+      toast.success("Task deleted");
+    } catch {
+      toast.error("Failed to delete task");
+    }
+  };
 
   const visibleColumns = useMemo(() => {
     return ALL_STATUS_CONFIG.filter(
@@ -835,12 +940,34 @@ export function TaskBoard({
                   tasks={columnTasks}
                   canEdit={canEdit}
                   projectId={projectId}
+                  onContextMenu={(e, id) => setContextMenu({ x: e.clientX, y: e.clientY, taskId: id })}
                 />
               );
             })}
           </div>
         </DragDropContext>
       </div>
+
+      {contextMenu && (
+        <TaskContextMenu
+          {...contextMenu}
+          onClose={() => setContextMenu(null)}
+          onOpen={handleOpen}
+          onOpenNewTab={handleOpenNewTab}
+          onEdit={(id) => setEditingTaskId(id)}
+          onDuplicate={handleDuplicate}
+          onCopyLink={handleCopyLink}
+          onDelete={handleDelete}
+        />
+      )}
+
+      {editingTaskId && data.tasks[editingTaskId] && (
+        <EditTaskModal
+          task={data.tasks[editingTaskId]}
+          open={!!editingTaskId}
+          onOpenChange={(open) => !open && setEditingTaskId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -852,11 +979,13 @@ function KanbanColumn({
   tasks,
   canEdit,
   projectId,
+  onContextMenu,
 }: {
   col: ColumnDef;
   tasks: Task[];
   canEdit: boolean;
   projectId?: string;
+  onContextMenu: (e: React.MouseEvent, taskId: string) => void;
 }) {
   const [isQuickAdd, setQuickAdd] = useState(false);
 
@@ -904,6 +1033,7 @@ function KanbanColumn({
                   task={task}
                   index={index}
                   canEdit={canEdit}
+                  onContextMenu={onContextMenu}
                 />
               ))}
             </div>

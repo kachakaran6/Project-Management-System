@@ -7,6 +7,7 @@ export type TaskStatus =
   | "REJECTED"
   | "ARCHIVED";
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+export type TaskVisibility = "PUBLIC" | "PRIVATE" | "DRAFT";
 
 export interface TaskAssigneeUser {
   id: string;
@@ -28,6 +29,14 @@ export interface TaskAssigneeRelation {
       };
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+  label: string;
+  color: string;
+  icon: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -35,15 +44,17 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   projectId: string;
-  // assigneeId?: string;
   creatorId: string;
   creator?: TaskAssigneeUser;
   dueDate?: string;
-  tags?: string[];
+  tags?: Tag[];
+  tagIds?: string[];
   assigneeId?: string;
   assigneeIds?: string[];
   assigneeUsers?: TaskAssigneeUser[];
   assignees?: TaskAssigneeRelation[];
+  visibility?: TaskVisibility;
+  visibilityUsers?: TaskAssigneeUser[];
   position?: number;
   createdAt: string;
   updatedAt: string;
@@ -58,6 +69,8 @@ export interface CreateTaskInput {
   priority?: TaskPriority;
   assigneeId?: string;
   assignees?: string[];
+  visibility?: TaskVisibility;
+  visibleToUsers?: string[];
   dueDate?: string;
   tags?: string[];
   position?: number;
@@ -67,6 +80,8 @@ export interface UpdateTaskInput extends Partial<CreateTaskInput> {
   status?: TaskStatus;
   assigneeIds?: string[];
   tags?: string[];
+  visibility?: TaskVisibility;
+  visibleToUsers?: string[];
   position?: number;
 }
 
@@ -80,7 +95,8 @@ export interface TaskFilters {
   priority?: TaskPriority;
   assigneeId?: string;
   creatorId?: string;
-  tagId?: string;
+  userId?: string;
+  tagIds?: string[];
   dueDate?: string;
 }
 

@@ -7,8 +7,70 @@ import { SOCKET_EVENTS } from '../realtime/socket.events.js';
 import { NOTIFICATION_TYPES } from '../constants/index.js';
 import * as telegramService from '../modules/notification/telegram.service.js';
 import User from '../models/User.js';
+import Task from '../models/Task.js';
+import Project from '../models/Project.js';
 
 import Organization from '../models/Organization.js';
+
+const getDisplayName = (user: any) => {
+  if (!user) return 'System';
+  const firstName = user.firstName || '';
+  const lastName = user.lastName || '';
+  const fullName = `${firstName} ${lastName}`.trim();
+  return fullName || user.email || 'System';
+};
+
+const normalizeChangedFields = (fields: any): string[] => {
+  if (!Array.isArray(fields)) return [];
+  const fieldLabelMap: Record<string, string> = {
+    title: 'Title',
+    description: 'Description',
+    dueDate: 'Due Date',
+    startDate: 'Start Date',
+    priority: 'Priority',
+    status: 'Status',
+    assigneeId: 'Assignee',
+    assigneeIds: 'Assignees',
+    tags: 'Tags',
+    labels: 'Labels',
+  };
+
+  return fields
+    .map((field: any) => fieldLabelMap[String(field)] || String(field || ''))
+    .filter(Boolean);
+};
+
+const resolveTaskContext = async ({
+  resourceId,
+  projectId,
+  metadata,
+}: {
+  resourceId?: any;
+  projectId?: any;
+  metadata?: Record<string, any>;
+}) => {
+  let taskTitle = metadata?.taskTitle || metadata?.title;
+  let resolvedProjectId = metadata?.projectId || projectId;
+  let projectName = metadata?.projectName;
+
+  if (resourceId) {
+    const taskDoc = await Task.findById(resourceId).select('title projectId').lean();
+    if (taskDoc) {
+      taskTitle = taskTitle || taskDoc.title;
+      resolvedProjectId = resolvedProjectId || taskDoc.projectId;
+    }
+  }
+
+  if (!projectName && resolvedProjectId) {
+    const projectDoc = await Project.findById(resolvedProjectId).select('name').lean();
+    projectName = projectDoc?.name;
+  }
+
+  return {
+    taskTitle: taskTitle || 'Untitled Task',
+    projectName: projectName || 'General',
+  };
+};
 
 interface ActivityParams {
   userId: any;
@@ -102,35 +164,75 @@ export const logActivity = async (params: ActivityParams) => {
 
       const eventConfig = telegramEventMap[normalizedAction];
       if (eventConfig) {
+        // Skip broadcast for COMMENT_CREATED - it's handled via triggerNotification() directly
+        // to send personalized messages to task creator only
+        if (normalizedAction === 'COMMENT_CREATED') {
+          return;
+        }
+
         const [user, org] = await Promise.all([
           User.findById(userId).lean(),
           Organization.findById(params.organizationId).lean()
         ]);
         
-        const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown';
+        const userName = getDisplayName(user);
         const orgName = org?.name || 'Unknown Organization';
+
+        const taskActions = new Set([
+          'TASK_CREATED',
+          'TASK_UPDATED',
+          'TASK_DELETED',
+          'TASK_STATUS_UPDATED',
+          'TASK_ASSIGNED',
+        ]);
+
+        let tgMessage = '';
+
+        if (taskActions.has(normalizedAction)) {
+          const taskContext = await resolveTaskContext({
+            resourceId,
+            projectId: params.projectId,
+            metadata,
+          });
+
+          tgMessage = telegramService.buildTelegramMessage(
+            normalizedAction as any,
+            {
+              taskId: String(resourceId || metadata?.taskId || ''),
+              taskTitle: taskContext.taskTitle,
+              projectName: taskContext.projectName,
+              actorName: userName,
+              oldStatus: metadata?.oldStatus,
+              newStatus: metadata?.newStatus || metadata?.status,
+              assignedTo: metadata?.assignedTo,
+              assignedToId: metadata?.assignedToId,
+              changedFields: normalizeChangedFields(metadata?.changedFields || metadata?.updatedFields),
+              timestamp: metadata?.timestamp || new Date(),
+            },
+          );
+        } else {
+          const details: Record<string, any> = {
+            'User': userName
+          };
         
-        const details: Record<string, any> = {
-          'User': userName
-        };
+          if (eventConfig.type === 'TASKS') {
+            details['Title'] = metadata?.title || metadata?.name || logMessage;
+            if (metadata?.status) details['Status'] = metadata.status;
+            if (metadata?.projectName) details['Project'] = metadata.projectName;
+          } else if (eventConfig.type === 'LOGINS') {
+            if (metadata?.device) details['Device'] = metadata.device;
+            if (metadata?.ip) details['IP'] = metadata.ip;
+          } else if (eventConfig.type === 'ACTIVITY') {
+            details['Action'] = message || logMessage;
+          }
 
-        if (eventConfig.type === 'TASKS') {
-          details['Title'] = metadata?.title || metadata?.name || logMessage;
-          if (metadata?.status) details['Status'] = metadata.status;
-          if (metadata?.projectName) details['Project'] = metadata.projectName;
-        } else if (eventConfig.type === 'LOGINS') {
-          if (metadata?.device) details['Device'] = metadata.device;
-          if (metadata?.ip) details['IP'] = metadata.ip;
-        } else if (eventConfig.type === 'ACTIVITY') {
-          details['Action'] = message || logMessage;
+          tgMessage = telegramService.formatTelegramMessage(
+            normalizedAction.replace(/_/g, ' '),
+            orgName,
+            details,
+            eventConfig.emoji
+          );
         }
-
-        const tgMessage = telegramService.formatTelegramMessage(
-          normalizedAction.replace(/_/g, ' '),
-          orgName,
-          details,
-          eventConfig.emoji
-        );
 
         telegramService.broadcastToOrg({
           organizationId: params.organizationId,
@@ -228,31 +330,51 @@ export const triggerNotification = async ({
     emitToUsers(validUserIds, SOCKET_EVENTS.NOTIFICATION_NEW, createdNotifications);
 
     // Telegram Notifications for affected users (Direct mapped via connection)
-    for (const recipientId of validUserIds) {
-      const typeMap: Record<string, string> = {
-        [NOTIFICATION_TYPES.MENTION]: 'MENTIONS',
-        [NOTIFICATION_TYPES.TASK_ASSIGNED]: 'TASK_CREATED', 
-      };
+    const typeMap: Record<string, 'TASK_ASSIGNED' | 'TASK_UPDATED' | 'MENTION' | 'COMMENT_CREATED' | null> = {
+      [NOTIFICATION_TYPES.MENTION]: 'MENTION',
+      [NOTIFICATION_TYPES.TASK_ASSIGNED]: 'TASK_ASSIGNED',
+      [NOTIFICATION_TYPES.TASK_UPDATED]: 'TASK_UPDATED',
+      [NOTIFICATION_TYPES.COMMENT_ADDED]: 'COMMENT_CREATED',
+      [NOTIFICATION_TYPES.PROJECT_INVITE]: null,
+      [NOTIFICATION_TYPES.NEW_MEMBER_JOINED]: null,
+    };
 
-      const eventType = typeMap[type];
-      if (eventType) {
-        const [actor, org] = await Promise.all([
-          User.findById(actorId).lean(),
-          Organization.findById(organizationId).lean()
-        ]);
-        
-        const actorName = actor ? `${actor.firstName} ${actor.lastName}` : 'System';
-        const orgName = org?.name || 'Unknown';
-        
-        const tgMessage = telegramService.formatTelegramMessage(
-          titleMap[type] || 'Notification',
-          orgName,
-          {
-            'From': actorName,
-            'Message': message,
-            'Resource': resourceType,
-            'Link': `[View online](${process.env.FRONTEND_URL || 'https://pms-orbit.com'}${link || ''})`
-          }
+    const eventType = typeMap[type] || null;
+
+    if (eventType) {
+      const [actor, recipientUsers, taskContext] = await Promise.all([
+        User.findById(actorId).lean(),
+        User.find({ _id: { $in: validUserIds } }).select('firstName lastName email').lean(),
+        resolveTaskContext({ resourceId, metadata }),
+      ]);
+
+      const actorName = getDisplayName(actor);
+      const recipientsById = new Map<string, any>();
+      for (const recipient of recipientUsers as any[]) {
+        recipientsById.set(String(recipient._id), recipient);
+      }
+
+      for (const recipientId of validUserIds) {
+        const recipientUser = recipientsById.get(String(recipientId));
+        const recipientName = getDisplayName(recipientUser);
+        const payload = {
+          taskId: String(resourceId || metadata?.taskId || ''),
+          taskTitle: metadata?.taskTitle || taskContext.taskTitle,
+          projectName: metadata?.projectName || taskContext.projectName,
+          actorName,
+          oldStatus: metadata?.oldStatus,
+          newStatus: metadata?.newStatus,
+          assignedTo: eventType === 'TASK_ASSIGNED' ? recipientName : metadata?.assignedTo,
+          assignedToId: eventType === 'TASK_ASSIGNED' ? String(recipientId) : metadata?.assignedToId,
+          changedFields: normalizeChangedFields(metadata?.changedFields),
+          comment: metadata?.comment,
+          timestamp: metadata?.timestamp || new Date(),
+        };
+
+        const tgMessage = telegramService.buildTelegramMessage(
+          eventType,
+          payload,
+          { id: String(recipientId), name: recipientName },
         );
 
         await telegramService.sendDirectNotification(String(recipientId), String(organizationId), tgMessage);

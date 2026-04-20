@@ -6,22 +6,28 @@ import { successResponse } from '../../utils/apiResponse.js';
  * Controller: Create Tag
  */
 export const create = asyncHandler(async (req, res) => {
-  const { name, color, workspaceId } = req.body;
   const tag = await tagService.createTag({
-    name,
-    color,
-    workspaceId,
-    organizationId: req.organizationId
+    ...req.body,
+    organizationId: req.organizationId as string,
+    createdBy: req.user.id
   });
 
   return successResponse(res, tag, 'Tag created successfully.', 201);
 });
 
 /**
- * Controller: Get Task Tags
+ * Controller: Update Tag
+ */
+export const update = asyncHandler(async (req, res) => {
+  const tag = await tagService.updateTag(req.params.id as string, req.body, req.organizationId as string);
+  return successResponse(res, tag, 'Tag updated successfully.');
+});
+
+/**
+ * Controller: Get All Tags
  */
 export const getAll = asyncHandler(async (req, res) => {
-  const tags = await tagService.getTags(req.organizationId, req.query.workspaceId);
+  const tags = await tagService.getTags(req.organizationId as string, req.query.workspaceId as string);
   return successResponse(res, tags, 'Tags retrieved successfully.');
 });
 
@@ -29,9 +35,9 @@ export const getAll = asyncHandler(async (req, res) => {
  * Controller: Assign Tag to Task
  */
 export const assign = asyncHandler(async (req, res) => {
-  const tagValue = req.body?.tagId || req.body?.name || req.body?.tagName || req.body?.label;
-  await tagService.assignTagToTask(req.params.taskId, tagValue, req.organizationId);
-  return successResponse(res, null, 'Tag assigned to task.');
+  const { tagIds } = req.body;
+  await tagService.assignTagsToTask(req.params.taskId as string, tagIds, req.organizationId as string);
+  return successResponse(res, null, 'Tags assigned to task.');
 });
 
 /**
@@ -39,7 +45,7 @@ export const assign = asyncHandler(async (req, res) => {
  */
 export const removeByTask = asyncHandler(async (req, res) => {
   const { tagId } = req.params;
-  await tagService.removeTagFromTask(req.params.taskId, tagId, req.organizationId);
+  await tagService.removeTagFromTask(req.params.taskId as string, tagId as string, req.organizationId as string);
   return successResponse(res, null, 'Tag removed from task.');
 });
 
@@ -47,6 +53,6 @@ export const removeByTask = asyncHandler(async (req, res) => {
  * Controller: Delete Tag Globally
  */
 export const removeGlobal = asyncHandler(async (req, res) => {
-  await tagService.deleteTag(req.params.id, req.organizationId);
+  await tagService.deleteTag(req.params.id as string, req.organizationId as string);
   return successResponse(res, null, 'Tag deleted globally.');
 });

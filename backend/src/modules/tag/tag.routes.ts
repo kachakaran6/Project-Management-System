@@ -17,6 +17,12 @@ router.post(
   tagController.create
 );
 
+router.put(
+  '/:id', 
+  requirePermission(PERMISSIONS.CREATE_TASK), 
+  tagController.update
+);
+
 // Manage tags on specific tasks
 router.post(
   '/task/:taskId', 

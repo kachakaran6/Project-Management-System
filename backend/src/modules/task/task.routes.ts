@@ -59,4 +59,23 @@ router.delete(
   taskController.remove,
 );
 
+// Task Visibility Management
+router.patch(
+  "/:id/visibility",
+  requirePermission(PERMISSIONS.EDIT_TASK),
+  taskController.updateVisibility,
+);
+
+router.post(
+  "/:id/visibility/users",
+  requirePermission(PERMISSIONS.EDIT_TASK),
+  taskController.addVisibilityUsers,
+);
+
+router.delete(
+  "/:id/visibility/users",
+  requirePermission(PERMISSIONS.EDIT_TASK),
+  taskController.removeVisibilityUsers,
+);
+
 export default router;

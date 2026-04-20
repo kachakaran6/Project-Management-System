@@ -9,7 +9,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {TableCell, TableRow} from "@/components/ui/table";
 import {Badge} from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {cn} from "@/lib/utils";
+import {TagPill} from "@/features/tags/components/tag-pill";
 import {
   Task,
   TaskAssigneeUser,
@@ -107,6 +113,7 @@ export const TaskRow = ({
       .join(" ")
       .trim() ||
     "System";
+  const createdByEmail = createdByUser?.email || "";
   const createdAt = task.createdAt;
   const tags = task.tags || [];
 
@@ -198,14 +205,24 @@ export const TaskRow = ({
         </DropdownMenu>
       </TableCell>
       <TableCell>
-        <div className="flex items-center gap-2">
-           <Avatar className="h-6 w-6 rounded-md">
-            <AvatarFallback className="bg-primary/5 text-primary text-[8px] font-bold">
-              {createdByName.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          <span className="text-xs font-semibold whitespace-nowrap">{createdByName}</span>
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-2 cursor-help group/creator">
+               <Avatar className="h-6 w-6 rounded-md border border-border/40 transition-shadow group-hover/creator:shadow-sm">
+                <AvatarImage src={createdByUser?.avatarUrl} />
+                <AvatarFallback className="bg-primary/5 text-primary text-[8px] font-bold">
+                  {createdByName.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xs font-semibold whitespace-nowrap group-hover/creator:text-primary transition-colors">{createdByName}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="flex flex-col gap-0.5 p-2 rounded-lg border-border/40 bg-card/95 backdrop-blur-md shadow-xl z-[100]">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Created By</span>
+            <span className="text-xs font-semibold">{createdByName}</span>
+            {createdByEmail && <span className="text-[11px] text-muted-foreground font-medium">{createdByEmail}</span>}
+          </TooltipContent>
+        </Tooltip>
       </TableCell>
       <TableCell>
         <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -231,11 +248,22 @@ export const TaskRow = ({
       <TableCell>
         <div className="flex flex-wrap gap-1">
           {tags.length > 0 ? (
-            tags.map((tag: string, i: number) => (
-              <Badge key={i} variant="secondary" className="px-1.5 py-0 text-[8px] h-4 leading-none">
-                {tag}
-              </Badge>
-            ))
+            tags.map((tag: any, i: number) => {
+              const isObject = typeof tag === "object" && tag !== null;
+              const label = isObject ? tag.label : tag;
+              const color = isObject ? tag.color : "#64748b";
+              const icon = isObject ? tag.icon : "Tag";
+              
+              return (
+                <TagPill 
+                  key={isObject ? tag.id : i} 
+                  label={label} 
+                  color={color} 
+                  iconName={icon}
+                  className="px-1.5 py-0 h-4.5 text-[8px] gap-1 font-bold border-none"
+                />
+              );
+            })
           ) : (
             <span className="text-[10px] text-muted-foreground/40 italic">--</span>
           )}

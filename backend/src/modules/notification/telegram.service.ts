@@ -5,6 +5,149 @@ import { AppError } from '../../middlewares/errorHandler.js';
 
 const getBotToken = () => process.env.TELEGRAM_BOT_TOKEN;
 
+type TelegramTaskEventType =
+  | 'TASK_CREATED'
+  | 'TASK_STATUS_UPDATED'
+  | 'TASK_UPDATED'
+  | 'TASK_ASSIGNED'
+  | 'TASK_DELETED'
+  | 'MENTION'
+  | 'COMMENT_CREATED';
+
+type TelegramMessagePayload = {
+  taskId?: string;
+  taskTitle?: string;
+  projectName?: string;
+  actorName?: string;
+  oldStatus?: string;
+  newStatus?: string;
+  assignedTo?: string;
+  assignedToId?: string;
+  changedFields?: string[];
+  comment?: string;
+  timestamp?: string | Date;
+};
+
+type TelegramReceiver = {
+  id?: string;
+  name?: string;
+};
+
+const formatStatus = (status?: string) => {
+  if (!status) return '-';
+  return status
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+};
+
+const formatTime = (timestamp?: string | Date) => {
+  const date = timestamp ? new Date(timestamp) : new Date();
+  return date.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
+const withBase = (title: string, emoji: string, lines: string[]) => {
+  return `${emoji} *${title}*\n━━━━━━━━━━━━━━━\n${lines.join('\n')}`;
+};
+
+export const buildTelegramMessage = (
+  eventType: TelegramTaskEventType,
+  payload: TelegramMessagePayload,
+  receiver?: TelegramReceiver,
+) => {
+  const taskTitle = payload.taskTitle || 'Untitled Task';
+  const projectName = payload.projectName || 'General';
+  const actorName = payload.actorName || 'System';
+  const time = formatTime(payload.timestamp);
+
+  if (eventType === 'TASK_CREATED') {
+    return withBase('Task Created', '🔔', [
+      `*Task:* ${taskTitle}`,
+      `*Project:* ${projectName}`,
+      `*Created by:* ${actorName}`,
+      `*Assigned to:* ${payload.assignedTo || '-'}`,
+      `*Status:* ${formatStatus(payload.newStatus)}`,
+      `*Time:* ${time}`,
+    ]);
+  }
+
+  if (eventType === 'TASK_STATUS_UPDATED') {
+    return withBase('Task Status Updated', '🔄', [
+      `*Task:* ${taskTitle}`,
+      `*Project:* ${projectName}`,
+      `*Updated by:* ${actorName}`,
+      `*Change:* ${formatStatus(payload.oldStatus)} → ${formatStatus(payload.newStatus)}`,
+      `*Time:* ${time}`,
+    ]);
+  }
+
+  if (eventType === 'TASK_UPDATED') {
+    const changed = payload.changedFields?.length ? payload.changedFields.join(', ') : '-';
+    return withBase('Task Updated', '✏️', [
+      `*Task:* ${taskTitle}`,
+      `*Project:* ${projectName}`,
+      `*Updated by:* ${actorName}`,
+      `*Fields changed:* ${changed}`,
+      `*Time:* ${time}`,
+    ]);
+  }
+
+  if (eventType === 'TASK_ASSIGNED') {
+    const isReceiverAssignee =
+      Boolean(receiver?.id) &&
+      Boolean(payload.assignedToId) &&
+      String(receiver?.id) === String(payload.assignedToId);
+    return withBase('Task Assigned', '👤', [
+      `*Task:* ${taskTitle}`,
+      `*Project:* ${projectName}`,
+      `*Assigned to:* ${isReceiverAssignee ? 'You' : payload.assignedTo || '-'}`,
+      `*Assigned by:* ${actorName}`,
+      `*Time:* ${time}`,
+    ]);
+  }
+
+  if (eventType === 'TASK_DELETED') {
+    return withBase('Task Deleted', '🗑️', [
+      `*Task:* ${taskTitle}`,
+      `*Project:* ${projectName}`,
+      `*Deleted by:* ${actorName}`,
+      `*Time:* ${time}`,
+    ]);
+  }
+
+  if (eventType === 'COMMENT_CREATED') {
+    // Trim comment to 120-150 chars with ellipsis if needed
+    let displayComment = payload.comment || '-';
+    if (displayComment.length > 150) {
+      displayComment = displayComment.substring(0, 147) + '...';
+    }
+    return withBase('New Comment Added', '💬', [
+      `*Task:* ${taskTitle}`,
+      `*Project:* ${projectName}`,
+      `*Comment by:* ${actorName}`,
+      `*Comment:* "${displayComment}"`,
+      `*Time:* ${time}`,
+    ]);
+  }
+
+  // Default: You were mentioned (for MENTION type)
+  return withBase('You were mentioned', '💬', [
+    `*Task:* ${taskTitle}`,
+    `*Project:* ${projectName}`,
+    `*By:* ${actorName}`,
+    `*Comment:* "${payload.comment || '-'}"`,
+    `*Time:* ${time}`,
+  ]);
+};
+
 /**
  * Broadcasts a Telegram notification to relevant members of an organization
  */
