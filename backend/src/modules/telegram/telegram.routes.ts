@@ -10,6 +10,7 @@ router.get('/settings', telegramController.getSettings);
 router.post('/initiate', telegramController.initiateConnection);
 router.post('/verify', telegramController.verifyConnection);
 router.post('/disconnect', telegramController.disconnect);
+router.post('/track-activity', telegramController.trackActivity);
 
 // Admin only routes
 router.patch('/org-settings', requireRole(['ADMIN', 'SUPER_ADMIN']), telegramController.updateOrgSettings);

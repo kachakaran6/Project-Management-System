@@ -10,12 +10,11 @@ const telegramOrgSettingsSchema = new mongoose.Schema({
   },
   isEnabled: { type: Boolean, default: false },
   preferences: {
-    notify_admin_logins: { type: Boolean, default: true },
-    notify_task_created: { type: Boolean, default: true },
-    notify_task_updated: { type: Boolean, default: true },
-    notify_task_deleted: { type: Boolean, default: true },
-    notify_mentions: { type: Boolean, default: true },
-    notify_all_activity: { type: Boolean, default: false }
+    track_logins: { type: Boolean, default: true },
+    track_tasks: { type: Boolean, default: true },
+    track_comments: { type: Boolean, default: true },
+    track_activity: { type: Boolean, default: true },
+    track_all: { type: Boolean, default: false }
   },
   audience: {
     type: String,

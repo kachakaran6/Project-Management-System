@@ -1689,12 +1689,11 @@ function TelegramOrgSection() {
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 block px-1">Event Toggles</Label>
               <div className="divide-y divide-border rounded-xl border border-border bg-muted/5">
                 {[
-                  { key: "notify_admin_logins", label: "Admin Logins", desc: "Alert when an admin logs in (security tracking)" },
-                  { key: "notify_task_created", label: "Task Created", desc: "Alert when a new task is created" },
-                  { key: "notify_task_updated", label: "Task Updates", desc: "Alert on status changes and edits" },
-                  { key: "notify_task_deleted", label: "Task Deletion", desc: "Alert when content is removed" },
-                  { key: "notify_mentions", label: "Individual Mentions", desc: "Allow users to receive direct mention alerts" },
-                  { key: "notify_all_activity", label: "All Activity", desc: "Broadcasters all system logs and activities" },
+                  { key: "track_logins", label: "User Logins", desc: "Alert when a user logs in or out" },
+                  { key: "track_tasks", label: "Task Activity", desc: "Alert on task creation, updates, and deletes" },
+                  { key: "track_comments", label: "Comments & Mentions", desc: "Alert on new comments and mentions" },
+                  { key: "track_activity", label: "Page Activity", desc: "Alert when users open important pages" },
+                  { key: "track_all", label: "All Activity", desc: "Master toggle for all organization activity" },
                 ].map((item) => (
                   <div key={item.key} className="flex items-center justify-between p-4 transition-colors hover:bg-muted/10">
                     <div>
@@ -1711,11 +1710,12 @@ function TelegramOrgSection() {
             </div>
 
             <div>
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 block px-1">Audience</Label>
-              <div className="grid grid-cols-2 gap-3">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 block px-1">Target Audience</Label>
+              <div className="grid grid-cols-3 gap-3">
                 {[
                   { id: 'ONLY_ADMINS', label: 'Admins Only', desc: 'Secure alerts' },
-                  { id: 'ALL_MEMBERS', label: 'All Connected', desc: 'Broad updates' }
+                  { id: 'ALL_MEMBERS', label: 'All Members', desc: 'Broad updates' },
+                  { id: 'CUSTOM', label: 'Specific Users', desc: 'Filtered list' }
                 ].map((opt) => (
                   <button
                     key={opt.id}
@@ -1730,6 +1730,36 @@ function TelegramOrgSection() {
                   </button>
                 ))}
               </div>
+
+              {orgSettings.audience === 'CUSTOM' && (
+                <div className="mt-4 p-4 rounded-xl border border-border bg-muted/5 space-y-3 animate-in fade-in slide-in-from-top-1">
+                   <p className="text-xs font-semibold">Select recipients:</p>
+                   <div className="max-h-40 overflow-y-auto space-y-1 pr-2">
+                     {data.activeConnections?.map((conn: any) => {
+                       const isSelected = orgSettings.customRecipientIds?.includes(conn.userId);
+                       return (
+                        <div 
+                          key={conn.userId} 
+                          onClick={() => {
+                            const newIds = isSelected 
+                              ? orgSettings.customRecipientIds.filter((id: string) => id !== conn.userId)
+                              : [...(orgSettings.customRecipientIds || []), conn.userId];
+                            updateSettings({ customRecipientIds: newIds });
+                          }}
+                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-primary/10' : 'hover:bg-muted'}`}>
+                          <div className={`h-4 w-4 rounded border flex items-center justify-center ${isSelected ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
+                            {isSelected && <Check className="size-3 text-white" />}
+                          </div>
+                          <span className="text-sm">{conn.name}</span>
+                        </div>
+                       );
+                     })}
+                     {(!data.activeConnections || data.activeConnections.length === 0) && (
+                       <p className="text-xs text-muted-foreground text-center py-2">No connected users to select.</p>
+                     )}
+                   </div>
+                </div>
+              )}
             </div>
           </div>
         )}

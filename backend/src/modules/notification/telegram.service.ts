@@ -16,7 +16,7 @@ export const broadcastToOrg = async ({
   onlyToUserIds
 }: {
   organizationId: string;
-  eventType: string;
+  eventType: 'LOGINS' | 'TASKS' | 'COMMENTS' | 'ACTIVITY' | 'ALL';
   message: string;
   excludeUserId?: string;
   onlyToUserIds?: string[];
@@ -27,11 +27,17 @@ export const broadcastToOrg = async ({
 
     // Check specific preference for the event
     const preferences = orgSettings.preferences as any;
-    if (preferences?.notify_all_activity) {
+    if (preferences?.track_all) {
       // Allow all
     } else {
-      const prefKey = `notify_${eventType.toLowerCase()}`;
-      if (!preferences || preferences[prefKey] === false) {
+      const prefMap: Record<string, string> = {
+        'LOGINS': 'track_logins',
+        'TASKS': 'track_tasks',
+        'COMMENTS': 'track_comments',
+        'ACTIVITY': 'track_activity'
+      };
+      const prefKey = prefMap[eventType];
+      if (!prefKey || preferences[prefKey] === false) {
         return;
       }
     }
@@ -53,14 +59,18 @@ export const broadcastToOrg = async ({
       if (orgSettings.audience === 'ONLY_ADMINS') {
         targetUserIds = (connections as any[])
           .filter(c => c.role === 'ADMIN')
-          .map(c => c.userId.toString());
+          .map(c => c.userId?.toString())
+          .filter(Boolean);
       } else if (orgSettings.audience === 'ALL_MEMBERS') {
-        targetUserIds = (connections as any[]).map(c => c.userId.toString());
+        targetUserIds = (connections as any[])
+          .map(c => c.userId?.toString())
+          .filter(Boolean);
       } else if (orgSettings.audience === 'CUSTOM') {
         const customIds = (orgSettings.customRecipientIds as any[]).map(id => id.toString());
         targetUserIds = (connections as any[])
-          .filter(c => customIds.includes(c.userId.toString()))
-          .map(c => c.userId.toString());
+          .filter(c => customIds.includes(c.userId?.toString()))
+          .map(c => c.userId?.toString())
+          .filter(Boolean);
       }
     }
 
@@ -80,8 +90,8 @@ export const broadcastToOrg = async ({
 
     const chatIds = (finalConnections as any[]).map(c => c.chatId).filter(Boolean);
 
-    // Send messages in parallel
-    await Promise.all(chatIds.map((chatId: string) => 
+    // Send messages in parallel (Fire and forget)
+    chatIds.forEach((chatId: string) => 
       fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -90,8 +100,8 @@ export const broadcastToOrg = async ({
           text: message,
           parse_mode: 'Markdown'
         })
-      })
-    ));
+      }).catch(err => console.error(`Telegram message failed for chatId ${chatId}:`, err))
+    );
   } catch (error) {
     console.error('Telegram broadcast failed:', error);
   }
@@ -108,7 +118,7 @@ export const sendDirectNotification = async (userId: string, organizationId: str
     const token = getBotToken();
     if (!token) return;
 
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -116,7 +126,7 @@ export const sendDirectNotification = async (userId: string, organizationId: str
         text: message,
         parse_mode: 'Markdown'
       })
-    });
+    }).catch(err => console.error('Telegram direct message failed:', err));
   } catch (error) {
     console.error('Telegram direct message failed:', error);
   }
@@ -125,18 +135,19 @@ export const sendDirectNotification = async (userId: string, organizationId: str
 /**
  * Formats a message for Telegram with Organization context
  */
-export const formatTelegramMessage = (title: string, orgName: string, details: Record<string, any>) => {
-  let message = `🔔 *${title}*\n`;
+export const formatTelegramMessage = (title: string, orgName: string, details: Record<string, any>, emoji: string = '🔔') => {
+  let message = `${emoji} *${title}*\n`;
   message += `━━━━━━━━━━━━━━━\n`;
-  message += `*Org:* ${orgName}\n`;
   
   for (const [key, value] of Object.entries(details)) {
-    if (value) {
+    if (value !== undefined && value !== null) {
       message += `*${key}:* ${value}\n`;
     }
   }
+
+  message += `*Org:* ${orgName}\n`;
+  message += `*Time:* ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}\n`;
   
-  message += `*Time:* ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })}\n`;
   return message;
 };
 
