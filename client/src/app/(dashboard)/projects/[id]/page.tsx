@@ -17,6 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectOverview } from "@/features/projects/components/project-overview";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditProjectModal } from "@/features/projects/components/edit-project-modal";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +26,10 @@ export default function ProjectDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
+  const [isEditing, setIsEditing] = useState(false);
+  const { activeOrg } = useAuth();
+
+  const canEdit = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN" || activeOrg?.role === "MANAGER";
 
   const { data: projectResult, isLoading, error } = useProjectQuery(id as string);
   const project = projectResult?.data;
@@ -76,10 +82,16 @@ export default function ProjectDetailsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="rounded-xl h-10 px-4 gap-2">
-            <Settings className="size-4 opacity-70" />
-            Settings
-          </Button>
+          {canEdit && (
+            <Button 
+              variant="outline" 
+              className="rounded-xl h-10 px-4 gap-2"
+              onClick={() => setIsEditing(true)}
+            >
+              <Settings className="size-4 opacity-70" />
+              Settings
+            </Button>
+          )}
           <Button className="rounded-xl h-10 px-4 gap-2 shadow-lg shadow-primary/20" asChild>
             <Link href={`/tasks?projectId=${id}`}>
               <Plus className="size-4" />
@@ -144,6 +156,14 @@ export default function ProjectDetailsPage() {
            <p className="text-muted-foreground text-sm uppercase tracking-widest font-bold">Project History coming soon</p>
         </TabsContent>
       </Tabs>
+
+      {isEditing && project && (
+        <EditProjectModal
+          project={project}
+          open={isEditing}
+          onOpenChange={setIsEditing}
+        />
+      )}
     </div>
   );
 }

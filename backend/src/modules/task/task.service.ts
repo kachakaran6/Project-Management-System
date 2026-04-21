@@ -136,7 +136,7 @@ const enrichTaskWithAssignees = (task: any, assignees: any[] = []) => {
 /**
  * Create a new task
  */
-export const createTask = async (taskData: Record<string, any>, userId: string, role: string) => {
+export const createTask = async (taskData: Record<string, any>, userId: string, role?: string | null) => {
   const { 
     title, description, projectId, workspaceId, organizationId, 
     status, priority, dueDate,
@@ -236,7 +236,7 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
 /**
  * Get tasks
  */
-export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 10 } = {}, userId?: string, userRole?: string) => {
+export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 10 } = {}, userId?: string, userRole?: string | null) => {
   const skip = (page - 1) * limit;
   const query: Record<string, any> = { isActive: true };
 
@@ -309,7 +309,7 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
       }
     ];
 
-    const isAdmin = userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userRole);
+    const isAdmin = userRole && ['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(userRole);
 
     if (!isAdmin) {
       pipeline.push({
@@ -434,14 +434,14 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
 /**
  * Update task
  */
-export const updateTask = async (taskId: any, updateData: Record<string, any>, userId: any, role: any) => {
+export const updateTask = async (taskId: any, updateData: Record<string, any>, userId: any, role?: string | null) => {
   const { assigneeId, assigneeIds, tags, visibility, visibleToUsers, ...otherData } = updateData;
   const previousTask = await Task.findOne({ _id: taskId, isActive: true }).lean();
   if (!previousTask) throw new AppError('Task not found.', 404);
 
   // Check permissions: only creator or admin can change visibility
   const isCreator = String(previousTask.creatorId) === String(userId);
-  const isAdmin = role && ['ADMIN', 'SUPER_ADMIN'].includes(role);
+  const isAdmin = role && ['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(role);
 
   if (visibility && !isCreator && !isAdmin) {
     throw new AppError('Only creator or admin can change task visibility.', 403);
@@ -526,7 +526,7 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
   return getTaskById(taskId, userId, role);
 };
 
-export const getTaskById = async (taskId: any, userId?: string, userRole?: string) => {
+export const getTaskById = async (taskId: any, userId?: string, userRole?: string | null) => {
   const task = await Task.findOne({ _id: taskId, isActive: true })
     .populate('projectId', 'name').populate('workspaceId', 'name').populate('creatorId', 'firstName lastName email avatarUrl').lean();
   if (!task) throw new AppError('Task not found.', 404);
@@ -618,7 +618,7 @@ export const changeStatus = async (taskId: any, newStatus: any, userId: any) => 
   return task;
 };
 
-export const assignUsers = async (taskId: any, userIds: any[], actorId: any, role?: string) => {
+export const assignUsers = async (taskId: any, userIds: any[], actorId: any, role?: string | null) => {
   const task = await Task.findOne({ _id: taskId });
   if (!task) throw new AppError('Task not found.', 404);
   const projectName = await resolveProjectName(task.projectId);
@@ -649,13 +649,13 @@ export const assignUsers = async (taskId: any, userIds: any[], actorId: any, rol
 /**
  * Add users to a private task's visibility list
  */
-export const addTaskVisibilityUsers = async (taskId: any, userIds: string[], actorId: any, role?: string) => {
+export const addTaskVisibilityUsers = async (taskId: any, userIds: string[], actorId: any, role?: string | null) => {
   const task = await Task.findOne({ _id: taskId, isActive: true }).lean();
   if (!task) throw new AppError('Task not found.', 404);
 
   // Check permissions: only creator or admin can manage visibility
   const isCreator = String(task.creatorId) === String(actorId);
-  const isAdmin = role && ['ADMIN', 'SUPER_ADMIN'].includes(role);
+  const isAdmin = role && ['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(role);
 
   if (!isCreator && !isAdmin) {
     throw new AppError('Only creator or admin can manage task visibility.', 403);
@@ -671,13 +671,13 @@ export const addTaskVisibilityUsers = async (taskId: any, userIds: string[], act
 /**
  * Remove users from a private task's visibility list
  */
-export const removeTaskVisibilityUsers = async (taskId: any, userIds: string[], actorId: any, role?: string) => {
+export const removeTaskVisibilityUsers = async (taskId: any, userIds: string[], actorId: any, role?: string | null) => {
   const task = await Task.findOne({ _id: taskId, isActive: true }).lean();
   if (!task) throw new AppError('Task not found.', 404);
 
   // Check permissions: only creator or admin can manage visibility
   const isCreator = String(task.creatorId) === String(actorId);
-  const isAdmin = role && ['ADMIN', 'SUPER_ADMIN'].includes(role);
+  const isAdmin = role && ['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(role);
 
   if (!isCreator && !isAdmin) {
     throw new AppError('Only creator or admin can manage task visibility.', 403);

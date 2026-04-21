@@ -19,7 +19,9 @@ interface MemberSelectorProps {
 
 export function MemberSelector({ value, onChange }: MemberSelectorProps) {
   const { data: teamData, isLoading } = useTeamMembersQuery();
-  const members = Array.isArray(teamData) ? teamData : [];
+  const members = Array.isArray(teamData) 
+    ? teamData.filter(m => m.status !== "PENDING") 
+    : [];
 
   const toggleMember = (memberId: string) => {
     if (value.includes(memberId)) {
@@ -45,7 +47,7 @@ export function MemberSelector({ value, onChange }: MemberSelectorProps) {
               <UserPlus className="size-4 opacity-70" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[calc(100vw-32px)] md:w-64 p-1 rounded-xl shadow-xl border-border/40 backdrop-blur-lg">
+          <DropdownMenuContent align="start" className="w-[calc(100vw-32px)] md:w-72 max-h-80 overflow-y-auto p-1.5 rounded-xl shadow-xl border-border/40 backdrop-blur-lg custom-scrollbar">
             {members.length === 0 && (
               <div className="p-4 text-center text-xs text-muted-foreground">
                 No team members found

@@ -10,15 +10,15 @@ export const canUserAccessTask = async (
   userId: string,
   creatorId: any,
   visibility: string,
-  userRole?: string
+  userRole?: string | null
 ): Promise<boolean> => {
   // Creator always has access
   if (String(creatorId) === String(userId)) {
     return true;
   }
 
-  // Admin/Super admin always have access
-  if (userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userRole)) {
+  // Admin/Super admin/Owner always have access
+  if (userRole && ['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(userRole)) {
     return true;
   }
 
@@ -47,8 +47,8 @@ export const canUserAccessTask = async (
 /**
  * Build a MongoDB query filter that enforces visibility rules
  */
-export const buildVisibilityFilter = (userId: string, userRole?: string): Record<string, any> => {
-  const isAdmin = userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userRole);
+export const buildVisibilityFilter = (userId: string, userRole?: string | null): Record<string, any> => {
+  const isAdmin = userRole && ['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(userRole);
 
   return {
     $or: [
@@ -85,8 +85,8 @@ export const buildVisibilityFilter = (userId: string, userRole?: string): Record
 /**
  * Apply visibility filtering to task query using aggregation pipeline
  */
-export const applyVisibilityAggregation = (userId: string, userRole?: string): Record<string, any>[] => {
-  const isAdmin = userRole && ['ADMIN', 'SUPER_ADMIN'].includes(userRole);
+export const applyVisibilityAggregation = (userId: string, userRole?: string | null): Record<string, any>[] => {
+  const isAdmin = userRole && ['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(userRole);
   const userObjectId = new mongoose.Types.ObjectId(userId);
 
   return [

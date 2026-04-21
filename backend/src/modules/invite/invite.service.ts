@@ -250,7 +250,7 @@ export const acceptInvite = async (token: any, userId: any) => {
 export const getOrganizationInvites = async (organizationId: any) => {
   await expireStaleInvites();
 
-  return OrganizationInvite.find({ organizationId })
+  return OrganizationInvite.find({ organizationId, status: 'PENDING' })
     .sort({ createdAt: -1 })
     .lean();
 };
