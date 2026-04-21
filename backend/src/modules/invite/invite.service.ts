@@ -90,15 +90,21 @@ export const sendInvite = async ({
   const inviteRole = ['ADMIN', 'MANAGER', 'MEMBER'].includes(role) ? role : 'MEMBER';
 
   // 1. Check if user already exists in organization
+  console.info(`[InviteService] Checking if user ${email} is already in org ${organizationId}`);
   const user = await User.findOne({ email });
   if (user) {
     const isMember = await OrganizationMember.findOne({ userId: user._id, organizationId });
-    if (isMember) throw new AppError('User is already a member of this organization.', 400);
+    if (isMember) {
+       console.warn(`[InviteService] User ${email} is already a member of org ${organizationId}`);
+       throw new AppError('User is already a member of this organization.', 400);
+    }
   }
 
   // 2. Check for existing pending invite
+  console.info(`[InviteService] Checking existing invites for ${email} in org ${organizationId}`);
   const existingInvite = await OrganizationInvite.findOne({ email, organizationId, status: 'PENDING' });
   if (existingInvite) {
+    console.info(`[InviteService] Expiring existing invite ${existingInvite._id}`);
     existingInvite.status = 'EXPIRED';
     await existingInvite.save();
   }
@@ -110,6 +116,7 @@ export const sendInvite = async ({
   const org = await Organization.findById(organizationId);
   if (!org) throw new AppError('Organization not found.', 404);
 
+  console.info(`[InviteService] Creating invite record in DB for ${email} in org ${organizationId}`);
   const invite = await OrganizationInvite.create({
     email,
     organizationId,
@@ -118,8 +125,10 @@ export const sendInvite = async ({
     token,
     expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
   });
+  console.info(`[InviteService] Invite record created: ${invite._id}`);
 
   // 5. Send Invite Email
+  console.info(`[InviteService] Sending invite email to ${email} for org ${org.name}...`);
   const inviteUrl = `${env.frontendUrl || 'http://localhost:3000'}/invite/${token}`;
   const template = getInviteTemplate(org.name, inviteUrl);
   
@@ -128,6 +137,7 @@ export const sendInvite = async ({
     subject: template.subject,
     html: template.html
   });
+  console.info(`[InviteService] Email result for ${email}:`, emailResult);
 
   if (!emailResult.success) {
     await logWarn(`Organization invite created but email delivery failed for ${email}`, {

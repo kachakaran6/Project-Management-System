@@ -115,18 +115,25 @@ export const getProjects = async (
     const orgId = safeObjectId(filter.organizationId);
     const userId = safeObjectId(currentUserId);
 
-    if (orgId && userId) {
-      // Find IDs of projects where user is a member
-      const memberProjects = await ProjectMember.find({ userId, isActive: true }).distinct('projectId');
-
-      query.$or = [
-        { visibility: 'public', organizationId: orgId },
-        { _id: { $in: memberProjects } },
-        { ownerId: userId }
-      ];
-    } else if (orgId) {
+    if (orgId) {
       query.organizationId = orgId;
-      query.visibility = 'public';
+      
+      if (userId) {
+        // Find IDs of projects where user is a member WITHIN this organization
+        const memberProjects = await ProjectMember.find({ 
+          userId, 
+          organizationId: orgId, 
+          isActive: true 
+        }).distinct('projectId');
+
+        query.$or = [
+          { visibility: 'public' },
+          { _id: { $in: memberProjects } },
+          { ownerId: userId }
+        ];
+      } else {
+        query.visibility = 'public';
+      }
     }
   }
 

@@ -96,9 +96,9 @@ function SoloChip({ onCreateOrg, isAdmin }: { onCreateOrg: () => void, isAdmin: 
         </Tooltip>
       </TooltipProvider>
       {isAdmin && (
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onCreateOrg}
           className="h-9 border-dashed"
         >
@@ -131,7 +131,7 @@ function SingleOrgChip({ org, onCreateOrg, isAdmin }: { org: OrganizationMembers
   }
 
   return (
-     <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -154,11 +154,11 @@ function SingleOrgChip({ org, onCreateOrg, isAdmin }: { org: OrganizationMembers
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="mb-1" />
           <DropdownMenuItem
-             onSelect={(e) => { e.preventDefault(); onCreateOrg(); }}
-             className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2"
+            onSelect={(e) => { e.preventDefault(); onCreateOrg(); }}
+            className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2"
           >
-             <Building2 className="mr-2 h-4 w-4 text-primary" />
-             <span className="text-sm font-medium">Create New Organization</span>
+            <Building2 className="mr-2 h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">Create New Organization</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

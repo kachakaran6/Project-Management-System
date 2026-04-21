@@ -1,11 +1,29 @@
 import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { env } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 
 const resend = env.resendApiKey ? new Resend(env.resendApiKey) : null;
 
+/**
+ * Configure Nodemailer Transporter
+ */
+const transporter = nodemailer.createTransport({
+  host: env.smtpHost,
+  port: env.smtpPort,
+  secure: env.smtpPort === 465, // Use SSL/TLS for port 465
+  auth: (env.smtpUser && env.smtpPass) ? {
+    user: env.smtpUser,
+    pass: env.smtpPass,
+  } : undefined,
+  debug: env.smtpDebug,
+  connectionTimeout: env.smtpConnectionTimeoutMs,
+  greetingTimeout: env.smtpGreetingTimeoutMs,
+  socketTimeout: env.smtpSocketTimeoutMs,
+});
+
 const normalizeFromAddress = (value?: string) => {
-  const fallback = 'PMS Orbit <noreply@trusttracker.live>';
+  const fallback = 'PMS Orbit <noreply@pms-orbit.io>';
 
   if (!value) {
     return fallback;
@@ -32,32 +50,44 @@ const normalizeFromAddress = (value?: string) => {
  * @param {string} html - HTML content
  */
 export const sendEmail = async ({ to, subject, html }: { to: string; subject: string; html: string }) => {
-  try {
-    if (!resend) {
-      throw new Error('RESEND_API_KEY is not configured');
+  const from = normalizeFromAddress(env.emailFrom);
+
+  // 1. Try Resend if configured
+  if (resend) {
+    try {
+      const result = await resend.emails.send({
+        from,
+        to,
+        subject,
+        html,
+      });
+
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+
+      logger.info(`📧 Email sent via Resend to ${to}: ${result.data?.id ?? 'accepted'}`);
+      return { success: true, messageId: result.data?.id ?? 'accepted' };
+    } catch (error: unknown) {
+      const emailError = error as Error;
+      logger.error(`❌ Resend failed: ${emailError.message}. Falling back to SMTP...`);
     }
+  }
 
-    const from = normalizeFromAddress(env.emailFrom);
-
-    const result = await resend.emails.send({
+  // 2. Fallback to SMTP
+  try {
+    const info = await transporter.sendMail({
       from,
       to,
       subject,
       html,
     });
 
-    if (result.error) {
-      throw new Error(result.error.message);
-    }
-
-    logger.info(`📧 Email sent via Resend to ${to}: ${result.data?.id ?? 'accepted'}`);
-    return { success: true, messageId: result.data?.id ?? 'accepted' };
+    logger.info(`📧 Email sent via SMTP to ${to}: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
   } catch (error: unknown) {
     const emailError = error as Error;
-    logger.error(`❌ Error sending email to ${to}: ${emailError.message}`);
-
-    // Non-blocking error handling generally preferred for emails
-    // But in critical flows, you might want to rethrow
-    return { success: false, error: emailError.message };
+    logger.error(`❌ SMTP failed: ${emailError.message}`);
+    return { success: false, error: emailError.message || 'Unknown email delivery error' };
   }
 };
