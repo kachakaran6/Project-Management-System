@@ -616,7 +616,8 @@ function InviteModal({ open, onOpenChange, onInvite }: { open: boolean; onOpenCh
       onOpenChange(false);
       setEmail("");
     } catch (err: any) {
-      const message = err.response?.data?.message || "Failed to send invitation";
+      console.error("Invite Error:", err);
+      const message = err.response?.data?.message || err.message || "Failed to send invitation";
       toast.error(message);
     } finally {
       setLoading(false);

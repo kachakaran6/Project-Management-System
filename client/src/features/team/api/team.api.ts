@@ -42,17 +42,31 @@ export const teamApi = {
     const response = await api.get<ApiResponse<{ members: any[]; invites: any[] }>>("/organizations/members");
     const data = response.data.data;
     
-    return (data.members ?? []).map((row) => ({
-      id: String(row.id || row.userId || row._id || ""),
-      firstName: String(row.firstName ?? ""),
-      lastName: String(row.lastName ?? ""),
-      email: String(row.email ?? ""),
+    const mappedMembers = (data.members ?? []).map((row) => ({
+      id: String(row.id || row.userId?._id || row.userId || row._id || ""),
+      firstName: String(row.firstName || row.userId?.firstName || ""),
+      lastName: String(row.lastName || row.userId?.lastName || ""),
+      email: String(row.email || row.userId?.email || ""),
       role: deriveRole(row.role),
       permissions: row.permissions || [],
-      status: row.status as any,
-      avatarUrl: row.avatarUrl as string | undefined,
-      lastActive: row.lastActive as string | undefined,
+      status: (row.status || "ACTIVE") as any,
+      avatarUrl: row.avatarUrl || row.userId?.avatarUrl,
+      lastActive: row.lastActive || row.userId?.lastLogin,
     }));
+
+    const mappedInvites = (data.invites ?? []).map((row) => ({
+      id: String(row._id || row.id || ""),
+      firstName: "Pending",
+      lastName: "Invite",
+      email: String(row.email ?? ""),
+      role: deriveRole(row.role),
+      permissions: [],
+      status: "PENDING" as const,
+      avatarUrl: undefined,
+      lastActive: row.createdAt,
+    }));
+    
+    return [...mappedMembers, ...mappedInvites];
   },
 
   async inviteMember(payload: InvitePayload): Promise<void> {
