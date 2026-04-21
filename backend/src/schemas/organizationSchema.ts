@@ -18,6 +18,7 @@ const organizationSchema = new mongoose.Schema(
       required: true,
     },
     isActive: {type: Boolean, default: true},
+    isDefault: {type: Boolean, default: false},
     meta: {
       description: {type: String},
       industry: {type: String},

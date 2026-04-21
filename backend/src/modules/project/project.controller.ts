@@ -7,13 +7,22 @@ import { logInfo } from '../../services/logService.js';
  * Controller: Create Project
  */
 export const create = asyncHandler(async (req, res) => {
-  const { name, description, workspaceId, status } = req.body;
+  const { 
+    name, description, workspaceId, status, 
+    techStack, startDate, endDate, visibility, members 
+  } = req.body;
+
   const project = await projectService.createProject({
     name,
     description,
     workspaceId,
     organizationId: req.organizationId,
     ownerId: req.user.id,
+    techStack,
+    startDate,
+    endDate,
+    visibility,
+    members,
     status
   });
 
@@ -24,7 +33,6 @@ export const create = asyncHandler(async (req, res) => {
     performedBy: {
       userId: req.user.id,
       name: `${req.user.firstName} ${req.user.lastName}`,
-      email: req.user.email
     },
     target: {
       targetId: (project as any)._id,
@@ -47,10 +55,11 @@ export const getAll = asyncHandler(async (req, res) => {
   
   const filter = {
     organizationId: req.organizationId || undefined,
-    userId: req.user.id, // Support solo mode
+    userId: req.user.id, 
     role: req.user.role,
     workspaceId: req.query.workspaceId,
-    status: req.query.status
+    status: req.query.status,
+    search: req.query.search
   };
 
   const { projects, totalCount } = await projectService.getProjects(filter, { page, limit });
@@ -88,7 +97,7 @@ export const archive = asyncHandler(async (req, res) => {
  * Controller: Get Project by ID
  */
 export const getById = asyncHandler(async (req, res) => {
-  const project = await projectService.getProjectById(req.params.id);
+  const project = await projectService.getProjectById(req.params.id, req.user.id);
   return successResponse(res, project, 'Project details retrieved.');
 });
 

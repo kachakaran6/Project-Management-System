@@ -3,6 +3,8 @@
 import Link from "@/lib/next-link";
 import { type ElementType, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import {
   CalendarDays,
   Plus,
@@ -11,7 +13,10 @@ import {
   Search,
   Trash2,
   Users,
+  Globe,
+  Lock,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +48,7 @@ import {
   useDeleteProjectMutation,
   useProjectsQuery,
 } from "@/features/projects/hooks/use-projects-query";
+import { EditProjectModal } from "@/features/projects/components/edit-project-modal";
 
 const PAGE_SIZE = 10;
 
@@ -132,6 +138,7 @@ export default function ProjectsPage() {
   const [status, setStatus] = useState<string>("ALL");
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editingProject, setEditingProject] = useState<any>(null);
 
   const { activeOrg } = useAuth();
   const canMutate =
@@ -144,15 +151,6 @@ export default function ProjectsPage() {
 
   const filtered = useMemo(() => {
     let allProjects = projectsQuery.data?.data.items ?? [];
-    
-    // Filter out Demo Project if other projects exist
-    const nonDemoProjects = allProjects.filter(
-      (p) => !p.name.toLowerCase().includes("demo"),
-    );
-    if (nonDemoProjects.length > 0) {
-      allProjects = nonDemoProjects;
-    }
-
     const term = search.trim().toLowerCase();
 
     return allProjects.filter((project) => {
@@ -168,7 +166,6 @@ export default function ProjectsPage() {
     });
   }, [projectsQuery.data?.data.items, search, status]);
 
-  console.log({ filtered });
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const rows = filtered.slice(
@@ -176,22 +173,9 @@ export default function ProjectsPage() {
     currentPage * PAGE_SIZE,
   );
 
-  const totalMembers = rows.reduce((sum, project: any) => {
-    return sum + ((project as { membersCount?: number }).membersCount ?? 0);
-  }, 0);
-
   return (
     <TooltipProvider delayDuration={120}>
-      <div className="mx-auto w-full max-w-7xl space-y-4w">
-        {/* <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Projects
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Manage and track all your projects.
-          </p>
-        </div> */}
-
+      <div className="mx-auto w-full max-w-7xl space-y-4">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -202,7 +186,6 @@ export default function ProjectsPage() {
                 setSearch(event.target.value);
               }}
               placeholder="Search projects"
-              aria-label="Search projects"
               className="h-10 rounded-xl border-border/60 bg-background/60 pl-10 pr-4 text-sm"
             />
           </div>
@@ -261,9 +244,6 @@ export default function ProjectsPage() {
             ))}
           </div>
         ) : null}
-        {projectsQuery.error ? (
-          <p className="text-sm text-destructive">Failed to load projects.</p>
-        ) : null}
 
         {!projectsQuery.isLoading && rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/5 bg-white/3 px-6 py-16 text-center">
@@ -275,90 +255,142 @@ export default function ProjectsPage() {
                 No projects yet
               </h3>
               <p className="max-w-md text-sm text-muted-foreground">
-                Create your first project to start tracking work across your
-                organization.
+                Create your first project to start tracking work across your organization.
               </p>
             </div>
             {canMutate ? (
-              <Button
-                asChild
-                className="h-10 rounded-full bg-linear-to-r from-indigo-500 to-violet-500 px-5 font-medium text-white shadow-[0_12px_30px_rgba(99,102,241,0.22)] transition-all duration-200 hover:scale-[1.01] hover:shadow-[0_16px_36px_rgba(99,102,241,0.3)]"
-              >
-                <Link href="/projects/create">Create Project</Link>
+              <Button asChild className="h-10 rounded-xl" variant="secondary">
+                 <Link href="/projects/create">Create Project</Link>
               </Button>
             ) : null}
           </div>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 mt-4">
-            <div className="col-span-full hidden items-center justify-between px-1 pb-1 text-xs text-muted-foreground md:flex">
-              <span>{filtered.length} projects</span>
-              <span>{totalMembers} members on page</span>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4">
+            <div className="col-span-full flex items-center justify-between px-1 pb-1 text-xs text-muted-foreground outline-none">
+              <span className="font-medium">{filtered.length} active projects</span>
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1.5"><Globe className="size-3" /> Public</span>
+                <span className="flex items-center gap-1.5"><Lock className="size-3" /> Private</span>
+              </div>
             </div>
-            <div className="col-span-full grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {rows.map((project: any) => {
-                const pid = project.id || project._id;
-                const membersCount =
-                  (project as { membersCount?: number }).membersCount ?? 0;
-                return (
-                  <div
-                    key={pid}
-                    className="group flex h-full min-h-42 flex-col rounded-2xl border border-white/5 bg-white/3 p-3.5 transition-all duration-200 hover:bg-white/4"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-[15px] font-medium tracking-tight text-foreground">
+            {rows.map((project: any) => {
+              const pid = project.id || project._id;
+              const members = project.members || [];
+              const techStack = project.techStack || [];
+              const isPrivate = project.visibility === "private";
+
+              return (
+                <div
+                  key={pid}
+                  className="group relative flex flex-col rounded-[24px] border border-border/40 bg-card/40 p-5 transition-all duration-300 hover:bg-card/60 hover:border-border/80 hover:shadow-2xl hover:shadow-primary/5 active:scale-[0.99] overflow-hidden"
+                >
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex flex-col gap-1.5 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="truncate text-base font-semibold tracking-tight text-foreground group-hover:text-primary transition-colors">
                           {project.name}
                         </h3>
+                        {isPrivate && <Lock className="size-3 text-amber-500/70" />}
                       </div>
                       <Badge
                         variant="outline"
-                        className={`inline-flex h-6 shrink-0 rounded-full border px-2.5 text-[10px] font-medium uppercase tracking-[0.18em] ${getProjectStatusClass(project.status)}`}
+                        className={cn(
+                          "w-fit h-5 px-1.5 text-[10px] uppercase font-bold tracking-wider rounded-md",
+                          getProjectStatusClass(project.status)
+                        )}
                       >
                         {getProjectStatusLabel(project.status)}
                       </Badge>
                     </div>
-
-                    <div className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-                      <p className="inline-flex items-center gap-1.5">
-                        <CalendarDays className="size-3.5" />
-                        Created {formatProjectDate(project.createdAt)}
-                      </p>
-                      <p className="inline-flex items-center gap-1.5">
-                        <Users className="size-3.5" />
-                        {membersCount} members
-                      </p>
-                    </div>
-
-                    <div className="mt-auto flex items-center gap-1 pt-4 opacity-70 transition-opacity duration-200 group-hover:opacity-100">
-                      <ProjectActionButton
-                        href={`/tasks?projectId=${pid}`}
-                        label="View project"
-                        icon={Eye}
-                      />
-                      {canMutate ? (
-                        <>
-                          <ProjectActionButton
-                            href={`/projects/${pid}/edit`}
-                            label="Edit project"
-                            icon={PencilLine}
-                          />
-                          <ProjectActionButton
-                            label="Delete project"
-                            icon={Trash2}
-                            tone="danger"
-                            onClick={() => setDeleteId(pid)}
-                          />
-                        </>
-                      ) : null}
+                    
+                    <div className="flex gap-1 shrink-0 md:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                       <ProjectActionButton
+                          href={`/projects/${pid}`}
+                          label="Project Overview"
+                          icon={Eye}
+                        />
+                        {canMutate && (
+                          <>
+                            <ProjectActionButton
+                              label="Edit"
+                              icon={PencilLine}
+                              onClick={() => setEditingProject(project)}
+                            />
+                             <ProjectActionButton
+                              label="Delete"
+                              icon={Trash2}
+                              tone="danger"
+                              onClick={() => setDeleteId(pid)}
+                            />
+                          </>
+                        )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
+
+                  {project.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 mb-6 leading-relaxed">
+                      {project.description}
+                    </p>
+                  )}
+
+                  {techStack.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-6">
+                      {techStack.slice(0, 3).map((tech: string) => (
+                        <Badge key={tech} variant="secondary" className="h-6 text-[10px] bg-primary/5">
+                          {tech}
+                        </Badge>
+                      ))}
+                      {techStack.length > 3 && (
+                        <span className="text-[10px] text-muted-foreground self-center ml-1">+{techStack.length - 3}</span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-border/10">
+                    <div className="flex flex-col gap-1">
+                      {project.startDate || project.endDate ? (
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium uppercase tracking-tight">
+                          <CalendarDays className="size-3 text-primary/60" />
+                          {project.startDate && format(new Date(project.startDate), "MMM d")}
+                          {project.startDate && project.endDate && " — "}
+                          {project.endDate && format(new Date(project.endDate), "MMM d, yyyy")}
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-muted-foreground uppercase opacity-50">No timeline set</div>
+                      )}
+                    </div>
+
+                    <div className="flex -space-x-1.5">
+                      {members.slice(0, 4).map((user: any) => (
+                        <Avatar key={user.id || user._id} className="size-7 border-2 border-background ring-1 ring-border/10">
+                          <AvatarImage src={user.avatarUrl} />
+                          <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                            {user.firstName?.[0]}{user.lastName?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                      {members.length > 4 && (
+                        <div className="flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-bold text-muted-foreground">
+                          +{members.length - 4}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-0 left-0 h-1 bg-muted/20 w-full overflow-hidden">
+                     <div 
+                      className="h-full bg-primary/40 transition-all duration-1000 ease-out" 
+                      style={{ width: `${project.taskStats?.percent || 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        <div className="flex flex-col items-start justify-between gap-3 px-1 sm:flex-row sm:items-center">
+        {/* PAGINATION */}
+        <div className="flex flex-col items-start justify-between gap-3 px-1 py-12 sm:flex-row sm:items-center">
           <p className="text-sm text-muted-foreground">
             Page <span className="text-foreground">{currentPage}</span> of{" "}
             <span className="text-foreground">{totalPages}</span>
@@ -385,6 +417,7 @@ export default function ProjectsPage() {
           </div>
         </div>
 
+        {/* MODALS */}
         <Dialog
           open={Boolean(deleteId)}
           onOpenChange={(open) => !open && setDeleteId(null)}
@@ -393,8 +426,7 @@ export default function ProjectsPage() {
             <DialogHeader>
               <DialogTitle>Delete Project</DialogTitle>
               <DialogDescription>
-                This action cannot be undone. The project will be removed for
-                your organization.
+                This action cannot be undone. The project will be removed for your organization.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -420,6 +452,14 @@ export default function ProjectsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {editingProject && (
+          <EditProjectModal 
+            project={editingProject} 
+            open={Boolean(editingProject)} 
+            onOpenChange={(open) => !open && setEditingProject(null)} 
+          />
+        )}
       </div>
     </TooltipProvider>
   );

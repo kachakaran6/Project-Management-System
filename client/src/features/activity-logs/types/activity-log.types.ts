@@ -50,6 +50,7 @@ export interface ActivityLogFilters {
   query?: string;
   action?: string;
   entityType?: string;
+  entityId?: string;
   startDate?: string;
   endDate?: string;
   page?: number;

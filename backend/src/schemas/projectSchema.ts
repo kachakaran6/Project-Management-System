@@ -15,6 +15,8 @@ const projectSchema = new mongoose.Schema({
   },
   ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   status: { type: String, enum: ['active', 'completed', 'archived', 'planned', 'on_hold'], default: 'active' },
+  visibility: { type: String, enum: ['public', 'private'], default: 'public' },
+  techStack: [{ type: String, trim: true }],
   isActive: { type: Boolean, default: true },
   startDate: { type: Date },
   endDate: { type: Date }

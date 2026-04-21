@@ -53,6 +53,11 @@ const userSchema = new mongoose.Schema({
       email: { type: Boolean, default: true },
       push: { type: Boolean, default: true }
     }
+  },
+  organizationId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Organization', 
+    index: true 
   }
 }, {
   timestamps: true

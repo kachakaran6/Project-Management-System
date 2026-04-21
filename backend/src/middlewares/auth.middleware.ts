@@ -69,9 +69,22 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       
       if (orgMembership) {
         contextRole = orgMembership.role;
-      } else if (user.role !== 'SUPER_ADMIN') {
-        contextRole = 'MEMBER'; 
+        req.organizationId = targetOrgId; // Valid context
+      } else if (user.role === 'SUPER_ADMIN') {
+        req.organizationId = targetOrgId; // Superadmin bypass
+      } else {
+        // INVALID OR EXPIRED CONTEXT: Fallback to user's primary/default org
+        // This prevents 403 lockouts if an organization was deleted
+        const defaultMembership = await OrganizationMember.findOne({
+          userId: user._id,
+          isActive: true,
+        }).sort({ joinedAt: 1 });
+        
+        req.organizationId = defaultMembership?.organizationId?.toString() || null;
+        contextRole = defaultMembership?.role || user.role;
       }
+    } else {
+      req.organizationId = null;
     }
 
     if (user.role === 'SUPER_ADMIN') {
