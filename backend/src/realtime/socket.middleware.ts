@@ -20,8 +20,12 @@ export const authSocket = async (socket: Socket, next: (err?: ExtendedError | Er
 
     // Attach user and organization context to socket
     socket.userId = decoded.userId;
-    socket.organizationId = decoded.organizationId;
     socket.role = decoded.role;
+
+    // Resolve organizationId from JWT, or handshake query/headers (for switching)
+    socket.organizationId = decoded.organizationId || 
+                           (socket.handshake.query?.organizationId as string) || 
+                           (socket.handshake.headers?.['x-organization-id'] as string);
 
     // Optional: Validate if user is still an active member of organization
     if (socket.organizationId) {

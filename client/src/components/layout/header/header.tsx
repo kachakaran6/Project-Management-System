@@ -1,7 +1,6 @@
-﻿"use client";
+"use client";
 
 import { MoonStar, Menu, SunMedium } from "lucide-react";
-import { usePathname } from "@/lib/next-navigation";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { HeaderOrgSwitcher } from "@/components/layout/header/org-switcher";
 import { GlobalSearch } from "@/components/layout/header/global-search";
 import { NotificationBell } from "@/components/layout/header/notification-bell";
 import { HeaderUserMenu } from "@/components/layout/header/user-menu";
+import { Breadcrumbs } from "./breadcrumbs";
 import {
   Tooltip,
   TooltipContent,
@@ -19,15 +19,7 @@ import { cn } from "@/lib/utils";
 import { useApplyTheme } from "@/providers/theme-provider";
 import { useUIStore } from "@/store/ui-store";
 
-function formatSegment(segment: string) {
-  return segment
-    .replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
 export function AppHeader() {
-  const pathname = usePathname();
-  const segments = pathname.split("/").filter(Boolean);
   const { setMobileSidebarOpen } = useUIStore();
   const { resolvedTheme } = useTheme();
   const { mode, changeMode } = useApplyTheme();
@@ -54,30 +46,7 @@ export function AppHeader() {
 
       <div className="min-w-0 flex-1 md:flex-none hidden sm:block">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-bold mb-0.5">Workspace</p>
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-[13px]"
-        >
-          <span className="font-semibold transition-colors hover:text-primary cursor-pointer">Home</span>
-          {segments.map((segment, index) => (
-            <span
-              key={`${segment}-${index}`}
-              className="flex items-center gap-2 text-muted-foreground/50"
-            >
-              <span className="text-[10px]">/</span>
-              <span
-                className={cn(
-                  "truncate transition-colors hover:text-foreground",
-                  index === segments.length - 1
-                    ? "text-foreground font-semibold"
-                    : "font-medium"
-                )}
-              >
-                {formatSegment(segment)}
-              </span>
-            </span>
-          ))}
-        </nav>
+        <Breadcrumbs />
       </div>
 
       <div className="ml-auto hidden lg:block lg:flex-1 max-w-sm">
@@ -129,4 +98,3 @@ export function AppHeader() {
     </header>
   );
 }
-

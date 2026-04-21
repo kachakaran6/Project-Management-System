@@ -81,6 +81,29 @@ export const registerUser = async (userData: Record<string, any>) => {
     isEmailVerified: false,  // Must verify via OTP
   });
 
+  // ── Create Private Default Organization ──────────────────────────────────
+  const orgName = `${firstName}'s Workspace`;
+  const slug = `${firstName.toLowerCase().replace(/\s+/g, '-')}-${Math.random().toString(36).substring(2, 7)}`;
+  
+  const organization = await Organization.create({
+    name: orgName,
+    slug,
+    ownerId: user._id,
+    isDefault: true
+  });
+
+  // Link user as OWNER of their private space
+  await OrganizationMember.create({
+    userId: user._id,
+    organizationId: organization._id,
+    role: 'OWNER',
+    isActive: true
+  });
+
+  // Update user with their default organization context
+  user.organizationId = organization._id;
+  await user.save({ validateBeforeSave: false });
+
   // Send OTP
   await sendOtp(email);
 

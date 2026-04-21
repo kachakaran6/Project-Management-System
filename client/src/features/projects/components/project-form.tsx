@@ -1,23 +1,39 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { differenceInDays } from "date-fns";
+import { 
+  Folder, 
+  Layers, 
+  Calendar, 
+  Users, 
+  Lock, 
+  Globe, 
+  ArrowRight,
+  Info 
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   ProjectFormValues,
   projectFormSchema,
 } from "@/features/projects/schemas/project.schema";
+import { TechStackSelector } from "./sections/tech-stack-selector";
+import { MemberSelector } from "./sections/member-selector";
+import { cn } from "@/lib/utils";
 
 interface ProjectFormProps {
   initialValues?: Partial<ProjectFormValues>;
@@ -37,70 +53,220 @@ export function ProjectForm({
     defaultValues: {
       name: initialValues?.name ?? "",
       description: initialValues?.description ?? "",
-      status: initialValues?.status?.toUpperCase() ?? "PLANNED",
+      status: initialValues?.status?.toUpperCase() as any ?? "ACTIVE",
+      visibility: initialValues?.visibility ?? "public",
+      techStack: initialValues?.techStack ?? [],
+      startDate: initialValues?.startDate ? new Date(initialValues.startDate) : null,
+      endDate: initialValues?.endDate ? new Date(initialValues.endDate) : null,
+      members: initialValues?.members ?? [],
     },
   });
 
   return (
-    <form
-      className="space-y-4"
-      onSubmit={form.handleSubmit(async (values) => onSubmit(values))}
-    >
-      <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
-        <Input
-          id="name"
-          {...form.register("name")}
-          placeholder="Migration Program"
-        />
-        {form.formState.errors.name ? (
-          <p className="text-sm text-destructive">
-            {form.formState.errors.name.message}
-          </p>
-        ) : null}
-      </div>
+    <Form {...form}>
+      <form
+        className="space-y-6 md:space-y-8"
+        onSubmit={form.handleSubmit(async (values) => onSubmit(values))}
+      >
+        {/* GRID LAYOUT FOR TOP FIELDS */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+          
+          {/* LEFT COLUMN: CORE INFO */}
+          <div className="lg:col-span-7 space-y-6 md:space-y-8">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-primary/80 font-bold uppercase tracking-wider text-[10px] md:text-[11px]">
+                <Folder className="size-3 md:size-3.5" />
+                <span>Primary Details</span>
+              </div>
+              <div className="space-y-4 bg-muted/20 p-4 rounded-2xl border border-border/40 shadow-sm">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-semibold">Project Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g. Phoenix Dashboard" className="h-9 md:h-9 rounded-xl text-sm" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-semibold">Description (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field} 
+                          placeholder="What's the goal of this project?" 
+                          className="rounded-xl resize-none min-h-[80px] md:min-h-[80px] text-sm" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          rows={4}
-          {...form.register("description")}
-          placeholder="Describe the scope and outcome"
-        />
-        {form.formState.errors.description ? (
-          <p className="text-sm text-destructive">
-            {form.formState.errors.description.message}
-          </p>
-        ) : null}
-      </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-primary/80 font-bold uppercase tracking-wider text-[10px]">
+                <Layers className="size-3" />
+                <span>Resources & Tech</span>
+              </div>
+              <div className="bg-muted/20 p-4 rounded-2xl border border-border/40 shadow-sm">
+                <FormField
+                  control={form.control}
+                  name="techStack"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-semibold">Tech Stack</FormLabel>
+                      <FormControl>
+                        <TechStackSelector value={field.value} onChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+          </div>
 
-      <div className="space-y-2">
-        <Label>Status</Label>
-        <Select
-          value={form.watch("status")}
-          onValueChange={(value) =>
-            form.setValue("status", value as ProjectFormValues["status"], {
-              shouldValidate: true,
-            })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="PLANNED">Planned</SelectItem>
-            <SelectItem value="ACTIVE">Active</SelectItem>
-            <SelectItem value="ON_HOLD">On Hold</SelectItem>
-            <SelectItem value="COMPLETED">Completed</SelectItem>
-            <SelectItem value="ARCHIVED">Archived</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          {/* RIGHT COLUMN: ACCESS & TIMELINE */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* TIMELINE */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-primary/80 font-bold uppercase tracking-wider text-[10px]">
+                <Calendar className="size-3" />
+                <span>Timeline</span>
+              </div>
+              <div className="bg-muted/20 p-4 rounded-2xl border border-border/40 space-y-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-3">
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel className="text-[10px] md:text-[11px] font-bold opacity-60 uppercase tracking-tight">START</FormLabel>
+                        <FormControl>
+                          <DatePicker 
+                            value={field.value || undefined} 
+                            onChange={(d) => field.onChange(d ? new Date(d as string) : null)} 
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <div className="hidden sm:flex pt-6">
+                    <ArrowRight className="size-3 opacity-20" />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel className="text-[10px] md:text-[11px] font-bold opacity-60 uppercase tracking-tight">END</FormLabel>
+                        <FormControl>
+                          <DatePicker 
+                            value={field.value || undefined} 
+                            onChange={(d) => field.onChange(d ? new Date(d as string) : null)} 
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </div>
 
-      <Button type="submit" disabled={isSubmitting}>
-        {submitLabel}
-      </Button>
-    </form>
+            {/* TEAM */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-primary/80 font-bold uppercase tracking-wider text-[10px]">
+                <Users className="size-3" />
+                <span>Access Control</span>
+              </div>
+              <div className="bg-muted/20 p-4 rounded-2xl border border-border/40 space-y-6 shadow-sm">
+                <FormField
+                  control={form.control}
+                  name="members"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-semibold">Team Members</FormLabel>
+                      <FormControl>
+                        <MemberSelector value={field.value} onChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="visibility"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel className="text-xs font-semibold">Visibility</FormLabel>
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                        <div 
+                          className={cn(
+                            "flex-1 p-2 rounded-xl border border-border/60 cursor-pointer transition-all hover:bg-muted/50 select-none",
+                            field.value === 'public' && "border-primary bg-primary/5 ring-1 ring-primary"
+                          )}
+                          onClick={() => field.onChange('public')}
+                        >
+                          <div className="flex items-center justify-center gap-2">
+                            <Globe className={cn("size-3", field.value === 'public' ? "text-primary" : "text-muted-foreground")} />
+                            <span className="text-[11px] font-bold">Public</span>
+                          </div>
+                        </div>
+                        <div 
+                          className={cn(
+                            "flex-1 p-2 rounded-xl border border-border/60 cursor-pointer transition-all hover:bg-muted/50 select-none",
+                            field.value === 'private' && "border-amber-500/50 bg-amber-500/5 ring-1 ring-amber-500/50"
+                          )}
+                          onClick={() => field.onChange('private')}
+                        >
+                          <div className="flex items-center justify-center gap-2">
+                            <Lock className={cn("size-3", field.value === 'private' ? "text-amber-500" : "text-muted-foreground")} />
+                            <span className="text-[11px] font-bold">Private</span>
+                          </div>
+                        </div>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* COMPACT FOOTER */}
+        <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-4 border-t border-border/40">
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            <Info className="size-3 text-primary/60" />
+            <span>Settings can be adjusted later in dashboard.</span>
+          </div>
+          <div className="flex flex-col-reverse sm:flex-row items-center gap-3 w-full sm:w-auto">
+             <Button 
+                type="button" 
+                variant="ghost" 
+                className="w-full sm:w-auto rounded-xl text-xs h-9 px-6 font-medium"
+                disabled={isSubmitting}
+                onClick={() => window.history.back()}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting} 
+                className="w-full sm:w-auto rounded-xl h-9 px-10 shadow-lg shadow-primary/10 font-bold text-xs tracking-wide"
+              >
+                {isSubmitting ? "Creating..." : submitLabel}
+              </Button>
+          </div>
+        </div>
+      </form>
+    </Form>
   );
 }

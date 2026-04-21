@@ -25,6 +25,7 @@ type ListActivityLogsInput = {
   action?: string;
   entityType?: string;
   query?: string;
+  entityId?: string;
   startDate?: string;
   endDate?: string;
   page?: number;
@@ -311,6 +312,18 @@ export async function listActivityLogs(input: ListActivityLogsInput) {
       legacyBranchMatch.$and = legacyBranchMatch.$and || [];
       legacyBranchMatch.$and.push(legacyEntityTypeMatch);
     }
+  }
+
+  if (input.entityId) {
+    activityBranchMatch.entityId = toObjectId(input.entityId, 'entityId');
+    
+    // Legacy maps entityId to target.targetId or targetMember
+    const eId = String(input.entityId).trim();
+    legacyBranchMatch.$or = legacyBranchMatch.$or || [];
+    legacyBranchMatch.$or.push(
+      { 'target.targetId': eId },
+      { targetMember: eId }
+    );
   }
 
   if (input.startDate || input.endDate) {

@@ -35,6 +35,11 @@ export function CreateProjectModal({
         name: values.name,
         description: values.description || undefined,
         status: values.status,
+        visibility: values.visibility,
+        techStack: values.techStack,
+        startDate: values.startDate?.toISOString(),
+        endDate: values.endDate?.toISOString(),
+        members: values.members,
       });
       toast.success(`Project "${values.name}" created!`);
       setOpen(false);
@@ -54,7 +59,7 @@ export function CreateProjectModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl p-6 rounded-3xl">
         <DialogHeader>
           <DialogTitle className="text-xl">Create New Project</DialogTitle>
           <DialogDescription>

@@ -129,11 +129,29 @@ export function useUserQuery(enabled = true) {
   });
 
   useEffect(() => {
-    if (query.data?.data.user) {
-      setUser(query.data.data.user);
-    }
-    if (query.data?.data.organizations) {
-      useAuthStore.getState().setOrganizations(query.data.data.organizations);
+    if (query.data?.data) {
+      const { user, organizations, organizationId } = query.data.data;
+      
+      if (user) setUser(user);
+      
+      if (organizations) {
+        const store = useAuthStore.getState();
+        store.setOrganizations(organizations);
+        
+        // SYNC ORG CONTEXT:
+        // If current activeOrgId is not in the list or was lost,
+        // use the server's resolved organizationId.
+        const currentActiveId = store.activeOrgId;
+        const isValidActiveId = organizations.some(o => o.id === currentActiveId);
+        
+        if (!currentActiveId || !isValidActiveId) {
+          if (organizationId) {
+            store.setActiveOrgId(organizationId);
+          } else if (organizations.length > 0) {
+            store.setActiveOrgId(organizations[0].id);
+          }
+        }
+      }
     }
   }, [query.data, setUser]);
 
