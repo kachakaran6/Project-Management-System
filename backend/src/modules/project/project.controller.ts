@@ -75,7 +75,8 @@ export const update = asyncHandler(async (req, res) => {
   const project = await projectService.updateProject(
     req.params.id,
     req.body,
-    req.user.id
+    req.user.id,
+    req.role // Passing organization-level role
   );
 
   return successResponse(res, project, 'Project updated successfully.');
@@ -87,7 +88,8 @@ export const update = asyncHandler(async (req, res) => {
 export const archive = asyncHandler(async (req, res) => {
   const project = await projectService.archiveProject(
     req.params.id,
-    req.user.id
+    req.user.id,
+    req.role
   );
 
   return successResponse(res, project, 'Project archived successfully.');
@@ -105,6 +107,6 @@ export const getById = asyncHandler(async (req, res) => {
  * Controller: Delete Project
  */
 export const remove = asyncHandler(async (req, res) => {
-  await projectService.deleteProject(req.params.id, req.user.id);
+  await projectService.deleteProject(req.params.id, req.user.id, req.role);
   return successResponse(res, null, 'Project deleted successfully.');
 });

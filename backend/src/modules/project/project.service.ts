@@ -227,15 +227,20 @@ export const getProjectById = async (projectId: any, userId?: any) => {
 /**
  * Update project
  */
-export const updateProject = async (projectId: any, updateData: Record<string, any>, userId: any) => {
+export const updateProject = async (projectId: any, updateData: Record<string, any>, userId: any, userRole?: string | null) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     // 1. Check permission
-    const membership = await ProjectMember.findOne({ projectId, userId, isActive: true }).session(session);
-    if (!membership || !['OWNER', 'ADMIN'].includes(membership.role)) {
-       throw new AppError('Only project owners or admins can update details.', 403);
+    // ALLOW: Organization OWNER or ADMIN, OR project-level OWNER or ADMIN
+    const isOrgAdmin = userRole === 'OWNER' || userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
+    
+    if (!isOrgAdmin) {
+      const membership = await ProjectMember.findOne({ projectId, userId, isActive: true }).session(session);
+      if (!membership || !['OWNER', 'ADMIN'].includes(membership.role)) {
+         throw new AppError('Only project owners or admins can update details.', 403);
+      }
     }
 
     const { members, ...otherData } = updateData;
@@ -319,9 +324,19 @@ export const updateProject = async (projectId: any, updateData: Record<string, a
 /**
  * Archive project
  */
-export const archiveProject = async (projectId: any, userId: any) => {
+export const archiveProject = async (projectId: any, userId: any, userRole?: string | null) => {
+  // Authorization: Only Org Admin/Owner or Project Admin/Owner
+  const isOrgAdmin = userRole === 'OWNER' || userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
+  
+  if (!isOrgAdmin) {
+    const membership = await ProjectMember.findOne({ projectId, userId, isActive: true });
+    if (!membership || !['OWNER', 'ADMIN'].includes(membership.role)) {
+      throw new AppError('Insufficient permissions to archive this project.', 403);
+    }
+  }
+
   const project = await Project.findOneAndUpdate(
-    { _id: projectId },
+    { _id: projectId, isActive: true },
     { $set: { status: 'archived' } },
     { new: true }
   );
@@ -343,7 +358,17 @@ export const archiveProject = async (projectId: any, userId: any) => {
 /**
  * Delete Project
  */
-export const deleteProject = async (projectId: any, userId: any) => {
+export const deleteProject = async (projectId: any, userId: any, userRole?: string | null) => {
+  // Authorization: Only Org Admin/Owner or Project Admin/Owner
+  const isOrgAdmin = userRole === 'OWNER' || userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
+  
+  if (!isOrgAdmin) {
+    const membership = await ProjectMember.findOne({ projectId, userId, isActive: true });
+    if (!membership || !['OWNER', 'ADMIN'].includes(membership.role)) {
+      throw new AppError('Insufficient permissions to delete this project.', 403);
+    }
+  }
+
   const project = await Project.findOneAndUpdate(
     { _id: projectId, isActive: true },
     { $set: { isActive: false } }
