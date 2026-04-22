@@ -99,7 +99,7 @@ export const archive = asyncHandler(async (req, res) => {
  * Controller: Get Project by ID
  */
 export const getById = asyncHandler(async (req, res) => {
-  const project = await projectService.getProjectById(req.params.id, req.user.id);
+  const project = await projectService.getProjectById(req.params.id, req.user.id, req.role);
   return successResponse(res, project, 'Project details retrieved.');
 });
 
