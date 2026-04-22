@@ -1025,8 +1025,8 @@ export default function TasksPage() {
                 </div>
               )}
             </div>
-            {/* Pagination controls: Sticky to bottom on mobile to ensure visibility */}
-            <div className="sticky bottom-0 z-20 shrink-0 py-3 sm:py-3 flex items-center justify-between gap-2 border-t border-border/10 px-0.5 bg-background/95 backdrop-blur-md">
+            {/* Pagination controls: ALWAYS VISIBLE outside scroll area */}
+            <div className="shrink-0 py-3 flex items-center justify-between gap-2 border-t border-border/10 px-4 sm:px-0.5 bg-background sticky bottom-0 z-30 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-3">
               <div className="flex items-center gap-2">
                  <Select 
                     value={String(limit)} 
@@ -1035,7 +1035,7 @@ export default function TasksPage() {
                       setPage(1);
                     }}
                   >
-                    <SelectTrigger className="h-8.5 sm:h-9 w-[110px] sm:w-28 rounded-xl bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
+                    <SelectTrigger className="h-9 w-[105px] sm:w-28 rounded-xl bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
                       <SelectValue placeholder="Limit" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/40">
@@ -1136,7 +1136,7 @@ export default function TasksPage() {
           trigger={
             <Button
               size="icon"
-              className="lg:hidden fixed bottom-[84px] right-4 size-14 rounded-full shadow-2xl shadow-primary/40 z-50 animate-in zoom-in slide-in-from-bottom-10 duration-500 active:scale-95 transition-transform"
+              className="lg:hidden fixed bottom-20 right-4 size-14 rounded-full shadow-2xl shadow-primary/40 z-50 animate-in zoom-in slide-in-from-bottom-10 duration-500 active:scale-95 transition-transform"
             >
               <Plus className="size-7" />
             </Button>
