@@ -1025,8 +1025,8 @@ export default function TasksPage() {
                 </div>
               )}
             </div>
-            {/* Pagination controls STAY OUTSIDE scroll area */}
-            <div className="shrink-0 py-2 sm:py-3 flex items-center justify-between gap-2 border-t border-border/10 px-0.5">
+            {/* Pagination controls: Sticky to bottom on mobile to ensure visibility */}
+            <div className="sticky bottom-0 z-20 shrink-0 py-3 sm:py-3 flex items-center justify-between gap-2 border-t border-border/10 px-0.5 bg-background/95 backdrop-blur-md">
               <div className="flex items-center gap-2">
                  <Select 
                     value={String(limit)} 
@@ -1035,7 +1035,7 @@ export default function TasksPage() {
                       setPage(1);
                     }}
                   >
-                    <SelectTrigger className="h-8 sm:h-9 w-[110px] sm:w-28 rounded-lg sm:rounded-xl bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
+                    <SelectTrigger className="h-8.5 sm:h-9 w-[110px] sm:w-28 rounded-xl bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
                       <SelectValue placeholder="Limit" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/40">
@@ -1130,17 +1130,19 @@ export default function TasksPage() {
         />
       )}
 
-      {/* MOBILE FLOATING ACTION BUTTON (FAB) */}
-      <div className="fixed sm:hidden bottom-16 right-4 z-50 animate-in slide-in-from-bottom-10 fade-in duration-500">
+      {canMutate && (
         <CreateTaskModal
           defaultProjectId={projectId !== "ALL" ? projectId : undefined}
           trigger={
-            <Button className="size-14 rounded-full shadow-2xl shadow-primary/40 flex items-center justify-center p-0 ring-4 ring-background">
+            <Button
+              size="icon"
+              className="lg:hidden fixed bottom-[84px] right-4 size-14 rounded-full shadow-2xl shadow-primary/40 z-50 animate-in zoom-in slide-in-from-bottom-10 duration-500 active:scale-95 transition-transform"
+            >
               <Plus className="size-7" />
             </Button>
           }
         />
-      </div>
+      )}
     </div>
   );
 }
