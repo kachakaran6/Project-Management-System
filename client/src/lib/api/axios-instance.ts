@@ -14,21 +14,9 @@ import { useAuthStore } from "@/store/auth-store";
 import { ApiResponse } from "@/types/api.types";
 import { RefreshResponse } from "@/types/auth.types";
 
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? "http://localhost:5001/api/v1" : "/api/v1");
-
 type RetriableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
 };
-
-export const api = axios.create({
-  baseURL: API_URL,
-  withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
 
 // ─── Concurrency Control for Token Refresh ────────────────────────────────────
 let isRefreshing = false;
