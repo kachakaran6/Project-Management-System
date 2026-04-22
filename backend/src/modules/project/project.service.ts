@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Project from '../../models/Project.js';
 import Task from '../../models/Task.js';
 import ProjectMember from '../../models/ProjectMember.js';
+import OrganizationMember from '../../models/OrganizationMember.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import * as activityLog from '../../utils/systemTriggers.js';
 import { ROLES } from '../../constants/index.js';
@@ -106,34 +107,28 @@ export const getProjects = async (
   // Build query: match active projects (allowing for missing isActive field in legacy data)
   const query: Record<string, any> = { isActive: { $ne: false } };
   
-  if (filter.role === ROLES.SUPER_ADMIN) {
-    // Super Admin sees all active projects
-  } else {
-    // Standard User Privacy Strategy:
-    // 1. Projects where visibility = 'public' AND in user's organization
-    // OR 2. Projects where user is an explicit member
-    const orgId = safeObjectId(filter.organizationId);
-    const userId = safeObjectId(currentUserId);
+  // Admin/Owner Bypass for Organization context
+  const isAdmin = filter.role === ROLES.SUPER_ADMIN || filter.role === ROLES.ADMIN || filter.role === 'OWNER';
 
+  if (filter.role === ROLES.SUPER_ADMIN) {
+    // Super Admin: sees all active projects across all organizations
+  } else {
+    // Standard User / Org Admin Filter:
+    const orgId = safeObjectId(filter.organizationId);
     if (orgId) {
       query.organizationId = orgId;
+    } else if (currentUserId) {
+      // Fallback: If no org context, only show projects where they are explicitly a member or owner
+      const userId = safeObjectId(currentUserId);
+      const memberProjects = await ProjectMember.find({ 
+        userId, 
+        isActive: true 
+      }).distinct('projectId');
       
-      if (userId) {
-        // Find IDs of projects where user is a member WITHIN this organization
-        const memberProjects = await ProjectMember.find({ 
-          userId, 
-          organizationId: orgId, 
-          isActive: true 
-        }).distinct('projectId');
-
-        query.$or = [
-          { visibility: 'public' },
-          { _id: { $in: memberProjects } },
-          { ownerId: userId }
-        ];
-      } else {
-        query.visibility = 'public';
-      }
+      query.$or = [
+        { _id: { $in: memberProjects } },
+        { ownerId: userId }
+      ];
     }
   }
 
@@ -185,7 +180,7 @@ export const getProjects = async (
 /**
  * Get project by ID (with members)
  */
-export const getProjectById = async (projectId: any, userId?: any) => {
+export const getProjectById = async (projectId: any, userId?: any, userRole?: string | null) => {
   const project = await Project.findOne({
     _id: projectId,
     isActive: true
@@ -195,10 +190,23 @@ export const getProjectById = async (projectId: any, userId?: any) => {
 
   if (!project) throw new AppError('Project not found.', 404);
 
-  // Security check for private projects
-  if (project.visibility === 'private' && userId) {
-    const isMember = await ProjectMember.findOne({ projectId, userId, isActive: true });
-    if (!isMember) throw new AppError('Unauthorized access to this project.', 403);
+  // Security check for private projects (bypass for Admins/Owners and same-org members)
+  const isAdmin = userRole === ROLES.SUPER_ADMIN || userRole === ROLES.ADMIN || userRole === 'OWNER';
+
+  if (!isAdmin && project.visibility?.toLowerCase() === 'private' && userId) {
+    const membership = await ProjectMember.findOne({ projectId, userId, isActive: true });
+    if (!membership && String(project.ownerId) !== String(userId)) {
+      // Check if user belongs to the same organization
+      const userOrgMembership = await OrganizationMember.findOne({ 
+        userId, 
+        organizationId: project.organizationId, 
+        isActive: true 
+      });
+      
+      if (!userOrgMembership) {
+        throw new AppError('Unauthorized access to this project.', 403);
+      }
+    }
   }
 
   const [members, totalTasks, completedTasks] = await Promise.all([
