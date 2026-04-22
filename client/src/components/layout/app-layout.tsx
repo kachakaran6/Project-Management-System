@@ -28,7 +28,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, [pathname, setActiveRoute, setMobileSidebarOpen]);
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-background overflow-hidden selection:bg-primary/10">
       {/* Desktop Sidebar */}
       <div className="hidden h-full md:block transition-[width] duration-300">
         <Sidebar pathname={pathname} />
