@@ -134,10 +134,10 @@
   --popover:             #ffffff;
   --popover-foreground:  var(--foreground);
 
-  --sidebar:             #0f172a;
-  --sidebar-foreground:  #d7e1f5;
-  --sidebar-accent:      #1f2a44;
-  --sidebar-border:      #2c3e5f;
+  --sidebar:             #ffffff; /* bg-white */
+  --sidebar-foreground:  #334155; /* slate-700 */
+  --sidebar-accent:      #f1f5f9; /* slate-100 */
+  --sidebar-border:      #e5e9f0; /* light-gray border */
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -403,12 +403,12 @@ html, body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--muted);
   border-radius: 10px;
 }
 
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--muted-foreground);
 }
 
 .description-container{

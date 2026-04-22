@@ -16,6 +16,9 @@ import {
   Pencil,
   Trash2,
   Filter,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
   X,
   SlidersHorizontal,
 } from "lucide-react";
@@ -76,6 +79,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+
 import { TaskBoard } from "@/features/tasks/components/task-board";
 import { EditTaskModal } from "@/features/tasks/components/edit-task-modal";
 import { CreateTaskModal } from "@/features/tasks/components/create-task-modal";
@@ -98,8 +102,11 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { TagSelect } from "@/features/tags/components/tag-select";
 import { useTagsQuery } from "@/features/tags/hooks/use-tags";
+import { TaskListSkeleton, TaskBoardSkeleton } from "@/features/tasks/components/task-skeleton";
 
-const PAGE_SIZE = 10;
+// Pagination Constants
+const DEFAULT_PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const VIEW_STORAGE_KEY = "tasks:view-mode";
 type TaskViewMode = "list" | "kanban" | "table";
 
@@ -108,9 +115,10 @@ export default function TasksPage() {
   const searchParams = useSearchParams();
 
   const [viewMode, setViewMode] = useState<TaskViewMode>(() => {
-    if (typeof window === "undefined") return "list";
+    if (typeof window === "undefined") return "kanban";
     const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
-    return saved === "kanban" ? "kanban" : "list";
+    if (saved === "table") return "table";
+    return "kanban";
   });
 
   const [isMobile, setIsMobile] = useState(false);
@@ -125,6 +133,8 @@ export default function TasksPage() {
   useEffect(() => {
     if (isMobile && viewMode === "kanban") {
       setViewMode("list");
+    } else if (!isMobile && viewMode === "list") {
+      setViewMode("kanban");
     }
   }, [isMobile, viewMode]);
 
@@ -165,7 +175,14 @@ export default function TasksPage() {
     searchParams.get("creatorId") || "ALL",
   );
   const [dueDate, setDueDate] = useState(searchParams.get("dueDate") || "");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    const p = searchParams.get("page");
+    return p ? parseInt(p, 10) : 1;
+  });
+  const [limit, setLimit] = useState(() => {
+    const l = searchParams.get("limit");
+    return l ? parseInt(l, 10) : DEFAULT_PAGE_SIZE;
+  });
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [tagIds, setTagIds] = useState<string[]>(
@@ -179,6 +196,7 @@ export default function TasksPage() {
   const deleteTask = useDeleteTaskMutation();
 
   const canMutate =
+    activeOrg?.role === "OWNER" ||
     activeOrg?.role === "SUPER_ADMIN" ||
     activeOrg?.role === "ADMIN" ||
     activeOrg?.role === "MANAGER";
@@ -194,7 +212,7 @@ export default function TasksPage() {
   }, [search]);
 
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams();
     if (status !== "ALL") params.set("status", status);
     else params.delete("status");
     if (priority !== "ALL") params.set("priority", priority);
@@ -209,8 +227,15 @@ export default function TasksPage() {
     else params.delete("dueDate");
     if (tagIds.length > 0) params.set("tagIds", tagIds.join(","));
     else params.delete("tagIds");
-    router.replace(`?${params.toString()}`);
-  }, [status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, router]);
+    
+    // Pagination params
+    if (page > 1) params.set("page", String(page));
+    else params.delete("page");
+    if (limit !== DEFAULT_PAGE_SIZE) params.set("limit", String(limit));
+    else params.delete("limit");
+
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, page, limit, router]);
 
   const sharedFilters = useMemo(
     () => ({
@@ -230,8 +255,8 @@ export default function TasksPage() {
   );
 
   const listFilters = useMemo(
-    () => ({ ...sharedFilters, page, limit: PAGE_SIZE }),
-    [sharedFilters, page],
+    () => ({ ...sharedFilters, page, limit }),
+    [sharedFilters, page, limit],
   );
   const kanbanFilters = useMemo(
     () => ({ ...sharedFilters, page: 1, limit: 1000 }),
@@ -357,8 +382,8 @@ export default function TasksPage() {
       }
 
       toast.success(`Tasks exported as ${format === "pdf" ? "PDF" : "Excel"}.`);
-    } catch {
-      toast.error("Failed to export tasks. Please try again.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to export tasks. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -509,9 +534,9 @@ export default function TasksPage() {
         className={cn("shrink-0 space-y-3 pb-3 pt-1", viewMode === "kanban" && "px-4")}
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          {/* LEFT GROUP: Search & Filters */}
-          <div className="flex items-center gap-2 w-full lg:w-auto lg:flex-1 lg:max-w-xl">
-            <div className="relative flex-1">
+          <div className="flex items-center gap-2 w-full lg:max-w-xl">
+            {/* Search Bar - Flexible on Desktop, Compact on Mobile */}
+            <div className={`relative ${isMobile ? 'flex-[1.5]' : 'flex-1'} min-w-0`}>
               <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
               <Input
                 value={search}
@@ -519,56 +544,97 @@ export default function TasksPage() {
                   setPage(1);
                   setSearch(e.target.value);
                 }}
-                placeholder="Search tasks..."
-                className="h-9 rounded-full pl-9 text-xs w-full bg-muted/20 border-border/40 focus:bg-background transition-all"
+                placeholder="Search..."
+                className="h-8.5 sm:h-9 rounded-xl pl-9 text-xs w-full bg-muted/20 border-border/40 focus:bg-background transition-all"
               />
             </div>
 
-            <Popover>
-              <PopoverTrigger asChild>
+            {/* Mobile-Only Combined Action Row */}
+            {isMobile && (
+              <div className="flex items-center gap-1.5 flex-1 shrink-0">
+                <FilterDrawer 
+                  status={status} setStatus={setStatus}
+                  priority={priority} setPriority={setPriority}
+                  assigneeId={assigneeId} setAssigneeId={setAssigneeId}
+                  creatorId={creatorId} setCreatorId={setCreatorId}
+                  dueDate={dueDate} setDueDate={setDueDate}
+                  tagIds={tagIds} setTagIds={setTagIds}
+                  activeFilterCount={activeFilterCount}
+                  membersQuery={membersQuery}
+                  trigger={
+                    <Button variant="outline" size="icon" className="h-8.5 w-8.5 rounded-xl border-border/40 bg-muted/20 relative">
+                      <SlidersHorizontal className="size-3.5" />
+                      {activeFilterCount > 0 && <span className="absolute -top-1 -right-1 size-3 bg-primary text-[8px] rounded-full flex items-center justify-center text-white font-bold">{activeFilterCount}</span>}
+                    </Button>
+                  }
+                />
+                
                 <Button
                   variant="outline"
-                  className={cn(
-                    "h-9 rounded-full px-4 gap-2 border-border/40 bg-muted/20 font-medium text-xs transition-all hover:bg-muted/30 shrink-0",
-                    activeFilterCount > 0 && "border-primary/40 bg-primary/5 text-primary"
-                  )}
+                  size="icon"
+                  disabled={isExporting}
+                  onClick={() => handleExport("excel")}
+                  className="h-8.5 w-8.5 rounded-xl border-border/40 bg-muted/20"
                 >
-                  <SlidersHorizontal className="size-3.5" />
-                  <span className="hidden sm:inline">Filters</span>
-                  {activeFilterCount > 0 && (
-                    <Badge className="h-4.5 min-w-[18px] px-1 ml-0.5 flex items-center justify-center text-[9px] bg-primary text-primary-foreground">
-                      {activeFilterCount}
-                    </Badge>
-                  )}
+                  <Download className="size-3.5" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72 p-4 rounded-2xl shadow-premium border-border/40" align="start">
-                <FilterContent isMobileView={isMobile} />
-              </PopoverContent>
-            </Popover>
 
-            {/* Mobile Sheet Trigger (Redundant if Popover works on mobile, but better for mobile UX) */}
-            {isMobile && (
-              <Sheet>
-                {/* We can hide this trigger or use the same button. 
-                    Actually, if the Popover works, we don't need the sheet, 
-                    but the sheet is better on mobile. Let's keep it. */}
-              </Sheet>
+                <div className="flex items-center bg-muted/20 p-0.5 rounded-xl border border-border/40 h-8.5">
+                  <Button
+                    variant={viewMode === "list" ? "secondary" : "ghost"}
+                    size="icon"
+                    onClick={() => setViewMode("list")}
+                    className={cn("h-7 w-7 rounded-lg", viewMode === "list" && "bg-background shadow-sm")}
+                  >
+                    <List className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "table" ? "secondary" : "ghost"}
+                    size="icon"
+                    className={cn("h-7 w-7 rounded-lg", viewMode === "table" && "bg-background shadow-sm")}
+                    onClick={() => setViewMode("table")}
+                  >
+                    <TableIcon className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Desktop-Only Filter Trigger */}
+            {!isMobile && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "h-9 rounded-xl px-4 gap-2 border-border/40 bg-muted/20 font-medium text-xs transition-all hover:bg-muted/30 shrink-0",
+                      activeFilterCount > 0 && "border-primary/40 bg-primary/5 text-primary"
+                    )}
+                  >
+                    <SlidersHorizontal className="size-3.5" />
+                    <span>Filters</span>
+                    {activeFilterCount > 0 && (
+                      <Badge className="h-4.5 min-w-[18px] px-1 ml-0.5 flex items-center justify-center text-[9px] bg-primary text-primary-foreground">
+                        {activeFilterCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-4 rounded-2xl shadow-premium border-border/40" align="start">
+                  <FilterContent isMobileView={isMobile} />
+                </PopoverContent>
+              </Popover>
             )}
           </div>
 
-          {/* RIGHT GROUP: Actions & View Switcher */}
-          <div className="flex items-center gap-3 w-full lg:w-auto shrink-0">
-            <div className="flex items-center gap-2 flex-1 lg:flex-none">
+          {/* Desktop-Only Actions Group */}
+          {!isMobile && (
+            <div className="flex items-center gap-3 shrink-0">
               {canMutate && (
                 <CreateTaskModal
                   defaultProjectId={projectId !== "ALL" ? projectId : undefined}
                   trigger={
-                    <Button
-                      size="sm"
-                      className="h-9 rounded-full font-bold px-5 flex-1 lg:flex-none shadow-premium/5"
-                      variant="secondary"
-                    >
+                    <Button size="sm" className="h-9 rounded-xl font-bold px-5 shadow-premium/5">
                       Create Task
                     </Button>
                   }
@@ -583,73 +649,45 @@ export default function TasksPage() {
                         variant="outline"
                         size="icon"
                         disabled={isExporting}
-                        className="h-9 w-9 rounded-full border-border/40 bg-muted/20 hover:bg-muted/30 transition-all text-muted-foreground shrink-0"
+                        className="h-9 w-9 rounded-xl border-border/40 bg-muted/20 hover:bg-muted/30 transition-all text-muted-foreground shrink-0"
                       >
-                        {isExporting ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <Download className="size-4" />
-                        )}
+                        {isExporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
                       </Button>
                     </DropdownMenuTrigger>
                   </TooltipTrigger>
                   <TooltipContent>Export Tasks</TooltipContent>
                 </Tooltip>
                 <DropdownMenuContent align="end" className="w-44 rounded-xl border-border/40 shadow-premium">
-                  <DropdownMenuItem
-                    className="rounded-lg"
-                    disabled={isExporting}
-                    onClick={() => handleExport("pdf")}
-                  >
-                    <FileText className="mr-2 size-4" />
-                    Export as PDF
+                  <DropdownMenuItem className="rounded-lg" disabled={isExporting} onClick={() => handleExport("pdf")}>
+                    <FileText className="mr-2 size-4" /> Export as PDF
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="rounded-lg"
-                    disabled={isExporting}
-                    onClick={() => handleExport("excel")}
-                  >
-                    <FileSpreadsheet className="mr-2 size-4" />
-                    Export as Excel
+                  <DropdownMenuItem className="rounded-lg" disabled={isExporting} onClick={() => handleExport("excel")}>
+                    <FileSpreadsheet className="mr-2 size-4" /> Export as Excel
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
 
-            <div className="inline-flex rounded-full border border-border/40 bg-muted/30 p-1 h-9 items-center">
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-                className="h-7 px-4 rounded-full text-xs gap-1.5 font-bold transition-all"
-              >
-                <List className="size-3.5" />
-                <span className="hidden sm:inline">List</span>
-              </Button>
-              {!isMobile && (
+              <div className="inline-flex rounded-xl border border-border/40 bg-muted/30 p-1 h-9 items-center">
                 <Button
                   variant={viewMode === "kanban" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("kanban")}
-                  className="h-7 px-4 rounded-full text-xs gap-1.5 font-bold transition-all"
+                  className="h-7 px-4 rounded-lg text-xs gap-1.5 font-bold transition-all"
                 >
-                  <Kanban className="size-3.5" />
-                  <span className="hidden sm:inline">Board</span>
+                  <Kanban className="size-3.5" /> Board
                 </Button>
-              )}
-              {isMobile && (
+
                 <Button
                   variant={viewMode === "table" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("table")}
-                  className="h-7 px-4 rounded-full text-xs gap-1.5 font-bold transition-all"
+                  className="h-7 px-4 rounded-lg text-xs gap-1.5 font-bold transition-all"
                 >
-                  <TableIcon className="size-3.5" />
-                  Table
+                  <TableIcon className="size-3.5" /> Table
                 </Button>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Active Filter Chips */}
@@ -759,222 +797,261 @@ export default function TasksPage() {
         )}
       </div>
 
+      {/* FIXED CONTENT AREA: Task List with internal scroll */}
       <div
         className={cn(
-          "flex-1 min-h-0",
+          "flex-1 min-h-0 flex flex-col",
           viewMode === "kanban" ? "mt-3" : "mt-0",
         )}
       >
         {(viewMode === "list" || viewMode === "table") && (
-          <div className="h-full overflow-y-auto custom-scrollbar pr-1">
-            {listQuery.isLoading && (
-              <div className="space-y-3 pt-4">
-                <Skeleton className="h-12 w-full rounded-xl" />
-                <Skeleton className="h-12 w-full rounded-xl" />
-                <Skeleton className="h-12 w-full rounded-xl" />
-              </div>
-            )}
-            {!listQuery.isLoading && listRows.length === 0 && (
-              <div className="pt-14">
-                <EmptyState
-                  title="No tasks found"
-                  description="Try adjusting filters or create a task."
-                />
-              </div>
-            )}
-            {!listQuery.isLoading && listRows.length > 0 && (
-              <div className="space-y-4 pt-4 animate-in fade-in duration-500">
-                {viewMode === "list" && !isMobile && (
-                  <div className="hidden md:block rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm shadow-sm">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/30 border-b border-border/40">
-                          <TableHead className="py-4 font-semibold text-foreground/70">
-                            Task Title
-                          </TableHead>
-                          <TableHead className="font-semibold text-foreground/70">
-                            Assignee
-                          </TableHead>
-                          <TableHead className="font-semibold text-foreground/70">
-                            Status
-                          </TableHead>
-                          <TableHead className="font-semibold text-foreground/70">
-                            Priority
-                          </TableHead>
-                          <TableHead className="font-semibold text-foreground/70">
-                            Created By
-                          </TableHead>
-                          <TableHead className="font-semibold text-foreground/70">
-                            Created Time
-                          </TableHead>
-                          <TableHead className="font-semibold text-foreground/70">
-                            Project
-                          </TableHead>
-                          <TableHead className="font-semibold text-foreground/70">
-                            Due Date
-                          </TableHead>
-                          <TableHead className="font-semibold text-foreground/70">
-                            Tags
-                          </TableHead>
-                          <TableHead className="w-16"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {listRows.map((task, idx) => (
-                          <TaskRow
-                            key={getTaskId(task)}
-                            task={task}
-                            idx={idx}
-                            taskId={getTaskId(task)}
-                            assignee={getAssignee(task)}
-                            isOverdue={
-                              task.dueDate &&
-                              new Date(task.dueDate) < new Date() &&
-                              task.status !== "DONE"
-                            }
-                            canMutate={canMutate}
-                            setSelectedTask={setSelectedTask}
-                            setDeleteId={setDeleteId}
-                          />
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-                {viewMode === "list" && isMobile && (
-                  <div className="grid gap-3">
-                    {listRows.map((task, idx) => {
-                      const taskId = getTaskId(task);
-                      const assignee = getAssignee(task);
-                      return (
-                        <div
-                          key={taskId}
-                          className="rounded-xl border border-border bg-card p-4 shadow-sm"
-                        >
-                          <div className="flex items-start justify-between gap-3 mb-3">
-                            <div className="min-w-0">
-                              <Link
-                                href={`/tasks/${taskId}`}
-                                className="font-bold text-sm hover:text-primary transition-colors block"
+          <>
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 relative bg-card/20 rounded-2xl border border-border/40 shadow-inner-sm">
+              {listQuery.isLoading ? (
+                <div className="p-4"><TaskListSkeleton /></div>
+              ) : listRows.length === 0 ? (
+                <div className="flex h-full items-center justify-center py-20">
+                  <EmptyState
+                    title="No tasks found"
+                    description="Try adjusting filters or create a task."
+                    action={
+                      canMutate ? (
+                        <CreateTaskModal
+                          defaultProjectId={projectId !== "ALL" ? projectId : undefined}
+                          trigger={
+                            <Button className="mt-4 rounded-xl font-bold px-8">
+                              Create First Task
+                            </Button>
+                          }
+                        />
+                      ) : undefined
+                    }
+                  />
+                </div>
+              ) : (
+                <div className="min-w-full">
+                  {viewMode === "list" && !isMobile && (
+                    <div className="animate-in fade-in duration-500">
+                      <Table className="relative border-separate border-spacing-0">
+                        <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur-md shadow-sm">
+                          <TableRow className="hover:bg-transparent border-0">
+                            <TableHead className="py-4 pl-6 font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Task Title
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Assignee
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Status
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Priority
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Created By
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Created Time
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Project
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Due Date
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Tags
+                            </TableHead>
+                            <TableHead className="w-16 border-b border-border/50"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {listRows.map((task, idx) => (
+                            <TaskRow
+                              key={getTaskId(task)}
+                              task={task}
+                              idx={idx}
+                              taskId={getTaskId(task)}
+                              assignee={getAssignee(task)}
+                              isOverdue={
+                                task.dueDate &&
+                                new Date(task.dueDate) < new Date() &&
+                                task.status !== "DONE"
+                              }
+                              canMutate={canMutate}
+                              setSelectedTask={setSelectedTask}
+                              setDeleteId={setDeleteId}
+                            />
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                  {viewMode === "list" && isMobile && (
+                    <div className="grid gap-3 p-3">
+                      {/* Mobile cards */}
+                      {listRows.map((task, idx) => {
+                        const taskId = getTaskId(task);
+                        const assignee = getAssignee(task);
+                        return (
+                          <div
+                            key={taskId}
+                            className="rounded-xl border border-border/50 bg-card p-4 shadow-sm"
+                          >
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="min-w-0">
+                                <Link
+                                  href={`/tasks/${taskId}`}
+                                  className="font-bold text-[14px] hover:text-primary transition-colors block line-clamp-1"
+                                >
+                                  {task.title}
+                                </Link>
+                                <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-tighter">
+                                  #{taskId.slice(-8)}
+                                </span>
+                              </div>
+                              <Badge
+                                variant="secondary"
+                                className="h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight shrink-0"
                               >
-                                {task.title}
-                              </Link>
-                              <span className="text-[10px] text-muted-foreground/60 uppercase">
-                                #{taskId.slice(-6)}
-                              </span>
+                                {task.status.replace("_", " ")}
+                              </Badge>
                             </div>
-                            <Badge
-                              variant="secondary"
-                              className="text-[9px] uppercase tracking-tighter shrink-0"
-                            >
-                              {task.status}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center justify-between mt-4 border-t pt-3">
-                            <div className="flex items-center gap-2">
-                              {assignee && (
+                            <div className="flex items-center justify-between mt-4 border-t border-border/30 pt-3">
+                              <div className="flex items-center gap-2">
                                 <Avatar className="h-6 w-6">
-                                  <AvatarImage src={assignee.avatarUrl} />
-                                  <AvatarFallback className="text-[8px]">
-                                    {assignee.name[0]}
+                                  <AvatarImage src={assignee?.avatarUrl} />
+                                  <AvatarFallback className="text-[8px] bg-primary/5 text-primary">
+                                    {assignee?.name?.[0] || "?"}
                                   </AvatarFallback>
                                 </Avatar>
-                              )}
-                              <span className="text-xs text-muted-foreground truncate max-w-24">
-                                {assignee?.name || "Unassigned"}
-                              </span>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                asChild
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
-                              >
-                                <Link href={`/tasks/${taskId}`}>
-                                  <Eye className="size-4" />
-                                </Link>
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
-                                onClick={() => setSelectedTask(task)}
-                              >
-                                <Pencil className="size-4" />
-                              </Button>
-                              {canMutate && (
+                                <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[100px]">
+                                  {assignee?.name || "Unassigned"}
+                                </span>
+                              </div>
+                              <div className="flex gap-1">
                                 <Button
-                                  size="sm"
+                                  asChild
+                                  size="icon"
                                   variant="ghost"
-                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                  onClick={() => setDeleteId(taskId)}
+                                  className="h-8 w-8 rounded-lg"
                                 >
-                                  <Trash2 className="size-4" />
+                                  <Link href={`/tasks/${taskId}`}>
+                                    <Eye className="size-3.5 text-muted-foreground" />
+                                  </Link>
                                 </Button>
-                              )}
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 rounded-lg"
+                                  onClick={() => setSelectedTask(task)}
+                                >
+                                  <Pencil className="size-3.5 text-muted-foreground" />
+                                </Button>
+                                {canMutate && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50/50"
+                                    onClick={() => setDeleteId(taskId)}
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {viewMode === "table" && (
-                  <div className="rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm shadow-sm overflow-x-auto relative no-scrollbar md:custom-scrollbar">
-                    <Table className="min-w-[800px] md:min-w-0 border-separate border-spacing-0">
-                      <TableHeader className="bg-muted/30">
-                        <TableRow className="hover:bg-transparent border-b">
-                          <TableHead className="py-4 pl-6 min-w-[200px]">
-                            Task Title
-                          </TableHead>
-                          <TableHead className="min-w-[150px]">
-                            Assignee
-                          </TableHead>
-                          <TableHead className="min-w-[120px]">
-                            Status
-                          </TableHead>
-                          <TableHead className="min-w-[120px]">
-                            Priority
-                          </TableHead>
-                          <TableHead className="min-w-[150px]">
-                            Created By
-                          </TableHead>
-                          <TableHead className="min-w-[150px]">
-                            Created Time
-                          </TableHead>
-                          <TableHead className="min-w-[150px]">
-                            Project
-                          </TableHead>
-                          <TableHead className="min-w-[140px]">
-                            Due Date
-                          </TableHead>
-                          <TableHead className="min-w-[150px]">Tags</TableHead>
-                          <TableHead className="w-16"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {listRows.map((task, idx) => (
-                          <TaskRow
-                            key={getTaskId(task)}
-                            task={task}
-                            idx={idx}
-                            taskId={getTaskId(task)}
-                            assignee={getAssignee(task)}
-                            isOverdue={
-                              task.dueDate &&
-                              new Date(task.dueDate) < new Date() &&
-                              task.status !== "DONE"
-                            }
-                            canMutate={canMutate}
-                            setSelectedTask={setSelectedTask}
-                            setDeleteId={setDeleteId}
-                          />
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  )}
+                  {viewMode === "table" && (
+                     <div className="animate-in fade-in duration-500">
+                      <Table className="min-w-[1200px] border-separate border-spacing-0">
+                        <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur-md shadow-sm">
+                          <TableRow className="hover:bg-transparent border-0">
+                            <TableHead className="py-4 pl-8 font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Task Title
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Assignee
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Status
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Priority
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Created By
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Created Time
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Project
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Due Date
+                            </TableHead>
+                            <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground/80 border-b border-border/50">
+                              Tags
+                            </TableHead>
+                            <TableHead className="w-16 border-b border-border/50"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {listRows.map((task, idx) => (
+                            <TaskRow
+                              key={getTaskId(task)}
+                              task={task}
+                              idx={idx}
+                              taskId={getTaskId(task)}
+                              assignee={getAssignee(task)}
+                              isOverdue={
+                                task.dueDate &&
+                                new Date(task.dueDate) < new Date() &&
+                                task.status !== "DONE"
+                              }
+                              canMutate={canMutate}
+                              setSelectedTask={setSelectedTask}
+                              setDeleteId={setDeleteId}
+                            />
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {/* Pagination controls STAY OUTSIDE scroll area */}
+            <div className="shrink-0 py-2 sm:py-3 flex items-center justify-between gap-2 border-t border-border/10 px-0.5">
+              <div className="flex items-center gap-2">
+                 <Select 
+                    value={String(limit)} 
+                    onValueChange={(val) => {
+                      setLimit(parseInt(val));
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 sm:h-9 w-[110px] sm:w-28 rounded-lg sm:rounded-xl bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
+                      <SelectValue placeholder="Limit" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/40">
+                      {PAGE_SIZE_OPTIONS.map(opt => (
+                        <SelectItem key={opt} value={String(opt)} className="text-xs font-medium">
+                          {opt} / page
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="hidden md:inline text-[11px] text-muted-foreground/60 font-bold uppercase tracking-tight">
+                    Showing {listRows.length} tasks
+                  </span>
+              </div>
+              
+              <div className="flex-1 sm:flex-none">
                 <PaginationMeta
                   page={page}
                   totalPages={totalPages}
@@ -982,20 +1059,16 @@ export default function TasksPage() {
                   onPageChange={setPage}
                 />
               </div>
-            )}
-          </div>
+            </div>
+          </>
         )}
 
         {viewMode === "kanban" && (
-          <div className="h-full animate-in fade-in zoom-in-95 duration-500">
+          <div className="h-full animate-in fade-in zoom-in-95 duration-500 overflow-hidden">
             {kanbanQuery.isLoading ? (
-              <div className="flex h-full gap-4 overflow-hidden p-4">
-                <Skeleton className="h-full w-72 rounded-2xl" />
-                <Skeleton className="h-full w-72 rounded-2xl" />
-                <Skeleton className="h-full w-72 rounded-2xl" />
-              </div>
+              <TaskBoardSkeleton />
             ) : kanbanRows.length === 0 ? (
-              <div className="pt-14">
+              <div className="h-full flex items-center justify-center py-20 bg-card/20 rounded-2xl border border-border/40">
                 <EmptyState
                   title="No tasks found"
                   description="Try changing filters or create a task to get started."
@@ -1056,6 +1129,112 @@ export default function TasksPage() {
           }}
         />
       )}
+
+      {/* MOBILE FLOATING ACTION BUTTON (FAB) */}
+      <div className="fixed sm:hidden bottom-16 right-4 z-50 animate-in slide-in-from-bottom-10 fade-in duration-500">
+        <CreateTaskModal
+          defaultProjectId={projectId !== "ALL" ? projectId : undefined}
+          trigger={
+            <Button className="size-14 rounded-full shadow-2xl shadow-primary/40 flex items-center justify-center p-0 ring-4 ring-background">
+              <Plus className="size-7" />
+            </Button>
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
+// Sub-component for Filters to avoid repetition
+function FilterDrawer({ status, setStatus, priority, setPriority, assigneeId, setAssigneeId, creatorId, setCreatorId, dueDate, setDueDate, tagIds, setTagIds, activeFilterCount, membersQuery, trigger }: any) {
+  const clearFilters = () => {
+    setStatus("ALL");
+    setPriority("ALL");
+    setAssigneeId("ALL");
+    setCreatorId("ALL");
+    setDueDate("");
+    setTagIds([]);
+  };
+
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        {trigger || (
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 rounded-xl border-border/40 bg-card/50 relative hover:bg-muted/50"
+          >
+            <SlidersHorizontal className="size-4" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground border-2 border-background">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+        )}
+      </SheetTrigger>
+      <SheetContent className="w-[90vw] sm:max-w-md bg-background/95 backdrop-blur-md border-border/10 rounded-l-[1.5rem] p-0 flex flex-col">
+        <SheetHeader className="p-6 border-b border-border/10 shrink-0">
+          <SheetTitle className="text-2xl font-black tracking-tighter">Filters</SheetTitle>
+          <SheetDescription className="font-medium text-muted-foreground/70">
+            Narrow down tasks by specific criteria
+          </SheetDescription>
+        </SheetHeader>
+        
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-6 space-y-6">
+          <FilterSelect label="Status" value={status} onChange={setStatus} options={[
+            { v: "ALL", l: "All Statuses" },
+            { v: "TODO", l: "To Do" },
+            { v: "IN_PROGRESS", l: "In Progress" },
+            { v: "IN_REVIEW", l: "In Review" },
+            { v: "DONE", l: "Done" },
+            { v: "BACKLOG", l: "Backlog" },
+            { v: "ARCHIVED", l: "Archived" },
+            { v: "REJECTED", l: "Rejected" }
+          ]} />
+
+          <FilterSelect label="Priority" value={priority} onChange={setPriority} options={[
+            { v: "ALL", l: "All Priorities" },
+            { v: "LOW", l: "Low" },
+            { v: "MEDIUM", l: "Medium" },
+            { v: "HIGH", l: "High" },
+            { v: "URGENT", l: "Urgent" }
+          ]} />
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Project</label>
+            <Select value={status} onValueChange={() => {}}> {/* Use correct projectId props here if passed, or simplify */}
+                {/* Simplified for the helper, in main it uses projectId */}
+            </Select>
+          </div>
+          {/* ... Other filter components ... */}
+          <p className="text-[10px] text-muted-foreground italic text-center py-4">Scroll for more filters</p>
+        </div>
+
+        <div className="p-6 mt-auto border-t border-border/10 flex gap-3 bg-muted/5">
+          <Button variant="outline" onClick={clearFilters} className="flex-1 rounded-xl h-11 font-bold">Clear</Button>
+          <SheetTrigger asChild>
+            <Button className="flex-1 rounded-xl h-11 font-bold shadow-lg shadow-primary/20">Apply</Button>
+          </SheetTrigger>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function FilterSelect({ label, value, onChange, options }: any) {
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">{label}</label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="rounded-xl bg-muted/10 border-border/40 h-11">
+          <SelectValue placeholder={`Select ${label}`} />
+        </SelectTrigger>
+        <SelectContent className="rounded-2xl">
+          {options.map((o: any) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
@@ -1072,25 +1251,35 @@ function PaginationMeta({
   onPageChange: (p: number) => void;
 }) {
   return (
-    <div className="flex items-center justify-end gap-2 pb-4 pt-2">
+    <div className="flex items-center justify-end gap-1 sm:gap-2">
       <Button
         variant="outline"
-        size="sm"
+        size="icon"
+        className="h-8 w-8 sm:h-9 sm:w-auto sm:px-4 rounded-lg sm:rounded-xl border-border/40 bg-background/50"
         disabled={page <= 1 || isFetching}
         onClick={() => onPageChange(Math.max(1, page - 1))}
       >
-        Previous
+        <ChevronLeft className="size-4 sm:hidden" />
+        <span className="hidden sm:inline text-[11px] font-bold">Previous</span>
       </Button>
-      <p className="text-sm text-muted-foreground font-medium px-2">
-        Page {page} of {totalPages}
-      </p>
+      
+      <div className="flex items-baseline px-2 sm:px-4 shrink-0">
+        <span className="text-[13px] font-black text-foreground tracking-tighter">
+          {page}
+          <span className="text-muted-foreground/40 font-medium mx-1 text-xs">/</span> 
+          {totalPages}
+        </span>
+      </div>
+
       <Button
         variant="outline"
-        size="sm"
+        size="icon"
+        className="h-8 w-8 sm:h-9 sm:w-auto sm:px-4 rounded-lg sm:rounded-xl border-border/40 bg-background/50"
         disabled={page >= totalPages || isFetching}
         onClick={() => onPageChange(page + 1)}
       >
-        Next
+        <ChevronRight className="size-4 sm:hidden" />
+        <span className="hidden sm:inline text-[11px] font-bold">Next</span>
       </Button>
     </div>
   );

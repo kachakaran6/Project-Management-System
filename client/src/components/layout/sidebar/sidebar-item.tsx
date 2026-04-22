@@ -1,4 +1,4 @@
-﻿import Link from "@/lib/next-link";
+import Link from "@/lib/next-link";
 import { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -32,8 +32,8 @@ export function SidebarItem({ item, isActive, collapsed }: SidebarItemProps) {
       className={cn(
         "group flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-all duration-200",
         isActive
-          ? "bg-sidebar-accent text-white shadow-sm"
-          : "text-sidebar-foreground/85 hover:bg-sidebar-accent/70 hover:text-white",
+          ? "bg-sidebar-accent text-primary shadow-sm ring-1 ring-sidebar-border/50"
+          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-primary",
         collapsed && "justify-center px-0 w-10 mx-auto",
       )}
       aria-current={isActive ? "page" : undefined}
