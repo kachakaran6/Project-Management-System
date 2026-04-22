@@ -434,12 +434,23 @@ export const verifyEmail = async (token: any) => {
 
 export const refreshAccessToken = async (oldRefreshToken: any) => {
   const storedToken = await RefreshToken.findOne({
-    token:     oldRefreshToken,
-    isRevoked: false,
+    token: oldRefreshToken,
   });
 
-  if (!storedToken || storedToken.expiresAt < new Date()) {
-    throw new AppError('Refresh token is invalid or expired.', 401);
+  if (!storedToken) {
+    throw new AppError('Refresh token is invalid.', 401);
+  }
+
+  // Grace Period: 30 seconds
+  // If the token is revoked but it was just replaced within 30 seconds, 
+  // allow it (prevents race conditions from multiple tabs/requests)
+  const isExpired = storedToken.expiresAt < new Date();
+  const gracePeriodActive = storedToken.isRevoked && 
+                           storedToken.revokedAt && 
+                           (new Date().getTime() - storedToken.revokedAt.getTime() < 30000);
+
+  if (isExpired || (storedToken.isRevoked && !gracePeriodActive)) {
+    throw new AppError('Refresh token has expired or been revoked.', 401);
   }
 
   const user = await User.findById(storedToken.userId);
@@ -461,6 +472,7 @@ export const refreshAccessToken = async (oldRefreshToken: any) => {
 
   const newRefreshTokenValue = generateRefreshToken({ userId: storedToken.userId });
   storedToken.isRevoked       = true;
+  storedToken.revokedAt       = new Date();
   storedToken.replacedByToken = newRefreshTokenValue;
   await storedToken.save();
 

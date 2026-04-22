@@ -13,7 +13,6 @@ export function useTeamMembersQuery() {
   return useQuery({
     queryKey: teamQueryKeys.members,
     queryFn: () => teamApi.getMembers(),
-    refetchInterval: 30_000,
   });
 }
 

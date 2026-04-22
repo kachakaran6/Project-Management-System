@@ -43,7 +43,6 @@ export function useNotificationCenter(filters: NotificationFilters = {}) {
     queryFn: () => notificationApi.list(filters),
     enabled: isAuthenticated,
     staleTime: 10_000,
-    refetchInterval: 30_000,
   });
 
   const unreadCountQuery = useQuery({
@@ -51,7 +50,6 @@ export function useNotificationCenter(filters: NotificationFilters = {}) {
     queryFn: () => notificationApi.unreadCount(),
     enabled: isAuthenticated,
     staleTime: 10_000,
-    refetchInterval: 30_000,
   });
 
   const markReadMutation = useMutation({
