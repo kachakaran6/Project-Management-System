@@ -22,7 +22,10 @@ const refreshTokenSchema = new mongoose.Schema({
   },
   replacedByToken: { 
     type: String 
-  } // for token rotation
+  }, // for token rotation
+  revokedAt: { 
+    type: Date 
+  } // for grace period during rotation
 }, {
   timestamps: true
 });
