@@ -373,7 +373,8 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
       { $unwind: { path: '$creatorId', preserveNullAndEmptyArrays: true } }
     );
 
-    const countPipeline = [...pipeline.slice(0, pipeline.findIndex(p => p.$skip) || pipeline.length)];
+    const skipIndex = pipeline.findIndex(p => '$skip' in p);
+    const countPipeline = skipIndex !== -1 ? pipeline.slice(0, skipIndex) : [...pipeline];
     countPipeline.push({ $count: 'count' });
 
     const [countResult, taskResults] = await Promise.all([

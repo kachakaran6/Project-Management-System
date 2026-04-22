@@ -197,7 +197,7 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
       className={cn(
         "flex h-full flex-col border-r border-sidebar-border bg-sidebar px-3 py-4 text-sidebar-foreground",
         sidebarWidth,
-        "transition-[width] duration-300 ease-in-out",
+        "transition-all duration-300 ease-in-out",
       )}
     >
       <div
@@ -208,7 +208,7 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
       >
         {!(sidebarCollapsed && !mobile) ? (
           <div className="flex flex-col overflow-hidden animate-in fade-in slide-in-from-left-2 duration-300">
-            <p className="font-heading text-lg font-bold text-white truncate">
+            <p className="font-heading text-lg font-bold text-foreground truncate">
               {role === "SUPER_ADMIN" ? "Platform Control" : "PMS Orbit"}
             </p>
             <p className="text-[10px] uppercase tracking-wider text-sidebar-foreground/50 truncate">
@@ -221,7 +221,7 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-white transition-all"
+            className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-primary transition-all"
             onClick={handleToggle}
             aria-label={
               sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
@@ -303,7 +303,7 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
                   "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"
                 )} />
               </div>
-              <p className="text-[13px] font-extrabold text-white tracking-tight flex items-center gap-2 capitalize">
+              <p className="text-[13px] font-extrabold text-foreground tracking-tight flex items-center gap-2 capitalize">
                 {role.toLowerCase().replace("_", " ")}
               </p>
             </div>

@@ -94,7 +94,7 @@ export function AppSidebar({
       >
         {!collapsed ? (
           <div>
-            <p className="font-heading text-lg font-semibold text-white">
+            <p className="font-heading text-lg font-semibold text-foreground">
               PMS Orbit
             </p>
             <p className="text-xs text-sidebar-foreground/70">

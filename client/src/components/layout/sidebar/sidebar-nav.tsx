@@ -1,4 +1,4 @@
-﻿import Link from "@/lib/next-link";
+import Link from "@/lib/next-link";
 import { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -41,8 +41,8 @@ export function SidebarNav({
             className={cn(
               "group flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
               isActive
-                ? "bg-sidebar-accent text-white"
-                : "text-sidebar-foreground/85 hover:bg-sidebar-accent/70 hover:text-white",
+                ? "bg-sidebar-accent text-primary shadow-sm"
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-primary",
               collapsed && "justify-center px-2",
             )}
           >
