@@ -15,6 +15,78 @@ export const create = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Controller: Get current user's drafts
+ */
+export const getDraftList = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 10;
+
+  const { tasks, totalCount } = await taskService.getDrafts(
+    {
+      organizationId: req.organizationId as string,
+      search: req.query.search,
+      workspaceId: req.query.workspaceId,
+      projectId: req.query.projectId
+    },
+    { page, limit },
+    req.user.id,
+    (req.role as string) || 'MEMBER'
+  );
+
+  return successResponse(res, paginate(tasks, totalCount, page, limit), 'Drafts retrieved successfully.');
+});
+
+/**
+ * Controller: Save task draft
+ */
+export const saveDraft = asyncHandler(async (req, res) => {
+  const task = await taskService.saveDraft({
+    ...req.body,
+    organizationId: req.organizationId as string
+  }, req.user.id, (req.role as string) || 'MEMBER');
+
+  return successResponse(res, task, 'Draft saved successfully.', 201);
+});
+
+/**
+ * Controller: Update task draft
+ */
+export const updateDraft = asyncHandler(async (req, res) => {
+  const task = await taskService.saveDraft({
+    ...req.body,
+    draftId: req.params.id,
+    organizationId: req.organizationId as string
+  }, req.user.id, (req.role as string) || 'MEMBER');
+
+  return successResponse(res, task, 'Draft saved successfully.');
+});
+
+/**
+ * Controller: Publish task draft
+ */
+export const publishDraft = asyncHandler(async (req, res) => {
+  const task = await taskService.publishDraft(
+    req.params.id as string,
+    {
+      ...req.body,
+      organizationId: req.organizationId as string
+    },
+    req.user.id,
+    (req.role as string) || 'MEMBER'
+  );
+
+  return successResponse(res, task, 'Task published successfully.');
+});
+
+/**
+ * Controller: Delete task draft
+ */
+export const removeDraft = asyncHandler(async (req, res) => {
+  await taskService.deleteDraft(req.params.id as string, req.user.id);
+  return successResponse(res, null, 'Draft deleted successfully.');
+});
+
+/**
  * Controller: Get Tasks with advanced filtering
  */
 export const getAll = asyncHandler(async (req, res) => {

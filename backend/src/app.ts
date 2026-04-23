@@ -119,10 +119,12 @@ import organizationRoutes from "./modules/organization/organization.routes.js";
 import telegramRoutes from "./modules/telegram/telegram.routes.js";
 import activityLogRoutes from "./modules/activityLog/activityLog.routes.js";
 import sessionRoutes from "./modules/session/session.routes.js";
+import projectResourceRoutes from "./modules/project-resource/project-resource.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/workspaces", workspaceRoutes);
 app.use("/api/v1/projects", projectRoutes);
+app.use("/api/v1/project-resources", projectResourceRoutes);
 app.use("/api/v1/tasks", taskRoutes);
 app.use("/api/v1/comments", commentRoutes);
 app.use("/api/v1/attachments", attachmentRoutes);

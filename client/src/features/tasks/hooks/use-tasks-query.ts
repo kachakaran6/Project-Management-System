@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { taskApi } from "@/features/tasks/api/task.api";
 import {
   CreateTaskInput,
+  TaskDraftFilters,
+  TaskDraftInput,
   TaskFilters,
   TaskStatus,
   UpdateTaskInput,
@@ -14,6 +16,8 @@ export const tasksQueryKeys = {
   all: ["tasks"] as const,
   list: (filters: TaskFilters) => ["tasks", filters] as const,
   detail: (id: string) => ["tasks", "detail", id] as const,
+  draftsAll: ["tasks", "drafts"] as const,
+  drafts: (filters: TaskDraftFilters = {}) => ["tasks", "drafts", filters] as const,
 };
 
 export function useTasksQuery(
@@ -40,6 +44,64 @@ export function useCreateTaskMutation() {
     mutationFn: (payload: CreateTaskInput) => taskApi.createTask(payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all });
+    },
+  });
+}
+
+export function useTaskDraftsQuery(
+  filters: TaskDraftFilters = {},
+  options?: {
+    enabled?: boolean;
+    staleTime?: number;
+  },
+) {
+  return useQuery({
+    queryKey: tasksQueryKeys.drafts(filters),
+    queryFn: () => taskApi.getDrafts(filters),
+    staleTime: options?.staleTime ?? 10_000,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useUpsertTaskDraftMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id?: string | null; data: TaskDraftInput }) => {
+      if (id) {
+        return taskApi.updateDraft(id, data);
+      }
+      return taskApi.createDraft(data);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKeys.draftsAll });
+    },
+  });
+}
+
+export function usePublishTaskDraftMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CreateTaskInput }) =>
+      taskApi.publishDraft(id, data),
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all }),
+        queryClient.invalidateQueries({ queryKey: tasksQueryKeys.detail(variables.id) }),
+        queryClient.invalidateQueries({ queryKey: tasksQueryKeys.draftsAll }),
+      ]);
+    },
+  });
+}
+
+export function useDeleteTaskDraftMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => taskApi.deleteDraft(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKeys.draftsAll });
     },
   });
 }

@@ -9,7 +9,7 @@ export const store = asyncHandler(async (req, res) => {
   const attachment = await attachmentService.storeAttachment({
     ...req.body,
     organizationId: req.organizationId
-  }, req.user.id);
+  }, { id: req.user.id, role: req.role || req.user.role });
 
   return successResponse(res, attachment, 'Attachment stored successfully.', 201);
 });
@@ -18,7 +18,11 @@ export const store = asyncHandler(async (req, res) => {
  * Controller: Get Task Attachments
  */
 export const getAll = asyncHandler(async (req, res) => {
-  const attachments = await attachmentService.getTaskAttachments(req.params.taskId, req.organizationId);
+  const attachments = await attachmentService.getTaskAttachments(
+    req.params.taskId,
+    req.organizationId,
+    { id: req.user.id, role: req.role || req.user.role }
+  );
   return successResponse(res, attachments, 'Attachments retrieved successfully.');
 });
 

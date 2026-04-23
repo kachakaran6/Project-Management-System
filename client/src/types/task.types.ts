@@ -47,6 +47,7 @@ export interface Task {
   creatorId: string;
   creator?: TaskAssigneeUser;
   dueDate?: string;
+  isDraft?: boolean;
   tags?: Tag[];
   tagIds?: string[];
   assigneeId?: string;
@@ -83,6 +84,32 @@ export interface UpdateTaskInput extends Partial<CreateTaskInput> {
   visibility?: TaskVisibility;
   visibleToUsers?: string[];
   position?: number;
+}
+
+export interface TaskDraftInput {
+  draftId?: string;
+  title?: string;
+  description?: string;
+  projectId?: string;
+  workspaceId?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  assigneeId?: string;
+  assigneeIds?: string[];
+  assignees?: string[];
+  visibility?: Exclude<TaskVisibility, "DRAFT"> | TaskVisibility;
+  visibleToUsers?: string[];
+  dueDate?: string;
+  tags?: string[];
+  position?: number;
+}
+
+export interface TaskDraftFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  workspaceId?: string;
+  projectId?: string;
 }
 
 export interface TaskFilters {

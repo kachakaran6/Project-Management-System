@@ -20,6 +20,31 @@ router.post(
   requirePermission(PERMISSIONS.CREATE_TASK),
   taskController.create,
 );
+router.get(
+  "/drafts",
+  requirePermission(PERMISSIONS.CREATE_TASK),
+  taskController.getDraftList,
+);
+router.post(
+  "/drafts",
+  requirePermission(PERMISSIONS.CREATE_TASK),
+  taskController.saveDraft,
+);
+router.patch(
+  "/drafts/:id",
+  requirePermission(PERMISSIONS.CREATE_TASK),
+  taskController.updateDraft,
+);
+router.post(
+  "/drafts/:id/publish",
+  requirePermission(PERMISSIONS.CREATE_TASK),
+  taskController.publishDraft,
+);
+router.delete(
+  "/drafts/:id",
+  requirePermission(PERMISSIONS.CREATE_TASK),
+  taskController.removeDraft,
+);
 router.patch(
   "/:id",
   requirePermission(PERMISSIONS.EDIT_TASK),

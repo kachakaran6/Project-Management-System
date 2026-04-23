@@ -14,7 +14,7 @@ export const add = asyncHandler(async (req, res) => {
     taskId,
     parentId,
     organizationId: req.organizationId
-  }, req.user.id);
+  }, { id: req.user.id, role: req.role || req.user.role });
 
   return successResponse(res, comment, 'Comment added successfully.', 201);
 });

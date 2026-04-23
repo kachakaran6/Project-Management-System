@@ -96,37 +96,33 @@ function ProjectActionButton({
   onClick?: () => void;
   tone?: "default" | "danger";
 }) {
-  const buttonClasses =
-    "size-9 rounded-full border border-transparent bg-white/0 text-muted-foreground transition-all duration-200 hover:scale-[1.02] hover:border-white/10 hover:bg-white/5 hover:text-foreground hover:shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_24px_rgba(0,0,0,0.24)]";
-  const dangerClasses =
-    "text-red-400 hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-300";
-  const content = <Icon className="size-4" aria-hidden="true" />;
+  const baseClasses = cn(
+    "inline-flex items-center justify-center gap-2 px-3.5 py-2.5 min-h-[40px] min-w-[40px] rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 touch-none",
+    "border border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground hover:border-border",
+    tone === "danger" && "text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/20"
+  );
+
+  const content = (
+    <>
+      <Icon className="size-4 shrink-0" aria-hidden="true" />
+      <span className="hidden sm:inline">{label === "Project Overview" ? "View" : label}</span>
+    </>
+  );
+
+  const buttonElement = href ? (
+    <Button asChild variant="ghost" className={baseClasses}>
+      <Link href={href}>{content}</Link>
+    </Button>
+  ) : (
+    <Button variant="ghost" className={baseClasses} onClick={onClick}>
+      {content}
+    </Button>
+  );
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        {href ? (
-          <Button
-            asChild
-            variant="ghost"
-            size="icon"
-            className={`${buttonClasses} ${tone === "danger" ? dangerClasses : ""}`}
-          >
-            <Link href={href} aria-label={label}>
-              {content}
-            </Link>
-          </Button>
-        ) : (
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`${buttonClasses} ${tone === "danger" ? dangerClasses : ""}`}
-            aria-label={label}
-            onClick={onClick}
-          >
-            {content}
-          </Button>
-        )}
+        {buttonElement}
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
@@ -221,24 +217,30 @@ export default function ProjectsPage() {
         </div>
 
         {projectsQuery.isLoading ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={`project-skeleton-${i}`}
-                className="rounded-2xl border border-white/5 bg-white/3 p-4"
+                className="rounded-[24px] border border-border/40 bg-card/40 p-5 space-y-4"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <Skeleton className="h-5 w-40 rounded-full" />
-                  <Skeleton className="h-6 w-16 rounded-full" />
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-5 w-2/3 rounded-md" />
+                    <Skeleton className="h-4 w-1/3 rounded-md" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-full" />
                 </div>
-                <div className="mt-4 space-y-2">
-                  <Skeleton className="h-4 w-36 rounded-full" />
-                  <Skeleton className="h-4 w-28 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-full rounded-md" />
+                  <Skeleton className="h-3 w-4/5 rounded-md" />
                 </div>
-                <div className="mt-5 flex items-center gap-2 opacity-60">
-                  <Skeleton className="size-8 rounded-full" />
-                  <Skeleton className="size-8 rounded-full" />
-                  <Skeleton className="size-8 rounded-full" />
+                <div className="pt-4 flex items-center justify-between border-t border-border/10">
+                  <Skeleton className="h-3 w-24 rounded-md" />
+                  <div className="flex -space-x-1.5">
+                    <Skeleton className="size-7 rounded-full border-2 border-background" />
+                    <Skeleton className="size-7 rounded-full border-2 border-background" />
+                    <Skeleton className="size-7 rounded-full border-2 border-background" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -303,7 +305,7 @@ export default function ProjectsPage() {
                       </Badge>
                     </div>
                     
-                    <div className="flex gap-1 shrink-0 md:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                    <div className="flex flex-wrap gap-2 shrink-0 md:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                        <ProjectActionButton
                           href={`/projects/${pid}`}
                           label="Project Overview"

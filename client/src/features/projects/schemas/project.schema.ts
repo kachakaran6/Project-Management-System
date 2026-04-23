@@ -9,6 +9,14 @@ export const projectFormSchema = z.object({
   startDate: z.date().optional().nullable(),
   endDate: z.date().optional().nullable(),
   members: z.array(z.string()).default([]),
+  resources: z.array(z.object({
+    title: z.string().min(2, "Title is required"),
+    type: z.enum(["link", "credential", "note"]),
+    url: z.string().optional().or(z.literal("")),
+    username: z.string().optional(),
+    password: z.string().optional(),
+    description: z.string().optional(),
+  })).optional().default([]),
 });
 
 export type ProjectFormValues = z.infer<typeof projectFormSchema>;

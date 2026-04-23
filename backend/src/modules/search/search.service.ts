@@ -109,6 +109,8 @@ export const searchGlobal = async (
       ? Task.find({
           organizationId: orgId,
           isActive: true,
+          isDraft: { $ne: true },
+          visibility: { $ne: 'DRAFT' },
           $or: [
             { title: regex },
             { description: regex },

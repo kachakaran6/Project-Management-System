@@ -272,8 +272,8 @@ export const TaskRow = ({
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted focus-visible:ring-0">
-              <MoreHorizontal className="size-4 text-muted-foreground/70" />
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-muted focus-visible:ring-0 active:scale-90 transition-all">
+              <MoreHorizontal className="size-4.5 text-muted-foreground/70" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/50 shadow-2xl p-1.5 slide-in-from-right-2">

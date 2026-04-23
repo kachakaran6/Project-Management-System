@@ -4,6 +4,8 @@ import {
   AssignTaskUsersInput,
   CreateTaskInput,
   Task,
+  TaskDraftFilters,
+  TaskDraftInput,
   TaskFilters,
   UpdateTaskInput,
 } from "@/types/task.types";
@@ -26,6 +28,42 @@ export const taskApi = {
 
   createTask: async (data: CreateTaskInput): Promise<ApiResponse<Task>> => {
     const response = await api.post<ApiResponse<Task>>("/tasks", data);
+    return response.data;
+  },
+
+  getDrafts: async (
+    filters: TaskDraftFilters = {},
+  ): Promise<ApiResponse<PaginatedResult<Task>>> => {
+    const response = await api.get<ApiResponse<PaginatedResult<Task>>>(
+      "/tasks/drafts",
+      { params: filters },
+    );
+    return response.data;
+  },
+
+  createDraft: async (data: TaskDraftInput): Promise<ApiResponse<Task>> => {
+    const response = await api.post<ApiResponse<Task>>("/tasks/drafts", data);
+    return response.data;
+  },
+
+  updateDraft: async (
+    id: string,
+    data: TaskDraftInput,
+  ): Promise<ApiResponse<Task>> => {
+    const response = await api.patch<ApiResponse<Task>>(`/tasks/drafts/${id}`, data);
+    return response.data;
+  },
+
+  publishDraft: async (
+    id: string,
+    data: CreateTaskInput,
+  ): Promise<ApiResponse<Task>> => {
+    const response = await api.post<ApiResponse<Task>>(`/tasks/drafts/${id}/publish`, data);
+    return response.data;
+  },
+
+  deleteDraft: async (id: string): Promise<ApiResponse<null>> => {
+    const response = await api.delete<ApiResponse<null>>(`/tasks/drafts/${id}`);
     return response.data;
   },
 
