@@ -260,7 +260,11 @@ export const loginUser = async (
   user.lastLogin = new Date();
   await user.save({ validateBeforeSave: false });
 
-  const accessToken = generateAccessToken({ userId: user._id, role: user.role });
+  const accessToken = generateAccessToken({
+    userId: user._id,
+    role: user.role,
+    tokenVersion: user.tokenVersion ?? 0,
+  });
   const refreshTokenValue = generateRefreshToken({ userId: user._id });
   const refreshTokenHash = hashRefreshToken(refreshTokenValue);
   const { deviceName, deviceType } = parseDeviceInfo(meta?.userAgent || '');
@@ -347,6 +351,7 @@ export const resetPassword = async (token: any, newPassword: any) => {
   user.password             = await hashPassword(newPassword);
   user.passwordResetToken   = undefined;
   user.passwordResetExpires = undefined;
+  user.tokenVersion = (user.tokenVersion ?? 0) + 1;
   await user.save();
 
   await Session.updateMany(
@@ -477,6 +482,7 @@ export const refreshAccessToken = async (
     organizationId: membership?.organizationId || null,
     role:           membership?.role || user.role || null,
     platformRole:   user.role, // Explicitly keep platform role
+    tokenVersion:   user.tokenVersion ?? 0,
   });
 
   const newRefreshTokenValue = generateRefreshToken({ userId: storedSession.userId });
@@ -509,6 +515,10 @@ export const logoutUser = async (refreshToken: any) => {
 };
 
 export const logoutAllUserSessions = async (userId: string) => {
+  await User.findByIdAndUpdate(toObjectId(userId), {
+    $inc: { tokenVersion: 1 },
+  });
+
   await Session.updateMany(
     { userId: toObjectId(userId), isActive: true },
     { isActive: false, lastActiveAt: new Date() },

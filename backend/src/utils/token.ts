@@ -7,6 +7,7 @@ type TokenPayload = jwt.JwtPayload & {
   userId?: string;
   organizationId?: string | null;
   role?: string | null;
+  tokenVersion?: number;
 };
 
 /**
