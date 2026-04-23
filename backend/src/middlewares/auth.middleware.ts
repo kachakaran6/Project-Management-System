@@ -32,12 +32,20 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     }
 
     // Fetch full user from DB to ensure role/status is current
-    const user = await User.findById(decoded.userId).select('role status isActive isApproved');
+    const user = await User.findById(decoded.userId).select('role status isActive isApproved tokenVersion');
     
     if (!user) {
       return res.status(401).json({
         success: false,
         message: "User no longer exists.",
+      });
+    }
+
+    if ((decoded.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
+      return res.status(401).json({
+        success: false,
+        message: "Session has been revoked. Please log in again.",
+        code: "SESSION_REVOKED",
       });
     }
 

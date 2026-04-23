@@ -46,6 +46,7 @@ const userSchema = new mongoose.Schema({
   otpCode: { type: String, select: false },
   otpExpires: { type: Date, select: false },
   otpAttempts: { type: Number, default: 0, select: false },
+  tokenVersion: { type: Number, default: 0 },
   lastLogin: { type: Date },
   settings: {
     theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
