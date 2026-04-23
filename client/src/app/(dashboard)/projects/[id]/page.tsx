@@ -9,12 +9,14 @@ import {
   LayoutDashboard, 
   CheckSquare, 
   History,
-  ExternalLink 
+  ExternalLink,
+  Shield 
 } from "lucide-react";
 import { useProjectQuery } from "@/features/projects/hooks/use-projects-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectOverview } from "@/features/projects/components/project-overview";
+import { ProjectVault } from "@/features/projects/components/vault/project-vault";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditProjectModal } from "@/features/projects/components/edit-project-modal";
@@ -120,6 +122,13 @@ export default function ProjectDetailsPage() {
               Tasks
             </TabsTrigger>
             <TabsTrigger 
+              value="vault" 
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-sm font-semibold transition-all hover:text-primary/70"
+            >
+              <Shield className="mr-2 size-4" />
+              Vault
+            </TabsTrigger>
+            <TabsTrigger 
               value="activity" 
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-sm font-semibold transition-all hover:text-primary/70"
             >
@@ -131,6 +140,10 @@ export default function ProjectDetailsPage() {
 
         <TabsContent value="overview" className="mt-0 ring-0 outline-none">
           <ProjectOverview projectId={id as string} />
+        </TabsContent>
+
+        <TabsContent value="vault" className="mt-0 ring-0 outline-none">
+          <ProjectVault projectId={id as string} />
         </TabsContent>
         
         <TabsContent value="tasks" className="mt-0 ring-0 outline-none">

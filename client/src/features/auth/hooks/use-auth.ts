@@ -21,8 +21,11 @@ export function useAuth() {
   } = useAuthStore();
 
   const activeOrg = getActiveOrg();
+  const platformRole = user?.role;
+  const orgRole = activeOrg?.role;
 
-  const userRole = activeOrg?.role || user?.role;
+  // Platform SUPER_ADMIN always overrides any organizational context role
+  const userRole = platformRole === "SUPER_ADMIN" ? "SUPER_ADMIN" : (orgRole || platformRole);
 
   const hasPermission = useCallback(
     (permission: Permission) => {
@@ -34,6 +37,8 @@ export function useAuth() {
 
   const isAdmin =
     userRole === "ADMIN" || userRole === "SUPER_ADMIN";
+
+  const isSuperAdmin = userRole === "SUPER_ADMIN";
 
   const logout = useCallback(async () => {
     try {
@@ -56,5 +61,7 @@ export function useAuth() {
     logout,
     hasPermission,
     isAdmin,
+    isSuperAdmin,
+    userRole,
   };
 }

@@ -103,7 +103,7 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { TagSelect } from "@/features/tags/components/tag-select";
 import { useTagsQuery } from "@/features/tags/hooks/use-tags";
-import { TaskListSkeleton, TaskBoardSkeleton } from "@/features/tasks/components/task-skeleton";
+import { TaskListSkeleton, TaskBoardSkeleton, TaskTableSkeleton } from "@/features/tasks/components/task-skeleton";
 
 // Pagination Constants
 const DEFAULT_PAGE_SIZE = 10;
@@ -816,7 +816,9 @@ export default function TasksPage() {
           <>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 relative bg-card/20 rounded-2xl border border-border/40 shadow-inner-sm">
               {listQuery.isLoading ? (
-                <div className="p-4"><TaskListSkeleton /></div>
+                <div className="animate-in fade-in duration-500">
+                  {viewMode === "table" ? <TaskTableSkeleton /> : <div className="p-4"><TaskListSkeleton /></div>}
+                </div>
               ) : listRows.length === 0 ? (
                 <div className="flex h-full items-center justify-center py-20">
                   <EmptyState
@@ -937,33 +939,33 @@ export default function TasksPage() {
                                   {assignee?.name || "Unassigned"}
                                 </span>
                               </div>
-                              <div className="flex gap-1">
+                              <div className="flex flex-wrap gap-2 pt-1">
                                 <Button
                                   asChild
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8 rounded-lg"
+                                  variant="outline"
+                                  className="flex-1 min-h-[40px] min-w-[80px] gap-2 rounded-xl text-xs font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
                                 >
                                   <Link href={`/tasks/${taskId}`}>
-                                    <Eye className="size-3.5 text-muted-foreground" />
+                                    <Eye className="size-4 shrink-0" />
+                                    <span>View</span>
                                   </Link>
                                 </Button>
                                 <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8 rounded-lg"
+                                  variant="outline"
+                                  className="flex-1 min-h-[40px] min-w-[80px] gap-2 rounded-xl text-xs font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
                                   onClick={() => setSelectedTask(task)}
                                 >
-                                  <Pencil className="size-3.5 text-muted-foreground" />
+                                  <Pencil className="size-4 shrink-0" />
+                                  <span>Edit</span>
                                 </Button>
                                 {canMutate && (
                                   <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50/50"
+                                    variant="outline"
+                                    className="flex-1 min-h-[40px] min-w-[80px] gap-2 rounded-xl text-xs font-bold border-rose-500/20 bg-rose-500/5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 active:scale-95 transition-all"
                                     onClick={() => setDeleteId(taskId)}
                                   >
-                                    <Trash2 className="size-3.5" />
+                                    <Trash2 className="size-4 shrink-0" />
+                                    <span>Delete</span>
                                   </Button>
                                 )}
                               </div>

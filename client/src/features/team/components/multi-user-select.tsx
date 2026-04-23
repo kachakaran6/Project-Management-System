@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useMemberSearch } from "../hooks/use-member-search";
 
 interface UserInfo {
@@ -75,7 +76,7 @@ export function MultiUserSelect({
       const found = allKnownUsers.find((u) => u.id === id);
       if (found) return found;
       // Fallback if we have an ID but no user object yet
-      return { id, name: "Loading...", email: "" };
+      return { id, name: "...", email: "" };
     });
 
     // Remove duplicates by ID and keep the most complete info
@@ -169,8 +170,16 @@ export function MultiUserSelect({
           </div>
           <div className="max-h-75 overflow-y-auto overflow-x-hidden p-1">
             {isLoading ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                Loading team members...
+              <div className="space-y-1 p-1">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex items-center gap-3 p-2">
+                    <Skeleton className="size-8 rounded-full" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-3.5 w-24 rounded-md" />
+                      <Skeleton className="h-2.5 w-32 rounded-md opacity-60" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : searchResults && searchResults.length > 0 ? (
               searchResults.map((member) => {

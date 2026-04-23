@@ -22,9 +22,7 @@ const methods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 type HttpMethod = (typeof methods)[number];
 
 export default function AdminApiDebugPage() {
-  const { activeOrg, user } = useAuth();
-  const role = activeOrg?.role ?? user?.role;
-  const isSuperAdmin = role === "SUPER_ADMIN";
+  const { isSuperAdmin } = useAuth();
 
   const [method, setMethod] = useState<HttpMethod>("GET");
   const [endpoint, setEndpoint] = useState("/health");

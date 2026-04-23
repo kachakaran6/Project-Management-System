@@ -144,9 +144,7 @@ function StatCard({
 }
 
 export default function AdminApprovalsPage() {
-  const { activeOrg, user } = useAuth();
-  const role = activeOrg?.role ?? user?.role;
-  const isSuperAdmin = role === "SUPER_ADMIN";
+  const { isSuperAdmin } = useAuth();
 
   const pendingQuery = useAdminPendingRequestsQuery();
   const approveRequest = useApproveAdminRequestMutation();

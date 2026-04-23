@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "@/lib/next-link";
 import { useParams } from "@/lib/next-navigation";
@@ -111,18 +111,71 @@ export default function TaskDetailsPage() {
 
   if (taskQuery.isLoading)
     return (
-      <div className="p-4 sm:p-8 space-y-6">
-        <Skeleton className="h-10 w-3/4" />
-        <div className="space-y-4">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-2/3" />
+      <div className="mx-auto w-full max-w-5xl space-y-8 animate-in fade-in duration-500">
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-10 w-2/3 rounded-xl" />
+          <Skeleton className="h-4 w-1/3 rounded-md" />
         </div>
-        <div className="pt-8 space-y-4">
-          <Skeleton className="h-8 w-1/4" />
-          <div className="flex gap-4">
-            <Skeleton className="h-10 flex-1" />
-            <Skeleton className="h-10 flex-1" />
+
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="md:col-span-2 space-y-6">
+            <Card className="border-border/40">
+              <CardHeader>
+                <Skeleton className="h-5 w-32 rounded-md" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-4 w-full rounded-md" />
+                <Skeleton className="h-4 w-full rounded-md" />
+                <Skeleton className="h-4 w-4/5 rounded-md" />
+                <div className="pt-4 space-y-3">
+                  <Skeleton className="h-3 w-1/4 rounded-md" />
+                  <Skeleton className="h-3 w-1/4 rounded-md" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/40">
+              <CardHeader>
+                <Skeleton className="h-5 w-24 rounded-md" />
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex gap-4">
+                    <SkeletonAvatar className="size-10" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-10 w-full rounded-xl" />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card className="border-border/40">
+              <CardHeader>
+                <Skeleton className="h-5 w-24 rounded-md" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-3 p-3 rounded-xl border border-border/20">
+                  <SkeletonAvatar className="size-10" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-3/4 rounded-md" />
+                    <Skeleton className="h-3 w-1/2 rounded-md" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/40">
+              <CardHeader>
+                <Skeleton className="h-5 w-32 rounded-md" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Skeleton className="h-10 w-full rounded-xl" />
+                <Skeleton className="h-10 w-full rounded-xl" />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

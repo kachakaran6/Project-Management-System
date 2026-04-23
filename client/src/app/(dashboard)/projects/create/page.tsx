@@ -8,6 +8,7 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { ProjectForm } from "@/features/projects/components/project-form";
 import { useCreateProjectMutation } from "@/features/projects/hooks/use-projects-query";
 import { ProjectFormValues } from "@/features/projects/schemas/project.schema";
+import { projectResourcesApi } from "@/features/projects/api/project-resources.api";
 import Link from "next/link";
 
 export default function CreateProjectPage() {
@@ -38,7 +39,7 @@ export default function CreateProjectPage() {
 
   const handleSubmit = async (values: ProjectFormValues) => {
     try {
-      await createProject.mutateAsync({
+      const result = await createProject.mutateAsync({
         name: values.name,
         description: values.description || undefined,
         status: values.status,
@@ -48,6 +49,18 @@ export default function CreateProjectPage() {
         endDate: values.endDate instanceof Date ? values.endDate.toISOString() : undefined,
         members: values.members,
       });
+
+              // Handle resource creation if any were added
+              if (values.resources && values.resources.length > 0 && result.data?.id) {
+                const newProjectId = result.data.id;
+                await Promise.all(
+                  values.resources.map((res) => {
+                    const { id: _, ...resData } = res as any;
+                    return projectResourcesApi.createResource(newProjectId, resData);
+                  })
+                );
+              }
+
       toast.success(`Project "${values.name}" created!`);
       router.push("/projects");
     } catch (err: any) {

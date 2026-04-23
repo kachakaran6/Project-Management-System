@@ -149,7 +149,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ pathname, mobile = false }: SidebarProps) {
-  const { activeOrg, user, logout } = useAuth();
+  const { activeOrg, user, logout, userRole } = useAuth();
   const { sidebarCollapsed, setSidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
   const router = useRouter();
 
@@ -176,12 +176,7 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
     }
   };
 
-  const resolvedRole =
-    user?.role === "SUPER_ADMIN"
-      ? "SUPER_ADMIN"
-      : activeOrg?.role ?? user?.role ?? "MEMBER";
-
-  const role = resolvedRole as SidebarNavItem["roles"][number];
+  const role = (userRole ?? "MEMBER") as SidebarNavItem["roles"][number];
   const visibleItems = navItems.filter((item) => item.roles.includes(role));
   const workspaceItems = visibleItems.filter(
     (item) => item.group === "workspace",

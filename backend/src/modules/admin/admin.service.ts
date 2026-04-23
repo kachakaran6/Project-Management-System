@@ -27,7 +27,7 @@ export const getDashboardStats = async (organizationId?: string, actorRole?: str
   const [userCount, projectCount, taskCount, pendingAdmins] = await Promise.all([
     User.countDocuments(userQuery),
     Project.countDocuments({ ...orgFilter, isActive: true }),
-    Task.countDocuments({ ...orgFilter, isActive: true }),
+    Task.countDocuments({ ...orgFilter, isActive: true, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } }),
     isSuperAdmin ? User.countDocuments({ role: 'ADMIN', isApproved: false }) : 0
   ]);
 
@@ -270,7 +270,10 @@ export const getAllProjects = async (organizationId?: string, actorRole?: string
  */
 export const getAllTasks = async (organizationId?: string, actorRole?: string) => {
   const query = (actorRole !== 'SUPER_ADMIN' && organizationId) ? { organizationId } : {};
-  return Task.find(query).populate('creatorId', 'firstName lastName email').sort({ createdAt: -1 }).lean();
+  return Task.find({ ...query, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } })
+    .populate('creatorId', 'firstName lastName email')
+    .sort({ createdAt: -1 })
+    .lean();
 };
 
 /**
@@ -388,7 +391,7 @@ export const getAnalyticsSnapshot = async () => {
     Organization.countDocuments({ isActive: true }),
     User.countDocuments({}),
     User.countDocuments({ status: 'ACTIVE' }),
-    Task.countDocuments({ isActive: true }),
+    Task.countDocuments({ isActive: true, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } }),
     Organization.aggregate([
       {
         $group: {

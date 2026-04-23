@@ -62,6 +62,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton, SkeletonAvatar } from "@/components/ui/skeleton";
 
 import { PermissionModal } from "@/features/team/components/permission-modal";
 import {
@@ -199,8 +200,33 @@ export default function TeamPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-100 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="mx-auto w-full max-w-7xl space-y-4 animate-in fade-in duration-500">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+          <Skeleton className="h-10 w-64 rounded-xl" />
+          <Skeleton className="h-10 w-36 rounded-xl" />
+          <Skeleton className="h-10 w-36 rounded-xl" />
+        </div>
+        <div className="rounded-xl border border-border/40 bg-card overflow-hidden">
+          <div className="h-12 bg-muted/20 border-b border-border/40 flex items-center px-4 gap-4">
+             {Array.from({ length: 5 }).map((_, i) => (
+               <Skeleton key={i} className="h-4 w-24 rounded-md opacity-40" />
+             ))}
+          </div>
+          <div className="divide-y divide-border/10">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="p-4 flex items-center gap-4">
+                <SkeletonAvatar className="size-10" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/4 rounded-md" />
+                  <Skeleton className="h-3 w-1/3 rounded-md opacity-60" />
+                </div>
+                <Skeleton className="h-6 w-20 rounded-full" />
+                <Skeleton className="h-6 w-16 rounded-full" />
+                <Skeleton className="h-4 w-24 rounded-md" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -455,12 +481,24 @@ export default function TeamPage() {
                   <Badge variant={user.status === "ACTIVE" ? "success" : "outline"} className="text-[10px] uppercase font-bold">{user.status}</Badge>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t">
-                <Button variant="outline" size="sm" onClick={() => setSelectedUser(user)}>View</Button>
+              <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 min-h-[40px] gap-2 rounded-xl text-xs font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
+                  onClick={() => setSelectedUser(user)}
+                >
+                  <Eye className="size-4" />
+                  View
+                </Button>
                 {isMember ? null : (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="secondary" size="sm">Actions</Button>
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 min-h-[40px] gap-2 rounded-xl text-xs font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
+                      >
+                        Actions
+                      </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => setSelectedUser(user)}>

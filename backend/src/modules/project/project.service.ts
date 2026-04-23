@@ -159,8 +159,8 @@ export const getProjects = async (
         .limit(5)
         .populate('userId', 'firstName lastName avatarUrl email')
         .lean(),
-      Task.countDocuments({ projectId: (p as any)._id, isActive: true }),
-      Task.countDocuments({ projectId: (p as any)._id, status: 'COMPLETED', isActive: true })
+      Task.countDocuments({ projectId: (p as any)._id, isActive: true, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } }),
+      Task.countDocuments({ projectId: (p as any)._id, status: 'COMPLETED', isActive: true, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } })
     ]);
     
     return {
@@ -213,8 +213,8 @@ export const getProjectById = async (projectId: any, userId?: any, userRole?: st
      ProjectMember.find({ projectId, isActive: true })
       .populate('userId', 'firstName lastName avatarUrl email')
       .lean(),
-     Task.countDocuments({ projectId, isActive: true }),
-     Task.countDocuments({ projectId, status: 'COMPLETED', isActive: true })
+     Task.countDocuments({ projectId, isActive: true, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } }),
+     Task.countDocuments({ projectId, status: 'COMPLETED', isActive: true, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } })
   ]);
 
   return {

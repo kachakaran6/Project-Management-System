@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "@/lib/next-link";
 import {
@@ -126,9 +126,9 @@ export default function DashboardPage() {
       {/* Stats */}
       {projectsQuery.isLoading || tasksQuery.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-28 rounded-2xl border border-border/40" />
+          <Skeleton className="h-28 rounded-2xl border border-border/40" />
+          <Skeleton className="h-28 rounded-2xl border border-border/40" />
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -151,10 +151,10 @@ export default function DashboardPage() {
         {/* Left: Projects + Tasks */}
         <div className="space-y-4 lg:col-span-1 xl:col-span-2">
           {/* Recent Projects */}
-          <Card>
+          <Card className="border-border/40 overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Recent Projects</CardTitle>
-              <Button asChild variant="ghost" size="sm">
+              <Button asChild variant="ghost" size="sm" className="h-8 rounded-lg text-xs font-bold">
                 <Link href="/projects">
                   View all
                   <ArrowRight className="ml-1 size-4" />
@@ -164,11 +164,15 @@ export default function DashboardPage() {
             <CardContent>
               {projectsQuery.isLoading ? (
                 <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton
-                      key={`project-skeleton-${i}`}
-                      className="h-12 w-full"
-                    />
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-border/20">
+                      <Skeleton className="size-8 rounded-lg" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-1/3 rounded-md" />
+                        <Skeleton className="h-3 w-1/4 rounded-md" />
+                      </div>
+                      <Skeleton className="h-7 w-16 rounded-full" />
+                    </div>
                   ))}
                 </div>
               ) : recentProjects.length === 0 ? (
@@ -223,10 +227,10 @@ export default function DashboardPage() {
           </Card>
 
           {/* Recent Tasks */}
-          <Card>
+          <Card className="border-border/40 overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Recent Tasks</CardTitle>
-              <Button asChild variant="ghost" size="sm">
+              <Button asChild variant="ghost" size="sm" className="h-8 rounded-lg text-xs font-bold">
                 <Link href="/tasks">
                   View all
                   <ArrowRight className="ml-1 size-4" />
@@ -236,11 +240,15 @@ export default function DashboardPage() {
             <CardContent>
               {tasksQuery.isLoading ? (
                 <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton
-                      key={`task-skeleton-${i}`}
-                      className="h-12 w-full"
-                    />
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-border/20">
+                      <Skeleton className="size-4 rounded-sm" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-1/2 rounded-md" />
+                        <Skeleton className="h-3 w-1/4 rounded-md" />
+                      </div>
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                    </div>
                   ))}
                 </div>
               ) : recentTasks.length === 0 ? (

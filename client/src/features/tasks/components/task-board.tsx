@@ -1,4 +1,5 @@
 "use client";
+// HMR trigger luxury
 
 import { useRouter, useSearchParams, usePathname } from "@/lib/next-navigation";
 import React, { useState, useEffect, useMemo } from "react";
@@ -26,6 +27,7 @@ import {
   Flag,
   Users,
   Check,
+  Pencil,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -637,6 +639,53 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: Tas
                 )}
               </div>
             ) : null}
+
+            {/* Action Buttons Row - Only visible on mobile/touch, hidden on desktop as we have context menu */}
+            <div className="flex lg:hidden flex-wrap gap-1.5 mt-4 pt-3 border-t border-border/10 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 h-8 px-2 gap-1.5 rounded-lg text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set("taskId", tid(task));
+                  router.push(`${pathname}?${params.toString()}`, { scroll: false });
+                  openPanel(tid(task));
+                }}
+              >
+                <Eye className="size-3.5" />
+                <span>View</span>
+              </Button>
+              {canEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-8 px-2 gap-1.5 rounded-lg text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditOpen(true);
+                  }}
+                >
+                  <Pencil className="size-3.5" />
+                  <span>Edit</span>
+                </Button>
+              )}
+              {canEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-8 px-2 gap-1.5 rounded-lg text-[10px] font-bold border-rose-500/20 bg-rose-500/5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 active:scale-95 transition-all"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteOpen(true);
+                  }}
+                >
+                  <Trash2 className="size-3.5" />
+                  <span>Delete</span>
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </Draggable>

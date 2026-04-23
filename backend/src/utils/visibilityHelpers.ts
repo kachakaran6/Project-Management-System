@@ -10,11 +10,19 @@ export const canUserAccessTask = async (
   userId: string,
   creatorId: any,
   visibility: string,
-  userRole?: string | null
+  userRole?: string | null,
+  isDraft?: boolean
 ): Promise<boolean> => {
+  const draftState = Boolean(isDraft || visibility === TASK_VISIBILITY.DRAFT);
+
   // Creator always has access
   if (String(creatorId) === String(userId)) {
     return true;
+  }
+
+  // Draft tasks are visible only to the creator.
+  if (draftState) {
+    return false;
   }
 
   // Admin/Super admin/Owner always have access
@@ -26,12 +34,6 @@ export const canUserAccessTask = async (
   if (visibility === TASK_VISIBILITY.PUBLIC) {
     return true;
   }
-
-  // Draft tasks visible only to creator
-  if (visibility === TASK_VISIBILITY.DRAFT) {
-    return false;
-  }
-
   // Private tasks: check if user is in visibility list
   if (visibility === TASK_VISIBILITY.PRIVATE) {
     const access = await TaskVisibilityUser.findOne({
@@ -51,33 +53,42 @@ export const buildVisibilityFilter = (userId: string, userRole?: string | null):
   const isAdmin = userRole && ['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(userRole);
 
   return {
-    $or: [
-      // Public tasks
-      { visibility: TASK_VISIBILITY.PUBLIC },
-      
-      // Draft tasks - only creator
+    $and: [
       {
-        $and: [
-          { visibility: TASK_VISIBILITY.DRAFT },
-          { creatorId: new mongoose.Types.ObjectId(userId) }
+        $or: [
+          { isDraft: { $exists: false } },
+          { isDraft: false }
         ]
       },
-      
-      // Private tasks - creator or in visibility list or admin
-      ...(isAdmin ? [] : [{
-        $and: [
-          { visibility: TASK_VISIBILITY.PRIVATE },
-          {
-            $or: [
-              { creatorId: new mongoose.Types.ObjectId(userId) }
-              // Note: visibility list check requires a separate lookup
-            ]
-          }
+      {
+        $or: [
+          { visibility: { $exists: false } },
+          { visibility: { $ne: TASK_VISIBILITY.DRAFT } }
         ]
-      }]),
+      },
+      {
+        $or: [
+          // Public tasks
+          { visibility: TASK_VISIBILITY.PUBLIC },
+          { visibility: { $exists: false } },
+          
+          // Private tasks - creator or in visibility list or admin
+          ...(isAdmin ? [] : [{
+            $and: [
+              { visibility: TASK_VISIBILITY.PRIVATE },
+              {
+                $or: [
+                  { creatorId: new mongoose.Types.ObjectId(userId) }
+                  // Note: visibility list check requires a separate lookup
+                ]
+              }
+            ]
+          }]),
 
-      // Admin sees all tasks in their org
-      ...(isAdmin ? [{ visibility: { $exists: true } }] : [])
+          // Admin sees all non-draft tasks in their org
+          ...(isAdmin ? [{ visibility: { $exists: true } }] : [])
+        ]
+      }
     ]
   };
 };
@@ -90,6 +101,24 @@ export const applyVisibilityAggregation = (userId: string, userRole?: string | n
   const userObjectId = new mongoose.Types.ObjectId(userId);
 
   return [
+    {
+      $match: {
+        $and: [
+          {
+            $or: [
+              { isDraft: { $exists: false } },
+              { isDraft: false }
+            ]
+          },
+          {
+            $or: [
+              { visibility: { $exists: false } },
+              { visibility: { $ne: TASK_VISIBILITY.DRAFT } }
+            ]
+          }
+        ]
+      }
+    },
     {
       $lookup: {
         from: 'taskvisibilityusers',
@@ -113,12 +142,7 @@ export const applyVisibilityAggregation = (userId: string, userRole?: string | n
       $match: isAdmin ? {} : {
         $or: [
           { visibility: TASK_VISIBILITY.PUBLIC },
-          {
-            $and: [
-              { visibility: TASK_VISIBILITY.DRAFT },
-              { creatorId: userObjectId }
-            ]
-          },
+          { visibility: { $exists: false } },
           {
             $and: [
               { visibility: TASK_VISIBILITY.PRIVATE },

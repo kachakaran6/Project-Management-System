@@ -5,6 +5,7 @@ import User from '../../models/User.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import { parseMentions } from '../../utils/mentionParser.js';
 import * as activityLog from '../../utils/systemTriggers.js';
+import * as visibilityHelpers from '../../utils/visibilityHelpers.js';
 import mongoose from 'mongoose';
 import { emitToRoom } from '../../realtime/socket.server.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../realtime/socket.events.js';
@@ -29,8 +30,12 @@ const canManageComment = (comment: any, actor: { id: string; role?: string | nul
 /**
  * Add a comment to a task
  */
-export const addComment = async (commentData: Record<string, any>, userId: any) => {
+export const addComment = async (
+  commentData: Record<string, any>,
+  actor: { id: string; role?: string | null }
+) => {
   const { content, taskId, organizationId, parentId } = commentData;
+  const userId = actor.id;
 
   if (!content || !String(content).trim()) {
     throw new AppError('Comment content is required.', 400);
@@ -47,6 +52,19 @@ export const addComment = async (commentData: Record<string, any>, userId: any) 
   // 1. Validate task access
   const task = await Task.findOne({ _id: taskId, organizationId, isActive: true });
   if (!task) throw new AppError('Task not found.', 404);
+
+  const hasAccess = await visibilityHelpers.canUserAccessTask(
+    task._id,
+    actor.id,
+    task.creatorId,
+    task.visibility,
+    actor.role,
+    Boolean(task.isDraft || task.visibility === 'DRAFT')
+  );
+
+  if (!hasAccess) {
+    throw new AppError('Access denied to this task.', 403);
+  }
 
   // 2. Parse Mentions
   const mentions = await parseMentions(content, organizationId);
@@ -150,9 +168,23 @@ export const getComments = async (
     throw new AppError('Invalid taskId.', 400);
   }
 
-  const task = await Task.findOne({ _id: taskId, organizationId, isActive: true }).select('_id');
+  const task = await Task.findOne({ _id: taskId, organizationId, isActive: true })
+    .select('_id creatorId visibility isDraft');
   if (!task) {
     throw new AppError('Task not found.', 404);
+  }
+
+  const hasAccess = await visibilityHelpers.canUserAccessTask(
+    task._id,
+    actor.id,
+    task.creatorId,
+    task.visibility,
+    actor.role,
+    Boolean((task as any).isDraft || task.visibility === 'DRAFT')
+  );
+
+  if (!hasAccess) {
+    throw new AppError('Access denied to this task.', 403);
   }
 
   const skip = (page - 1) * limit;

@@ -57,14 +57,19 @@ interface ProjectOption {
 interface TaskFormProps {
   projects: ProjectOption[];
   initialValues?: Partial<TaskFormValues>;
+  resetKey?: string | number;
   onSubmit: (
     values: TaskFormValues,
     createMore?: boolean,
   ) => Promise<void> | void;
   onCancel?: () => void;
+  onDiscard?: () => void;
+  onSaveDraft?: (values: TaskFormValues) => Promise<void> | void;
+  onValuesChange?: (values: TaskFormValues) => void;
   onCreated?: () => void;
-  isSuccess: boolean;
+  isSuccess?: boolean;
   isSubmitting?: boolean;
+  isSavingDraft?: boolean;
   submitLabel?: string;
   title?: string;
   subtitle?: string;
@@ -89,16 +94,47 @@ const priorityConfig: Record<string, {color: string}> = {
 const visibilityConfig: Record<string, {icon: any; label: string; description: string}> = {
   PUBLIC: {icon: Globe, label: "Public", description: "Visible to all"},
   PRIVATE: {icon: Lock, label: "Private", description: "Only selected users"},
-  DRAFT: {icon: FileText, label: "Draft", description: "Creator only"},
 };
+
+function buildTaskFormDefaults(
+  initialValues: Partial<TaskFormValues> | undefined,
+  isMemberOnlySelection: boolean,
+  userId?: string,
+): TaskFormValues {
+  return {
+    title: initialValues?.title ?? "",
+    description: initialValues?.description ?? "",
+    status: initialValues?.status ?? "TODO",
+    priority: initialValues?.priority ?? "MEDIUM",
+    visibility:
+      initialValues?.visibility === "PRIVATE" || initialValues?.visibility === "DRAFT"
+        ? (initialValues.visibility === "DRAFT" ? "PUBLIC" : initialValues.visibility)
+        : "PUBLIC",
+    visibleToUsers: initialValues?.visibleToUsers ?? [],
+    projectId: initialValues?.projectId ?? "",
+    assigneeIds:
+      initialValues?.assigneeIds && initialValues.assigneeIds.length > 0
+        ? initialValues.assigneeIds
+        : isMemberOnlySelection && userId
+          ? [userId]
+          : [],
+    dueDate: initialValues?.dueDate ?? "",
+    tags: initialValues?.tags ?? [],
+  };
+}
 
 export function TaskForm({
   projects,
   initialValues,
+  resetKey,
   onSubmit,
   onCancel,
+  onDiscard,
+  onSaveDraft,
+  onValuesChange,
   isSuccess,
   isSubmitting = false,
+  isSavingDraft = false,
   submitLabel = "Save",
   title = "Create new work item",
   subtitle,
@@ -112,23 +148,7 @@ export function TaskForm({
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
-    defaultValues: {
-      title: initialValues?.title ?? "",
-      description: initialValues?.description ?? "",
-      status: initialValues?.status ?? "TODO",
-      priority: initialValues?.priority ?? "MEDIUM",
-      visibility: initialValues?.visibility ?? "PUBLIC",
-      visibleToUsers: initialValues?.visibleToUsers ?? [],
-      projectId: initialValues?.projectId ?? "",
-      assigneeIds:
-        initialValues?.assigneeIds && initialValues.assigneeIds.length > 0
-          ? initialValues.assigneeIds
-          : isMemberOnlySelection && user?.id
-            ? [user.id]
-            : [],
-      dueDate: initialValues?.dueDate ?? "",
-      tags: initialValues?.tags ?? [],
-    },
+    defaultValues: buildTaskFormDefaults(initialValues, isMemberOnlySelection, user?.id),
   });
 
   const statusValue = form.watch("status");
@@ -156,13 +176,25 @@ export function TaskForm({
 
   useEffect(() => {
     if (isSuccess) {
-      form.reset({
-        projectId: projectIdValue ?? "",
-        status: statusValue ?? "TODO",
-        priority: priorityValue ?? "MEDIUM",
-      });
+      form.reset(
+        buildTaskFormDefaults(
+          {
+            projectId: projectIdValue ?? "",
+            status: statusValue ?? "TODO",
+            priority: priorityValue ?? "MEDIUM",
+          },
+          isMemberOnlySelection,
+          user?.id,
+        ),
+      );
     }
-  }, [isSuccess])
+  }, [form, isMemberOnlySelection, isSuccess, priorityValue, projectIdValue, statusValue, user?.id]);
+
+  useEffect(() => {
+    if (resetKey === undefined) return;
+
+    form.reset(buildTaskFormDefaults(initialValues, isMemberOnlySelection, user?.id));
+  }, [form, initialValues, isMemberOnlySelection, resetKey, user?.id]);
 
   useEffect(() => {
     if (!canSearch) {
@@ -174,6 +206,22 @@ export function TaskForm({
       setDismissedQuery(null);
     }
   }, [canSearch, dismissedQuery, normalizedQuery]);
+
+  useEffect(() => {
+    if (!onValuesChange) return;
+
+    const subscription = form.watch((values) => {
+      onValuesChange(
+        buildTaskFormDefaults(
+          values as Partial<TaskFormValues>,
+          isMemberOnlySelection,
+          user?.id,
+        ),
+      );
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form, isMemberOnlySelection, onValuesChange, user?.id]);
 
   const queryTokens = useMemo(() => {
     return normalizedQuery
@@ -232,15 +280,20 @@ export function TaskForm({
               </p>
             )}
           </div>
-          {onCancel && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onCancel}
-              className="h-8 w-8 rounded-full text-muted-foreground/50 hover:text-foreground transition-all">
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+          {/* Close button that silently saves draft */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (onSaveDraft) {
+                onSaveDraft(buildTaskFormDefaults(form.getValues(), isMemberOnlySelection, user?.id));
+              } else if (onCancel) {
+                onCancel();
+              }
+            }}
+            className="h-8 w-8 rounded-full text-muted-foreground/50 hover:text-foreground transition-all">
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Project Pill Select */}
@@ -595,19 +648,29 @@ export function TaskForm({
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
+          {/* <Button
             variant="ghost"
-            onClick={onCancel}
-            disabled={isSubmitting}
+            onClick={onDiscard ?? onCancel}
+            disabled={isSubmitting || isSavingDraft}
             className="h-9 px-5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all">
             Discard
-          </Button>
+          </Button> */}
+          {/* {onSaveDraft ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onSaveDraft(buildTaskFormDefaults(form.getValues(), isMemberOnlySelection, user?.id))}
+              disabled={isSubmitting || isSavingDraft}
+              className="h-9 px-5 text-xs font-semibold rounded-lg">
+              {isSavingDraft ? "Saving draft..." : "Save Draft"}
+            </Button>
+          ) : null} */}
           <Button
             type="button"
             onClick={form.handleSubmit((values) =>
               onSubmit(values, createMore),
             )}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isSavingDraft}
             className="h-9 px-6 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg transition-all flex items-center gap-2 shadow-sm">
             {isSubmitting ? "Saving..." : submitLabel}
             {!isSubmitting && <ArrowRight className="h-4 w-4" />}
