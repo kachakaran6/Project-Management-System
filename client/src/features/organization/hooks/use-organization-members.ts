@@ -15,7 +15,8 @@ export function useOrganizationMembersQuery(orgId: string) {
     queryKey: organizationMemberQueryKeys.members(orgId),
     queryFn: () => organizationMembersApi.getMembers(orgId),
     enabled: Boolean(orgId),
-    refetchInterval: 20_000,
+    staleTime: 5 * 60 * 1000, // Data is considered fresh for 5 minutes
+    refetchOnWindowFocus: true, // Automatically refresh when switching back to this tab
   });
 }
 

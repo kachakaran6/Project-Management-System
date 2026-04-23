@@ -281,10 +281,10 @@ export const TaskRow = ({
               <Eye className="mr-2.5 size-4 text-muted-foreground" />
               <span className="text-sm font-medium">View Details</span>
             </DropdownMenuItem>
-            <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => setSelectedTask(task)}>
+            {/* <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => setSelectedTask(task)}>
               <Pencil className="mr-2.5 size-4 text-muted-foreground" />
               <span className="text-sm font-medium text-foreground">Edit Task</span>
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
             <DropdownMenuSeparator className="my-2 bg-border/40" />
             <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive" onClick={() => setDeleteId(taskId)}>
               <Trash2 className="mr-2.5 size-4" />

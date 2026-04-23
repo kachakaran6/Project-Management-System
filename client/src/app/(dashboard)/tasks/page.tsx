@@ -72,6 +72,7 @@ import {
 } from "@/features/tasks/hooks/use-tasks-query";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,
@@ -312,6 +313,7 @@ export default function TasksPage() {
 
   const resolveAssigneeName = (id?: string) => {
     if (!id || id === "ALL") return "ALL";
+    if (id === "UNASSIGNED") return "Unassigned";
     const member = (membersQuery.data?.data.members ?? []).find(
       (m: any) => String(m.id || m._id) === String(id),
     );
@@ -407,6 +409,8 @@ export default function TasksPage() {
               <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
               <SelectItem value="IN_REVIEW">In Review</SelectItem>
               <SelectItem value="DONE">Done</SelectItem>
+              <SelectItem value="REJECTED">Rejected</SelectItem>
+              <SelectItem value="ARCHIVED">Archived</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -452,6 +456,7 @@ export default function TasksPage() {
             </SelectTrigger>
             <SelectContent className="rounded-xl border-border/40">
               <SelectItem value="ALL">All Assignees</SelectItem>
+              <SelectItem value="UNASSIGNED">Unassigned</SelectItem>
               {(membersQuery.data?.data.members ?? []).map((m: any) => (
                 <SelectItem key={m.id || m._id} value={m.id || m._id}>
                   {`${m.firstName || ""} ${m.lastName || ""}`.trim() || m.email}
@@ -555,12 +560,15 @@ export default function TasksPage() {
                 <FilterDrawer 
                   status={status} setStatus={setStatus}
                   priority={priority} setPriority={setPriority}
+                  projectId={projectId} setProjectId={setProjectId}
                   assigneeId={assigneeId} setAssigneeId={setAssigneeId}
                   creatorId={creatorId} setCreatorId={setCreatorId}
                   dueDate={dueDate} setDueDate={setDueDate}
                   tagIds={tagIds} setTagIds={setTagIds}
                   activeFilterCount={activeFilterCount}
                   membersQuery={membersQuery}
+                  projectsQuery={projectsQuery}
+                  allTags={allTags}
                   trigger={
                     <Button variant="outline" size="icon" className="h-8.5 w-8.5 rounded-xl border-border/40 bg-muted/20 relative">
                       <SlidersHorizontal className="size-3.5" />
@@ -1148,10 +1156,24 @@ export default function TasksPage() {
 }
 
 // Sub-component for Filters to avoid repetition
-function FilterDrawer({ status, setStatus, priority, setPriority, assigneeId, setAssigneeId, creatorId, setCreatorId, dueDate, setDueDate, tagIds, setTagIds, activeFilterCount, membersQuery, trigger }: any) {
+function FilterDrawer({ 
+  status, setStatus, 
+  priority, setPriority, 
+  projectId, setProjectId,
+  assigneeId, setAssigneeId, 
+  creatorId, setCreatorId, 
+  dueDate, setDueDate, 
+  tagIds, setTagIds, 
+  activeFilterCount, 
+  membersQuery, 
+  projectsQuery,
+  allTags,
+  trigger 
+}: any) {
   const clearFilters = () => {
     setStatus("ALL");
     setPriority("ALL");
+    setProjectId("ALL");
     setAssigneeId("ALL");
     setCreatorId("ALL");
     setDueDate("");
@@ -1187,13 +1209,13 @@ function FilterDrawer({ status, setStatus, priority, setPriority, assigneeId, se
         <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-6 space-y-6">
           <FilterSelect label="Status" value={status} onChange={setStatus} options={[
             { v: "ALL", l: "All Statuses" },
+            { v: "BACKLOG", l: "Backlog" },
             { v: "TODO", l: "To Do" },
             { v: "IN_PROGRESS", l: "In Progress" },
             { v: "IN_REVIEW", l: "In Review" },
             { v: "DONE", l: "Done" },
-            { v: "BACKLOG", l: "Backlog" },
-            { v: "ARCHIVED", l: "Archived" },
-            { v: "REJECTED", l: "Rejected" }
+            { v: "REJECTED", l: "Rejected" },
+            { v: "ARCHIVED", l: "Archived" }
           ]} />
 
           <FilterSelect label="Priority" value={priority} onChange={setPriority} options={[
@@ -1206,19 +1228,87 @@ function FilterDrawer({ status, setStatus, priority, setPriority, assigneeId, se
 
           <div className="space-y-2">
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Project</label>
-            <Select value={status} onValueChange={() => {}}> {/* Use correct projectId props here if passed, or simplify */}
-                {/* Simplified for the helper, in main it uses projectId */}
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger className="rounded-xl bg-muted/10 border-border/40 h-11">
+                <SelectValue placeholder="All Projects" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl">
+                <SelectItem value="ALL">All Projects</SelectItem>
+                {(projectsQuery.data?.data.items ?? []).map((p: any) => (
+                  <SelectItem key={p.id || p._id} value={p.id || p._id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
-          {/* ... Other filter components ... */}
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Assignee</label>
+            <Select value={assigneeId} onValueChange={setAssigneeId}>
+              <SelectTrigger className="rounded-xl bg-muted/10 border-border/40 h-11">
+                <SelectValue placeholder="All Assignees" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl">
+                <SelectItem value="ALL">All Assignees</SelectItem>
+                <SelectItem value="UNASSIGNED">Unassigned</SelectItem>
+                {(membersQuery.data?.data.members ?? []).map((m: any) => (
+                  <SelectItem key={m.id || m._id} value={m.id || m._id}>
+                    {`${m.firstName || ""} ${m.lastName || ""}`.trim() || m.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Created By</label>
+            <Select value={creatorId} onValueChange={setCreatorId}>
+              <SelectTrigger className="rounded-xl bg-muted/10 border-border/40 h-11">
+                <SelectValue placeholder="All Creators" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl">
+                <SelectItem value="ALL">All Creators</SelectItem>
+                {(membersQuery.data?.data.members ?? []).map((m: any) => (
+                  <SelectItem key={m.id || m._id} value={m.id || m._id}>
+                    {`${m.firstName || ""} ${m.lastName || ""}`.trim() || m.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Due Date</label>
+            <div className="w-full flex justify-start pl-1">
+               <DatePicker
+                value={dueDate ? new Date(dueDate) : undefined}
+                onChange={(date) => setDueDate(date ? date.toISOString() : "")}
+                placeholder="Select date"
+                className="p-1 border border-border/20 rounded-2xl bg-muted/5 origin-left"
+                inline
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Tags (AND Logic)</label>
+            <TagSelect 
+              selectedTagIds={tagIds}
+              onChange={(ids) => {
+                setTagIds(ids);
+              }}
+            />
+          </div>
+
           <p className="text-[10px] text-muted-foreground italic text-center py-4">Scroll for more filters</p>
         </div>
 
         <div className="p-6 mt-auto border-t border-border/10 flex gap-3 bg-muted/5">
           <Button variant="outline" onClick={clearFilters} className="flex-1 rounded-xl h-11 font-bold">Clear</Button>
-          <SheetTrigger asChild>
+          <SheetClose asChild>
             <Button className="flex-1 rounded-xl h-11 font-bold shadow-lg shadow-primary/20">Apply</Button>
-          </SheetTrigger>
+          </SheetClose>
         </div>
       </SheetContent>
     </Sheet>
