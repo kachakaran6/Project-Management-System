@@ -1,6 +1,7 @@
 import { api } from "@/lib/api/axios-instance";
 import { ApiResponse } from "@/types/api.types";
 import {
+  DeviceSession,
   LoginInput,
   LoginResponse,
   MeResponse,
@@ -42,6 +43,21 @@ export const authApi = {
 
   logout: async (): Promise<ApiResponse<null>> => {
     const response = await api.post<ApiResponse<null>>("/auth/logout");
+    return response.data;
+  },
+
+  getSessions: async (): Promise<ApiResponse<{ sessions: DeviceSession[] }>> => {
+    const response = await api.get<ApiResponse<{ sessions: DeviceSession[] }>>("/sessions");
+    return response.data;
+  },
+
+  logoutSession: async (sessionId?: string): Promise<ApiResponse<null>> => {
+    const response = await api.post<ApiResponse<null>>("/sessions/logout", sessionId ? { sessionId } : {});
+    return response.data;
+  },
+
+  logoutAllSessions: async (): Promise<ApiResponse<null>> => {
+    const response = await api.post<ApiResponse<null>>("/sessions/logout-all");
     return response.data;
   },
   

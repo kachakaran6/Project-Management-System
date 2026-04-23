@@ -2,6 +2,8 @@ import type { NextFunction, Request, Response } from 'express';
 import { verifyAccessToken } from "../utils/token.js";
 import User from "../models/User.js";
 import OrganizationMember from "../models/OrganizationMember.js";
+import Session from '../models/Session.js';
+import { hashRefreshToken, parseDeviceInfo } from '../utils/session.js';
 
 /**
  * requireAuth middleware - Validates JWT and attaches user info to request
@@ -98,6 +100,28 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     };
 
     req.role = contextRole;
+
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    if (refreshToken) {
+      const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'Unknown';
+      const userAgent = (req.headers['user-agent'] as string) || '';
+      const parsedDevice = parseDeviceInfo(userAgent);
+      await Session.findOneAndUpdate(
+        {
+          userId: user._id,
+          refreshToken: hashRefreshToken(refreshToken),
+          isActive: true,
+          expiresAt: { $gt: new Date() },
+        },
+        {
+          lastActiveAt: new Date(),
+          ipAddress: ip,
+          userAgent,
+          deviceName: parsedDevice.deviceName,
+          deviceType: parsedDevice.deviceType,
+        },
+      );
+    }
 
     next();
   } catch (error: unknown) {

@@ -1,10 +1,11 @@
 import crypto from 'crypto';
 import User from '../../models/User.js';
 import Organization from '../../models/Organization.js';
-import RefreshToken from '../../models/RefreshToken.js';
+import Session from '../../models/Session.js';
 import OrganizationMember from '../../models/OrganizationMember.js';
 import { hashPassword, comparePassword } from '../../utils/password.js';
-import { generateAccessToken, generateRefreshToken } from '../../utils/token.js';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../utils/token.js';
+import { getRefreshTokenExpiryDate, hashRefreshToken, parseDeviceInfo } from '../../utils/session.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import { ROLES, ACTIVITY_ACTIONS } from '../../constants/index.js';
 import { sendEmail } from '../email/email.service.js';
@@ -28,15 +29,7 @@ function generateOtp(digits: number = OTP_LENGTH): string {
   return value.toString().padStart(digits, '0');
 }
 
-/** Parse user-agent into a readable device string */
-function parseUserAgent(ua: string): string {
-  if (!ua) return 'Unknown device';
-  if (/mobile/i.test(ua)) return 'Mobile browser';
-  if (/chrome/i.test(ua)) return 'Chrome (Desktop)';
-  if (/firefox/i.test(ua)) return 'Firefox (Desktop)';
-  if (/safari/i.test(ua)) return 'Safari (Desktop)';
-  return 'Web browser';
-}
+const toObjectId = (value: string) => String(value);
 
 // ─── 1. REGISTER ──────────────────────────────────────────────────────────────
 
@@ -269,14 +262,20 @@ export const loginUser = async (
 
   const accessToken = generateAccessToken({ userId: user._id, role: user.role });
   const refreshTokenValue = generateRefreshToken({ userId: user._id });
+  const refreshTokenHash = hashRefreshToken(refreshTokenValue);
+  const { deviceName, deviceType } = parseDeviceInfo(meta?.userAgent || '');
 
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
-
-  await RefreshToken.create({
+  await Session.create({
     userId: user._id,
-    token: refreshTokenValue,
-    expiresAt,
+    refreshToken: refreshTokenHash,
+    deviceName,
+    deviceType,
+    ipAddress: meta?.ip || 'Unknown',
+    userAgent: meta?.userAgent || '',
+    location: null,
+    isActive: true,
+    lastActiveAt: new Date(),
+    expiresAt: getRefreshTokenExpiryDate(refreshTokenValue),
   });
 
   // ── Login notification email (non-blocking) ───────────────────────────────
@@ -289,7 +288,7 @@ export const loginUser = async (
       name:      user.firstName,
       loginTime,
       ipAddress: meta?.ip || 'Unknown',
-      userAgent: parseUserAgent(meta?.userAgent || ''),
+      userAgent: deviceName,
     });
     sendEmail({ to: user.email, subject, html }).catch(() => {});
   } catch { /* non-fatal */ }
@@ -300,7 +299,7 @@ export const loginUser = async (
     status: 'SUCCESS',
     ip: meta?.ip, 
     userAgent: meta?.userAgent,
-    metadata: { device: parseUserAgent(meta?.userAgent || '') }
+    metadata: { device: deviceName }
   });
 
   return {
@@ -350,7 +349,10 @@ export const resetPassword = async (token: any, newPassword: any) => {
   user.passwordResetExpires = undefined;
   await user.save();
 
-  await RefreshToken.updateMany({ userId: user._id }, { isRevoked: true });
+  await Session.updateMany(
+    { userId: user._id, isActive: true },
+    { isActive: false, lastActiveAt: new Date() },
+  );
   return user;
 };
 
@@ -432,58 +434,65 @@ export const verifyEmail = async (token: any) => {
 
 // ─── 8. REFRESH TOKEN ────────────────────────────────────────────────────────
 
-export const refreshAccessToken = async (oldRefreshToken: any) => {
-  const storedToken = await RefreshToken.findOne({
-    token: oldRefreshToken,
+export const refreshAccessToken = async (
+  oldRefreshToken: any,
+  meta?: { ip?: string; userAgent?: string },
+) => {
+  let decoded: any;
+  try {
+    decoded = verifyRefreshToken(oldRefreshToken);
+  } catch {
+    throw new AppError('Refresh token is invalid or expired.', 401);
+  }
+
+  const tokenHash = hashRefreshToken(oldRefreshToken);
+  const storedSession = await Session.findOne({
+    userId: decoded.userId,
+    refreshToken: tokenHash,
+    isActive: true,
   });
 
-  if (!storedToken) {
-    throw new AppError('Refresh token is invalid.', 401);
+  if (!storedSession) {
+    throw new AppError('Session not found or already revoked.', 401);
   }
 
-  // Grace Period: 30 seconds
-  // If the token is revoked but it was just replaced within 30 seconds, 
-  // allow it (prevents race conditions from multiple tabs/requests)
-  const isExpired = storedToken.expiresAt < new Date();
-  const gracePeriodActive = storedToken.isRevoked && 
-                           storedToken.revokedAt && 
-                           (new Date().getTime() - storedToken.revokedAt.getTime() < 30000);
-
-  if (isExpired || (storedToken.isRevoked && !gracePeriodActive)) {
-    throw new AppError('Refresh token has expired or been revoked.', 401);
+  if (storedSession.expiresAt < new Date()) {
+    storedSession.isActive = false;
+    await storedSession.save();
+    throw new AppError('Refresh token has expired.', 401);
   }
 
-  const user = await User.findById(storedToken.userId);
+  const user = await User.findById(storedSession.userId);
   if (!user) {
     throw new AppError('User associated with this token no longer exists.', 401);
   }
 
   const membership = await OrganizationMember.findOne({
-    userId:   storedToken.userId,
+    userId:   storedSession.userId,
     isActive: true,
   });
 
   const accessToken = generateAccessToken({
-    userId:         storedToken.userId,
+    userId:         storedSession.userId,
     organizationId: membership?.organizationId || null,
     role:           membership?.role || user.role || null,
     platformRole:   user.role, // Explicitly keep platform role
   });
 
-  const newRefreshTokenValue = generateRefreshToken({ userId: storedToken.userId });
-  storedToken.isRevoked       = true;
-  storedToken.revokedAt       = new Date();
-  storedToken.replacedByToken = newRefreshTokenValue;
-  await storedToken.save();
-
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
-
-  await RefreshToken.create({
-    userId:    storedToken.userId,
-    token:     newRefreshTokenValue,
-    expiresAt,
-  });
+  const newRefreshTokenValue = generateRefreshToken({ userId: storedSession.userId });
+  storedSession.refreshToken = hashRefreshToken(newRefreshTokenValue);
+  storedSession.lastActiveAt = new Date();
+  storedSession.expiresAt = getRefreshTokenExpiryDate(newRefreshTokenValue);
+  if (meta?.ip) {
+    storedSession.ipAddress = meta.ip;
+  }
+  if (meta?.userAgent) {
+    const parsed = parseDeviceInfo(meta.userAgent);
+    storedSession.userAgent = meta.userAgent;
+    storedSession.deviceName = parsed.deviceName;
+    storedSession.deviceType = parsed.deviceType;
+  }
+  await storedSession.save();
 
   return { accessToken, refreshToken: newRefreshTokenValue };
 };
@@ -491,9 +500,92 @@ export const refreshAccessToken = async (oldRefreshToken: any) => {
 // ─── 9. LOGOUT ────────────────────────────────────────────────────────────────
 
 export const logoutUser = async (refreshToken: any) => {
-  await RefreshToken.findOneAndUpdate(
-    { token: refreshToken },
-    { isRevoked: true },
+  if (!refreshToken) return;
+  const tokenHash = hashRefreshToken(refreshToken);
+  await Session.findOneAndUpdate(
+    { refreshToken: tokenHash, isActive: true },
+    { isActive: false, lastActiveAt: new Date() },
+  );
+};
+
+export const logoutAllUserSessions = async (userId: string) => {
+  await Session.updateMany(
+    { userId: toObjectId(userId), isActive: true },
+    { isActive: false, lastActiveAt: new Date() },
+  );
+};
+
+export const getUserActiveSessions = async (userId: string, currentRefreshToken?: string) => {
+  const now = new Date();
+  await Session.updateMany(
+    { userId: toObjectId(userId), isActive: true, expiresAt: { $lte: now } },
+    { isActive: false, lastActiveAt: now },
+  );
+
+  const currentTokenHash = currentRefreshToken ? hashRefreshToken(currentRefreshToken) : null;
+
+  const sessions = await Session.find({
+    userId: toObjectId(userId),
+    isActive: true,
+    expiresAt: { $gt: now },
+  })
+    .sort({ lastActiveAt: -1 })
+    .lean();
+
+  return sessions.map((session: any) => ({
+    id: String(session._id),
+    deviceName: session.deviceName,
+    deviceType: session.deviceType,
+    ipAddress: session.ipAddress,
+    userAgent: session.userAgent,
+    location: session.location || null,
+    isActive: session.isActive,
+    createdAt: session.createdAt,
+    lastActiveAt: session.lastActiveAt,
+    expiresAt: session.expiresAt,
+    isCurrent: !!currentTokenHash && session.refreshToken === currentTokenHash,
+  }));
+};
+
+export const logoutSessionById = async (userId: string, sessionId: string) => {
+  const session = await Session.findOneAndUpdate(
+    { _id: sessionId, userId: toObjectId(userId), isActive: true },
+    { isActive: false, lastActiveAt: new Date() },
+    { new: true },
+  );
+
+  if (!session) {
+    throw new AppError('Session not found.', 404);
+  }
+
+  return session;
+};
+
+export const touchSessionByRefreshToken = async (
+  refreshToken: string | undefined,
+  meta?: { ip?: string; userAgent?: string },
+) => {
+  if (!refreshToken) return;
+
+  const tokenHash = hashRefreshToken(refreshToken);
+  const updatePayload: Record<string, any> = {
+    lastActiveAt: new Date(),
+  };
+
+  if (meta?.ip) {
+    updatePayload.ipAddress = meta.ip;
+  }
+
+  if (meta?.userAgent) {
+    const parsed = parseDeviceInfo(meta.userAgent);
+    updatePayload.userAgent = meta.userAgent;
+    updatePayload.deviceName = parsed.deviceName;
+    updatePayload.deviceType = parsed.deviceType;
+  }
+
+  await Session.findOneAndUpdate(
+    { refreshToken: tokenHash, isActive: true, expiresAt: { $gt: new Date() } },
+    updatePayload,
   );
 };
 

@@ -145,6 +145,8 @@ export const login = asyncHandler(async (req, res) => {
  */
 export const refresh = asyncHandler(async (req, res) => {
   const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+  const ip        = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'Unknown';
+  const userAgent = req.headers['user-agent'] || '';
 
   if (!refreshToken) {
     return res.status(401).json({
@@ -154,7 +156,7 @@ export const refresh = asyncHandler(async (req, res) => {
   }
 
   const { accessToken, refreshToken: newRefreshToken } =
-    await authService.refreshAccessToken(refreshToken);
+    await authService.refreshAccessToken(refreshToken, { ip, userAgent });
 
   res.cookie('refreshToken', newRefreshToken, refreshCookieOptions);
 
@@ -294,6 +296,28 @@ export const logout = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: 'Logged out successfully.',
+  });
+});
+
+/**
+ * POST /auth/logout-all
+ * Compatibility endpoint that now invalidates all DB-backed sessions.
+ */
+export const logoutAll = asyncHandler(async (req, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ success: false, message: 'Not authenticated.' });
+  }
+
+  await authService.logoutAllUserSessions(req.user.id);
+
+  res.clearCookie('refreshToken', {
+    ...refreshCookieOptions,
+    maxAge: undefined,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: 'Logged out from all devices.',
   });
 });
 

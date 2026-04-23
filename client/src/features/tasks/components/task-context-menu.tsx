@@ -125,7 +125,7 @@ export const TaskContextMenu = ({
         
         <Separator />
         
-        <ContextMenuItem icon={Edit2} label="Edit" onClick={() => { onEdit(taskId); onClose(); }} />
+        {/* <ContextMenuItem icon={Edit2} label="Edit" onClick={() => { onEdit(taskId); onClose(); }} /> */}
         <ContextMenuItem icon={Copy} label="Duplicate" onClick={() => { onDuplicate(taskId); onClose(); }} />
         
         <Separator />

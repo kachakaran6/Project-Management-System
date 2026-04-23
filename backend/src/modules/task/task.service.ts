@@ -254,7 +254,12 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
     query.$or = [{ title: regex }, { description: regex }];
   }
 
-  if (filter.assigneeId) {
+  if (filter.assigneeId === "UNASSIGNED") {
+    // Find all task IDs that HAVE assignees in this organization
+    const assignedTIds = await TaskAssignee.find({ organizationId: query.organizationId }).distinct('taskId');
+    // Filter tasks that ARE NOT in that list
+    query._id = { $nin: assignedTIds };
+  } else if (filter.assigneeId) {
     const tIds = await TaskAssignee.find({ userId: toObjectId(filter.assigneeId) }).distinct('taskId');
     query._id = { $in: tIds };
   }

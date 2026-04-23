@@ -1,9 +1,9 @@
 "use client";
 
-import {useRouter, useSearchParams, usePathname} from "@/lib/next-navigation";
-import React, {useState, useEffect, useMemo} from "react";
-import {TaskContextMenu} from "./task-context-menu";
-import {toast} from "sonner";
+import { useRouter, useSearchParams, usePathname } from "@/lib/next-navigation";
+import React, { useState, useEffect, useMemo } from "react";
+import { TaskContextMenu } from "./task-context-menu";
+import { toast } from "sonner";
 import {
   DragDropContext,
   Droppable,
@@ -28,8 +28,8 @@ import {
   Check,
 } from "lucide-react";
 
-import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
   TooltipContent,
@@ -51,23 +51,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
-import {DatePicker} from "@/components/ui/date-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DatePicker } from "@/components/ui/date-picker";
 
-import {Task, TaskStatus} from "@/types/task.types";
+import { Task, TaskStatus } from "@/types/task.types";
 import {
   useDeleteTaskMutation,
   useUpdateTaskStatusMutation,
   useCreateTaskMutation,
   useUpdateTaskMutation,
 } from "@/features/tasks/hooks/use-tasks-query";
-import {EditTaskModal} from "@/features/tasks/components/edit-task-modal";
+import { EditTaskModal } from "@/features/tasks/components/edit-task-modal";
 import { useTaskDuplicateSuggestions } from "@/features/tasks/hooks/use-task-duplicate-suggestions";
 import { TagPill } from "@/features/tags/components/tag-pill";
-import {useTaskPanelStore} from "@/features/tasks/store/task-panel-store";
-import {useAuthStore} from "@/store/auth-store";
-import {cn} from "@/lib/utils";
-import {useOrganizationMembersQuery} from "@/features/organization/hooks/use-organization-members";
+import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
+import { useAuthStore } from "@/store/auth-store";
+import { cn } from "@/lib/utils";
+import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 
 // --- Column definitions --------------------------------------------------------
 
@@ -127,7 +127,7 @@ const CORE_STATUSES: TaskStatus[] = ["BACKLOG", "TODO", "IN_PROGRESS", "DONE"];
 
 const PRIORITY_CONFIG: Record<
   string,
-  {label: string; color: string; bg: string; flagColor: string}
+  { label: string; color: string; bg: string; flagColor: string }
 > = {
   LOW: {
     label: "Low",
@@ -168,12 +168,12 @@ interface TaskCardProps {
   onContextMenu: (e: React.MouseEvent, taskId: string) => void;
 }
 
-const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskCardProps) => {
+const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: TaskCardProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const {openPanel} = useTaskPanelStore();
-  const {activeOrgId} = useAuthStore();
+  const { openPanel } = useTaskPanelStore();
+  const { activeOrgId } = useAuthStore();
   const membersQuery = useOrganizationMembersQuery(activeOrgId || "");
   const deleteTask = useDeleteTaskMutation();
   const updateTask = useUpdateTaskMutation();
@@ -186,17 +186,17 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
   >(null);
 
   const createdByUser = (task as any).creatorUser ?? (task as any).createdBy ?? (task as any).creator ?? (task as any).created_by;
-  const createdByName = createdByUser?.firstName 
-    ? `${createdByUser.firstName} ${createdByUser.lastName}`.trim() 
+  const createdByName = createdByUser?.firstName
+    ? `${createdByUser.firstName} ${createdByUser.lastName}`.trim()
     : createdByUser?.name || "System";
   const createdByEmail = createdByUser?.email || "";
 
   const priority = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.MEDIUM;
   const dueDate = task.dueDate
     ? new Date(task.dueDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      })
+      month: "short",
+      day: "numeric",
+    })
     : null;
   const isPastDue =
     task.dueDate &&
@@ -228,7 +228,7 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
   }, [task]);
   const members = useMemo(() => {
     const raw = membersQuery.data?.data.members ?? [];
-    const byIdentity = new Map<string, {id: string; name: string; email: string; avatarUrl?: string}>();
+    const byIdentity = new Map<string, { id: string; name: string; email: string; avatarUrl?: string }>();
     raw.forEach((member) => {
       const id = String(member.id);
       const identityKey = member.email?.toLowerCase() || id;
@@ -254,7 +254,7 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
 
   const handleStatusChange = async (status: TaskStatus) => {
     try {
-      await changeStatus.mutateAsync({id: tid(task), status});
+      await changeStatus.mutateAsync({ id: tid(task), status });
       toast.success("Status updated");
       setOpenChip(null);
     } catch {
@@ -266,7 +266,7 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
     try {
       await updateTask.mutateAsync({
         id: tid(task),
-        data: {priority: nextPriority},
+        data: { priority: nextPriority },
       });
       toast.success("Priority updated");
       setOpenChip(null);
@@ -279,7 +279,7 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
     try {
       await updateTask.mutateAsync({
         id: tid(task),
-        data: {dueDate: value || undefined},
+        data: { dueDate: value || undefined },
       });
       toast.success("Date updated");
       setOpenChip(null);
@@ -297,7 +297,7 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
     try {
       await updateTask.mutateAsync({
         id: tid(task),
-        data: {assigneeIds: next},
+        data: { assigneeIds: next },
       });
       toast.success("Assignees updated");
     } catch {
@@ -309,7 +309,7 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
     try {
       await updateTask.mutateAsync({
         id: tid(task),
-        data: {assigneeIds: []},
+        data: { assigneeIds: [] },
       });
       toast.success("Assignees cleared");
       setOpenChip(null);
@@ -318,12 +318,12 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
     }
   };
 
-  const statusItems: Array<{value: TaskStatus; label: string}> = [
-    {value: "BACKLOG", label: "Backlog"},
-    {value: "TODO", label: "Todo"},
-    {value: "IN_PROGRESS", label: "In Progress"},
-    {value: "DONE", label: "Done"},
-    {value: "REJECTED", label: "Cancelled"},
+  const statusItems: Array<{ value: TaskStatus; label: string }> = [
+    { value: "BACKLOG", label: "Backlog" },
+    { value: "TODO", label: "Todo" },
+    { value: "IN_PROGRESS", label: "In Progress" },
+    { value: "DONE", label: "Done" },
+    { value: "REJECTED", label: "Cancelled" },
   ];
 
   return (
@@ -354,7 +354,7 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("taskId", tid(task));
-              router.push(`${pathname}?${params.toString()}`, {scroll: false});
+              router.push(`${pathname}?${params.toString()}`, { scroll: false });
               openPanel(tid(task));
             }}>
             {/* Task ID Header */}
@@ -362,7 +362,7 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
               <span className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-widest">
                 T-{tid(task).slice(-4)}
               </span>
-              <DropdownMenu>
+              {/* <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     onClick={(e) => e.stopPropagation()}
@@ -377,7 +377,7 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
                       e.stopPropagation();
                       const params = new URLSearchParams(searchParams.toString());
                       params.set("taskId", tid(task));
-                      router.push(`${pathname}?${params.toString()}`, {scroll: false});
+                      router.push(`${pathname}?${params.toString()}`, { scroll: false });
                       openPanel(tid(task));
                     }}>
                     <Eye className="mr-2 size-4" />
@@ -404,7 +404,7 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
                     </DropdownMenuItem>
                   ) : null}
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </DropdownMenu> */}
             </div>
 
             {/* Title */}
@@ -482,9 +482,9 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-40 rounded-lg border-border/40">
                   {[
-                    {value: "LOW", label: "Low"},
-                    {value: "MEDIUM", label: "Medium"},
-                    {value: "HIGH", label: "High"},
+                    { value: "LOW", label: "Low" },
+                    { value: "MEDIUM", label: "Medium" },
+                    { value: "HIGH", label: "High" },
                   ].map((item) => (
                     <DropdownMenuItem
                       key={item.value}
@@ -619,7 +619,7 @@ const TaskCard = React.memo(({task, index, canEdit = true, onContextMenu}: TaskC
                   const label = isObject ? tag.label : tag;
                   const color = isObject ? tag.color : "#64748b";
                   const icon = isObject ? tag.icon : "Tag";
-                  
+
                   return (
                     <TagPill
                       key={isObject ? tag.id : i}
@@ -696,7 +696,7 @@ function QuickAddInput({
 }) {
   const [value, setValue] = useState("");
   const createTask = useCreateTaskMutation();
-  const {user} = useAuthStore();
+  const { user } = useAuthStore();
   const isMember = user?.role === "MEMBER";
 
   const handleSubmit = async () => {
@@ -788,17 +788,17 @@ export function TaskBoard({
       tasks[id] = t;
       if (columns[t.status]) columns[t.status].push(id);
     });
-    return {tasks, columns};
+    return { tasks, columns };
   });
 
   const changeStatus = useUpdateTaskStatusMutation();
   const createTask = useCreateTaskMutation();
   const deleteTask = useDeleteTaskMutation();
-  
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const {openPanel} = useTaskPanelStore();
+  const { openPanel } = useTaskPanelStore();
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; taskId: string } | null>(null);
@@ -807,7 +807,7 @@ export function TaskBoard({
   const handleOpen = (id: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("taskId", id);
-    router.push(`${pathname}?${params.toString()}`, {scroll: false});
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
     openPanel(id);
   };
 
@@ -872,11 +872,11 @@ export function TaskBoard({
       tasks[id] = t;
       if (columns[t.status]) columns[t.status].push(id);
     });
-    setData({tasks, columns});
+    setData({ tasks, columns });
   }, [initialTasks, isSyncing]);
 
   const onDragEnd = async (result: DropResult) => {
-    const {source, destination, draggableId} = result;
+    const { source, destination, draggableId } = result;
     if (!destination) return;
     if (
       source.droppableId === destination.droppableId &&
@@ -884,11 +884,11 @@ export function TaskBoard({
     )
       return;
 
-    const prevData = {...data};
+    const prevData = { ...data };
     const sourceColId = source.droppableId;
     const destColId = destination.droppableId;
 
-    const newColumns = {...data.columns};
+    const newColumns = { ...data.columns };
     const sourceTaskIds = Array.from(newColumns[sourceColId]);
     sourceTaskIds.splice(source.index, 1);
     const destTaskIds =
@@ -899,7 +899,7 @@ export function TaskBoard({
     newColumns[sourceColId] = sourceTaskIds;
     newColumns[destColId] = destTaskIds;
 
-    const newTasks = {...data.tasks};
+    const newTasks = { ...data.tasks };
     if (sourceColId !== destColId) {
       newTasks[draggableId] = {
         ...newTasks[draggableId],
@@ -907,7 +907,7 @@ export function TaskBoard({
       };
     }
 
-    setData({tasks: newTasks, columns: newColumns});
+    setData({ tasks: newTasks, columns: newColumns });
     setIsSyncing(true);
 
     try {
@@ -996,7 +996,7 @@ function KanbanColumn({
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="h-2 w-2 rounded-full shrink-0 shadow-sm"
-            style={{backgroundColor: col.dotColor}}
+            style={{ backgroundColor: col.dotColor }}
           />
           <h3 className="text-[13px] font-bold tracking-tight text-foreground/80 lowercase first-letter:uppercase truncate">
             {col.label}

@@ -18,6 +18,7 @@ router.post('/verify-otp',      authController.verifyOtp);
 
 // ── Protected routes ──────────────────────────────────────────────────────────
 router.post('/logout', requireAuth, authController.logout);
+router.post('/logout-all', requireAuth, authController.logoutAll);
 router.get('/me',      requireAuth, authController.me);
 router.patch('/me',    requireAuth, authController.updateMe);
 router.post('/request-organization-access', requireAuth, authController.requestOrganizationAccess);

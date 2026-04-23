@@ -29,6 +29,8 @@ import {
   Sparkles,
   Lock,
   BellRing,
+  Smartphone,
+  Tablet,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -1274,17 +1276,52 @@ function BillingSection() {
 
 function SecuritySection() {
   const { logout } = useAuth();
-  const [loggingOut, setLoggingOut] = useState(false);
+  const queryClient = useQueryClient();
 
-  const handleLogoutAll = async () => {
-    setLoggingOut(true);
-    try {
-      await api.post("/auth/logout-all");
+  const sessionsQuery = useQuery({
+    queryKey: ["auth", "sessions"],
+    queryFn: () => authApi.getSessions(),
+    staleTime: 15_000,
+  });
+
+  const logoutSessionMutation = useMutation({
+    mutationFn: (sessionId?: string) => authApi.logoutSession(sessionId),
+    onSuccess: (_, sessionId) => {
+      toast.success(sessionId ? "Session logged out." : "Logged out from this device.");
+      queryClient.invalidateQueries({ queryKey: ["auth", "sessions"] });
+    },
+    onError: () => {
+      toast.error("Failed to log out session.");
+    },
+  });
+
+  const logoutAllMutation = useMutation({
+    mutationFn: () => authApi.logoutAllSessions(),
+    onSuccess: async () => {
       toast.success("Logged out from all devices.");
       await logout();
-    } catch {
+    },
+    onError: () => {
       toast.error("Failed to logout from all devices.");
-      setLoggingOut(false);
+    },
+  });
+
+  const sessions = sessionsQuery.data?.data?.sessions ?? [];
+
+  const getSessionIcon = (deviceType: string) => {
+    if (deviceType === "mobile") return Smartphone;
+    if (deviceType === "tablet") return Tablet;
+    return Monitor;
+  };
+
+  const handleLogoutAll = async () => {
+    logoutAllMutation.mutate();
+  };
+
+  const handleLogoutSession = async (sessionId?: string, isCurrent?: boolean) => {
+    logoutSessionMutation.mutate(sessionId);
+    if (isCurrent) {
+      await logout();
     }
   };
 
@@ -1315,25 +1352,52 @@ function SecuritySection() {
       <SectionCard
         title="Active Sessions"
         description="Devices currently signed in to your account.">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between rounded-xl border border-border bg-muted/20 p-3">
-            <div className="flex items-center gap-3">
-              <Monitor className="size-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Current Device</p>
-                <p className="text-xs text-muted-foreground">
-                  Active now ·{" "}
-                  {typeof window !== "undefined"
-                    ? navigator.platform
-                    : "Browser"}
-                </p>
-              </div>
-            </div>
-            <Badge className="bg-emerald-100 text-emerald-700 text-xs">
-              This device
-            </Badge>
+        {sessionsQuery.isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
           </div>
-        </div>
+        ) : sessions.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No active sessions found.</p>
+        ) : (
+          <div className="space-y-3">
+            {sessions.map((session) => {
+              const Icon = getSessionIcon(session.deviceType);
+              return (
+                <div
+                  key={session.id}
+                  className="flex items-center justify-between rounded-xl border border-border bg-muted/20 p-3">
+                  <div className="flex items-center gap-3">
+                    <Icon className="size-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{session.deviceName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Last active {new Date(session.lastActiveAt).toLocaleString()} · IP {session.ipAddress}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {session.isCurrent && (
+                      <Badge className="bg-emerald-100 text-emerald-700 text-xs">
+                        This device
+                      </Badge>
+                    )}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleLogoutSession(session.id, session.isCurrent)}
+                      disabled={logoutSessionMutation.isPending}
+                      className="h-8 px-2 text-xs">
+                      Log out this device
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </SectionCard>
 
       <DangerCard
@@ -1343,7 +1407,7 @@ function SecuritySection() {
           <div>
             <p className="text-sm font-semibold">Log Out All Devices</p>
             <p className="text-xs text-muted-foreground">
-              Sign out from all browsers and devices except this one.
+              Sign out from all browsers and devices, including this one.
             </p>
           </div>
           <Button
@@ -1351,8 +1415,8 @@ function SecuritySection() {
             size="sm"
             className="shrink-0"
             onClick={handleLogoutAll}
-            disabled={loggingOut}>
-            {loggingOut ? (
+            disabled={logoutAllMutation.isPending}>
+            {logoutAllMutation.isPending ? (
               <Loader2 className="mr-1.5 size-3.5 animate-spin" />
             ) : (
               <LogOut className="mr-1.5 size-3.5" />

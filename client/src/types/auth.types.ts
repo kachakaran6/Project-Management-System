@@ -37,3 +37,17 @@ export interface AuthSession {
   accessToken: string;
   organizations: OrganizationMembership[];
 }
+
+export interface DeviceSession {
+  id: string;
+  deviceName: string;
+  deviceType: "mobile" | "desktop" | "tablet" | "unknown";
+  ipAddress: string;
+  userAgent: string;
+  location?: string | null;
+  isActive: boolean;
+  isCurrent: boolean;
+  createdAt: string;
+  lastActiveAt: string;
+  expiresAt: string;
+}

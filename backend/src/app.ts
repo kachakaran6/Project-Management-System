@@ -118,6 +118,7 @@ import pageRoutes from "./modules/page/page.routes.js";
 import organizationRoutes from "./modules/organization/organization.routes.js";
 import telegramRoutes from "./modules/telegram/telegram.routes.js";
 import activityLogRoutes from "./modules/activityLog/activityLog.routes.js";
+import sessionRoutes from "./modules/session/session.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/workspaces", workspaceRoutes);
@@ -136,6 +137,7 @@ app.use("/api/v1/organizations", organizationRoutes);
 app.use("/api/v1/activity-logs", activityLogRoutes);
 app.use("/api/v1/activitylogs", activityLogRoutes);
 app.use("/api/v1/telegram", telegramRoutes);
+app.use("/api/v1/sessions", sessionRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {
