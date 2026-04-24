@@ -1,0 +1,170 @@
+.task-visualizer-container {
+  width: 100%;
+  height: 600px;
+  background: radial-gradient(circle at 50% 50%, #0a0a0a 0%, #000000 100%);
+  border-radius: 24px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.visualizer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 1;
+}
+
+/* Custom Node Styling */
+.stage-node {
+  padding: 1px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
+  backdrop-filter: blur(12px);
+  min-width: 200px;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+.stage-node:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7);
+}
+
+.stage-node-content {
+  background: #0d0d0d;
+  border-radius: 19px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stage-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.stage-count {
+  font-size: 32px;
+  font-weight: 800;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(to bottom, #fff, #888);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stage-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stage-sub-info {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Glow Effects based on Status */
+.node-backlog { border: 1px solid rgba(148, 163, 184, 0.2); }
+.node-backlog .glow { background: rgba(148, 163, 184, 0.1); }
+
+.node-todo { border: 1px solid rgba(59, 130, 246, 0.3); }
+.node-todo .glow { background: rgba(59, 130, 246, 0.15); }
+.node-todo .stage-count { background: linear-gradient(to bottom, #fff, #3b82f6); -webkit-background-clip: text; }
+
+.node-in_progress { border: 1px solid rgba(234, 179, 8, 0.3); }
+.node-in_progress .glow { background: rgba(234, 179, 8, 0.15); }
+.node-in_progress .stage-count { background: linear-gradient(to bottom, #fff, #eab308); -webkit-background-clip: text; }
+
+.node-in_review { border: 1px solid rgba(168, 85, 247, 0.3); }
+.node-in_review .glow { background: rgba(168, 85, 247, 0.15); }
+.node-in_review .stage-count { background: linear-gradient(to bottom, #fff, #a855f7); -webkit-background-clip: text; }
+
+.node-done { border: 1px solid rgba(34, 197, 94, 0.3); }
+.node-done .glow { background: rgba(34, 197, 94, 0.15); }
+.node-done .stage-count { background: linear-gradient(to bottom, #fff, #22c55e); -webkit-background-clip: text; }
+
+.node-archived { border: 1px solid rgba(100, 116, 139, 0.2); }
+.node-archived .glow { background: rgba(100, 116, 139, 0.1); }
+
+/* Animated Edge Styling */
+.react-flow__edge-path {
+  stroke-width: 2;
+  stroke-dasharray: 5;
+  animation: dash 20s linear infinite;
+}
+
+@keyframes dash {
+  from { stroke-dashoffset: 500; }
+  to { stroke-dashoffset: 0; }
+}
+
+.edge-label-container {
+  background: rgba(13, 13, 13, 0.8);
+  backdrop-filter: blur(4px);
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  pointer-events: all;
+  cursor: pointer;
+}
+
+/* Controls */
+.visualizer-controls {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  background: rgba(13, 13, 13, 0.5);
+  backdrop-filter: blur(12px);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.control-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s;
+}
+
+.control-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.control-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+}

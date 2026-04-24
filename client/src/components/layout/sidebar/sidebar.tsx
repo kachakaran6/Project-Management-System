@@ -187,17 +187,30 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
 
   const sidebarWidth = mobile ? "w-[280px]" : sidebarCollapsed ? "w-[72px]" : "w-[260px]";
 
+  // Extract numeric width value for style attribute
+  const widthValue = sidebarWidth.match(/\d+/)?.[0] || "260";
+
   return (
     <aside
       className={cn(
-        "flex h-full flex-col border-r border-sidebar-border bg-sidebar px-3 py-4 text-sidebar-foreground",
-        sidebarWidth,
+        "flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground",
         "transition-all duration-300 ease-in-out",
+        // Desktop: standard padding
+        "md:px-3 md:py-4",
+        // Mobile: reduced padding for compact layout
+        mobile && "px-2 py-3"
       )}
+      style={{ width: `${widthValue}px` }}
     >
+      {/* Header */}
       <div
         className={cn(
-          "mb-8 flex items-center h-12",
+          "flex items-center h-12 md:mb-8",
+          "transition-all duration-300",
+          // Desktop: standard margin
+          "md:mb-8",
+          // Mobile: reduced margin for compact layout
+          mobile && "mb-6",
           sidebarCollapsed && !mobile ? "justify-center" : "justify-between px-2",
         )}
       >
@@ -231,8 +244,57 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
         ) : null}
       </div>
 
-      <div className="flex-1 overflow-y-auto py-2 pr-1 -mr-1 custom-scrollbar">
-        <div className="space-y-6">
+      {/* Mobile User Info - Visible only on mobile, positioned at top */}
+      {mobile && user && (
+        <div className="md:hidden mb-6 px-2 pb-4 border-b border-sidebar-border/50">
+          <div className="flex items-center gap-3 animate-in fade-in duration-300">
+            {/* User Avatar */}
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={`${user.firstName} ${user.lastName}`}
+                className="size-10 rounded-lg object-cover ring-2 ring-sidebar-accent/50"
+              />
+            ) : (
+              <div className={cn(
+                "size-10 rounded-lg flex items-center justify-center font-bold text-sm ring-2 ring-sidebar-accent/50",
+                role === "SUPER_ADMIN" ? "bg-orange-500/20 text-orange-500" :
+                role === "ADMIN" ? "bg-primary/20 text-primary" :
+                role === "MANAGER" ? "bg-blue-500/20 text-blue-500" :
+                "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+              )}>
+                {(user.firstName?.[0] ?? "U")}
+              </div>
+            )}
+            {/* User Name & Role */}
+            <div className="flex flex-col min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground truncate">
+                {user.firstName} {user.lastName}
+              </p>
+              <p className="text-xs text-sidebar-foreground/60 capitalize">
+                {role.toLowerCase().replace("_", " ")}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scrollable Content - Flex-1 with proper height management */}
+      <div className={cn(
+        "flex-1 overflow-y-auto custom-scrollbar",
+        "transition-all duration-300",
+        // Desktop: standard spacing
+        "md:py-2 md:pr-1 md:-mr-1",
+        // Mobile: reduced spacing for compact layout
+        mobile && "py-1 pr-1 -mr-1"
+      )}>
+        <div className={cn(
+          "transition-all duration-300",
+          // Desktop: standard spacing
+          "md:space-y-6",
+          // Mobile: reduced spacing for compact layout
+          mobile && "space-y-4"
+        )}>
           <SidebarGroup
             label={role === "SUPER_ADMIN" ? "Platform" : "Workspace"}
             items={role === "SUPER_ADMIN" ? platformItems : workspaceItems}
@@ -248,24 +310,37 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
         </div>
       </div>
 
-      <div className="mt-auto pt-4 space-y-4">
-        <div className="border-t border-sidebar-border pt-4">
+      {/* Footer - Sticky positioning for mobile, mt-auto for desktop */}
+      <div className={cn(
+        "transition-all duration-300",
+        // Desktop: mt-auto with standard spacing
+        "md:mt-auto md:pt-4 md:space-y-4",
+        // Mobile: sticky positioning at bottom with reduced spacing
+        mobile && "sticky bottom-0 left-0 right-0 pt-3 pb-3 space-y-3 bg-sidebar border-t border-sidebar-border/50"
+      )}>
+        {/* Sign Out Button - Better touch target on mobile (44px min height) */}
+        <div className="px-2">
           <Button
             variant="ghost"
             className={cn(
-              "w-full justify-start gap-3 px-3 py-2 text-sidebar-foreground/80 hover:bg-red-500/10 hover:text-red-500 transition-colors",
+              "w-full justify-start gap-3 text-sidebar-foreground/80 hover:bg-red-500/10 hover:text-red-500 transition-colors",
+              // Desktop: standard padding
+              "md:px-3 md:py-2",
+              // Mobile: larger touch target (44px minimum)
+              mobile && "px-3 py-3 h-11 text-sm font-medium",
               sidebarCollapsed && !mobile && "justify-center"
             )}
             onClick={handleLogout}
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            {!(sidebarCollapsed && !mobile) && <span className="font-medium">Sign Out</span>}
+            {!(sidebarCollapsed && !mobile) && <span>Sign Out</span>}
           </Button>
         </div>
 
+        {/* User Role Badge - Desktop only (shown at top on mobile via user info section) */}
         <div 
           className={cn(
-            "transition-all duration-300",
+            "hidden md:block transition-all duration-300",
             sidebarCollapsed && !mobile 
               ? "flex justify-center px-1" 
               : "rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-3 mx-1"
