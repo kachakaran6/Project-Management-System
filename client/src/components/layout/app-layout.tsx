@@ -40,7 +40,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       >
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-[1px] md:hidden" />
-          <DialogPrimitive.Content className="fixed left-0 top-0 z-50 h-screen w-72 border-r border-sidebar-border bg-sidebar p-0 outline-none md:hidden transition-transform duration-300">
+          <DialogPrimitive.Content className="fixed left-0 top-0 z-50 h-screen w-[280px] border-r border-sidebar-border bg-sidebar p-0 outline-none md:hidden transition-transform duration-300 flex flex-col overflow-hidden">
             <div className="absolute right-3 top-3 z-10">
               <DialogPrimitive.Close
                 className="rounded-md p-1 text-sidebar-foreground hover:bg-sidebar-accent"

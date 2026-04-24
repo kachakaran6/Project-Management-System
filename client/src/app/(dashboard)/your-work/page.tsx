@@ -36,13 +36,14 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useTasksQuery } from "@/features/tasks/hooks/use-tasks-query";
 import { Task, TaskPriority } from "@/types/task.types";
 
-type WorkTab = "summary" | "assigned" | "created" | "activity";
+type WorkTab = "summary" | "assigned" | "created" | "activity" | "visualize";
 
 const TAB_ITEMS: Array<{ id: WorkTab; label: string }> = [
   { id: "summary", label: "Summary" },
   { id: "assigned", label: "Assigned" },
   { id: "created", label: "Created" },
   { id: "activity", label: "Activity" },
+  { id: "visualize", label: "Visualize" },
 ];
 
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
@@ -436,6 +437,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ChevronDown, Globe, Users, Check, User2, X } from "lucide-react";
+import { TaskUniverse } from "@/features/tasks/components/universe/TaskUniverse";
 
 export default function YourWorkPage() {
   const { user, isLoading, activeOrgId } = useAuth();
@@ -662,8 +664,8 @@ export default function YourWorkPage() {
   const selectedUser = members.find((m) => m.id === viewingUserId);
 
   return (
-    <div className="flex flex-col xl:flex-row h-full xl:h-[calc(100vh-64px)] w-full gap-4 px-4 py-4 md:px-6 overflow-y-auto xl:overflow-hidden">
-      <section className="min-h-0 flex-1 overflow-y-auto xl:pr-2 xl:overflow-y-auto">
+    <div className="flex flex-col xl:flex-row w-full max-w-[100vw] gap-4 px-3 py-2 md:px-6 xl:h-[calc(100vh-64px)] xl:overflow-hidden box-border overflow-x-hidden">
+      <section className="flex-1 xl:overflow-y-auto xl:pr-2">
         <div className="space-y-6 pb-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex w-full items-center overflow-x-auto pb-1 scrollbar-hide md:w-auto md:pb-0">
@@ -856,6 +858,12 @@ export default function YourWorkPage() {
             </div>
           ) : (
             <>
+              {activeTab === "visualize" ? (
+                <div className="w-full">
+                  <TaskUniverse tasks={derived.relevantTasks} />
+                </div>
+              ) : (
+                <>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <MetricCard
                     label="Work items created"
@@ -904,7 +912,7 @@ export default function YourWorkPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <Card>
+                <Card className="overflow-hidden">
                   <CardHeader>
                     <CardTitle className="text-base">
                       Work items by Priority
@@ -967,7 +975,7 @@ export default function YourWorkPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="overflow-hidden">
                   <CardHeader>
                     <CardTitle className="text-base">
                       Work items by State
@@ -1129,12 +1137,14 @@ export default function YourWorkPage() {
                   </CardContent>
                 </Card>
               ) : null}
+                </>
+              )}
             </>
           )}
         </div>
       </section>
 
-      <aside className="w-full shrink-0 space-y-4 pb-6 xl:w-80 xl:pb-0 xl:space-y-6">
+       <aside className="w-full xl:w-80 shrink-0 space-y-3 pb-20 xl:pb-0 xl:space-y-6 px-0.5">
         {showProfile ? (
           <Card className="group/profile relative border-border/60 bg-card/40 shadow-sm backdrop-blur-sm transition-all hover:bg-card/50">
             <CardHeader className="flex flex-row items-center justify-between p-4 pb-2 md:p-5 md:pb-3">
@@ -1185,8 +1195,8 @@ export default function YourWorkPage() {
           </button>
         )}
 
-        <Card className="border-border/60 bg-card/40 shadow-sm backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between p-4 pb-2 md:p-5 md:pb-3">
+        <Card className="w-full max-w-full border-border/60 bg-card/40 shadow-sm backdrop-blur-sm overflow-hidden box-border mb-4 md:mb-0">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 p-3.5 pb-2 md:p-5 md:pb-3">
             <CardTitle className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground md:text-sm md:text-foreground/80">
               Projects
             </CardTitle>
@@ -1194,7 +1204,7 @@ export default function YourWorkPage() {
               <button
                 onClick={() => setProjectScope("my")}
                 className={cn(
-                  "px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider transition-all md:px-2.5 md:py-1 md:text-[10px]",
+                  "px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider transition-all md:px-2.5 md:py-1 md:text-[10px] shrink-0",
                   projectScope === "my"
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-muted/60",
@@ -1205,7 +1215,7 @@ export default function YourWorkPage() {
               <button
                 onClick={() => setProjectScope("all")}
                 className={cn(
-                  "px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider transition-all md:px-2.5 md:py-1 md:text-[10px]",
+                  "px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider transition-all md:px-2.5 md:py-1 md:text-[10px] shrink-0",
                   projectScope === "all"
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-muted/60",
@@ -1215,7 +1225,7 @@ export default function YourWorkPage() {
               </button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4 px-4 pb-4 md:px-5 md:pb-6">
+          <CardContent className="space-y-4 px-3.5 pb-4 md:px-5 md:pb-6">
             <div className="scrollbar-hide max-h-[400px] space-y-4 overflow-y-auto pr-1 xl:max-h-[500px]">
               {derived.projectSummaries.length === 0 ? (
                 <div className="py-8 text-center">
@@ -1234,13 +1244,13 @@ export default function YourWorkPage() {
                         {project.completion}%
                       </span>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted/40 p-0">
+                    <div className="w-full h-1.5 overflow-hidden rounded-full bg-muted/40 p-0">
                       <div
                         className="h-full bg-primary transition-all duration-700 ease-out sm:duration-1000"
                         style={{ width: `${project.completion}%` }}
                       />
                     </div>
-                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 opacity-70">
                       <span>{project.completed} DONE</span>
                       <span>{project.total} TOTAL</span>
                     </div>

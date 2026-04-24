@@ -572,7 +572,7 @@ function AppearanceSection() {
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <Skeleton className="mb-4 h-5 w-40" />
           <div className="flex gap-4">
-            {[0, 1, 2, 3, 4].map((i) => (
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
               <Skeleton key={i} className="h-12 w-12 rounded-full" />
             ))}
           </div>
@@ -598,8 +598,8 @@ function AppearanceSection() {
                   toast.success(`Theme set to ${label}`);
                 }}
                 className={`group relative flex flex-col items-center gap-3 rounded-xl border-2 p-5 text-center transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm ${active
-                    ? "border-primary bg-primary/8 shadow-sm"
-                    : "border-border bg-muted/10 hover:border-primary/40 hover:bg-muted/30"
+                  ? "border-primary bg-primary/8 shadow-sm"
+                  : "border-border bg-muted/10 hover:border-primary/40 hover:bg-muted/30"
                   }`}>
                 {/* Mode thumbnail preview */}
                 <div
@@ -607,10 +607,10 @@ function AppearanceSection() {
                     }`}>
                   <div
                     className={`flex-1 ${id === "dark"
-                        ? "bg-slate-900"
-                        : id === "light"
-                          ? "bg-white"
-                          : "bg-linear-to-r from-white to-slate-900"
+                      ? "bg-slate-900"
+                      : id === "light"
+                        ? "bg-white"
+                        : "bg-linear-to-r from-white to-slate-900"
                       }`}>
                     <div
                       className={`m-1.5 h-1.5 w-8 rounded-full opacity-60 ${id === "dark" ? "bg-slate-500" : "bg-slate-300"
@@ -669,8 +669,8 @@ function AppearanceSection() {
                   toast.success(`Accent color: ${label}`);
                 }}
                 className={`group relative flex h-14 w-14 items-center justify-center rounded-2xl border-2 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${active
-                    ? "border-foreground/30 scale-110 shadow-md"
-                    : "border-transparent hover:border-foreground/20"
+                  ? "border-foreground/30 scale-110 shadow-md"
+                  : "border-transparent hover:border-foreground/20"
                   }`}
                 style={{ background: swatchColor }}>
                 {active && (
@@ -739,8 +739,8 @@ function AppearanceSection() {
                   toast.success(`Density set to ${label}`);
                 }}
                 className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 ${active
-                    ? "border-primary bg-primary/5 shadow-sm"
-                    : "border-border hover:border-primary/40 hover:bg-muted/20"
+                  ? "border-primary bg-primary/5 shadow-sm"
+                  : "border-border hover:border-primary/40 hover:bg-muted/20"
                   }`}>
                 <span className="text-2xl">{emoji}</span>
                 <div>
@@ -1561,7 +1561,7 @@ function IntegrationsSection() {
                     <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">!</div>
                     Complete your Integration
                   </h4>
-                  
+
                   <div className="space-y-4">
                     {/* Step 1 */}
                     <div className="flex gap-3">
@@ -1732,17 +1732,17 @@ function TelegramOrgSection() {
 
   return (
     <div className="space-y-5">
-      <SectionCard 
-        title="Global Notifications Control" 
+      <SectionCard
+        title="Global Notifications Control"
         description="Enable or disable automated Telegram alerts for high-level organization events.">
         <div className="flex items-center justify-between p-1">
           <div>
             <p className="text-sm font-semibold">Enable Telegram Notifications</p>
             <p className="text-xs text-muted-foreground">Turn off to silence all bot messages for this organization.</p>
           </div>
-          <Switch 
-            checked={orgSettings.isEnabled} 
-            onCheckedChange={() => updateSettings({ isEnabled: !orgSettings.isEnabled })} 
+          <Switch
+            checked={orgSettings.isEnabled}
+            onCheckedChange={() => updateSettings({ isEnabled: !orgSettings.isEnabled })}
           />
         </div>
 
@@ -1778,8 +1778,8 @@ function TelegramOrgSection() {
                       <p className="text-sm font-medium">{item.label}</p>
                       <p className="text-xs text-muted-foreground">{item.desc}</p>
                     </div>
-                    <Switch 
-                      checked={orgSettings.preferences?.[item.key]} 
+                    <Switch
+                      checked={orgSettings.preferences?.[item.key]}
                       onCheckedChange={() => toggleEvent(item.key)}
                       disabled={isMasterAllEnabled && item.key !== "track_all"}
                     />
@@ -1799,11 +1799,10 @@ function TelegramOrgSection() {
                   <button
                     key={opt.id}
                     onClick={() => updateSettings({ audience: opt.id })}
-                    className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${
-                      orgSettings.audience === opt.id 
-                        ? 'border-primary bg-primary/5 ring-1 ring-primary' 
-                        : 'border-border bg-card hover:bg-muted/50'
-                    }`}>
+                    className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${orgSettings.audience === opt.id
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border bg-card hover:bg-muted/50'
+                      }`}>
                     <span className="text-sm font-bold">{opt.label}</span>
                     <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
                   </button>
@@ -1812,15 +1811,15 @@ function TelegramOrgSection() {
 
               {orgSettings.audience === 'CUSTOM' && (
                 <div className="mt-4 p-4 rounded-xl border border-border bg-muted/5 space-y-3 animate-in fade-in slide-in-from-top-1">
-                   <p className="text-xs font-semibold">Select recipients:</p>
-                   <div className="max-h-40 overflow-y-auto space-y-1 pr-2">
-                     {data.activeConnections?.map((conn: any) => {
-                       const isSelected = orgSettings.customRecipientIds?.includes(conn.userId);
-                       return (
-                        <div 
-                          key={conn.userId} 
+                  <p className="text-xs font-semibold">Select recipients:</p>
+                  <div className="max-h-40 overflow-y-auto space-y-1 pr-2">
+                    {data.activeConnections?.map((conn: any) => {
+                      const isSelected = orgSettings.customRecipientIds?.includes(conn.userId);
+                      return (
+                        <div
+                          key={conn.userId}
                           onClick={() => {
-                            const newIds = isSelected 
+                            const newIds = isSelected
                               ? orgSettings.customRecipientIds.filter((id: string) => id !== conn.userId)
                               : [...(orgSettings.customRecipientIds || []), conn.userId];
                             updateSettings({ customRecipientIds: newIds });
@@ -1831,12 +1830,12 @@ function TelegramOrgSection() {
                           </div>
                           <span className="text-sm">{conn.name}</span>
                         </div>
-                       );
-                     })}
-                     {(!data.activeConnections || data.activeConnections.length === 0) && (
-                       <p className="text-xs text-muted-foreground text-center py-2">No connected users to select.</p>
-                     )}
-                   </div>
+                      );
+                    })}
+                    {(!data.activeConnections || data.activeConnections.length === 0) && (
+                      <p className="text-xs text-muted-foreground text-center py-2">No connected users to select.</p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1844,8 +1843,8 @@ function TelegramOrgSection() {
         )}
       </SectionCard>
 
-      <SectionCard 
-        title="Connectivity Status" 
+      <SectionCard
+        title="Connectivity Status"
         description="View members who have linked their Telegram accounts.">
         <div className="space-y-4">
           {data.activeConnections && data.activeConnections.length > 0 ? (

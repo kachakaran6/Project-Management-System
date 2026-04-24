@@ -30,7 +30,11 @@ export function SidebarItem({ item, isActive, collapsed }: SidebarItemProps) {
     <Link
       href={item.href}
       className={cn(
-        "group flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-all duration-200",
+        "group flex items-center gap-3 rounded-md text-sm font-medium transition-all duration-200",
+        // Desktop: standard height
+        "md:h-10 md:px-3",
+        // Mobile: larger touch target (44px minimum)
+        "h-11 px-3",
         isActive
           ? "bg-sidebar-accent text-primary shadow-sm ring-1 ring-sidebar-border/50"
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-primary",
