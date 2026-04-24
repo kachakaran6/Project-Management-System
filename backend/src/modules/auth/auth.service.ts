@@ -9,9 +9,10 @@ import { getRefreshTokenExpiryDate, hashRefreshToken, parseDeviceInfo } from '..
 import { AppError } from '../../middlewares/errorHandler.js';
 import { ROLES, ACTIVITY_ACTIONS } from '../../constants/index.js';
 import { sendEmail } from '../email/email.service.js';
-import { getOtpTemplate, getLoginNotificationTemplate, getWelcomeTemplate } from '../email/email.templates.js';
+import { getOtpTemplate, getLoginNotificationTemplate, getWelcomeTemplate, getForgotPasswordTemplate } from '../email/email.templates.js';
 import { logInfo, logError, logWarn } from '../../services/logService.js';
 import { logActivity } from '../../utils/systemTriggers.js';
+import { env } from '../../config/env.js';
 
 // ─── OTP constants ────────────────────────────────────────────────────────────
 
@@ -229,6 +230,10 @@ export const loginUser = async (
     throw new AppError('Invalid email or password.', 401);
   }
 
+  if (!user.password) {
+    throw new AppError('This account was created via social login. Please use Google or GitHub to sign in.', 401);
+  }
+
   const isMatch = await comparePassword(password, user.password);
   if (!isMatch) {
     logWarn(`Failed login attempt for ${email}`, { 
@@ -331,6 +336,13 @@ export const forgotPassword = async (email: any) => {
   user.passwordResetExpires = (Date.now() + 3600000) as any; // 1 hour
 
   await user.save({ validateBeforeSave: false });
+
+  // 2. Send Email
+  const resetUrl = `${env.frontendUrl}/reset-password?token=${resetToken}`;
+  const { subject, html } = getForgotPasswordTemplate(user.firstName, resetUrl);
+
+  await sendEmail({ to: email, subject, html });
+
   return resetToken;
 };
 
@@ -514,6 +526,8 @@ export const logoutUser = async (refreshToken: any) => {
   );
 };
 
+import { emitForceLogout } from '../../realtime/socket.server.js';
+
 export const logoutAllUserSessions = async (userId: string) => {
   await User.findByIdAndUpdate(toObjectId(userId), {
     $inc: { tokenVersion: 1 },
@@ -523,6 +537,9 @@ export const logoutAllUserSessions = async (userId: string) => {
     { userId: toObjectId(userId), isActive: true },
     { isActive: false, lastActiveAt: new Date() },
   );
+
+  // Force Logout via Socket.io
+  emitForceLogout(userId);
 };
 
 export const getUserActiveSessions = async (userId: string, currentRefreshToken?: string) => {
@@ -648,5 +665,78 @@ export const updateProfile = async (id: string, updateData: { firstName?: string
 
   const { password: _, ...publicUser } = user.toObject({ virtuals: true });
   return publicUser;
+};
+
+// ─── 14. OAUTH HANDLER ────────────────────────────────────────────────────────
+
+/**
+ * Handles OAuth authentication flow (Find, Link, or Create).
+ */
+export const handleOAuthUser = async (profile: {
+  email: string;
+  firstName: string;
+  lastName: string;
+  provider: 'google' | 'github';
+  providerId: string;
+  avatarUrl?: string;
+}) => {
+  const { email, firstName, lastName, provider, providerId, avatarUrl } = profile;
+
+  let user = await User.findOne({ email });
+
+  if (user) {
+    // Account Linking: If user exists but was local or other provider, link it
+    if (user.provider === 'local' || !user.providerId) {
+      user.provider = provider;
+      user.providerId = providerId;
+      if (avatarUrl && !user.avatarUrl) user.avatarUrl = avatarUrl;
+      user.isEmailVerified = true; // OAuth providers have verified emails
+      await user.save({ validateBeforeSave: false });
+    }
+  } else {
+    // Create new user via OAuth
+    user = await User.create({
+      firstName,
+      lastName,
+      email,
+      provider,
+      providerId,
+      avatarUrl,
+      isEmailVerified: true,
+      role: ROLES.USER,
+      status: 'ACTIVE',
+      isApproved: true,
+    });
+
+    // Create Private Default Organization for the new user
+    const orgName = `${firstName}'s Workspace`;
+    const slug = `${firstName.toLowerCase().replace(/\s+/g, '-')}-${Math.random().toString(36).substring(2, 7)}`;
+    
+    const organization = await Organization.create({
+      name: orgName,
+      slug,
+      ownerId: user._id,
+      isDefault: true
+    });
+
+    // Link user as OWNER of their private space
+    await OrganizationMember.create({
+      userId: user._id,
+      organizationId: organization._id,
+      role: 'OWNER',
+      isActive: true
+    });
+
+    user.organizationId = organization._id;
+    await user.save({ validateBeforeSave: false });
+    
+    await logInfo(`New OAuth user registered: ${email} (${provider})`, {
+      userId: user._id,
+      action: ACTIVITY_ACTIONS.REGISTER_SUCCESS,
+      status: 'SUCCESS'
+    });
+  }
+
+  return user;
 };
 

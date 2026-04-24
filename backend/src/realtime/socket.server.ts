@@ -75,3 +75,12 @@ export const emitToUsers = (userIds: unknown[], event: string, data: unknown) =>
     });
   }
 };
+
+/**
+ * Utility: Force logout a user from all devices in real-time
+ */
+export const emitForceLogout = (userId: string) => {
+  if (io) {
+    io.to(SOCKET_ROOMS.USER(userId)).emit(SOCKET_EVENTS.FORCE_LOGOUT);
+  }
+};

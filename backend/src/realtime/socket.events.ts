@@ -26,7 +26,8 @@ export const SOCKET_EVENTS = {
   TYPING_STOP: 'typing:stop',
   
   // Notifications / Personal
-  NOTIFICATION_NEW: 'notification:new'
+  NOTIFICATION_NEW: 'notification:new',
+  FORCE_LOGOUT: 'auth:force-logout'
 };
 
 export const SOCKET_ROOMS = {

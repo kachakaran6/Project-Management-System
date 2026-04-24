@@ -128,3 +128,51 @@ export const getLoginNotificationTemplate = (data: {
     </div>
   `
 });
+
+// ─── Forgot Password Email ──────────────────────────────────────────────────
+
+export const getForgotPasswordTemplate = (name: string, resetUrl: string) => ({
+  subject: '🔐 Reset your PMS Orbit password',
+  html: `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #0D6EFD 0%, #0958D9 100%); padding: 32px 40px; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 700;">PMS Orbit</h1>
+        <p style="color: rgba(255,255,255,0.8); margin: 6px 0 0; font-size: 14px;">Password Reset Request</p>
+      </div>
+
+      <!-- Body -->
+      <div style="padding: 40px 40px 32px;">
+        <h2 style="margin: 0 0 8px; font-size: 20px; color: #111827;">Reset your password</h2>
+        <p style="margin: 0 0 24px; color: #6b7280; font-size: 15px; line-height: 1.6;">
+          Hi <strong style="color: #111827;">${name}</strong>, we received a request to reset your password. Click the button below to choose a new one. This link expires in <strong>1 hour</strong>.
+        </p>
+
+        <!-- Action Button -->
+        <div style="text-align: center; margin-bottom: 32px;">
+          <a href="${resetUrl}" style="background: #0D6EFD; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block;">
+            Reset Password
+          </a>
+        </div>
+
+        <p style="margin: 0 0 16px; color: #9ca3af; font-size: 13px; text-align: center;">
+          If the button doesn't work, copy and paste this URL into your browser:
+        </p>
+        <p style="margin: 0 0 24px; color: #0D6EFD; font-size: 12px; text-align: center; word-break: break-all; line-height: 1.5;">
+          ${resetUrl}
+        </p>
+
+        <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 0 0 24px;" />
+
+        <p style="margin: 0; color: #9ca3af; font-size: 13px; text-align: center; line-height: 1.6;">
+          If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div style="border-top: 1px solid #e5e7eb; padding: 20px 40px; text-align: center;">
+        <p style="margin: 0; color: #d1d5db; font-size: 12px;">PMS Orbit — Secure &amp; Reliable Project Management</p>
+      </div>
+    </div>
+  `
+});

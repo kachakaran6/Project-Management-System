@@ -30,6 +30,10 @@ type Env = {
   stripeSecretKey?: string;
   stripeWebhookSecret?: string;
   notifyAdminsOnly: boolean;
+  googleClientId?: string;
+  googleClientSecret?: string;
+  githubClientId?: string;
+  githubClientSecret?: string;
 };
 
 const requiredEnvVars = ["PORT", "MONGO_URI", "NODE_ENV"];
@@ -85,4 +89,10 @@ export const env: Env = {
 
   // Frontend
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+
+  // OAuth
+  googleClientId: process.env.GOOGLE_CLIENT_ID,
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  githubClientId: process.env.GITHUB_CLIENT_ID,
+  githubClientSecret: process.env.GITHUB_CLIENT_SECRET,
 };

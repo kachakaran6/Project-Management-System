@@ -62,10 +62,13 @@ const start = async () => {
       metadata: { port: env.port, env: env.nodeEnv }
     });
     console.info('─────────────────────────────────────────');
-    console.info(`🚀 Server running in ${env.nodeEnv} mode`);
+    console.info(`🚀 PMS Orbit running in ${env.nodeEnv} mode`);
     console.info(`🌐 Listening on port ${env.port}`);
     console.info(`📡 Real-time Engine: Enabled (Socket.IO)`);
+    console.info(`🔗 Frontend URL: ${env.frontendUrl}`);
     console.info(`❤️  Health check: http://localhost:${env.port}/health`);
+    console.info(`🔑 OAuth Google: ${env.googleClientId ? 'Configured' : 'MISSING'}`);
+    console.info(`🔑 OAuth GitHub: ${env.githubClientId ? 'Configured' : 'MISSING'}`);
     console.info('─────────────────────────────────────────');
   });
 
