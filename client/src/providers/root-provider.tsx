@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 import QueryProvider from "./query-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./auth-provider";
+import { SocketProvider } from "./socket-provider";
 import { AccentApplicator, SystemModeWatcher } from "./theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -26,10 +27,12 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
 
         <QueryProvider>
           <AuthProvider>
-            <TooltipProvider>
-              {children}
-              <Toaster />
-            </TooltipProvider>
+            <SocketProvider>
+              <TooltipProvider>
+                {children}
+                <Toaster />
+              </TooltipProvider>
+            </SocketProvider>
           </AuthProvider>
         </QueryProvider>
       </ThemeProvider>

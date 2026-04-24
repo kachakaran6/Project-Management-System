@@ -3,6 +3,10 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import AdminLayout from "@/app/(admin)/admin/layout";
 import DashboardGroupLayout from "@/app/(dashboard)/layout";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
+import NotFound from "@/pages/NotFound";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 type PageModule = {
   default: ComponentType;
@@ -35,12 +39,34 @@ function wrapElement(modulePath: string, PageComponent: ComponentType) {
   return pageElement;
 }
 
-const routes = Object.entries(pageModules).map(([modulePath, module]) => ({
+// 1. Generate dynamic routes from file system
+const dynamicRoutes = Object.entries(pageModules).map(([modulePath, module]) => ({
   path: toRoutePath(modulePath),
   element: wrapElement(modulePath, module.default),
 }));
 
-const router = createBrowserRouter(routes);
+// 2. Combine with manual routes and Error Boundary
+const router = createBrowserRouter([
+  {
+    path: "/",
+    errorElement: <ErrorBoundary />,
+    children: [
+      ...dynamicRoutes,
+      {
+        path: "forgot-password",
+        element: <ForgotPassword />,
+      },
+      {
+        path: "reset-password",
+        element: <ResetPassword />,
+      },
+      {
+        path: "*",
+        element: <NotFound />,
+      },
+    ],
+  },
+]);
 
 export function AppRouter() {
   return <RouterProvider router={router} />;

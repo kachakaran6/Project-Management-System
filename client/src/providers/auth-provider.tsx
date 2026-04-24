@@ -1,11 +1,12 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
+import { CookieBlockWarning } from "@/components/shared/cookie-block-warning";
 import { useAppDispatch } from "@/hooks/useAppDispatch";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import { fetchMe, setToken, logout } from "@/features/auth/authSlice";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
-  const { token, isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { token, user } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     if (token && !user) {
@@ -43,7 +44,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (delay > 0) {
         const timer = setTimeout(async () => {
-          // Trigger refresh logic here
           console.log("[AUTH] Token refresh needed soon...");
         }, delay);
 
@@ -54,5 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token]);
 
-  return <>{children}</>;
+  return (
+    <>
+      <CookieBlockWarning />
+      {children}
+    </>
+  );
 }

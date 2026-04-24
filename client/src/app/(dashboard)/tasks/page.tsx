@@ -21,6 +21,7 @@ import {
   ChevronRight,
   X,
   SlidersHorizontal,
+  User,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -276,7 +277,7 @@ export default function TasksPage() {
   const kanbanRows = kanbanQuery.data?.data.items ?? [];
 
   const getTaskId = (task: Task) => String(task.id || (task as any)._id || "");
-  const getAssignee = (task: Task) => task.assigneeUsers?.[0] ?? null;
+  const getAssignees = (task: Task) => task.assigneeUsers ?? [];
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -882,7 +883,7 @@ export default function TasksPage() {
                               task={task}
                               idx={idx}
                               taskId={getTaskId(task)}
-                              assignee={getAssignee(task)}
+                              assignees={getAssignees(task)}
                               isOverdue={
                                 task.dueDate &&
                                 new Date(task.dueDate) < new Date() &&
@@ -902,7 +903,7 @@ export default function TasksPage() {
                       {/* Mobile cards */}
                       {listRows.map((task, idx) => {
                         const taskId = getTaskId(task);
-                        const assignee = getAssignee(task);
+                        const assignees = getAssignees(task);
                         return (
                           <div
                             key={taskId}
@@ -929,14 +930,33 @@ export default function TasksPage() {
                             </div>
                             <div className="flex items-center justify-between mt-4 border-t border-border/30 pt-3">
                               <div className="flex items-center gap-2">
-                                <Avatar className="h-6 w-6">
-                                  <AvatarImage src={assignee?.avatarUrl} />
-                                  <AvatarFallback className="text-[8px] bg-primary/5 text-primary">
-                                    {assignee?.name?.[0] || "?"}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[100px]">
-                                  {assignee?.name || "Unassigned"}
+                                {assignees.length > 0 ? (
+                                  <div className="flex items-center -space-x-2">
+                                    {assignees.slice(0, 3).map((a) => (
+                                      <Avatar key={a.id} className="h-6 w-6 ring-2 ring-background border border-border/10 shadow-sm">
+                                        <AvatarImage src={a.avatarUrl} />
+                                        <AvatarFallback className="text-[8px] bg-primary/5 text-primary">
+                                          {a.name.charAt(0)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                    ))}
+                                    {assignees.length > 3 && (
+                                      <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold border-2 border-background shadow-sm">
+                                        +{assignees.length - 3}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 flex items-center justify-center">
+                                    <User className="size-3 text-muted-foreground/40" />
+                                  </div>
+                                )}
+                                <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[120px]">
+                                  {assignees.length === 0 
+                                    ? "Unassigned" 
+                                    : assignees.length === 1 
+                                      ? assignees[0].name 
+                                      : `${assignees.length} members`}
                                 </span>
                               </div>
                               <div className="flex flex-wrap gap-2 pt-1">
@@ -1017,7 +1037,7 @@ export default function TasksPage() {
                               task={task}
                               idx={idx}
                               taskId={getTaskId(task)}
-                              assignee={getAssignee(task)}
+                              assignees={getAssignees(task)}
                               isOverdue={
                                 task.dueDate &&
                                 new Date(task.dueDate) < new Date() &&

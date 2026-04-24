@@ -1,4 +1,4 @@
-﻿import {
+import {
   useRef,
   useState,
   useEffect,
@@ -21,6 +21,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import { SocialAuth } from "./social-auth";
 
 import {
   Card,
@@ -286,6 +287,8 @@ function StepRegistration({
               ? "Creating account…"
               : "Create Account"}
           </Button>
+          
+          <SocialAuth />
 
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}

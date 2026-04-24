@@ -39,7 +39,7 @@ export const TaskRow = ({
   taskId,
   idx,
   task,
-  assignee,
+  assignees = [],
   canMutate,
   isOverdue,
   setSelectedTask,
@@ -48,7 +48,7 @@ export const TaskRow = ({
   taskId: string;
   idx: number;
   task: Task;
-  assignee: TaskAssigneeUser | null;
+  assignees: TaskAssigneeUser[];
   isOverdue: boolean | "" | undefined;
   canMutate: boolean;
   setSelectedTask: Dispatch<SetStateAction<Task | null>>;
@@ -142,14 +142,33 @@ export const TaskRow = ({
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2 md:gap-3">
-          <Avatar className="h-7 w-7 md:h-8 md:w-8 rounded-lg shadow-sm">
-            <AvatarImage src={assignee?.avatarUrl} />
-            <AvatarFallback className="bg-primary/5 text-primary text-[10px] md:text-xs font-bold rounded-lg border border-primary/10">
-              {assignee?.name.charAt(0) || "?"}
-            </AvatarFallback>
-          </Avatar>
+          {assignees.length > 0 ? (
+            <div className="flex items-center -space-x-2">
+              {assignees.slice(0, 3).map((a) => (
+                <Avatar key={a.id} className="h-7 w-7 md:h-8 md:w-8 rounded-lg shadow-sm border border-background">
+                  <AvatarImage src={a.avatarUrl} />
+                  <AvatarFallback className="bg-primary/5 text-primary text-[10px] md:text-xs font-bold rounded-lg border border-primary/10">
+                    {a.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {assignees.length > 3 && (
+                <div className="h-7 w-7 md:h-8 md:w-8 rounded-lg bg-muted flex items-center justify-center text-[9px] font-bold border border-background">
+                  +{assignees.length - 3}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-7 w-7 md:h-8 md:w-8 rounded-lg border border-dashed border-muted-foreground/30 flex items-center justify-center">
+              <User className="size-3.5 text-muted-foreground/40" />
+            </div>
+          )}
           <span className="text-[13px] font-medium text-foreground/90 whitespace-nowrap">
-            {assignee?.name || "Unassigned"}
+            {assignees.length === 0 
+              ? "Unassigned" 
+              : assignees.length === 1 
+                ? assignees[0].name 
+                : `${assignees.length} members`}
           </span>
         </div>
       </TableCell>
