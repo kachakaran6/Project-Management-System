@@ -60,19 +60,48 @@ interface StatCardProps {
   value: string | number;
   icon: React.ElementType;
   sub?: string;
+  variant?: "blue" | "amber" | "emerald" | "primary";
 }
 
-function StatCard({ label, value, icon: Icon, sub }: StatCardProps) {
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  sub,
+  variant = "primary",
+}: StatCardProps) {
+  const variants = {
+    primary: "bg-primary/10 text-primary border-primary/20",
+    blue: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    amber: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+    emerald: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  };
+
   return (
-    <Card>
-      <CardContent className="flex items-center gap-4 pt-5">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-          <Icon className="size-6 text-primary" />
-        </div>
-        <div>
-          <p className="text-2xl font-bold">{value}</p>
-          <p className="text-sm text-muted-foreground">{label}</p>
-          {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+    <Card className="overflow-hidden border-border/40 hover:border-border/80 transition-all duration-300 group bg-card/40 backdrop-blur-md">
+      <CardContent className="p-0">
+        <div className="flex flex-col md:flex-row items-center justify-center md:justify-start aspect-square md:aspect-auto p-3 md:p-6 md:pt-5 gap-1.5 md:gap-4 relative overflow-hidden">
+          <div
+            className={cn(
+              "flex h-9 w-9 md:h-12 md:w-12 items-center justify-center rounded-2xl md:rounded-xl border shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg",
+              variants[variant],
+            )}
+          >
+            <Icon className="size-5 md:size-6" />
+          </div>
+          <div className="flex flex-col items-center md:items-start min-w-0 w-full overflow-hidden text-center md:text-left">
+            <span className="text-lg md:text-2xl font-bold tracking-tight text-foreground/90 group-hover:text-foreground transition-colors">
+              {value}
+            </span>
+            <span className="text-[9px] md:text-sm text-muted-foreground font-semibold truncate w-full uppercase md:normal-case tracking-wider md:tracking-normal opacity-70 group-hover:opacity-100 transition-opacity">
+              {label}
+            </span>
+            {sub && (
+              <p className="hidden md:block text-xs text-muted-foreground truncate w-full mt-1">
+                {sub}
+              </p>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -125,23 +154,30 @@ export default function DashboardPage() {
 
       {/* Stats */}
       {projectsQuery.isLoading || tasksQuery.isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-28 rounded-2xl border border-border/40" />
-          <Skeleton className="h-28 rounded-2xl border border-border/40" />
-          <Skeleton className="h-28 rounded-2xl border border-border/40" />
+        <div className="grid grid-cols-3 gap-2 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
+          <Skeleton className="aspect-square md:h-28 rounded-xl md:rounded-2xl border border-border/40" />
+          <Skeleton className="aspect-square md:h-28 rounded-xl md:rounded-2xl border border-border/40" />
+          <Skeleton className="aspect-square md:h-28 rounded-xl md:rounded-2xl border border-border/40" />
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
           <StatCard
             label="Total Projects"
             value={projects.length}
             icon={BriefcaseBusiness}
+            variant="blue"
           />
-          <StatCard label="Active Tasks" value={activeTasks} icon={Clock3} />
+          <StatCard
+            label="Active Tasks"
+            value={activeTasks}
+            icon={Clock3}
+            variant="amber"
+          />
           <StatCard
             label="Completed Tasks"
             value={completedTasks}
             icon={CheckCircle2}
+            variant="emerald"
           />
         </div>
       )}

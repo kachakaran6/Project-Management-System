@@ -347,6 +347,44 @@ function MetricCard({
   );
 }
 
+function CustomChartTooltip({ active, payload, label, total }: any) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const value = payload[0].value;
+    const name = data.name || label;
+    const percentage =
+      total && total > 0 ? Math.round((value / total) * 100) : null;
+
+    return (
+      <div className="animate-in fade-in rounded-[10px] border border-white/10 bg-[#1E1E2F] p-2.5 px-3 shadow-[0_8px_24px_rgba(0,0,0,0.4)] backdrop-blur-md duration-150 ring-1 ring-white/5">
+        <div className="flex flex-col gap-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white opacity-60">
+            {name}
+          </p>
+          <div className="flex items-center gap-2">
+            <div
+              className="size-2 shrink-0 rounded-full"
+              style={{ backgroundColor: payload[0].color || data.color }}
+            />
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-bold text-white">{value}</span>
+              <span className="text-[11px] font-medium text-gray-400">
+                items
+              </span>
+              {percentage !== null && (
+                <span className="ml-1.5 text-[11px] font-bold text-primary/90">
+                  {percentage}%
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 function TaskRow({ task, label }: { task: Task; label: string }) {
   const creatorName = getTaskCreatorName(task);
   return (
@@ -908,15 +946,16 @@ export default function YourWorkPage() {
                               fontSize: 12,
                             }}
                           />
-                          <Tooltip
-                            cursor={{ fill: "transparent" }}
-                            contentStyle={{
-                              backgroundColor: "hsl(var(--card))",
-                              border: "1px solid hsl(var(--border))",
-                              borderRadius: 12,
-                              color: "hsl(var(--card-foreground))",
-                            }}
-                          />
+                            <Tooltip
+                              cursor={{ fill: "transparent" }}
+                              content={
+                                <CustomChartTooltip
+                                  total={derived.relevantTasks.length}
+                                />
+                              }
+                              offset={12}
+                              allowEscapeViewBox={{ x: true, y: true }}
+                            />
                           <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                             {derived.priorityChartData.map((entry) => (
                               <Cell key={entry.name} fill={entry.color} />
@@ -959,12 +998,13 @@ export default function YourWorkPage() {
                               ))}
                             </Pie>
                             <Tooltip
-                              contentStyle={{
-                                backgroundColor: "hsl(var(--card))",
-                                border: "1px solid hsl(var(--border))",
-                                borderRadius: 12,
-                                color: "hsl(var(--card-foreground))",
-                              }}
+                              content={
+                                <CustomChartTooltip
+                                  total={derived.relevantTasks.length}
+                                />
+                              }
+                              offset={12}
+                              allowEscapeViewBox={{ x: true, y: true }}
                             />
                           </PieChart>
                         </ResponsiveContainer>
