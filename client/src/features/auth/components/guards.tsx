@@ -1,15 +1,15 @@
-﻿"use client";
+"use client";
 
-import { useAuthStore } from "@/store/auth-store";
 import { useRouter, usePathname } from "@/lib/next-navigation";
 import { useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * AuthGuard: Only allows authenticated users to access children.
  * Redirects to /login if not authenticated.
  */
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, loading: isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -37,7 +37,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
  * Redirects to /dashboard if already authenticated.
  */
 export function GuestGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, loading: isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -61,10 +61,9 @@ export function RoleGuard({
   children: React.ReactNode;
   allowedRoles: ("SUPER_ADMIN" | "ADMIN" | "MANAGER" | "MEMBER")[];
 }) {
-  const { getActiveOrg } = useAuthStore();
-  const activeOrg = getActiveOrg();
+  const { activeOrg } = useAuth();
 
-  if (!activeOrg || !allowedRoles.includes(activeOrg.role)) {
+  if (!activeOrg || !allowedRoles.includes(activeOrg.role as any)) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] text-center p-6">
         <h2 className="text-2xl font-bold text-destructive">Access Denied</h2>

@@ -1,26 +1,26 @@
 "use client";
 
-import { useAuthStore } from "@/store/auth-store";
 import { useCallback } from "react";
-import { authApi } from "@/features/auth/api/auth.api";
 import { toast } from "sonner";
+import { useAppDispatch } from "@/hooks/useAppDispatch";
+import { useAppSelector } from "@/hooks/useAppSelector";
+import { logout as logoutAction } from "@/features/auth/authSlice";
 import {
   Permission,
   hasPermission as checkPermission,
 } from "../utils/permissions";
 
 export function useAuth() {
+  const dispatch = useAppDispatch();
   const {
     user,
     isAuthenticated,
-    isLoading,
+    loading: isLoading,
     organizations,
     activeOrgId,
-    logout: clearAuthState,
-    getActiveOrg,
-  } = useAuthStore();
+  } = useAppSelector((state) => state.auth);
 
-  const activeOrg = getActiveOrg();
+  const activeOrg = organizations.find((org) => org.id === activeOrgId) || null;
   const platformRole = user?.role;
   const orgRole = activeOrg?.role;
 
@@ -42,14 +42,12 @@ export function useAuth() {
 
   const logout = useCallback(async () => {
     try {
-      await authApi.logout();
+      await dispatch(logoutAction());
     } catch (error) {
       console.error("Logout API failed, clearing local session anyway.", error);
       toast.warning("Session cleared locally.");
-    } finally {
-      clearAuthState();
     }
-  }, [clearAuthState]);
+  }, [dispatch]);
 
   return {
     user,
