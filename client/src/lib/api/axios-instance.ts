@@ -10,7 +10,6 @@ import {
   logApiRequest,
   logApiResponse,
 } from "@/lib/api/api-debug";
-import { useAuthStore } from "@/store/auth-store";
 import { ApiResponse } from "@/types/api.types";
 import { RefreshResponse } from "@/types/auth.types";
 
@@ -43,10 +42,6 @@ const API_URL =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? "http://localhost:5001/api/v1" : "/api/v1");
 
-type RetriableRequestConfig = InternalAxiosRequestConfig & {
-  _retry?: boolean;
-};
-
 export const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
@@ -60,7 +55,9 @@ const authChannel = typeof window !== "undefined" ? new BroadcastChannel("auth_r
 if (authChannel) {
   authChannel.onmessage = (event) => {
     if (event.data.type === "REFRESH_SUCCESS") {
-      useAuthStore.getState().setAccessToken(event.data.accessToken);
+      const token = event.data.accessToken;
+      localStorage.setItem("token", token);
+      window.dispatchEvent(new CustomEvent("auth-token-refreshed", { detail: token }));
     }
   };
 }
@@ -73,8 +70,11 @@ async function refreshAccessToken(): Promise<string | null> {
     const response = await api.post<ApiResponse<RefreshResponse>>("/auth/refresh", {}, { withCredentials: true });
     const token = response.data.data.accessToken;
     
-    // Update local store
-    useAuthStore.getState().setAccessToken(token);
+    // Update local storage
+    localStorage.setItem("token", token);
+    
+    // Dispatch event for components to react
+    window.dispatchEvent(new CustomEvent("auth-token-refreshed", { detail: token }));
 
     // Notify other tabs via BroadcastChannel
     authChannel?.postMessage({ type: "REFRESH_SUCCESS", accessToken: token });
@@ -82,11 +82,13 @@ async function refreshAccessToken(): Promise<string | null> {
     return token;
   } catch (error: any) {
     if (error.response?.status === 401) {
-      const { isAuthenticated, clearAuth } = useAuthStore.getState();
-      if (isAuthenticated) {
+      const hasToken = !!localStorage.getItem("token");
+      if (hasToken) {
         toast.error("Session expired. Please sign in again.");
       }
-      clearAuth();
+      localStorage.removeItem("token");
+      localStorage.removeItem("activeOrgId");
+      window.dispatchEvent(new CustomEvent("auth-logout"));
     }
     return null;
   }
@@ -94,7 +96,8 @@ async function refreshAccessToken(): Promise<string | null> {
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const { accessToken, activeOrgId } = useAuthStore.getState();
+    const accessToken = localStorage.getItem("token");
+    const activeOrgId = localStorage.getItem("activeOrgId");
     const requestUrl = config.url ?? "";
     const isAuthRoute = requestUrl.startsWith("/auth");
 
