@@ -1,5 +1,6 @@
 import express from 'express';
 import * as authController from './auth.controller.js';
+import * as oauthController from './oauth.controller.js';
 import { requireAuth } from '../../middlewares/auth.middleware.js';
 
 const router = express.Router();
@@ -11,6 +12,12 @@ router.post('/refresh',         authController.refresh);
 router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password',  authController.resetPassword);
 router.get('/verify-email',     authController.verifyEmail);
+
+// ── OAuth routes ──────────────────────────────────────────────────────────────
+router.get('/google',           oauthController.googleAuth);
+router.post('/google/callback', oauthController.googleCallback);
+router.get('/github',           oauthController.githubAuth);
+router.post('/github/callback', oauthController.githubCallback);
 
 // ── OTP routes ────────────────────────────────────────────────────────────────
 router.post('/send-otp',        authController.sendOtp);

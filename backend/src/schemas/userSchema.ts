@@ -11,7 +11,13 @@ const userSchema = new mongoose.Schema({
     trim: true,
     index: true 
   },
-  password: { type: String, required: true, select: false },
+  password: { type: String, required: false, select: false },
+  provider: { 
+    type: String, 
+    enum: ['local', 'google', 'github'], 
+    default: 'local' 
+  },
+  providerId: { type: String, index: true },
   role: { 
     type: String, 
     enum: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'MEMBER', 'USER'], 
