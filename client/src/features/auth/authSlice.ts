@@ -9,6 +9,7 @@ interface AuthState {
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
+  isCookieBlocked: boolean;
 }
 
 const initialState: AuthState = {
@@ -19,6 +20,7 @@ const initialState: AuthState = {
   isAuthenticated: false,
   loading: !!localStorage.getItem("token"),
   error: null,
+  isCookieBlocked: false,
 };
 
 export const loginUser = createAsyncThunk(
@@ -45,6 +47,32 @@ export const fetchMe = createAsyncThunk(
   }
 );
 
+export const handleOAuthCallback = createAsyncThunk(
+  "auth/oauthCallback",
+  async ({ provider, code }: { provider: string; code: string }, { rejectWithValue }) => {
+    try {
+      const response = provider === "google" 
+        ? await authAPI.googleCallback(code)
+        : await authAPI.githubCallback(code);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || "OAuth login failed");
+    }
+  }
+);
+
+export const logoutAllDevices = createAsyncThunk(
+  "auth/logoutAll",
+  async (_, { rejectWithValue }) => {
+    try {
+      await authAPI.logoutAll();
+      return true;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || "Logout failed");
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -65,12 +93,16 @@ const authSlice = createSlice({
       state.activeOrgId = null;
       state.isAuthenticated = false;
       localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
       localStorage.removeItem("activeOrgId");
     },
     oauthLogin: (state, action: PayloadAction<string>) => {
       state.token = action.payload;
       state.isAuthenticated = true;
       localStorage.setItem("token", action.payload);
+    },
+    setCookieBlocked: (state, action: PayloadAction<boolean>) => {
+      state.isCookieBlocked = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -82,7 +114,7 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
-        const { user, accessToken, organizations } = action.payload.data;
+        const { user, accessToken, refreshToken, organizations } = action.payload.data;
         state.user = user;
         state.token = accessToken;
         state.organizations = organizations || [];
@@ -90,9 +122,32 @@ const authSlice = createSlice({
         state.activeOrgId = activeOrgId;
         state.isAuthenticated = true;
         localStorage.setItem("token", accessToken);
+        if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
         if (activeOrgId) localStorage.setItem("activeOrgId", activeOrgId);
       })
       .addCase(loginUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // OAuth Callback
+      .addCase(handleOAuthCallback.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(handleOAuthCallback.fulfilled, (state, action) => {
+        state.loading = false;
+        const { user, accessToken, refreshToken, organizations } = action.payload.data;
+        state.user = user;
+        state.token = accessToken;
+        state.organizations = organizations || [];
+        const activeOrgId = organizations?.[0]?.id || null;
+        state.activeOrgId = activeOrgId;
+        state.isAuthenticated = true;
+        localStorage.setItem("token", accessToken);
+        if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
+        if (activeOrgId) localStorage.setItem("activeOrgId", activeOrgId);
+      })
+      .addCase(handleOAuthCallback.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
@@ -116,9 +171,21 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.token = null;
         localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+      })
+      // Logout All
+      .addCase(logoutAllDevices.fulfilled, (state) => {
+        state.user = null;
+        state.token = null;
+        state.organizations = [];
+        state.activeOrgId = null;
+        state.isAuthenticated = false;
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("activeOrgId");
       });
   },
 });
 
-export const { setToken, logout, oauthLogin, setActiveOrgId } = authSlice.actions;
+export const { setToken, logout, oauthLogin, setActiveOrgId, setCookieBlocked } = authSlice.actions;
 export default authSlice.reducer;

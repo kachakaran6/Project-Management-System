@@ -13,7 +13,7 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { Separator } from "@/components/ui/separator";
 import { EditableSelect } from "@/components/editable/EditableSelect";
-import { EditableUserSelect } from "@/components/editable/EditableUserSelect";
+import { EditableMultiUserSelect } from "@/components/editable/EditableMultiUserSelect";
 import { EditableDate } from "@/components/editable/EditableDate";
 import { TagSelect } from "@/features/tags/components/tag-select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -53,12 +53,12 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
     updateTaskMutation.mutate({ id: task.id || (task as any)._id, data });
   };
 
-  const currentAssignee = task.assigneeUsers?.[0] ? {
-    id: task.assigneeUsers[0].id,
-    name: task.assigneeUsers[0].name,
-    email: task.assigneeUsers[0].email,
-    avatarUrl: task.assigneeUsers[0].avatarUrl
-  } : undefined;
+  const currentAssignees = (task.assigneeUsers || []).map(u => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    avatarUrl: u.avatarUrl
+  }));
 
   const isSaving = updateTaskMutation.isPending;
 
@@ -96,17 +96,17 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
         </div>
       </div>
 
-      {/* Assignee */}
+      {/* Assignees */}
       <div className="grid grid-cols-3 items-center group min-h-10">
         <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
           <User className="size-4 opacity-70" />
-          <span>Assignee</span>
+          <span>Assignees</span>
         </div>
         <div className="col-span-2">
-          <EditableUserSelect
-            value={currentAssignee}
+          <EditableMultiUserSelect
+            value={currentAssignees}
             options={members}
-            onChange={(userId) => handleUpdate({ assigneeIds: userId ? [userId] : [] })}
+            onChange={(userIds) => handleUpdate({ assigneeIds: userIds })}
             isSaving={isSaving}
           />
         </div>

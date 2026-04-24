@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "@/lib/next-navigation";
@@ -13,6 +13,7 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { organizationMembersApi, type OrganizationInviteRecord } from "@/features/organization/api/organization-members.api";
 import { useSwitchOrganizationMutation } from "@/features/organization/hooks/use-org-query";
 import { cn } from "@/lib/utils";
+import { SocialAuth } from "@/features/auth/components/social-auth";
 
 function roleLabel(role?: string) {
   if (role === "ADMIN") return "Admin";
@@ -196,6 +197,9 @@ export default function PublicInvitePage() {
                             Sign in to continue
                             <ArrowRight className="h-4 w-4" />
                           </Button>
+                        </div>
+                        <div className="mt-6">
+                          <SocialAuth />
                         </div>
                       </div>
                     ) : (

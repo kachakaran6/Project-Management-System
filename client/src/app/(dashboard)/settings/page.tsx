@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/app/store";
+import { logoutAllDevices } from "@/features/auth/authSlice";
 import {
   User,
   KeyRound,
@@ -1275,6 +1278,7 @@ function BillingSection() {
 // ─── 8. SECURITY SECTION ─────────────────────────────────────────────────────
 
 function SecuritySection() {
+  const dispatch = useDispatch<AppDispatch>();
   const { logout } = useAuth();
   const queryClient = useQueryClient();
 
@@ -1296,13 +1300,13 @@ function SecuritySection() {
   });
 
   const logoutAllMutation = useMutation({
-    mutationFn: () => authApi.logoutAllSessions(),
+    mutationFn: () => dispatch(logoutAllDevices()).unwrap(),
     onSuccess: async () => {
-      toast.success("Logged out from all devices.");
-      await logout();
+      toast.success("Successfully logged out from all devices.");
+      window.location.href = "/login";
     },
-    onError: () => {
-      toast.error("Failed to logout from all devices.");
+    onError: (error: any) => {
+      toast.error(error || "Failed to logout from all devices.");
     },
   });
 
@@ -2040,4 +2044,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
 

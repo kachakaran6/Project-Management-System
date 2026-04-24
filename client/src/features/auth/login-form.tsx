@@ -11,6 +11,7 @@ import {Button} from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { loginUser } from "@/features/auth/authSlice";
 import { toast } from "sonner";
+import { SocialAuth } from "./components/social-auth";
 
 export function LoginForm() {
   const router = useRouter();
@@ -102,6 +103,7 @@ export function LoginForm() {
                   ? "Logging in..."
                   : "Sign In"}
               </Button>
+              <SocialAuth />
             </div>
           )}
         </FormWrapper>
