@@ -28,7 +28,7 @@ const taskSchema = new mongoose.Schema({
   },
   creatorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   status: { 
-    type: mongoose.Schema.Types.Mixed, 
+    type: mongoose.Schema.Types.ObjectId, 
     ref: 'Status',
     required: true,
     index: true

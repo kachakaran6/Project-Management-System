@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "@/lib/next-link";
 import { useRouter } from "@/lib/next-navigation";
@@ -43,9 +43,9 @@ export function NotificationBell() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="relative h-10 w-10 rounded-full border-border/70 bg-card shadow-sm"
+          className="relative h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full md:border md:border-border/70 md:bg-card md:shadow-sm text-muted-foreground hover:text-foreground md:hover:bg-primary/5 transition-all"
           aria-label="Notifications"
         >
           <Bell className="size-4" />

@@ -34,7 +34,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useTasksQuery } from "@/features/tasks/hooks/use-tasks-query";
+import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { Task, TaskPriority } from "@/types/task.types";
+import { resolveStatus, filterVisibleTasks, normalizeId } from "@/features/tasks/utils/resolve-status";
 
 type WorkTab = "summary" | "assigned" | "created" | "activity" | "visualize";
 
@@ -53,7 +55,8 @@ const PRIORITY_COLORS: Record<TaskPriority, string> = {
   LOW: "#64748b",
 };
 
-const STATUS_LABELS: Record<string, string> = {
+// Fallbacks for legacy/system statuses if dynamic ones aren't loaded or matching
+const FALLBACK_STATUS_LABELS: Record<string, string> = {
   BACKLOG: "Backlog",
   TODO: "Not Started",
   IN_PROGRESS: "In Progress",
@@ -63,7 +66,7 @@ const STATUS_LABELS: Record<string, string> = {
   REJECTED: "Cancelled",
 };
 
-const STATUS_COLORS: Record<string, string> = {
+const FALLBACK_STATUS_COLORS: Record<string, string> = {
   BACKLOG: "#94a3b8",
   TODO: "#3b82f6",
   IN_PROGRESS: "#f59e0b",
@@ -73,26 +76,7 @@ const STATUS_COLORS: Record<string, string> = {
   REJECTED: "#ef4444",
 };
 
-const STATUS_CARD_LABELS: Record<string, string> = {
-  BACKLOG: "Backlog",
-  TODO: "Todo",
-  IN_PROGRESS: "In Progress",
-  IN_REVIEW: "In Review",
-  DONE: "Done",
-  ARCHIVED: "Archived",
-};
-
-const WORKLOAD_STATUS_ORDER = {
-  BACKLOG: 0,
-  TODO: 1,
-  IN_PROGRESS: 2,
-  IN_REVIEW: 3,
-  DONE: 4,
-  ARCHIVED: 5,
-  REJECTED: 6,
-} as const;
-
-const WORKLOAD_STATUS_ITEMS = [
+const FALLBACK_WORKLOAD_STATUS_ITEMS = [
   "BACKLOG",
   "TODO",
   "IN_PROGRESS",
@@ -312,7 +296,7 @@ function getTaskAssigneeIds(task: Task) {
 function getTaskStatusLabel(status: any) {
   if (!status) return "Unknown";
   if (typeof status === 'object') return status.name || "Unknown";
-  return STATUS_LABELS[status as string] ?? String(status).replace(/_/g, " ");
+  return FALLBACK_STATUS_LABELS[status as string] ?? String(status).replace(/_/g, " ");
 }
 
 function MetricCard({
@@ -405,7 +389,7 @@ function TaskRow({ task, label }: { task: Task; label: string }) {
           </Badge>
         </div>
         <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{task.priority}</span>
+          <span>{typeof task.priority === 'object' ? (task.priority as any).name || (task.priority as any).label : String(task.priority)}</span>
           <span>•</span>
           <span>{getTaskStatusLabel(task.status)}</span>
           {task.dueDate ? (
@@ -466,16 +450,19 @@ export default function YourWorkPage() {
   const effectiveUserId = viewingUserId === "me" ? user?.id : viewingUserId;
   const userId = user?.id;
 
+  const { data: dynamicStatuses = [] } = useStatusesQuery();
+
   const tasksQuery = useTasksQuery(
     { 
       page: 1, 
       limit: 500,
       userId: viewingUserId === "me" ? undefined : viewingUserId 
     },
-    { enabled: Boolean(user?.id), staleTime: 60_000 },
+    { enabled: Boolean(user?.id), staleTime: 10_000 },
   );
 
-  const tasks = tasksQuery.data?.data.items ?? [];
+  const allTasks = tasksQuery.data?.data.items ?? [];
+  const tasks = useMemo(() => filterVisibleTasks(allTasks), [allTasks]);
 
   const derived = useMemo(() => {
     const created: Task[] = [];
@@ -513,8 +500,8 @@ export default function YourWorkPage() {
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
 
+    // Normalize counts using dynamic statuses
     const rawStatusCounts = new Map<string, number>();
-
     const priorityCounts: Record<TaskPriority, number> = {
       LOW: 0,
       MEDIUM: 0,
@@ -523,22 +510,26 @@ export default function YourWorkPage() {
     };
 
     for (const task of relevantTasks) {
-      rawStatusCounts.set(task.status, (rawStatusCounts.get(task.status) ?? 0) + 1);
+      const resolved = resolveStatus(task, dynamicStatuses);
+      const statusId = resolved ? normalizeId(resolved._id) || normalizeId(resolved.id) : normalizeId(task.status);
+      if (statusId) {
+        rawStatusCounts.set(statusId, (rawStatusCounts.get(statusId) ?? 0) + 1);
+      }
       priorityCounts[task.priority] += 1;
     }
 
     const statusChartData = Array.from(rawStatusCounts.entries())
-      .sort((left, right) => {
-        const leftIndex = WORKLOAD_STATUS_ORDER[left[0] as keyof typeof WORKLOAD_STATUS_ORDER] ?? 999;
-        const rightIndex = WORKLOAD_STATUS_ORDER[right[0] as keyof typeof WORKLOAD_STATUS_ORDER] ?? 999;
-        return leftIndex - rightIndex;
+      .map(([statusId, value]) => {
+        const s = dynamicStatuses.find(ds => (ds.id || ds._id) === statusId);
+        return {
+          status: statusId,
+          name: s?.name || FALLBACK_STATUS_LABELS[statusId] || statusId,
+          value,
+          color: s?.color || FALLBACK_STATUS_COLORS[statusId] || "#94a3b8",
+          order: s?.order ?? 999
+        };
       })
-      .map(([status, value]) => ({
-        status,
-        name: getTaskStatusLabel(status),
-        value,
-        color: STATUS_COLORS[status] ?? "#94a3b8",
-      }));
+      .sort((a, b) => a.order - b.order);
 
     const priorityChartData = ["URGENT", "HIGH", "MEDIUM", "LOW"].map(
       (priority) => ({
@@ -549,36 +540,17 @@ export default function YourWorkPage() {
     );
 
     // Calculate project summaries based on selected scope
-    const projectMap = new Map<
-      string,
-      {
-        id: string;
-        name: string;
-        total: number;
-        completed: number;
-        inProgress: number;
-        backlog: number;
-        todo: number;
-        review: number;
-        archived: number;
-        rejected: number;
-      }
-    >();
-
+    const projectMap = new Map<string, any>();
     const scopeTasks = projectScope === "my" ? relevantTasks : tasks;
 
     for (const task of scopeTasks) {
       const id = getTaskProjectId(task);
-      if (!id) {
-        continue;
-      }
+      if (!id) continue;
 
       const existing = projectMap.get(id);
-      const projectName = getTaskProjectName(task);
-
       const summary = existing ?? {
         id,
-        name: projectName ?? "Unknown project",
+        name: getTaskProjectName(task) ?? "Unknown project",
         total: 0,
         completed: 0,
         inProgress: 0,
@@ -590,68 +562,56 @@ export default function YourWorkPage() {
       };
 
       summary.total += 1;
-      if (projectName && summary.name === "Unknown project") {
-        summary.name = projectName;
-      }
-
-      switch (task.status) {
-        case "DONE":
-          summary.completed += 1;
-          break;
-        case "IN_PROGRESS":
-          summary.inProgress += 1;
-          break;
-        case "BACKLOG":
-          summary.backlog += 1;
-          break;
-        case "TODO":
-          summary.todo += 1;
-          break;
-        case "IN_REVIEW":
-          summary.review += 1;
-          break;
-        case "ARCHIVED":
-          summary.archived += 1;
-          break;
-        case "REJECTED":
-          summary.rejected += 1;
-          break;
-        default:
-          break;
-      }
+      
+      const resolved = resolveStatus(task, dynamicStatuses);
+      const statusName = (resolved?.name || (typeof task.status === 'string' ? task.status : (task.status as any)?.name) || "").toUpperCase().replace(/[\s_-]/g, "");
+      
+      if (statusName === "DONE" || statusName === "COMPLETED") summary.completed += 1;
+      else if (statusName === "INPROGRESS") summary.inProgress += 1;
+      else if (statusName === "BACKLOG") summary.backlog += 1;
+      else if (statusName === "TODO" || statusName === "NOTSTARTED") summary.todo += 1;
+      else if (statusName === "INREVIEW" || statusName === "REVIEW") summary.review += 1;
+      else if (statusName === "ARCHIVED") summary.archived += 1;
+      else if (statusName === "REJECTED" || statusName === "CANCELLED") summary.rejected += 1;
 
       projectMap.set(id, summary);
     }
 
-    let projectSummaries = [...projectMap.values()]
-      .map((project) => ({
-        ...project,
-        completion: project.total > 0 ? Math.round((project.completed / project.total) * 100) : 0,
-      }));
+    let projectSummaries = [...projectMap.values()].map((project) => ({
+      ...project,
+      completion: project.total > 0 ? Math.round((project.completed / project.total) * 100) : 0,
+    }));
 
-    // Filter out Demo Project if other projects exist
     const nonDemoProjects = projectSummaries.filter(p => !p.name.toLowerCase().includes("demo"));
-    if (nonDemoProjects.length > 0) {
-      projectSummaries = nonDemoProjects;
-    }
+    if (nonDemoProjects.length > 0) projectSummaries = nonDemoProjects;
 
-    projectSummaries.sort((left, right) => {
-        const completionDelta = right.completion - left.completion;
-        if (completionDelta !== 0) return completionDelta;
-        return right.total - left.total;
-      });
+    projectSummaries.sort((a, b) => (b.completion - a.completion) || (b.total - a.total));
 
-      return {
-        created,
-        assigned,
-        relevantTasks,
-        rawStatusCounts,
-        priorityCounts,
-        statusChartData,
-        priorityChartData,
-        projectSummaries,
-      };
-    }, [tasks, user?.id, viewingUserId, projectScope]);
+    const workloadItems = dynamicStatuses.length > 0 
+      ? [...dynamicStatuses].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          .map(s => ({
+            id: normalizeId(s.id || s._id)!,
+            name: s.name,
+            color: s.color || "#94a3b8"
+          }))
+      : FALLBACK_WORKLOAD_STATUS_ITEMS.map(key => ({
+          id: key,
+          name: FALLBACK_STATUS_LABELS[key] || key,
+          color: FALLBACK_STATUS_COLORS[key] || "#94a3b8"
+        }));
+
+    return {
+      created,
+      assigned,
+      relevantTasks,
+      rawStatusCounts,
+      priorityCounts,
+      statusChartData,
+      priorityChartData,
+      projectSummaries,
+      workloadItems,
+    };
+  }, [tasks, user?.id, viewingUserId, projectScope, dynamicStatuses]);
 
   const recentActivity = [...derived.relevantTasks].slice(0, 8);
   const assignedTasks = [...derived.assigned].sort(
@@ -890,23 +850,23 @@ export default function YourWorkPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6">
-                  {WORKLOAD_STATUS_ITEMS.map((key) => (
+                  {derived.workloadItems.map((item) => (
                     <Card
-                      key={key}
+                      key={item.id}
                       className="border-border/60 bg-card/50 transition-colors hover:bg-card"
                     >
                       <CardContent className="flex h-full flex-col justify-center p-3 md:p-4">
                         <div className="flex items-center gap-2">
                           <div
                             className="size-1.5 shrink-0 rounded-full md:size-2"
-                            style={{ backgroundColor: STATUS_COLORS[key] }}
+                            style={{ backgroundColor: item.color }}
                           />
                           <p className="truncate text-[10px] font-medium text-muted-foreground md:text-[11px]">
-                            {STATUS_CARD_LABELS[key]}
+                            {item.name}
                           </p>
                         </div>
                         <p className="mt-1 text-lg font-bold text-foreground md:mt-2 md:text-2xl">
-                          {derived.rawStatusCounts.get(key) ?? 0}
+                          {derived.rawStatusCounts.get(item.id) ?? 0}
                         </p>
                       </CardContent>
                     </Card>
@@ -1033,7 +993,7 @@ export default function YourWorkPage() {
                               style={{ backgroundColor: entry.color }}
                             />
                             <span className="text-muted-foreground">
-                              {entry.status}
+                              {entry.name}
                             </span>
                           </div>
                           <span className="font-medium text-foreground">

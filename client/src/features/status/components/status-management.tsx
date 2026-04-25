@@ -38,6 +38,13 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { 
+  useStatusesQuery, 
+  useCreateStatusMutation, 
+  useUpdateStatusMutation, 
+  useDeleteStatusMutation, 
+  useReorderStatusesMutation 
+} from "@/features/status/hooks/use-statuses";
 
 function SortableStatusItem({ 
   status, 
@@ -372,8 +379,10 @@ export function StatusManagement() {
                     editingId={editingId}
                     editName={editName}
                     editColor={editColor}
+                    editHidden={editHidden}
                     setEditName={setEditName}
                     setEditColor={setEditColor}
+                    setEditHidden={setEditHidden}
                     handleUpdate={handleUpdate}
                     setEditingId={setEditingId}
                     handleDelete={handleDelete}

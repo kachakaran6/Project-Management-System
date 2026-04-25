@@ -107,6 +107,7 @@ import { TagSelect } from "@/features/tags/components/tag-select";
 import { useTagsQuery } from "@/features/tags/hooks/use-tags";
 import { TaskListSkeleton, TaskBoardSkeleton, TaskTableSkeleton } from "@/features/tasks/components/task-skeleton";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
+import { resolveStatus, filterVisibleTasks, normalizeId } from "@/features/tasks/utils/resolve-status";
 
 // Pagination Constants
 const DEFAULT_PAGE_SIZE = 10;
@@ -125,9 +126,16 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
 
   const [viewMode, setViewMode] = useState<TaskViewMode>(() => {
     if (typeof window === "undefined") return "kanban";
-    const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
-    if (saved === "table") return "table";
-    return "kanban";
+    const saved = window.localStorage.getItem(VIEW_STORAGE_KEY) as TaskViewMode;
+    const isMobileInitial = window.innerWidth < 768;
+
+    if (isMobileInitial) {
+      if (saved === "table" || saved === "list") return saved;
+      return "list"; // Kanban not allowed on mobile
+    } else {
+      if (saved === "kanban" || saved === "list") return saved;
+      return "kanban"; // Table not allowed on desktop
+    }
   });
 
   const [isMobile, setIsMobile] = useState(false);
@@ -140,18 +148,18 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   }, []);
 
   useEffect(() => {
+    if (isMobile && viewMode === "kanban") {
+      setViewMode("list");
+    } else if (!isMobile && viewMode === "table") {
+      setViewMode("list");
+    }
+  }, [isMobile, viewMode]);
+
+  useEffect(() => {
     if (fixedProjectId) {
       setProjectId(fixedProjectId);
     }
   }, [fixedProjectId]);
-
-  useEffect(() => {
-    if (isMobile && viewMode === "kanban") {
-      setViewMode("list");
-    } else if (!isMobile && viewMode === "list") {
-      setViewMode("kanban");
-    }
-  }, [isMobile, viewMode]);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -215,11 +223,11 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     if (dynamicStatuses.length > 0 && status !== "ALL" && status) {
       const isObjectId = /^[0-9a-fA-F]{24}$/.test(status);
       if (!isObjectId) {
-        const matched = dynamicStatuses.find((s: any) => 
-          s.name.toLowerCase().replace(/[\s_-]/g, "") === status.toLowerCase().replace(/[\s_-]/g, "")
-        );
+        const dummyTask = { status: status };
+        const matched = resolveStatus(dummyTask, dynamicStatuses);
         if (matched) {
-          setStatus(matched.id || (matched as any)._id);
+          const matchedId = normalizeId(matched._id) || normalizeId(matched.id);
+          if (matchedId) setStatus(matchedId);
         }
       }
     }
@@ -231,13 +239,13 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     else params.delete("status");
     if (priority !== "ALL") params.set("priority", priority);
     else params.delete("priority");
-    
+
     // Only update projectId param if it's NOT fixed
     if (!fixedProjectId) {
       if (projectId !== "ALL") params.set("projectId", projectId);
       else params.delete("projectId");
     }
-    
+
     if (assigneeId !== "ALL") params.set("assigneeId", assigneeId);
     else params.delete("assigneeId");
     if (creatorId !== "ALL") params.set("creatorId", creatorId);
@@ -246,7 +254,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     else params.delete("dueDate");
     if (tagIds.length > 0) params.set("tagIds", tagIds.join(","));
     else params.delete("tagIds");
-    
+
     // Pagination params
     if (page > 1) params.set("page", String(page));
     else params.delete("page");
@@ -290,12 +298,12 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   });
 
   const totalPages = Math.max(1, listQuery.data?.data.meta?.totalPages ?? 1);
-  const listRows = listQuery.data?.data.items ?? [];
-  const kanbanRows = kanbanQuery.data?.data.items ?? [];
+  const listRows = useMemo(() => filterVisibleTasks(listQuery.data?.data.items ?? []), [listQuery.data]);
+  const kanbanRows = useMemo(() => filterVisibleTasks(kanbanQuery.data?.data.items ?? []), [kanbanQuery.data]);
 
   const getTaskId = (task: Task) => String(task.id || (task as any)._id || "");
   const getAssignees = (task: Task) => task.assigneeUsers ?? [];
-  
+
   const getStatusName = (status: any) => {
     if (!status) return "Unknown";
     if (typeof status === 'object') return status.name || "Unknown";
@@ -469,7 +477,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-4 rounded-3xl shadow-2xl border-border/40 bg-card/95 backdrop-blur-xl" align="start">
-                  <FilterContent 
+                  <FilterContent
                     status={status} setStatus={setStatus}
                     priority={priority} setPriority={setPriority}
                     projectId={projectId} setProjectId={setProjectId}
@@ -488,7 +496,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
             )}
 
             {isMobile && (
-              <FilterDrawer 
+              <FilterDrawer
                 status={status} setStatus={setStatus}
                 priority={priority} setPriority={setPriority}
                 projectId={projectId} setProjectId={setProjectId}
@@ -514,33 +522,47 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
 
           <div className="flex items-center gap-2.5">
             {/* View Switcher - Premium Toggle */}
-            {!isMobile && (
-              <div className="inline-flex rounded-2xl border border-border/40 bg-muted/10 p-1 h-10 items-center shadow-inner-sm">
+            <div className="inline-flex rounded-2xl border border-border/40 bg-muted/10 p-1 h-10 items-center shadow-inner-sm">
+              {!isMobile && (
                 <Button
                   variant={viewMode === "kanban" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("kanban")}
                   className={cn(
-                    "h-8 px-4 rounded-xl text-[11px] gap-1.5 font-black transition-all",
+                    "h-8 px-4 rounded-xl text-[11px] gap-1.5 font-black transition-all shrink-0",
                     viewMode === "kanban" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <Kanban className="size-3.5" /> Board
+                  <Kanban className="size-3.5" /> <span className={cn(isMobile && "hidden")}>Board</span>
                 </Button>
+              )}
 
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className={cn(
+                  "h-8 px-4 rounded-xl text-[11px] gap-1.5 font-black transition-all shrink-0",
+                  viewMode === "list" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <List className="size-3.5" /> <span className={cn(isMobile && "hidden")}>List</span>
+              </Button>
+
+              {isMobile && (
                 <Button
                   variant={viewMode === "table" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("table")}
                   className={cn(
-                    "h-8 px-4 rounded-xl text-[11px] gap-1.5 font-black transition-all",
+                    "h-8 px-4 rounded-xl text-[11px] gap-1.5 font-black transition-all shrink-0",
                     viewMode === "table" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <TableIcon className="size-3.5" /> Table
+                  <TableIcon className="size-3.5" /> <span className={cn(isMobile && "hidden")}>Table</span>
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Export Menu */}
             <DropdownMenu>
@@ -574,7 +596,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               <CreateTaskModal
                 defaultProjectId={projectId !== "ALL" ? projectId : undefined}
                 trigger={
-                  <Button size="sm" className="h-10 rounded-2xl font-black px-6 shadow-premium bg-primary text-primary-foreground hover:scale-[1.02] active:scale-95 transition-all">
+                  <Button size="sm" className="hidden md:inline-flex h-10 rounded-2xl font-black px-6 shadow-premium bg-primary text-primary-foreground hover:scale-[1.02] active:scale-95 transition-all">
                     New Task
                   </Button>
                 }
@@ -660,7 +682,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
       >
         {(viewMode === "list" || viewMode === "table") && (
           <>
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 relative bg-card/20 rounded-2xl border border-border/40 shadow-inner-sm">
+            <div className="flex-1 overflow-auto custom-scrollbar pr-1 relative bg-card/20 rounded-2xl border border-border/40 shadow-inner-sm">
               {listQuery.isLoading ? (
                 <div className="animate-in fade-in duration-500">
                   {viewMode === "table" ? <TaskTableSkeleton /> : <div className="p-4"><TaskListSkeleton /></div>}
@@ -797,10 +819,10 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                   </div>
                                 )}
                                 <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[120px]">
-                                  {assignees.length === 0 
-                                    ? "Unassigned" 
-                                    : assignees.length === 1 
-                                      ? assignees[0].name 
+                                  {assignees.length === 0
+                                    ? "Unassigned"
+                                    : assignees.length === 1
+                                      ? assignees[0].name
                                       : `${assignees.length} members`}
                                 </span>
                               </div>
@@ -831,7 +853,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                     </div>
                   )}
                   {viewMode === "table" && (
-                     <div className="animate-in fade-in duration-500">
+                    <div className="animate-in fade-in duration-500">
                       <Table className="min-w-[1200px] border-separate border-spacing-0">
                         <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur-md shadow-sm">
                           <TableRow className="hover:bg-transparent border-0">
@@ -893,29 +915,29 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
             </div>
             <div className="shrink-0 py-3 flex items-center justify-between gap-2 border-t border-border/10 px-4 sm:px-0.5 bg-background sticky bottom-0 z-30 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-3">
               <div className="flex items-center gap-2">
-                 <Select 
-                    value={String(limit)} 
-                    onValueChange={(val) => {
-                      setLimit(parseInt(val));
-                      setPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="h-9 w-[105px] sm:w-28 rounded-xl bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
-                      <SelectValue placeholder="Limit" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/40">
-                      {PAGE_SIZE_OPTIONS.map(opt => (
-                        <SelectItem key={opt} value={String(opt)} className="text-xs font-medium">
-                          {opt} / page
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <span className="hidden md:inline text-[11px] text-muted-foreground/60 font-bold uppercase tracking-tight">
-                    Showing {listRows.length} tasks
-                  </span>
+                <Select
+                  value={String(limit)}
+                  onValueChange={(val) => {
+                    setLimit(parseInt(val));
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-[105px] sm:w-28 rounded-xl bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
+                    <SelectValue placeholder="Limit" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/40">
+                    {PAGE_SIZE_OPTIONS.map(opt => (
+                      <SelectItem key={opt} value={String(opt)} className="text-xs font-medium">
+                        {opt} / page
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="hidden md:inline text-[11px] text-muted-foreground/60 font-bold uppercase tracking-tight">
+                  Showing {listRows.length} tasks
+                </span>
               </div>
-              
+
               <div className="flex-1 sm:flex-none">
                 <PaginationMeta
                   page={page}
@@ -1014,21 +1036,21 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
 }
 
 // Helper components
-function FilterDrawer({ 
-  status, setStatus, 
-  priority, setPriority, 
+function FilterDrawer({
+  status, setStatus,
+  priority, setPriority,
   projectId, setProjectId,
-  assigneeId, setAssigneeId, 
-  creatorId, setCreatorId, 
-  dueDate, setDueDate, 
-  tagIds, setTagIds, 
-  activeFilterCount, 
-  membersQuery, 
+  assigneeId, setAssigneeId,
+  creatorId, setCreatorId,
+  dueDate, setDueDate,
+  tagIds, setTagIds,
+  activeFilterCount,
+  membersQuery,
   projectsQuery,
   allTags,
   dynamicStatuses,
   hideProjectFilter,
-  trigger 
+  trigger
 }: any) {
   const clearFilters = () => {
     setStatus("ALL");
@@ -1052,7 +1074,7 @@ function FilterDrawer({
             Narrow down tasks by specific criteria
           </SheetDescription>
         </SheetHeader>
-        
+
         <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-6 space-y-6">
           <FilterSelect label="Status" value={status} onChange={setStatus} options={[
             { v: "ALL", l: "All Statuses" },
@@ -1127,7 +1149,7 @@ function FilterDrawer({
           <div className="space-y-2">
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Due Date</label>
             <div className="w-full flex justify-start pl-1">
-               <DatePicker
+              <DatePicker
                 value={dueDate ? new Date(dueDate) : undefined}
                 onChange={(date) => setDueDate(date ? date.toISOString() : "")}
                 placeholder="Select date"
@@ -1139,7 +1161,7 @@ function FilterDrawer({
 
           <div className="space-y-2">
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Tags (AND Logic)</label>
-            <TagSelect 
+            <TagSelect
               selectedTagIds={tagIds}
               onChange={(ids) => {
                 setTagIds(ids);
@@ -1198,11 +1220,11 @@ function PaginationMeta({
         <ChevronLeft className="size-4 sm:hidden" />
         <span className="hidden sm:inline text-[11px] font-bold">Previous</span>
       </Button>
-      
+
       <div className="flex items-baseline px-2 sm:px-4 shrink-0">
         <span className="text-[13px] font-black text-foreground tracking-tighter">
           {page}
-          <span className="text-muted-foreground/40 font-medium mx-1 text-xs">/</span> 
+          <span className="text-muted-foreground/40 font-medium mx-1 text-xs">/</span>
           {totalPages}
         </span>
       </div>
@@ -1221,7 +1243,7 @@ function PaginationMeta({
   );
 }
 
-function FilterContent({ 
+function FilterContent({
   isMobileView = false,
   status, setStatus,
   priority, setPriority,
@@ -1329,7 +1351,7 @@ function FilterContent({
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Due Date</label>
           <div className="w-full flex justify-start pl-1">
-             <DatePicker
+            <DatePicker
               value={dueDate ? new Date(dueDate) : undefined}
               onChange={(date) => setDueDate(date ? date.toISOString() : "")}
               placeholder="Select date"
@@ -1341,7 +1363,7 @@ function FilterContent({
 
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Tags (AND Logic)</label>
-          <TagSelect 
+          <TagSelect
             selectedTagIds={tagIds}
             onChange={(ids) => {
               setTagIds(ids);
@@ -1359,13 +1381,13 @@ function FilterContent({
           Clear
         </Button>
         {!isMobileView && (
-           <PopoverClose asChild>
+          <PopoverClose asChild>
             <Button
               className="flex-1 h-10 rounded-xl text-xs font-bold shadow-lg shadow-primary/20"
             >
               Apply
             </Button>
-           </PopoverClose>
+          </PopoverClose>
         )}
       </div>
     </div>

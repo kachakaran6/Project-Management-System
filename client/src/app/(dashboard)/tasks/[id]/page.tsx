@@ -252,11 +252,15 @@ export default function TaskDetailsPage() {
         <CardContent className="space-y-3 text-sm">
           <p>
             <span className="text-muted-foreground">Status:</span>{" "}
-            <Badge variant="outline">{task.status}</Badge>
+            <Badge variant="outline">
+              {typeof task.status === 'object' ? (task.status as any).name : String(task.status).replace(/_/g, " ")}
+            </Badge>
           </p>
           <p>
             <span className="text-muted-foreground">Priority:</span>{" "}
-            <Badge variant="outline">{task.priority}</Badge>
+            <Badge variant="outline">
+              {typeof task.priority === 'object' ? (task.priority as any).name || (task.priority as any).label : String(task.priority)}
+            </Badge>
           </p>
           <div className="description-container">
             <span className="text-muted-foreground">

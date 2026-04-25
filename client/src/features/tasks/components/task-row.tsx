@@ -123,7 +123,7 @@ export const TaskRow = ({
  
   const currentStatusId = typeof task.status === 'object' ? (task.status as any).id || (task.status as any)._id : task.status;
   const currentStatus = dynamicStatuses.find((s: any) => (s.id || s._id) === currentStatusId);
-  const statusLabel = currentStatus?.name || String(task.status).replace("_", " ");
+  const statusLabel = currentStatus?.name || (typeof task.status === 'object' ? (task.status as any).name : String(task.status).replace("_", " "));
   const statusColor = currentStatus?.color || "#94a3b8";
 
   return (

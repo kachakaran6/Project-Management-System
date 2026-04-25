@@ -201,7 +201,7 @@ function MultiOrgDropdown({
           aria-expanded={open}
           aria-label="Switch organization"
           className={cn(
-            "flex h-9 max-w-[220px] items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-3",
+            "flex h-9 max-w-[220px] items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-1.5 md:px-3",
             "text-sm font-medium backdrop-blur-sm transition-all duration-150",
             "hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -215,18 +215,18 @@ function MultiOrgDropdown({
             <Building2 className="size-4 flex-shrink-0 text-primary" />
           )}
 
-          {/* Name */}
-          <span className="min-w-0 flex-1 truncate text-foreground">
+          {/* Name - Hidden on mobile for space */}
+          <span className="min-w-0 flex-1 truncate text-foreground hidden md:block">
             {displayName}
           </span>
 
-          {/* Chevron or loading spinner */}
+          {/* Chevron or loading spinner - Hidden on mobile */}
           {switchOrg.isPending ? (
             <Loader2 className="size-3.5 flex-shrink-0 animate-spin text-muted-foreground" />
           ) : (
             <ChevronDown
               className={cn(
-                "size-3.5 flex-shrink-0 text-muted-foreground transition-transform duration-200",
+                "size-3.5 flex-shrink-0 text-muted-foreground transition-transform duration-200 hidden md:block",
                 open && "rotate-180",
               )}
             />

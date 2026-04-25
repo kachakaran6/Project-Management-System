@@ -21,6 +21,7 @@ import { useAppDispatch } from "@/hooks/useAppDispatch";
 import { fetchTasks } from "@/features/task/taskSlice";
 import { fetchStatuses } from "@/features/status/statusSlice";
 import { Loader2 } from "lucide-react";
+import { resolveStatus, filterVisibleTasks, normalizeId } from "@/features/tasks/utils/resolve-status";
 
 const nodeTypes = {
   stage: StageNode,
@@ -29,8 +30,6 @@ const nodeTypes = {
 const edgeTypes = {
   flow: FlowEdge,
 };
-
-const normalizeId = (id: any) => id?.toString();
 
 export function TaskActivityVisualizer() {
   const dispatch = useAppDispatch();
@@ -52,30 +51,46 @@ export function TaskActivityVisualizer() {
   }, [tasks, statuses]);
 
   // Derived STAGES from Redux statuses
-  const STAGES = statuses.length > 0 
+  const STAGES = statuses.length > 0
     ? [...statuses]
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-        .map((s, index) => ({
-          id: normalizeId(s.id || (s as any)._id) as TaskStatus,
-          label: s.name,
-          x: index * 300,
-          color: s.color
-        }))
+        .map((s, index) => {
+          const sId = normalizeId(s.id || (s as any)._id) || "";
+          return {
+            id: sId as TaskStatus,
+            label: s.name,
+            x: index * 300,
+            color: s.color
+          };
+        })
     : [
-        { id: "BACKLOG", label: "Backlog", x: 0, color: "#94a3b8" },
-        { id: "TODO", label: "To Do", x: 300, color: "#3b82f6" },
-        { id: "IN_PROGRESS", label: "In Progress", x: 600, color: "#f59e0b" },
-        { id: "DONE", label: "Done", x: 900, color: "#22c55e" },
+        { id: "BACKLOG" as TaskStatus, label: "Backlog", x: 0, color: "#94a3b8" },
+        { id: "TODO" as TaskStatus, label: "To Do", x: 300, color: "#3b82f6" },
+        { id: "IN_PROGRESS" as TaskStatus, label: "In Progress", x: 600, color: "#f59e0b" },
+        { id: "DONE" as TaskStatus, label: "Done", x: 900, color: "#22c55e" },
       ];
 
   // Dynamic Count Calculation (Pure Derived UI)
   const stageStats = STAGES.reduce((acc, stage) => {
     const stageId = normalizeId(stage.id);
+    if (!stageId) return acc;
     
-    const stageTasks = tasks.filter((task) => {
-      if (task.isDraft) return false;
-      const taskStatusId = normalizeId((task.status as any)?._id || task.status);
-      return taskStatusId === stageId;
+    const visibleTasks = filterVisibleTasks(tasks);
+    const stageTasks = visibleTasks.filter((task) => {
+      const resolved = resolveStatus(task, statuses);
+      if (resolved) {
+        const taskStatusId = normalizeId(resolved._id) || normalizeId(resolved.id);
+        if (taskStatusId === stageId) return true;
+      }
+      
+      // Fallback: If no direct ID match, try name-based match against stage label
+      const taskStatusName = (typeof task.status === 'string' 
+        ? task.status 
+        : (task.status as any)?.name || ""
+      ).toLowerCase().replace(/[\s_-]/g, "");
+      
+      const stageName = stage.label.toLowerCase().replace(/[\s_-]/g, "");
+      return taskStatusName === stageName;
     });
 
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);

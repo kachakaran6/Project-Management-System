@@ -149,9 +149,11 @@ export function TaskForm({
 
   const currentRole = user?.role || "MEMBER";
 
-  const getStatusName = (statusId: string) => {
-    const status = dynamicStatuses.find((s: any) => s.id === statusId || s.name === statusId);
-    return status?.name || statusId;
+  const getStatusName = (statusId: any) => {
+    if (!statusId) return "No Status";
+    const id = typeof statusId === 'object' ? (statusId.id || statusId._id) : statusId;
+    const status = dynamicStatuses.find((s: any) => s.id === id || s._id === id || s.name === id);
+    return status?.name || (typeof statusId === 'object' ? statusId.name : String(statusId));
   };
   const isMemberOnlySelection = currentRole === "MEMBER";
 

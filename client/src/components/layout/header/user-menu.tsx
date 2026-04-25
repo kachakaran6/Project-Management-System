@@ -32,10 +32,10 @@ export function HeaderUserMenu() {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="h-11 w-11 rounded-full p-0 transition-transform duration-200 hover:scale-105"
+            className="h-8 w-8 md:h-11 md:w-11 rounded-full p-0 transition-transform duration-200 hover:scale-105 shrink-0"
             aria-label="Open user menu"
           >
-            <Avatar className="size-10 border border-border/70 shadow-sm">
+            <Avatar className="size-8 md:size-10 border border-border/70 shadow-sm">
               <AvatarImage src={user?.avatarUrl} alt={fullName} />
               <AvatarFallback>{initials.toUpperCase()}</AvatarFallback>
             </Avatar>

@@ -75,6 +75,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/utils";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
+import { resolveStatus, normalizeId } from "@/features/tasks/utils/resolve-status";
 
 // --- Column definitions --------------------------------------------------------
 
@@ -347,7 +348,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, isEmb
   const currentStatus = dynamicStatuses.find((s: any) => (s.id || s._id) === currentStatusId) || 
                        dynamicStatuses.find((s: any) => s.name.toLowerCase() === String(currentStatusId).toLowerCase());
   
-  const statusLabel = currentStatus?.name || String(task.status).toLowerCase().replace("_", " ");
+  const statusLabel = currentStatus?.name || (typeof task.status === 'object' ? (task.status as any).name : String(task.status).toLowerCase().replace("_", " "));
   const statusColor = currentStatus?.color || ALL_STATUS_CONFIG.find((c) => c.id === task.status)?.dotColor || "#94a3b8";
 
   return (
@@ -898,7 +899,7 @@ export function TaskBoard({
     const sorted = [...dynamicStatuses].sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
     
     const cols = sorted.map((s: any) => {
-      const id = String(s.id || s._id);
+      const id = normalizeId(s.id || s._id) || "";
       const normalizedName = s.name.toLowerCase().replace(/[\s_-]/g, "");
       const configMatch = ALL_STATUS_CONFIG.find(c => 
         c.label.toLowerCase().replace(/[\s_-]/g, "") === normalizedName
@@ -945,11 +946,8 @@ export function TaskBoard({
       columns[c.id] = [];
     });
 
-    // Helper to enforce string comparison
-    const normalizeId = (id: any) => id?.toString();
-
     initialTasks.forEach((t) => {
-      const id = String(t.id || (t as any)._id || "");
+      const id = normalizeId(t.id || (t as any)._id) || "";
       tasks[id] = t;
       
       // IF DRAFT, PUT IN DRAFT COLUMN
@@ -960,19 +958,22 @@ export function TaskBoard({
         return;
       }
 
-      const taskStatusId = normalizeId((t.status as any)?._id) || normalizeId(t.status);
-      const statusId = normalizeId(taskStatusId);
+      const resolved = resolveStatus(t, dynamicStatuses);
+      const statusId = resolved ? (normalizeId(resolved._id) || normalizeId(resolved.id)) : normalizeId(t.status);
 
-      if (columns[statusId]) {
+      if (statusId && columns[statusId]) {
         columns[statusId].push(id);
-      } else {
+      } else if (statusId) {
         // Fallback for robust matching if strict ID comparison fails
         const matchedCol = boardColumns.find(c => 
           normalizeId(c.id) === statusId || 
           (c.id !== "DRAFT_COLUMN" && c.label.toLowerCase().replace(/[\s_-]/g, "") === String(statusId).toLowerCase().replace(/[\s_-]/g, ""))
         );
-        if (matchedCol && columns[normalizeId(matchedCol.id)]) {
-          columns[normalizeId(matchedCol.id)].push(id);
+        if (matchedCol) {
+          const mId = normalizeId(matchedCol.id);
+          if (mId && columns[mId]) {
+            columns[mId].push(id);
+          }
         }
       }
     });
