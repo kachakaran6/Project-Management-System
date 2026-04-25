@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+
 import Link from "@/lib/next-link";
 import {
   FolderPlus,
@@ -21,6 +23,8 @@ import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
 import { useTasksQuery } from "@/features/tasks/hooks/use-tasks-query";
 import { CreateProjectModal } from "@/features/projects/components/create-project-modal";
 import { CreateTaskModal } from "@/features/tasks/components/create-task-modal";
+import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
+import { resolveStatus, filterVisibleTasks, normalizeId } from "@/features/tasks/utils/resolve-status";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -113,29 +117,28 @@ function StatCard({
 export default function DashboardPage() {
   const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
   const tasksQuery = useTasksQuery({ page: 1, limit: 300 });
- 
+
   const getStatusName = (status: any) => {
     if (!status) return "Unknown";
     if (typeof status === 'object') return status.name || "Unknown";
     return String(status).replace("_", " ");
   };
-
-  const getStatusId = (status: any) => {
-    if (!status) return "";
-    if (typeof status === 'object') return status.id || status._id || "";
-    return String(status);
-  };
-
+  const { data: dynamicStatuses = [] } = useStatusesQuery();
+  const allTasks = tasksQuery.data?.data.items ?? [];
+  const tasks = useMemo(() => filterVisibleTasks(allTasks), [allTasks]);
   const projects = projectsQuery.data?.data.items ?? [];
-  const tasks = tasksQuery.data?.data.items ?? [];
 
   const activeTasks = tasks.filter((t) => {
-    const name = getStatusName(t.status).toUpperCase();
+    const resolved = resolveStatus(t, dynamicStatuses);
+    if (!resolved) return true; // Assume active if unknown
+    const name = (resolved.name || "").toUpperCase().replace(/[\s_-]/g, "");
     return name !== "DONE" && name !== "ARCHIVED" && name !== "COMPLETED";
   }).length;
   
   const completedTasks = tasks.filter((t) => {
-    const name = getStatusName(t.status).toUpperCase();
+    const resolved = resolveStatus(t, dynamicStatuses);
+    if (!resolved) return false;
+    const name = (resolved.name || "").toUpperCase().replace(/[\s_-]/g, "");
     return name === "DONE" || name === "COMPLETED";
   }).length;
 
@@ -446,10 +449,15 @@ export default function DashboardPage() {
                   ] as const
                 ).map(({ label, statusKey, color }) => {
                   const count = tasks.filter((t) => {
-                    const id = getStatusId(t.status);
-                    const name = getStatusName(t.status).toUpperCase();
-                    // Match by standard keys or name
-                    return id === statusKey || name === statusKey.replace("_", " ");
+                    const resolved = resolveStatus(t, dynamicStatuses);
+                    if (!resolved) return false;
+                    const name = (resolved.name || "").toUpperCase().replace(/[\s_-]/g, "");
+                    
+                    if (statusKey === "TODO") return name === "TODO" || name === "NOTSTARTED" || name === "BACKLOG";
+                    if (statusKey === "IN_PROGRESS") return name === "INPROGRESS";
+                    if (statusKey === "IN_REVIEW") return name === "INREVIEW" || name === "REVIEW";
+                    if (statusKey === "DONE") return name === "DONE" || name === "COMPLETED";
+                    return false;
                   }).length;
                   const pct =
                     tasks.length > 0

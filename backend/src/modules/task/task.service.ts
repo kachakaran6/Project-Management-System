@@ -394,6 +394,7 @@ export const getDrafts = async (
       .populate('projectId', 'name')
       .populate('workspaceId', 'name')
       .populate('creatorId', 'firstName lastName email avatarUrl')
+      .populate('status')
       .lean(),
     Task.countDocuments(query)
   ]);
@@ -941,8 +942,13 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
     query.$or = [{ visibility: 'PUBLIC' }, { visibility: { $exists: false } }];
     
     const [fetchedTasks, count] = await Promise.all([
-      Task.find(query).sort({ position: 1, createdAt: -1 }).skip(skip).limit(limit)
-        .populate('projectId', 'name').populate('workspaceId', 'name').populate('creatorId', 'firstName lastName email avatarUrl').lean(),
+      Task.find(query)
+        .sort({ updatedAt: -1 })
+        .populate('projectId', 'name')
+        .populate('workspaceId', 'name')
+        .populate('creatorId', 'firstName lastName email avatarUrl')
+        .populate('status')
+        .lean(),
       Task.countDocuments(query)
     ]);
     
@@ -1108,17 +1114,10 @@ export const getTaskById = async (taskId: any, userId?: string, userRole?: strin
     .populate('projectId', 'name')
     .populate('workspaceId', 'name')
     .populate('creatorId', 'firstName lastName email avatarUrl')
+    .populate('status')
     .lean();
     
   if (!task) throw new AppError('Task not found.', 404);
-
-  // Manual population of status to safely handle legacy string statuses
-  if (task.status && mongoose.Types.ObjectId.isValid(String(task.status))) {
-    const statusObj = await Status.findById(task.status).lean();
-    if (statusObj) {
-      task.status = statusObj;
-    }
-  }
 
   // Check visibility if userId provided
   if (userId) {

@@ -316,7 +316,7 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
         // Desktop: standard spacing
         "md:pt-4 md:space-y-4",
         // Mobile: reduced spacing
-        mobile && "pt-3 pb-3 space-y-3 border-t border-sidebar-border/50"
+        mobile && "pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] space-y-3 border-t border-sidebar-border/50"
       )}>
         {/* Sign Out Button - Better touch target on mobile (44px min height) */}
         <div className="px-2">

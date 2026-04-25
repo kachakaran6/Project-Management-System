@@ -31,9 +31,10 @@ export function useTasksQuery(
   return useQuery({
     queryKey: tasksQueryKeys.list(filters),
     queryFn: () => taskApi.getTasks(filters),
-    staleTime: options?.staleTime ?? 30_000,
+    staleTime: options?.staleTime ?? 0,
     enabled: options?.enabled ?? true,
     refetchInterval: options?.refetchInterval,
+    refetchOnMount: true,
   });
 }
 
@@ -89,7 +90,7 @@ export function usePublishTaskDraftMutation() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all }),
         queryClient.invalidateQueries({ queryKey: tasksQueryKeys.detail(variables.id) }),
-        queryClient.invalidateQueries({ queryKey: tasksQueryKeys.draftsAll }),
+        queryClient.invalidateQueries({ queryKey: draftsAll }),
       ]);
     },
   });
@@ -126,8 +127,6 @@ export function useUpdateTaskStatusMutation() {
       return taskApi.changeStatus(id, status);
     },
     onSuccess: async () => {
-      // We don't necessarily want to invalidate immediately if we are doing local optimistic updates
-      // but it's safe to do so after the mutation settles.
       await queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all });
     },
   });
@@ -138,7 +137,8 @@ export function useTaskQuery(id: string, enabled = true) {
     queryKey: tasksQueryKeys.detail(id),
     queryFn: () => taskApi.getTask(id),
     enabled: enabled && Boolean(id),
-    staleTime: 20_000,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 }
 
@@ -149,14 +149,11 @@ export function useUpdateTaskMutation() {
     mutationFn: ({ id, data }: { id: string; data: UpdateTaskInput }) =>
       taskApi.updateTask(id, data),
     onMutate: async ({ id, data }) => {
-      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
       await queryClient.cancelQueries({ queryKey: tasksQueryKeys.detail(id) });
       await queryClient.cancelQueries({ queryKey: tasksQueryKeys.all });
 
-      // Snapshot the previous value
       const previousTask = queryClient.getQueryData(tasksQueryKeys.detail(id));
 
-      // Optimistically update to the new value
       queryClient.setQueryData(tasksQueryKeys.detail(id), (old: any) => {
         if (!old) return old;
         return {
@@ -168,11 +165,9 @@ export function useUpdateTaskMutation() {
         };
       });
 
-      // Return a context object with the snapshotted value
       return { previousTask, id };
     },
     onError: (err, variables, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousTask) {
         queryClient.setQueryData(
           tasksQueryKeys.detail(context.id),
@@ -181,7 +176,6 @@ export function useUpdateTaskMutation() {
       }
     },
     onSettled: (data, error, variables) => {
-      // Always refetch after error or success to ensure we have the correct data
       queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all });
       queryClient.invalidateQueries({
         queryKey: tasksQueryKeys.detail(variables.id),
