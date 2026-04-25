@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import AnalyticsTracker from "@/components/analytics-tracker";
 
 import AdminLayout from "@/app/(admin)/admin/layout";
 import DashboardGroupLayout from "@/app/(dashboard)/layout";
@@ -49,6 +50,12 @@ const dynamicRoutes = Object.entries(pageModules).map(([modulePath, module]) => 
 const router = createBrowserRouter([
   {
     path: "/",
+    element: (
+      <>
+        <AnalyticsTracker />
+        <Outlet />
+      </>
+    ),
     errorElement: <ErrorBoundary />,
     children: [
       ...dynamicRoutes,
