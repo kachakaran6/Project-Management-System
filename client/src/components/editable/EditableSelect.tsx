@@ -22,6 +22,7 @@ interface Option {
   label: string;
   color?: string;
   icon?: React.ReactNode;
+  isHex?: boolean;
 }
 
 interface EditableSelectProps {
@@ -57,7 +58,10 @@ export function EditableSelect({
           {selectedOption ? (
             <span className="flex items-center gap-2 font-medium">
               {selectedOption.color && (
-                <span className={cn("size-2 rounded-full", selectedOption.color)} />
+                <span 
+                  className={cn("size-2 rounded-full", !selectedOption.isHex && selectedOption.color)} 
+                  style={selectedOption.isHex ? { backgroundColor: selectedOption.color } : {}}
+                />
               )}
               {selectedOption.label}
             </span>
@@ -88,7 +92,10 @@ export function EditableSelect({
                   <div className="flex items-center gap-2 flex-1">
                     {option.icon}
                     {option.color && (
-                      <span className={cn("size-2 rounded-full", option.color)} />
+                      <span 
+                        className={cn("size-2 rounded-full", !option.isHex && option.color)} 
+                        style={option.isHex ? { backgroundColor: option.color } : {}}
+                      />
                     )}
                     <span>{option.label}</span>
                   </div>

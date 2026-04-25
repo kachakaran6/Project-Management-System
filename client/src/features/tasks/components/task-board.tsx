@@ -26,8 +26,11 @@ import {
   X,
   Flag,
   Users,
+  User,
   Check,
   Pencil,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -54,6 +57,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
 
 import { Task, TaskStatus } from "@/types/task.types";
@@ -70,6 +74,7 @@ import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/utils";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
+import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 
 // --- Column definitions --------------------------------------------------------
 
@@ -168,9 +173,10 @@ interface TaskCardProps {
   index: number;
   canEdit?: boolean;
   onContextMenu: (e: React.MouseEvent, taskId: string) => void;
+  isEmbedded?: boolean;
 }
 
-const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: TaskCardProps) => {
+const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, isEmbedded = false }: TaskCardProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -180,6 +186,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: Tas
   const deleteTask = useDeleteTaskMutation();
   const updateTask = useUpdateTaskMutation();
   const changeStatus = useUpdateTaskStatusMutation();
+  const { data: dynamicStatuses = [] } = useStatusesQuery();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [assigneeQuery, setAssigneeQuery] = useState("");
@@ -320,13 +327,28 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: Tas
     }
   };
 
-  const statusItems: Array<{ value: TaskStatus; label: string }> = [
-    { value: "BACKLOG", label: "Backlog" },
-    { value: "TODO", label: "Todo" },
-    { value: "IN_PROGRESS", label: "In Progress" },
-    { value: "DONE", label: "Done" },
-    { value: "REJECTED", label: "Cancelled" },
-  ];
+  const statusItems = useMemo(() => {
+    if (dynamicStatuses.length > 0) {
+      return dynamicStatuses.map((s: any) => ({
+        value: s.id || s._id,
+        label: s.name,
+      }));
+    }
+    return [
+      { value: "BACKLOG", label: "Backlog" },
+      { value: "TODO", label: "Todo" },
+      { value: "IN_PROGRESS", label: "In Progress" },
+      { value: "DONE", label: "Done" },
+      { value: "REJECTED", label: "Cancelled" },
+    ];
+  }, [dynamicStatuses]);
+
+  const currentStatusId = typeof task.status === 'object' ? (task.status as any).id || (task.status as any)._id : task.status;
+  const currentStatus = dynamicStatuses.find((s: any) => (s.id || s._id) === currentStatusId) || 
+                       dynamicStatuses.find((s: any) => s.name.toLowerCase() === String(currentStatusId).toLowerCase());
+  
+  const statusLabel = currentStatus?.name || String(task.status).toLowerCase().replace("_", " ");
+  const statusColor = currentStatus?.color || ALL_STATUS_CONFIG.find((c) => c.id === task.status)?.dotColor || "#94a3b8";
 
   return (
     <>
@@ -346,11 +368,11 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: Tas
               }
             }}
             className={cn(
-              "group relative flex flex-col gap-2 rounded-xl border border-border/40 bg-card p-3 mx-0.5",
-              "transition-all duration-200 ease-in-out select-none",
-              "hover:-translate-y-0.5 hover:bg-white/2",
+              "group relative flex flex-col gap-2 border bg-card mx-0.5 transition-all duration-300 ease-in-out select-none",
+              isEmbedded ? "rounded-[1.5rem] p-4 border-border/10 shadow-sm" : "rounded-xl p-3 border-border/40 shadow-sm",
+              "hover:-translate-y-1 hover:bg-white/2 hover:shadow-md",
               snapshot.isDragging
-                ? "shadow-2xl border-primary/20 ring-1 ring-primary/10 scale-[1.02] z-50 bg-accent"
+                ? "shadow-2xl border-primary/20 ring-1 ring-primary/10 scale-[1.02] z-50 bg-accent rounded-3xl"
                 : "cursor-grab active:cursor-grabbing",
             )}
             onClick={() => {
@@ -361,9 +383,18 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: Tas
             }}>
             {/* Task ID Header */}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-widest">
-                T-{tid(task).slice(-4)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-widest">
+                  T-{tid(task).slice(-4)}
+                </span>
+                {task.isDraft && (
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] font-bold uppercase tracking-wider border border-slate-200/50 dark:border-slate-700/50">
+                    <Sparkles className="size-2 text-indigo-400" />
+                    Draft
+                  </div>
+                )}
+              </div>
+            </div>
               {/* <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -407,15 +438,20 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: Tas
                   ) : null}
                 </DropdownMenuContent>
               </DropdownMenu> */}
-            </div>
 
             {/* Title */}
-            <p className="text-[13px] font-semibold leading-snug text-foreground/90 line-clamp-2">
+            <p className={cn(
+              "leading-[1.4] text-foreground/90 line-clamp-2 tracking-tight",
+              isEmbedded ? "text-[14px] font-black" : "text-[13px] font-semibold"
+            )}>
               {task.title}
             </p>
 
             {/* Metadata Footer */}
-            <div className="flex items-center flex-wrap gap-2 mt-1">
+            <div className={cn(
+              "flex items-center flex-wrap mt-2",
+              isEmbedded ? "gap-2.5" : "gap-2"
+            )}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="shrink-0 cursor-default">
@@ -440,15 +476,23 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: Tas
                 <DropdownMenuTrigger asChild>
                   <button
                     onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold border border-border/40 bg-muted/50 text-muted-foreground hover:bg-muted/70 transition-colors"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 transition-all",
+                      isEmbedded 
+                        ? "px-2.5 py-1.5 rounded-xl text-[9px] font-black border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
+                        : "px-2 py-1 rounded-full text-[10px] font-bold border border-border/40 bg-muted/50 text-muted-foreground hover:bg-muted/70"
+                    )}
                   >
                     <div
-                      className="h-1.5 w-1.5 rounded-full"
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        isEmbedded && "shadow-[0_0_5px_currentColor]"
+                      )}
                       style={{
-                        backgroundColor: ALL_STATUS_CONFIG.find((c) => c.id === task.status)?.dotColor,
+                        backgroundColor: statusColor,
                       }}
                     />
-                    <span className="capitalize">{task.status.toLowerCase().replace("_", " ")}</span>
+                    <span className={cn(!isEmbedded && "capitalize")}>{statusLabel}</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48 rounded-lg border-border/40">
@@ -462,7 +506,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: Tas
                       className="flex items-center justify-between"
                     >
                       <span>{item.label}</span>
-                      {task.status === item.value ? <Check className="size-3.5" /> : null}
+                      {currentStatusId === item.value ? <Check className="size-3.5" /> : null}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -475,11 +519,14 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: Tas
                   <button
                     onClick={(e) => e.stopPropagation()}
                     className={cn(
-                      "flex items-center justify-center p-1.5 rounded-md border border-border/20 bg-muted/30 hover:bg-muted/50 transition-colors",
+                      "flex items-center justify-center transition-all",
+                      isEmbedded 
+                        ? "p-2 rounded-xl border border-border/10 bg-muted/10 hover:bg-muted/20 active:scale-90"
+                        : "p-1.5 rounded-md border border-border/20 bg-muted/30 hover:bg-muted/50",
                       priority.color,
                     )}
                   >
-                    <Flag className="size-3" fill="currentColor" />
+                    <Flag className={isEmbedded ? "size-3.5" : "size-3"} fill="currentColor" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-40 rounded-lg border-border/40">
@@ -510,11 +557,14 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: Tas
                   <button
                     onClick={(e) => e.stopPropagation()}
                     className={cn(
-                      "flex items-center gap-1 text-[10px] font-bold px-1.5 py-1 rounded-md border border-border/20 bg-muted/20 text-muted-foreground hover:bg-muted/40 transition-colors",
-                      isPastDue && "text-rose-400 bg-rose-500/10",
+                      "flex items-center gap-1.5 transition-all",
+                      isEmbedded 
+                        ? "text-[9px] font-black px-2.5 py-1.5 rounded-xl border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
+                        : "text-[10px] font-bold px-1.5 py-1 rounded-md border border-border/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
+                      isPastDue && (isEmbedded ? "text-rose-500 bg-rose-500/10 border-rose-500/20 shadow-[0_0_8px_rgba(244,63,94,0.1)]" : "text-rose-400 bg-rose-500/10"),
                     )}
                   >
-                    <Calendar className="size-3 opacity-70" />
+                    <Calendar className={cn("opacity-60", isEmbedded ? "size-3" : "size-3")} />
                     <span>{dueDate || "+ Date"}</span>
                   </button>
                 </PopoverTrigger>
@@ -540,27 +590,40 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu }: Tas
                 <PopoverTrigger asChild>
                   <button
                     onClick={(e) => e.stopPropagation()}
-                    className="ml-auto flex items-center gap-1 rounded-full border border-border/30 bg-muted/20 px-1.5 py-1 hover:bg-muted/40 transition-colors"
+                    className={cn(
+                      "ml-auto flex items-center gap-1.5 transition-all active:scale-95",
+                      isEmbedded 
+                        ? "rounded-xl border border-border/10 bg-muted/10 px-2.5 py-1.5 hover:bg-muted/20 shadow-sm"
+                        : "rounded-full border border-border/30 bg-muted/20 px-1.5 py-1 hover:bg-muted/40"
+                    )}
                   >
                     {assignees.length > 0 ? (
                       <div className="flex items-center -space-x-2 overflow-visible">
                         {assignees.slice(0, 3).map((item) => (
-                          <Avatar key={item.id} className="h-5 w-5 ring-1 ring-background">
+                          <Avatar key={item.id} className={cn("ring-background shadow-sm", isEmbedded ? "h-5 w-5 ring-2 border border-border/10" : "h-5 w-5 ring-1")}>
                             <AvatarImage src={item.avatarUrl} alt={item.name} />
-                            <AvatarFallback className="text-[9px] bg-primary/15 text-primary">
+                            <AvatarFallback className={cn("text-[8px] text-primary", isEmbedded ? "bg-primary/10 font-black" : "bg-primary/15 font-bold")}>
                               {item.name.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
                         ))}
                       </div>
                     ) : (
-                      <Users className="size-3 text-muted-foreground" />
+                      isEmbedded ? (
+                        <div className="p-1 rounded-full bg-muted/20">
+                          <User className="size-3 text-muted-foreground/40" />
+                        </div>
+                      ) : (
+                        <Users className="size-3 text-muted-foreground" />
+                      )
                     )}
                     {assignees.length > 3 ? (
-                      <span className="text-[10px] text-muted-foreground">+{assignees.length - 3}</span>
+                      <span className={isEmbedded ? "text-[9px] font-black text-muted-foreground/40" : "text-[10px] text-muted-foreground"}>+{assignees.length - 3}</span>
                     ) : null}
                     {assignees.length === 0 ? (
-                      <span className="text-[10px] text-muted-foreground">+ Assign</span>
+                      <span className={cn(
+                        isEmbedded ? "text-[9px] font-black text-muted-foreground/30 uppercase tracking-widest" : "text-[10px] text-muted-foreground"
+                      )}>+ Assign</span>
                     ) : null}
                   </button>
                 </PopoverTrigger>
@@ -815,32 +878,147 @@ interface TaskBoardProps {
   tasks: Task[];
   projectId?: string;
   canEdit?: boolean;
+  isEmbedded?: boolean;
 }
 
 export function TaskBoard({
   tasks: initialTasks,
   projectId,
   canEdit = true,
+  isEmbedded = false,
 }: TaskBoardProps) {
-  const [data, setData] = useState<{
-    tasks: Record<string, Task>;
-    columns: Record<string, string[]>;
-  }>(() => {
+  const { data: dynamicStatuses, isLoading: isLoadingStatuses } = useStatusesQuery();
+
+  const boardColumns = useMemo(() => {
+    if (!dynamicStatuses || dynamicStatuses.length === 0) {
+      return ALL_STATUS_CONFIG;
+    }
+    
+    // Sort by order
+    const sorted = [...dynamicStatuses].sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+    
+    const cols = sorted.map((s: any) => {
+      const id = String(s.id || s._id);
+      const normalizedName = s.name.toLowerCase().replace(/[\s_-]/g, "");
+      const configMatch = ALL_STATUS_CONFIG.find(c => 
+        c.label.toLowerCase().replace(/[\s_-]/g, "") === normalizedName
+      );
+      const isCore = ["backlog", "todo", "inprogress", "done"].includes(normalizedName);
+      const isExplicitHide = ["inreview", "review", "archived", "rejected", "cancelled"].includes(normalizedName);
+
+      let isHidden = s.isHiddenIfEmpty;
+      if (isHidden === undefined) {
+        isHidden = !isCore;
+      } else if (isExplicitHide) {
+        isHidden = true;
+      }
+
+      return {
+        id,
+        label: s.name,
+        icon: configMatch?.icon || Circle,
+        dotColor: s.color || configMatch?.dotColor || "#3b82f6",
+        isHiddenIfEmpty: isHidden,
+      };
+    });
+
+    // PREPEND DRAFT COLUMN
+    return [
+      {
+        id: "DRAFT_COLUMN",
+        label: "Drafts",
+        icon: FileText,
+        dotColor: "#94a3b8",
+        isHiddenIfEmpty: true, // Only show if user has drafts
+      },
+      ...cols
+    ];
+  }, [dynamicStatuses]);
+
+  // Derived grouping from props (used when NOT syncing)
+  const groupedData = useMemo(() => {
     const tasks: Record<string, Task> = {};
     const columns: Record<string, string[]> = {};
-    ALL_STATUS_CONFIG.forEach((c) => {
+    
+    // Initialize all columns from the current board config
+    boardColumns.forEach((c) => {
       columns[c.id] = [];
     });
 
+    // Helper to enforce string comparison
+    const normalizeId = (id: any) => id?.toString();
+
     initialTasks.forEach((t) => {
-      const id = tid(t);
+      const id = String(t.id || (t as any)._id || "");
       tasks[id] = t;
-      if (columns[t.status]) columns[t.status].push(id);
+      
+      // IF DRAFT, PUT IN DRAFT COLUMN
+      if (t.isDraft) {
+        if (columns["DRAFT_COLUMN"]) {
+          columns["DRAFT_COLUMN"].push(id);
+        }
+        return;
+      }
+
+      const taskStatusId = normalizeId((t.status as any)?._id) || normalizeId(t.status);
+      const statusId = normalizeId(taskStatusId);
+
+      if (columns[statusId]) {
+        columns[statusId].push(id);
+      } else {
+        // Fallback for robust matching if strict ID comparison fails
+        const matchedCol = boardColumns.find(c => 
+          normalizeId(c.id) === statusId || 
+          (c.id !== "DRAFT_COLUMN" && c.label.toLowerCase().replace(/[\s_-]/g, "") === String(statusId).toLowerCase().replace(/[\s_-]/g, ""))
+        );
+        if (matchedCol && columns[normalizeId(matchedCol.id)]) {
+          columns[normalizeId(matchedCol.id)].push(id);
+        }
+      }
     });
+
     return { tasks, columns };
-  });
+  }, [initialTasks, boardColumns]);
+
+  // Local state for optimistic updates during drag and drop
+  const [optimisticData, setOptimisticData] = useState<{
+    tasks: Record<string, Task>;
+    columns: Record<string, string[]>;
+  } | null>(null);
+
+  // The final data to render (prefer optimistic data if syncing)
+  const data = optimisticData || groupedData;
+
+  // --- 3. APPLY VISIBILITY FILTER (AFTER GROUPING) ---
+  const visibleColumns = useMemo(() => {
+    // Helper to enforce string comparison
+    const normalizeId = (id: any) => id?.toString();
+
+    const cols = boardColumns.filter((col) => {
+      const colId = normalizeId(col.id);
+      const tasksInColumn = data.columns[colId] || [];
+      const hasTasks = tasksInColumn.length > 0;
+      
+      // ALWAYS show if tasks exist
+      if (hasTasks) return true;
+      
+      // Hide only if explicitly allowed (isHiddenIfEmpty = true)
+      if (col.isHiddenIfEmpty) return false;
+      
+      return true;
+    });
+
+    // ⚠️ EDGE CASE HANDLING: If all filtered columns are empty, still show at least one primary column (e.g. Backlog or Todo)
+    if (cols.length === 0 && boardColumns.length > 0) {
+      const primaryFallback = boardColumns.find(c => !c.isHiddenIfEmpty);
+      return [primaryFallback || boardColumns[0]];
+    }
+
+    return cols;
+  }, [data.columns, boardColumns]);
 
   const changeStatus = useUpdateTaskStatusMutation();
+  const updateTask = useUpdateTaskMutation();
   const createTask = useCreateTaskMutation();
   const deleteTask = useDeleteTaskMutation();
 
@@ -853,75 +1031,11 @@ export function TaskBoard({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; taskId: string } | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
-  const handleOpen = (id: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("taskId", id);
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
-    openPanel(id);
-  };
-
-  const handleOpenNewTab = (id: string) => {
-    window.open(`${window.location.origin}/tasks/${id}`, "_blank");
-  };
-
-  const handleDuplicate = async (id: string) => {
-    const task = data.tasks[id];
-    if (!task) return;
-    try {
-      const assigneeIds = (task as any).assigneeIds || (task.assigneeUsers ?? []).map((u: any) => u.id);
-      await createTask.mutateAsync({
-        title: `${task.title} (Copy)`,
-        description: task.description,
-        status: task.status,
-        priority: task.priority,
-        projectId: task.projectId || projectId || "",
-        assigneeIds,
-        tags: task.tags,
-      });
-      toast.success("Task duplicated");
-    } catch {
-      toast.error("Failed to duplicate task");
-    }
-  };
-
-  const handleCopyLink = (id: string) => {
-    const url = `${window.location.origin}/tasks/${id}`;
-    navigator.clipboard.writeText(url);
-    toast.success("Link copied to clipboard");
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this task?")) return;
-    try {
-      await deleteTask.mutateAsync(id);
-      toast.success("Task deleted");
-    } catch {
-      toast.error("Failed to delete task");
-    }
-  };
-
-  const visibleColumns = useMemo(() => {
-    return ALL_STATUS_CONFIG.filter(
-      (col) =>
-        CORE_STATUSES.includes(col.id as TaskStatus) ||
-        (data.columns[col.id] && data.columns[col.id].length > 0),
-    );
-  }, [data.columns]);
-
+  // Clear optimistic data when props change and we are NOT syncing
   useEffect(() => {
-    if (isSyncing) return;
-    const tasks: Record<string, Task> = {};
-    const columns: Record<string, string[]> = {};
-    ALL_STATUS_CONFIG.forEach((c) => {
-      columns[c.id] = [];
-    });
-
-    initialTasks.forEach((t) => {
-      const id = tid(t);
-      tasks[id] = t;
-      if (columns[t.status]) columns[t.status].push(id);
-    });
-    setData({ tasks, columns });
+    if (!isSyncing) {
+      setOptimisticData(null);
+    }
   }, [initialTasks, isSyncing]);
 
   const onDragEnd = async (result: DropResult) => {
@@ -956,32 +1070,75 @@ export function TaskBoard({
       };
     }
 
-    setData({ tasks: newTasks, columns: newColumns });
+    setOptimisticData({ tasks: newTasks, columns: newColumns });
     setIsSyncing(true);
 
     try {
-      await changeStatus.mutateAsync({
-        id: draggableId,
-        status: destColId as TaskStatus,
-        position: destination.index,
-      });
+      // IF MOVING OUT OF DRAFT_COLUMN, AUTO-PUBLISH
+      if (sourceColId === "DRAFT_COLUMN" && destColId !== "DRAFT_COLUMN") {
+        await updateTask.mutateAsync({
+          id: draggableId,
+          data: {
+            status: destColId as TaskStatus,
+            isDraft: false,
+            isPublic: true,
+            position: destination.index
+          }
+        });
+      } 
+      // IF MOVING INTO DRAFT_COLUMN, UNPUBLISH
+      else if (sourceColId !== "DRAFT_COLUMN" && destColId === "DRAFT_COLUMN") {
+        await updateTask.mutateAsync({
+          id: draggableId,
+          data: {
+            isDraft: true,
+            isPublic: false,
+            position: destination.index
+          }
+        });
+      }
+      // NORMAL STATUS CHANGE
+      else {
+        await changeStatus.mutateAsync({
+          id: draggableId,
+          status: destColId as TaskStatus,
+          position: destination.index,
+        });
+      }
     } catch (err) {
-      setData(prevData);
+      setOptimisticData(null);
       toast.error("Failed to sync task move.");
     } finally {
       setIsSyncing(false);
     }
   };
 
+  if (isLoadingStatuses && (!dynamicStatuses || dynamicStatuses.length === 0)) {
+    return (
+      <div className="flex flex-1 items-center justify-center h-full">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="size-10 animate-spin text-primary opacity-20" />
+          <p className="text-sm text-muted-foreground animate-pulse font-medium">Loading board columns...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex-1 w-full h-full select-none overflow-hidden">
-      <div className="flex h-full w-full overflow-x-auto overflow-y-hidden custom-scrollbar pb-2 transition-all duration-300">
+      <div className={cn(
+        "flex h-full w-full overflow-x-auto overflow-y-hidden custom-scrollbar pb-2 transition-all duration-300",
+        isEmbedded ? "px-0" : "px-0" // We handle padding in the flex container
+      )}>
         <DragDropContext onDragEnd={onDragEnd}>
-          <div className="flex gap-4 p-4 pr-12 min-w-max h-full">
+          <div className={cn(
+            "flex gap-4 h-full min-w-max",
+            isEmbedded ? "p-0 pt-4" : "p-4 pr-12"
+          )}>
             {visibleColumns.map((col) => {
-              const columnTasks = data.columns[col.id].map(
+              const columnTasks = data.columns[col.id]?.map(
                 (id) => data.tasks[id],
-              );
+              ) || [];
               return (
                 <KanbanColumn
                   key={col.id}
@@ -990,6 +1147,7 @@ export function TaskBoard({
                   canEdit={canEdit}
                   projectId={projectId}
                   onContextMenu={(e, id) => setContextMenu({ x: e.clientX, y: e.clientY, taskId: id })}
+                  isEmbedded={isEmbedded}
                 />
               );
             })}
@@ -1029,30 +1187,40 @@ function KanbanColumn({
   canEdit,
   projectId,
   onContextMenu,
+  isEmbedded = false,
 }: {
   col: ColumnDef;
   tasks: Task[];
   canEdit: boolean;
   projectId?: string;
   onContextMenu: (e: React.MouseEvent, taskId: string) => void;
+  isEmbedded?: boolean;
 }) {
   const [isQuickAdd, setQuickAdd] = useState(false);
 
   return (
-    <div className="group flex flex-col w-80 shrink-0 bg-muted/10 rounded-2xl border border-border/50 h-full overflow-hidden transition-all duration-300 shadow-sm">
+    <div className={cn(
+      "group flex flex-col w-80 shrink-0 rounded-[2rem] border h-full overflow-hidden transition-all duration-300 shadow-sm",
+      isEmbedded 
+        ? "bg-muted/5 border-border/20 ring-1 ring-border/5" 
+        : "bg-muted/10 border-border/50"
+    )}>
       {/* Sticky Column Header */}
-      <div className="flex items-center justify-between px-4 py-5 shrink-0 bg-muted/20 border-b border-border/50">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className={cn(
+        "flex items-center justify-between px-5 py-6 shrink-0 border-b border-border/20",
+        isEmbedded ? "bg-muted/10 backdrop-blur-sm" : "bg-muted/20"
+      )}>
+        <div className="flex items-center gap-3.5 min-w-0">
           <div
-            className="h-2 w-2 rounded-full shrink-0 shadow-sm"
+            className="h-2 w-2 rounded-full shrink-0 shadow-[0_0_8px_rgba(0,0,0,0.1)]"
             style={{ backgroundColor: col.dotColor }}
           />
-          <h3 className="text-[13px] font-bold tracking-tight text-foreground/80 lowercase first-letter:uppercase truncate">
+          <h3 className="text-[14px] font-black tracking-tight text-foreground/70 lowercase first-letter:uppercase truncate">
             {col.label}
           </h3>
-          <span className="text-[11px] font-bold text-muted-foreground/40">
+          <Badge variant="outline" className="h-5 px-1.5 rounded-md text-[10px] font-black bg-muted/20 border-border/20 text-muted-foreground/50">
             {tasks.length}
-          </span>
+          </Badge>
         </div>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1083,6 +1251,7 @@ function KanbanColumn({
                   index={index}
                   canEdit={canEdit}
                   onContextMenu={onContextMenu}
+                  isEmbedded={isEmbedded}
                 />
               ))}
             </div>
@@ -1101,7 +1270,10 @@ function KanbanColumn({
       </Droppable>
 
       {/* Sticky "Add Task" area at bottom */}
-      <div className="shrink-0 p-2 bg-transparent">
+      <div className={cn(
+        "shrink-0 p-3 bg-transparent",
+        isEmbedded && "px-4 pb-4"
+      )}>
         {isQuickAdd ? (
           <QuickAddInput
             projectId={projectId}
@@ -1111,9 +1283,9 @@ function KanbanColumn({
         ) : (
           <button
             onClick={() => setQuickAdd(true)}
-            className="group flex items-center justify-start gap-2.5 w-full h-10 px-3 rounded-xl text-muted-foreground/40 transition-all hover:bg-muted hover:text-foreground active:scale-[0.98]">
-            <Plus className="size-3.5 transition-transform group-hover:scale-110" />
-            <span className="text-[12px] font-bold tracking-tight">
+            className="group flex items-center justify-start gap-3 w-full h-11 px-4 rounded-[1.25rem] text-muted-foreground/30 transition-all hover:bg-muted hover:text-foreground active:scale-[0.98]">
+            <Plus className="size-4 transition-transform group-hover:scale-110" />
+            <span className="text-[12px] font-black tracking-tight uppercase">
               New work item
             </span>
           </button>

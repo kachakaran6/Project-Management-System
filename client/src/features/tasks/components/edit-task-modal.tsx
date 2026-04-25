@@ -78,6 +78,7 @@ export function EditTaskModal({
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent hideClose className="max-w-[640px] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-2xl gap-0">
         <TaskForm
+          isEdit={true}
           projects={projects}
           title="Edit Task"
           subtitle="Update task details and metadata"

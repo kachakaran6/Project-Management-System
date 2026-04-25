@@ -28,9 +28,10 @@ const taskSchema = new mongoose.Schema({
   },
   creatorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   status: { 
-    type: String, 
-    enum: Object.values(TASK_STATUS), 
-    default: TASK_STATUS.TODO 
+    type: mongoose.Schema.Types.Mixed, 
+    ref: 'Status',
+    required: true,
+    index: true
   },
   priority: { 
     type: String, 
@@ -41,6 +42,7 @@ const taskSchema = new mongoose.Schema({
   startDate: { type: Date },
   position: { type: Number, default: 0 }, // For drag-and-drop ordering
   isDraft: { type: Boolean, default: false },
+  isPublic: { type: Boolean, default: true },
   isActive: { type: Boolean, default: true },
   visibility: {
     type: String,

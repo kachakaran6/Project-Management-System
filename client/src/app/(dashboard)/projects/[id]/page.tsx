@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EditProjectModal } from "@/features/projects/components/edit-project-modal";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import Link from "next/link";
+import { TaskDashboard } from "@/features/tasks/components/task-dashboard";
 import { cn } from "@/lib/utils";
 
 export default function ProjectDetailsPage() {
@@ -47,54 +48,57 @@ export default function ProjectDetailsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className={cn(
+      "mx-auto space-y-8 animate-in fade-in duration-500",
+      activeTab === "tasks" ? "max-w-[1600px]" : "max-w-7xl"
+    )}>
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-1">
         <div className="space-y-4">
           <Button 
             variant="ghost" 
             size="sm" 
-            className="-ml-2 h-8 text-muted-foreground hover:text-foreground"
+            className="-ml-2 h-8 text-muted-foreground hover:text-foreground transition-colors group"
             asChild
           >
             <Link href="/projects">
-              <ArrowLeft className="mr-2 size-3.5" />
+              <ArrowLeft className="mr-2 size-3.5 group-hover:-translate-x-1 transition-transform" />
               Back to Projects
             </Link>
           </Button>
-
-          <div className="space-y-1">
+ 
+          <div className="space-y-1.5">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-              <Badge variant="outline" className="h-6 rounded-full border-primary/20 bg-primary/5 text-primary text-[10px] uppercase font-bold tracking-widest">
+              <h1 className="text-3xl font-black tracking-tight text-foreground">{project.name}</h1>
+              <Badge variant="outline" className="h-6 rounded-full border-primary/20 bg-primary/5 text-primary text-[10px] uppercase font-black tracking-widest shadow-sm">
                 {project.status}
               </Badge>
               {project.visibility === 'private' && (
-                <Badge variant="outline" className="h-6 rounded-full border-amber-500/20 bg-amber-500/5 text-amber-600 text-[10px] uppercase font-bold tracking-widest">
+                <Badge variant="outline" className="h-6 rounded-full border-amber-500/20 bg-amber-500/5 text-amber-600 text-[10px] uppercase font-black tracking-widest shadow-sm">
                   Private
                 </Badge>
               )}
             </div>
             {project.description && (
-              <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed truncate">
+              <p className="text-muted-foreground max-w-3xl text-[14px] leading-relaxed font-medium">
                 {project.description}
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {canEdit && (
             <Button 
               variant="outline" 
-              className="rounded-xl h-10 px-4 gap-2"
+              className="rounded-2xl h-11 px-5 gap-2.5 border-border/40 bg-muted/5 font-bold text-xs transition-all hover:bg-muted/10 active:scale-95"
               onClick={() => setIsEditing(true)}
             >
-              <Settings className="size-4 opacity-70" />
+              <Settings className="size-4 text-muted-foreground" />
               Settings
             </Button>
           )}
-          <Button className="rounded-xl h-10 px-4 gap-2 shadow-lg shadow-primary/20" asChild>
+          <Button className="rounded-2xl h-11 px-6 gap-2.5 font-black text-xs shadow-premium bg-primary text-primary-foreground hover:scale-[1.02] active:scale-95 transition-all" asChild>
             <Link href={`/tasks?projectId=${id}`}>
               <Plus className="size-4" />
               New Task
@@ -105,32 +109,32 @@ export default function ProjectDetailsPage() {
 
       {/* NAVIGATION TABS */}
       <Tabs defaultValue="overview" onValueChange={setActiveTab} className="w-full">
-        <div className="border-b border-border/40 mb-6">
-          <TabsList className="bg-transparent h-auto p-0 gap-8 rounded-none border-none">
+        <div className="border-b border-border/10 mb-6 sticky top-0 bg-background/50 backdrop-blur-md z-40">
+          <TabsList className="bg-transparent h-auto p-0 gap-10 rounded-none border-none">
             <TabsTrigger 
               value="overview" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-sm font-semibold transition-all hover:text-primary/70"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-[13px] font-black uppercase tracking-widest transition-all hover:text-primary/70"
             >
               <LayoutDashboard className="mr-2 size-4" />
               Overview
             </TabsTrigger>
             <TabsTrigger 
               value="tasks" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-sm font-semibold transition-all hover:text-primary/70"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-[13px] font-black uppercase tracking-widest transition-all hover:text-primary/70"
             >
               <CheckSquare className="mr-2 size-4" />
               Tasks
             </TabsTrigger>
             <TabsTrigger 
               value="vault" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-sm font-semibold transition-all hover:text-primary/70"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-[13px] font-black uppercase tracking-widest transition-all hover:text-primary/70"
             >
               <Shield className="mr-2 size-4" />
               Vault
             </TabsTrigger>
             <TabsTrigger 
               value="activity" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-sm font-semibold transition-all hover:text-primary/70"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-[13px] font-black uppercase tracking-widest transition-all hover:text-primary/70"
             >
               <History className="mr-2 size-4" />
               Activity
@@ -138,35 +142,21 @@ export default function ProjectDetailsPage() {
           </TabsList>
         </div>
 
-        <TabsContent value="overview" className="mt-0 ring-0 outline-none">
+        <TabsContent value="overview" className="mt-0 ring-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
           <ProjectOverview projectId={id as string} />
         </TabsContent>
 
-        <TabsContent value="vault" className="mt-0 ring-0 outline-none">
+        <TabsContent value="vault" className="mt-0 ring-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
           <ProjectVault projectId={id as string} />
         </TabsContent>
         
-        <TabsContent value="tasks" className="mt-0 ring-0 outline-none">
-          <div className="rounded-3xl border border-dashed border-border/60 p-12 text-center bg-muted/5">
-            <div className="size-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckSquare className="size-6 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Detailed Task View</h3>
-            <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-              You can view and manage all tasks associated with this project here.
-            </p>
-            <Button variant="secondary" className="rounded-xl font-semibold gap-2" asChild>
-              <Link href={`/tasks?projectId=${id}`}>
-                View Project Board
-                <ExternalLink className="size-3.5" />
-              </Link>
-            </Button>
-          </div>
+        <TabsContent value="tasks" className="mt-0 ring-0 outline-none h-[calc(100vh-280px)] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <TaskDashboard fixedProjectId={id as string} isEmbedded={true} />
         </TabsContent>
 
-        <TabsContent value="activity" className="mt-0 ring-0 outline-none text-center py-20 bg-muted/5 rounded-3xl border border-dashed">
-           <History className="size-10 text-muted-foreground/30 mx-auto mb-4" />
-           <p className="text-muted-foreground text-sm uppercase tracking-widest font-bold">Project History coming soon</p>
+        <TabsContent value="activity" className="mt-0 ring-0 outline-none text-center py-32 bg-muted/5 rounded-[2rem] border border-dashed border-border/50 animate-in fade-in slide-in-from-bottom-2 duration-500">
+           <History className="size-12 text-muted-foreground/10 mx-auto mb-6" />
+           <p className="text-muted-foreground text-[10px] uppercase tracking-[0.3em] font-black">Project History coming soon</p>
         </TabsContent>
       </Tabs>
 

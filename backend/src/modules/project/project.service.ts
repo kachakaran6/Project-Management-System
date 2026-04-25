@@ -4,6 +4,7 @@ import Task from '../../models/Task.js';
 import ProjectMember from '../../models/ProjectMember.js';
 import OrganizationMember from '../../models/OrganizationMember.js';
 import { AppError } from '../../middlewares/errorHandler.js';
+import Status from '../../models/Status.js';
 import * as activityLog from '../../utils/systemTriggers.js';
 import { ROLES } from '../../constants/index.js';
 
@@ -160,7 +161,11 @@ export const getProjects = async (
         .populate('userId', 'firstName lastName avatarUrl email')
         .lean(),
       Task.countDocuments({ projectId: (p as any)._id, isActive: true, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } }),
-      Task.countDocuments({ projectId: (p as any)._id, status: 'COMPLETED', isActive: true, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } })
+      (async () => {
+        const doneStatus = await Status.findOne({ organizationId: (p as any).organizationId, name: /done|completed/i }).select('_id').lean();
+        if (!doneStatus) return 0;
+        return Task.countDocuments({ projectId: (p as any)._id, status: doneStatus._id, isActive: true, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } });
+      })()
     ]);
     
     return {
@@ -214,7 +219,11 @@ export const getProjectById = async (projectId: any, userId?: any, userRole?: st
       .populate('userId', 'firstName lastName avatarUrl email')
       .lean(),
      Task.countDocuments({ projectId, isActive: true, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } }),
-     Task.countDocuments({ projectId, status: 'COMPLETED', isActive: true, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } })
+     (async () => {
+       const doneStatus = await Status.findOne({ organizationId: project.organizationId, name: /done|completed/i }).select('_id').lean();
+       if (!doneStatus) return 0;
+       return Task.countDocuments({ projectId, status: doneStatus._id, isActive: true, isDraft: { $ne: true }, visibility: { $ne: 'DRAFT' } });
+     })()
   ]);
 
   return {

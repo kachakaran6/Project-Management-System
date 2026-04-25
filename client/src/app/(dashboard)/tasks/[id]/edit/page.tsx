@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useParams, useRouter } from "@/lib/next-navigation";
 import { toast } from "sonner";
@@ -61,6 +61,7 @@ export default function EditTaskPage() {
         </CardHeader>
         <CardContent>
           <TaskForm
+            isEdit={true}
             projects={(projectsQuery.data?.data.items ?? []).map((project) => ({
               id: project.id,
               name: project.name,

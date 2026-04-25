@@ -3,15 +3,7 @@ import { z } from "zod";
 export const taskFormSchema = z.object({
   title: z.string().min(2, "Task title is required").max(160),
   description: z.string().max(2500).optional().or(z.literal("")),
-  status: z.enum([
-    "BACKLOG",
-    "TODO",
-    "IN_PROGRESS",
-    "IN_REVIEW",
-    "DONE",
-    "REJECTED",
-    "ARCHIVED",
-  ]),
+  status: z.string().min(1, "Status is required"),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
   projectId: z.string().min(1, "Project is required"),
   visibility: z.enum(["PUBLIC", "PRIVATE", "DRAFT"]).default("PUBLIC"),

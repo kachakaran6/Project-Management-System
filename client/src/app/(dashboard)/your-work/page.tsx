@@ -309,8 +309,10 @@ function getTaskAssigneeIds(task: Task) {
   return assigneeIds;
 }
 
-function getTaskStatusLabel(status: string) {
-  return STATUS_LABELS[status] ?? status.replace(/_/g, " ");
+function getTaskStatusLabel(status: any) {
+  if (!status) return "Unknown";
+  if (typeof status === 'object') return status.name || "Unknown";
+  return STATUS_LABELS[status as string] ?? String(status).replace(/_/g, " ");
 }
 
 function MetricCard({

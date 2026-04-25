@@ -113,14 +113,31 @@ function StatCard({
 export default function DashboardPage() {
   const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
   const tasksQuery = useTasksQuery({ page: 1, limit: 300 });
+ 
+  const getStatusName = (status: any) => {
+    if (!status) return "Unknown";
+    if (typeof status === 'object') return status.name || "Unknown";
+    return String(status).replace("_", " ");
+  };
+
+  const getStatusId = (status: any) => {
+    if (!status) return "";
+    if (typeof status === 'object') return status.id || status._id || "";
+    return String(status);
+  };
 
   const projects = projectsQuery.data?.data.items ?? [];
   const tasks = tasksQuery.data?.data.items ?? [];
 
-  const activeTasks = tasks.filter(
-    (t) => t.status !== "DONE" && t.status !== "ARCHIVED",
-  ).length;
-  const completedTasks = tasks.filter((t) => t.status === "DONE").length;
+  const activeTasks = tasks.filter((t) => {
+    const name = getStatusName(t.status).toUpperCase();
+    return name !== "DONE" && name !== "ARCHIVED" && name !== "COMPLETED";
+  }).length;
+  
+  const completedTasks = tasks.filter((t) => {
+    const name = getStatusName(t.status).toUpperCase();
+    return name === "DONE" || name === "COMPLETED";
+  }).length;
 
   const recentProjects = [...projects]
     .sort(
@@ -333,10 +350,14 @@ export default function DashboardPage() {
                           variant="secondary"
                           className={cn(
                             "text-[10px] font-bold uppercase",
-                            TASK_STATUS_COLORS[task.status],
+                            typeof task.status === 'object' ? "" : TASK_STATUS_COLORS[task.status as string],
                           )}
+                          style={typeof task.status === 'object' ? {
+                            backgroundColor: `${(task.status as any).color}15`,
+                            color: (task.status as any).color
+                          } : {}}
                         >
-                          {task.status.replace("_", " ")}
+                          {getStatusName(task.status)}
                         </Badge>
                       </div>
                     </div>
@@ -424,9 +445,12 @@ export default function DashboardPage() {
                     },
                   ] as const
                 ).map(({ label, statusKey, color }) => {
-                  const count = tasks.filter(
-                    (t) => t.status === statusKey,
-                  ).length;
+                  const count = tasks.filter((t) => {
+                    const id = getStatusId(t.status);
+                    const name = getStatusName(t.status).toUpperCase();
+                    // Match by standard keys or name
+                    return id === statusKey || name === statusKey.replace("_", " ");
+                  }).length;
                   const pct =
                     tasks.length > 0
                       ? Math.round((count / tasks.length) * 100)

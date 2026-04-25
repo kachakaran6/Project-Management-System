@@ -160,61 +160,18 @@ export function CreateTaskModal({
 
   useEffect(() => {
     if (!open) return;
-
-    let cancelled = false;
-
-    const initializeDraft = async () => {
-      setIsCheckingDraft(true);
-
-      const nextBaseValues = createBaseValues(defaultProjectId);
-      let serverDraft: Task | null = null;
-      const localDraft = userId ? getLatestStoredTaskDraft(userId, defaultProjectId) : null;
-
-      if (userId) {
-        try {
-          const response = await taskApi.getDrafts({
-            page: 1,
-            limit: 1,
-            projectId: defaultProjectId,
-          });
-          serverDraft = response.data.items?.[0] ?? null;
-        } catch {
-          serverDraft = null;
-        }
-      }
-
-      if (cancelled) return;
-
-      const candidate = pickLatestDraft(localDraft, serverDraft, nextBaseValues);
-
-      if (candidate && window.confirm("You have an unsaved draft. Restore?")) {
-        setInitialValues(candidate.values);
-        setDraftValues(candidate.values);
-        setDraftId(candidate.draftId || null);
-        lastSavedFingerprintRef.current = JSON.stringify(
-          buildTaskDraftInput(candidate.values),
-        );
-        persistLocalDraft(candidate.values, candidate.draftId || null);
-      } else {
-        setInitialValues(nextBaseValues);
-        setDraftValues(nextBaseValues);
-        setDraftId(null);
-        draftStorageKeyRef.current = null;
-        lastSavedFingerprintRef.current = "";
-      }
-
-      if (!cancelled) {
-        setResetKey((current) => current + 1);
-        setIsCheckingDraft(false);
-      }
-    };
-
-    void initializeDraft();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [defaultProjectId, open, userId]);
+    
+    // Always start with fresh values when opening the modal
+    // Drafts are now managed on the Kanban board, not via a restore popup
+    const nextBaseValues = createBaseValues(defaultProjectId);
+    setInitialValues(nextBaseValues);
+    setDraftValues(nextBaseValues);
+    setDraftId(null);
+    draftStorageKeyRef.current = null;
+    lastSavedFingerprintRef.current = "";
+    setResetKey((current) => current + 1);
+    setIsCheckingDraft(false);
+  }, [defaultProjectId, open]);
 
   const syncDraftToServer = async (
     values: TaskFormValues,
@@ -255,8 +212,21 @@ export function CreateTaskModal({
     }
   };
 
+  const isSubmittingRef = useRef(false);
+
   useEffect(() => {
-    if (!open || isCheckingDraft || !hasTaskDraftContent(debouncedDraftValues)) {
+    if (!open) {
+      isSubmittingRef.current = false;
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (
+      !open || 
+      isCheckingDraft || 
+      isSubmittingRef.current ||
+      !hasTaskDraftContent(debouncedDraftValues)
+    ) {
       return;
     }
 
@@ -345,6 +315,7 @@ export function CreateTaskModal({
   };
 
   const handleSubmit = async (values: TaskFormValues, createMore?: boolean) => {
+    isSubmittingRef.current = true;
     try {
       const publishPayload = buildPublishPayload(values);
       const savedDraftId = userId
