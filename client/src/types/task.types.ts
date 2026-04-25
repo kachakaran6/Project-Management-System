@@ -1,13 +1,17 @@
-export type TaskStatus =
-  | "BACKLOG"
-  | "TODO"
-  | "IN_PROGRESS"
-  | "IN_REVIEW"
-  | "DONE"
-  | "REJECTED"
-  | "ARCHIVED";
+export type TaskStatus = string;
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 export type TaskVisibility = "PUBLIC" | "PRIVATE" | "DRAFT";
+
+export interface Status {
+  id: string;
+  name: string;
+  color: string;
+  order: number;
+  organizationId: string;
+  isDefault?: boolean;
+  isSystem?: boolean;
+  isHiddenIfEmpty?: boolean;
+}
 
 export interface TaskAssigneeUser {
   id: string;
@@ -48,6 +52,7 @@ export interface Task {
   creator?: TaskAssigneeUser;
   dueDate?: string;
   isDraft?: boolean;
+  isPublic?: boolean;
   tags?: Tag[];
   tagIds?: string[];
   assigneeId?: string;
@@ -75,6 +80,8 @@ export interface CreateTaskInput {
   dueDate?: string;
   tags?: string[];
   position?: number;
+  isDraft?: boolean;
+  isPublic?: boolean;
 }
 
 export interface UpdateTaskInput extends Partial<CreateTaskInput> {
@@ -84,6 +91,8 @@ export interface UpdateTaskInput extends Partial<CreateTaskInput> {
   visibility?: TaskVisibility;
   visibleToUsers?: string[];
   position?: number;
+  isDraft?: boolean;
+  isPublic?: boolean;
 }
 
 export interface TaskDraftInput {
@@ -102,6 +111,8 @@ export interface TaskDraftInput {
   dueDate?: string;
   tags?: string[];
   position?: number;
+  isDraft?: boolean;
+  isPublic?: boolean;
 }
 
 export interface TaskDraftFilters {

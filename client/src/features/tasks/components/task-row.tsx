@@ -32,6 +32,7 @@ import {Dispatch, SetStateAction} from "react";
 import {useTaskPanelStore} from "../store/task-panel-store";
 import {usePathname, useRouter, useSearchParams} from "@/lib/next-navigation";
 import { ChevronRight, Clock, User, Calendar, Tag, Folder, Hash } from "lucide-react";
+import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -44,6 +45,7 @@ export const TaskRow = ({
   isOverdue,
   setSelectedTask,
   setDeleteId,
+  hideProject = false,
 }: {
   taskId: string;
   idx: number;
@@ -53,11 +55,13 @@ export const TaskRow = ({
   canMutate: boolean;
   setSelectedTask: Dispatch<SetStateAction<Task | null>>;
   setDeleteId: Dispatch<SetStateAction<string | null>>;
+  hideProject?: boolean;
 }) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const {openPanel} = useTaskPanelStore();
+  const { data: dynamicStatuses = [] } = useStatusesQuery();
   const updateTask = useUpdateTaskMutation();
   const updateStatus = useUpdateTaskStatusMutation();
 
@@ -116,6 +120,11 @@ export const TaskRow = ({
   const createdByEmail = createdByUser?.email || "";
   const createdAt = task.createdAt;
   const tags = task.tags || [];
+ 
+  const currentStatusId = typeof task.status === 'object' ? (task.status as any).id || (task.status as any)._id : task.status;
+  const currentStatus = dynamicStatuses.find((s: any) => (s.id || s._id) === currentStatusId);
+  const statusLabel = currentStatus?.name || String(task.status).replace("_", " ");
+  const statusColor = currentStatus?.color || "#94a3b8";
 
   return (
     <TableRow
@@ -178,25 +187,35 @@ export const TaskRow = ({
             <Button
               variant="ghost"
               className={cn(
-                "h-7 rounded-full border-0 px-3 py-0 text-[10px] font-bold tracking-tight uppercase shadow-sm whitespace-nowrap",
-                task.status === "DONE" && "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15",
-                task.status === "IN_PROGRESS" && "bg-blue-500/10 text-blue-600 hover:bg-blue-500/15",
-                task.status === "IN_REVIEW" && "bg-amber-500/10 text-amber-600 hover:bg-amber-500/15",
-                task.status === "REJECTED" && "bg-rose-500/10 text-rose-600 hover:bg-rose-500/15",
-                ["TODO", "BACKLOG", "ARCHIVED"].includes(task.status || "") && "bg-slate-500/10 text-slate-600 hover:bg-slate-500/15",
-              )}>
-              {(task.status || "TODO").replace("_", " ")}
+                "h-7 rounded-full border-0 px-3 py-0 text-[10px] font-bold tracking-tight uppercase shadow-sm whitespace-nowrap transition-all",
+              )}
+              style={{ 
+                backgroundColor: `${statusColor}15`, 
+                color: statusColor,
+              }}>
+              {statusLabel}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="rounded-xl border-border/50 shadow-xl">
-            <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "TODO")}>To Do</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "IN_PROGRESS")}>In Progress</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "IN_REVIEW")}>In Review</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "DONE")}>Done</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "REJECTED")}>Rejected</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "BACKLOG")}>Backlog</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "ARCHIVED")}>Archive</DropdownMenuItem>
+          <DropdownMenuContent align="start" className="rounded-xl border-border/50 shadow-xl p-1">
+            {dynamicStatuses.map((s: any) => (
+              <DropdownMenuItem 
+                key={s.id || s._id} 
+                onClick={() => handleInlineStatusChange(taskId, s.id || s._id)}
+                className="rounded-lg py-2"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+                  {s.name}
+                </div>
+              </DropdownMenuItem>
+            ))}
+            {dynamicStatuses.length === 0 && (
+              <>
+                <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "TODO")}>To Do</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "IN_PROGRESS")}>In Progress</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "DONE")}>Done</DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -248,7 +267,7 @@ export const TaskRow = ({
           {createdAt ? formatDistanceToNow(new Date(createdAt), { addSuffix: true }) : "Unknown"}
         </span>
       </TableCell>
-      <TableCell>
+      <TableCell className={cn(hideProject && "hidden")}>
         <span className="text-xs font-medium text-muted-foreground/70 truncate max-w-[120px] block">
           {getProjectName(task)}
         </span>

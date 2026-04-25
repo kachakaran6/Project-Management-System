@@ -4,6 +4,7 @@ import TaskTag from '../../models/TaskTag.js';
 import TaskVisibilityUser from '../../models/TaskVisibilityUser.js';
 import Tag from '../../models/Tag.js';
 import Project from '../../models/Project.js';
+import Status from '../../models/Status.js';
 import OrganizationMember from '../../models/OrganizationMember.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import * as activityLog from '../../utils/systemTriggers.js';
@@ -278,18 +279,37 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
   session.startTransaction();
 
   try {
+    let finalStatusId = toObjectId(status);
+    if (!finalStatusId && organizationId) {
+      const defaultStatus = await Status.findOne({ organizationId, isDefault: true }).sort({ order: 1 });
+      
+      if (defaultStatus) {
+        finalStatusId = defaultStatus._id as any;
+      } else {
+        const firstStatus = await Status.findOne({ organizationId }).sort({ order: 1 });
+        if (firstStatus) {
+          finalStatusId = firstStatus._id as any;
+        } else {
+          const { createDefaultStatuses } = await import('../status/status.service.js');
+          const defaults = await createDefaultStatuses(organizationId);
+          finalStatusId = defaults[0]?._id as any;
+        }
+      }
+    }
+
     const [task] = await Task.create([{
       title: String(title || '').trim(),
       description, 
       projectId: toObjectId(projectId), 
       workspaceId: toObjectId(workspaceId), 
       organizationId,
-      status: status || 'TODO',
+      status: finalStatusId,
       priority: priority || 'MEDIUM',
       dueDate,
       creatorId: userId,
       visibility: normalizedVisibility,
-      isDraft: draftState
+      isDraft: draftState,
+      isPublic: !draftState
     }], { session });
 
     await syncTaskVisibilityUsers(task._id, normalizedVisibility, visibleToUsers, organizationId, session);
@@ -457,6 +477,13 @@ export const saveDraft = async (draftData: Record<string, any>, userId: string, 
           { visibility: 'DRAFT' }
         ]
       }).session(session);
+
+      // CRITICAL: If draftId was provided but not found as a draft, 
+      // it might have been published already. STOP here to prevent duplicates.
+      if (!draft) {
+        await session.commitTransaction();
+        return getTaskById(draftId, userId, role);
+      }
     }
 
     if (!draft) {
@@ -476,7 +503,8 @@ export const saveDraft = async (draftData: Record<string, any>, userId: string, 
       status: status || draft?.status || 'TODO',
       priority: priority || draft?.priority || 'MEDIUM',
       visibility: normalizedVisibility,
-      isDraft: true
+      isDraft: true,
+      isPublic: false
     };
     const unsetPayload: Record<string, any> = {};
 
@@ -588,7 +616,8 @@ export const publishDraft = async (
       status: status || draft.status || 'TODO',
       priority: priority || draft.priority || 'MEDIUM',
       visibility: normalizedVisibility,
-      isDraft: false
+      isDraft: false,
+      isPublic: true
     };
     const unsetPayload: Record<string, any> = {};
 
@@ -718,9 +747,9 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
   const skip = (page - 1) * limit;
   const query: Record<string, any> = {
     isActive: true,
-    $and: [
-      { $or: [{ isDraft: { $exists: false } }, { isDraft: false }] },
-      { $or: [{ visibility: { $exists: false } }, { visibility: { $ne: 'DRAFT' } }] }
+    $or: [
+      { isDraft: { $ne: true } }, // All non-draft tasks (includes legacy data)
+      { isDraft: true, creatorId: toObjectId(userId) } // Only the creator can see their own drafts
     ]
   };
 
@@ -729,7 +758,33 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
 
   if (filter.workspaceId) query.workspaceId = toObjectId(filter.workspaceId);
   if (filter.projectId) query.projectId = toObjectId(filter.projectId);
-  if (filter.status) query.status = filter.status;
+  if (filter.status) {
+    const statusId = toObjectId(filter.status);
+    
+    // We want to be extremely robust: match ObjectId OR various string formats
+    const statusMatchTerms: any[] = [filter.status];
+    if (statusId) statusMatchTerms.push(statusId);
+
+    // Try to find the dynamic status document to get its name and ID variations
+    const resolvedStatuses = await Status.find({ 
+      organizationId: orgId, 
+      $or: [
+        { name: new RegExp(`^${filter.status}$`, 'i') },
+        ...(statusId ? [{ _id: statusId }] : [])
+      ]
+    }).lean();
+
+    resolvedStatuses.forEach(s => {
+      statusMatchTerms.push(s._id);
+      statusMatchTerms.push(s.name);
+      // Also match common legacy versions (e.g. "To Do" -> "TODO" or "TO_DO")
+      statusMatchTerms.push(s.name.toUpperCase().replace(/\s+/g, '_'));
+      statusMatchTerms.push(s.name.toUpperCase().replace(/\s+/g, ''));
+    });
+
+    // Deduplicate and apply to query
+    query.status = { $in: [...new Set(statusMatchTerms.map(t => t.toString())), ...statusMatchTerms.filter(t => t instanceof mongoose.Types.ObjectId)] };
+  }
   if (filter.priority) query.priority = filter.priority;
   if (filter.visibility) query.visibility = filter.visibility;
   if (filter.dueDate) query.dueDate = { $lte: new Date(filter.dueDate) };
@@ -853,7 +908,21 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
           as: 'creatorId'
         }
       },
-      { $unwind: { path: '$creatorId', preserveNullAndEmptyArrays: true } }
+      { $unwind: { path: '$creatorId', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'statuses',
+          localField: 'status',
+          foreignField: '_id',
+          as: 'status_obj'
+        }
+      },
+      { $unwind: { path: '$status_obj', preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          status: { $ifNull: ['$status_obj', '$status'] }
+        }
+      }
     );
 
     const skipIndex = pipeline.findIndex(p => '$skip' in p);
@@ -933,6 +1002,13 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
   }
 
   const updatePayload: Record<string, any> = { ...otherData };
+  
+  // AUTO-PUBLISH LOGIC: Only publish if it was a draft AND we are changing its status
+  if (previousTask.isDraft && updateData.status && String(updateData.status) !== String(previousTask.status)) {
+    updatePayload.isDraft = false;
+    updatePayload.isPublic = true;
+  }
+
   const unsetPayload: Record<string, any> = {};
   if (visibility) {
     updatePayload.visibility = normalizeVisibility(visibility);
@@ -1029,8 +1105,20 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
 
 export const getTaskById = async (taskId: any, userId?: string, userRole?: string | null) => {
   const task = await Task.findOne({ _id: taskId, isActive: true })
-    .populate('projectId', 'name').populate('workspaceId', 'name').populate('creatorId', 'firstName lastName email avatarUrl').lean();
+    .populate('projectId', 'name')
+    .populate('workspaceId', 'name')
+    .populate('creatorId', 'firstName lastName email avatarUrl')
+    .lean();
+    
   if (!task) throw new AppError('Task not found.', 404);
+
+  // Manual population of status to safely handle legacy string statuses
+  if (task.status && mongoose.Types.ObjectId.isValid(String(task.status))) {
+    const statusObj = await Status.findById(task.status).lean();
+    if (statusObj) {
+      task.status = statusObj;
+    }
+  }
 
   // Check visibility if userId provided
   if (userId) {
@@ -1103,7 +1191,8 @@ export const changeStatus = async (taskId: any, newStatus: any, userId: any) => 
   if (!previousTask) throw new AppError('Task not found.', 404);
   ensureDraftOwner(previousTask, userId);
 
-  const task = await Task.findOneAndUpdate({ _id: taskId }, { $set: { status: newStatus } }, { new: true });
+  const finalStatusId = toObjectId(newStatus) || newStatus;
+  const task = await Task.findOneAndUpdate({ _id: taskId }, { $set: { status: finalStatusId } }, { new: true });
   if (!task) throw new AppError('Task not found.', 404);
 
   if (isTaskDraft(task)) {

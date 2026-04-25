@@ -48,6 +48,7 @@ import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {DatePicker} from "@/components/ui/date-picker";
 import { useTaskDuplicateSuggestions } from "@/features/tasks/hooks/use-task-duplicate-suggestions";
 import { TagSelect } from "@/features/tags/components/tag-select";
+import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 
 interface ProjectOption {
   id: string;
@@ -73,6 +74,7 @@ interface TaskFormProps {
   submitLabel?: string;
   title?: string;
   subtitle?: string;
+  isEdit?: boolean;
 }
 
 const statusConfig: Record<string, {icon: any; color: string}> = {
@@ -138,12 +140,19 @@ export function TaskForm({
   submitLabel = "Save",
   title = "Create new work item",
   subtitle,
+  isEdit = false,
 }: TaskFormProps) {
+  const { data: dynamicStatuses = [] } = useStatusesQuery();
   const {user} = useAuthStore();
   const [createMore, setCreateMore] = useState(false);
   const [dismissedQuery, setDismissedQuery] = useState<string | null>(null);
 
   const currentRole = user?.role || "MEMBER";
+
+  const getStatusName = (statusId: string) => {
+    const status = dynamicStatuses.find((s: any) => s.id === statusId || s.name === statusId);
+    return status?.name || statusId;
+  };
   const isMemberOnlySelection = currentRole === "MEMBER";
 
   const form = useForm<TaskFormValues>({
@@ -161,7 +170,10 @@ export function TaskForm({
   const tagsValue = form.watch("tags") || [];
   const visibleToUsersValue = form.watch("visibleToUsers") || [];
   const currentProject = projects.find((p) => p.id === projectIdValue);
-  const StatusIcon = statusConfig[statusValue]?.icon || CircleDot;
+  
+  const currentStatus = dynamicStatuses.find((s: any) => (s.id || s._id) === statusValue);
+  const StatusIcon = currentStatus ? (statusConfig[currentStatus.name.toUpperCase()]?.icon || CircleDot) : (statusConfig[statusValue]?.icon || CircleDot);
+  const statusColor = currentStatus?.color || statusConfig[statusValue]?.color || "text-muted-foreground";
   const {
     suggestions,
     isLoading: isLoadingSimilar,
@@ -170,6 +182,7 @@ export function TaskForm({
   } = useTaskDuplicateSuggestions(titleValue, projectIdValue || undefined);
 
   const showSuggestionsPanel =
+    !isEdit &&
     canSearch &&
     dismissedQuery !== normalizedQuery &&
     (isLoadingSimilar || suggestions.length > 0);
@@ -206,6 +219,16 @@ export function TaskForm({
       setDismissedQuery(null);
     }
   }, [canSearch, dismissedQuery, normalizedQuery]);
+
+  useEffect(() => {
+    if (dynamicStatuses.length > 0 && (!statusValue || statusValue === "TODO" || statusValue === "BACKLOG")) {
+      const defaultStatus = dynamicStatuses.find((s: any) => s.isDefault) || dynamicStatuses[0];
+      const defaultId = defaultStatus.id || defaultStatus._id;
+      if (statusValue !== defaultId) {
+        form.setValue("status", defaultId);
+      }
+    }
+  }, [dynamicStatuses, statusValue, form]);
 
   useEffect(() => {
     if (!onValuesChange) return;
@@ -384,7 +407,7 @@ export function TaskForm({
                             {renderHighlightedTitle(task.title)}
                           </p>
                           <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                            {task.status.replace(/_/g, " ")} • {task.project} • {task.assignee}
+                            {getStatusName(task.status)} • {task.project} • {task.assignee}
                           </p>
                         </div>
                         <button
@@ -440,16 +463,27 @@ export function TaskForm({
                 <StatusIcon
                   className={cn(
                     "h-3.5 w-3.5",
-                    statusConfig[statusValue]?.color,
                   )}
+                  style={{ color: statusColor.startsWith('text-') ? undefined : statusColor }}
                 />
                 <span className="capitalize">
-                  {statusValue.toLowerCase().replace("_", " ")}
+                  {currentStatus?.name || statusValue.toLowerCase().replace("_", " ")}
                 </span>
               </div>
             </SelectTrigger>
             <SelectContent className="rounded-xl border-border/30">
-              {Object.keys(statusConfig).map((s) => (
+              {dynamicStatuses.map((s: any) => (
+                <SelectItem
+                  key={s.id || s._id}
+                  value={s.id || s._id}
+                  className="text-xs focus:bg-primary/10">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color || "#94a3b8" }} />
+                    {s.name}
+                  </div>
+                </SelectItem>
+              ))}
+              {dynamicStatuses.length === 0 && Object.keys(statusConfig).map((s) => (
                 <SelectItem
                   key={s}
                   value={s}

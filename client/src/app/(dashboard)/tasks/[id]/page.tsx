@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "@/lib/next-link";
-import { useParams } from "@/lib/next-navigation";
-import { Mail, User } from "lucide-react";
+import { useParams, useRouter } from "@/lib/next-navigation";
+import { Mail, User, X } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,7 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { useTaskQuery } from "@/features/tasks/hooks/use-tasks-query";
 import type { Task } from "@/types/task.types";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton, SkeletonAvatar } from "@/components/ui/skeleton";
 import type { OrganizationMemberRecord } from "@/features/organization/api/organization-members.api";
 
 type CreatorInfo = {
@@ -101,6 +101,7 @@ function getTaskCreator(task: Task, members: OrganizationMemberRecord[]) {
 }
 
 export default function TaskDetailsPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const isAdmin = user?.role === "SUPER_ADMIN" || user?.role === "ADMIN";
   const params = useParams<{ id: string }>();
@@ -195,9 +196,21 @@ export default function TaskDetailsPage() {
             Full task details with activity and debug context.
           </p>
         </div>
-        <Button asChild variant="secondary">
-          <Link href={`/tasks/${task.id}/edit`}>Edit Task</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            aria-label="Close task details"
+            onClick={() => router.back()}
+          >
+            <X className="size-4" />
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href={`/tasks/${task.id}/edit`}>Edit Task</Link>
+          </Button>
+        </div>
       </div>
 
       <Card>

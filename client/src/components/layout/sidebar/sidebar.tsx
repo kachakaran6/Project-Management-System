@@ -259,9 +259,9 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
               <div className={cn(
                 "size-10 rounded-lg flex items-center justify-center font-bold text-sm ring-2 ring-sidebar-accent/50",
                 role === "SUPER_ADMIN" ? "bg-orange-500/20 text-orange-500" :
-                role === "ADMIN" ? "bg-primary/20 text-primary" :
-                role === "MANAGER" ? "bg-blue-500/20 text-blue-500" :
-                "bg-sidebar-foreground/10 text-sidebar-foreground/60"
+                  role === "ADMIN" ? "bg-primary/20 text-primary" :
+                    role === "MANAGER" ? "bg-blue-500/20 text-blue-500" :
+                      "bg-sidebar-foreground/10 text-sidebar-foreground/60"
               )}>
                 {(user.firstName?.[0] ?? "U")}
               </div>
@@ -279,14 +279,14 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
         </div>
       )}
 
-      {/* Scrollable Content - Flex-1 with proper height management */}
+      {/* Scrollable Content - Flex-1 fills available space */}
       <div className={cn(
-        "flex-1 overflow-y-auto custom-scrollbar",
+        "flex-1 overflow-hidden",
         "transition-all duration-300",
         // Desktop: standard spacing
-        "md:py-2 md:pr-1 md:-mr-1",
-        // Mobile: reduced spacing for compact layout
-        mobile && "py-1 pr-1 -mr-1"
+        "md:overflow-y-auto md:custom-scrollbar md:py-2 md:pr-1 md:-mr-1",
+        // Mobile: no scroll needed, content fits
+        mobile && "py-1 pr-1"
       )}>
         <div className={cn(
           "transition-all duration-300",
@@ -310,13 +310,13 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
         </div>
       </div>
 
-      {/* Footer - Sticky positioning for mobile, mt-auto for desktop */}
+      {/* Footer - Pushed to bottom using mt-auto (flexbox) */}
       <div className={cn(
-        "transition-all duration-300",
-        // Desktop: mt-auto with standard spacing
-        "md:mt-auto md:pt-4 md:space-y-4",
-        // Mobile: sticky positioning at bottom with reduced spacing
-        mobile && "sticky bottom-0 left-0 right-0 pt-3 pb-3 space-y-3 bg-sidebar border-t border-sidebar-border/50"
+        "mt-auto transition-all duration-300",
+        // Desktop: standard spacing
+        "md:pt-4 md:space-y-4",
+        // Mobile: reduced spacing
+        mobile && "pt-3 pb-3 space-y-3 border-t border-sidebar-border/50"
       )}>
         {/* Sign Out Button - Better touch target on mobile (44px min height) */}
         <div className="px-2">
@@ -338,22 +338,22 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
         </div>
 
         {/* User Role Badge - Desktop only (shown at top on mobile via user info section) */}
-        <div 
+        <div
           className={cn(
             "hidden md:block transition-all duration-300",
-            sidebarCollapsed && !mobile 
-              ? "flex justify-center px-1" 
+            sidebarCollapsed && !mobile
+              ? "flex justify-center px-1"
               : "rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-3 mx-1"
           )}
         >
           {sidebarCollapsed && !mobile ? (
-            <div 
+            <div
               className={cn(
                 "size-8 rounded-lg flex items-center justify-center transition-all duration-500 shadow-lg",
                 role === "SUPER_ADMIN" ? "bg-orange-500/20 text-orange-500 border border-orange-500/30 ring-1 ring-orange-500/10" :
-                role === "ADMIN" ? "bg-primary/20 text-primary border border-primary/30 ring-1 ring-primary/10" :
-                role === "MANAGER" ? "bg-blue-500/20 text-blue-500 border border-blue-500/30 ring-1 ring-blue-500/10" :
-                "bg-sidebar-foreground/10 text-sidebar-foreground/60 border border-sidebar-border/50"
+                  role === "ADMIN" ? "bg-primary/20 text-primary border border-primary/30 ring-1 ring-primary/10" :
+                    role === "MANAGER" ? "bg-blue-500/20 text-blue-500 border border-blue-500/30 ring-1 ring-blue-500/10" :
+                      "bg-sidebar-foreground/10 text-sidebar-foreground/60 border border-sidebar-border/50"
               )}
             >
               <span className="text-[11px] font-black tracking-tighter">
@@ -369,8 +369,8 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
                 <div className={cn(
                   "size-1.5 rounded-full ring-2 ring-background shadow-sm animate-pulse",
                   role === "SUPER_ADMIN" ? "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]" :
-                  role === "ADMIN" ? "bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]" :
-                  "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"
+                    role === "ADMIN" ? "bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]" :
+                      "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"
                 )} />
               </div>
               <p className="text-[13px] font-extrabold text-foreground tracking-tight flex items-center gap-2 capitalize">

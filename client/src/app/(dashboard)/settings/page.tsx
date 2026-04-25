@@ -55,6 +55,7 @@ import { UserWithRole } from "@/types/user.types";
 import { OrganizationMembership } from "@/types/organization.types";
 import * as LucideIcons from "lucide-react";
 import { TagManagement } from "@/features/tags/components/tag-management";
+import { StatusManagement } from "@/features/status/components/status-management";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ type SectionId =
   | "security"
   | "integrations"
   | "tags"
+  | "workflow"
   | "org_notifications";
 
 interface UserWithOrganizations extends UserWithRole {
@@ -96,6 +98,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "security", label: "Security", icon: ShieldCheck },
   { id: "integrations", label: "Integrations", icon: Puzzle },
   { id: "tags", label: "Tags", icon: LucideIcons.Tag, managerPlus: true },
+  { id: "workflow", label: "Workflow", icon: LucideIcons.Workflow, managerPlus: true },
   {
     id: "org_notifications",
     label: "Org Notifications",
@@ -1909,6 +1912,8 @@ function renderSection(id: SectionId) {
       return <TelegramOrgSection />;
     case "tags":
       return <TagManagement />;
+    case "workflow":
+      return <StatusManagement />;
   }
 }
 
@@ -2028,6 +2033,8 @@ export default function SettingsPage() {
                   "Connect third-party tools to your workflow"}
                 {activeSection === "tags" &&
                   "Define organization-wide labels for tasks"}
+                {activeSection === "workflow" &&
+                  "Manage task lifecycle and board columns"}
               </p>
             </div>
           </div>

@@ -8,6 +8,7 @@ import {
   CircleDot, 
   Tag as TagIcon,
 } from "lucide-react";
+import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { useUpdateTaskMutation } from "@/features/tasks/hooks/use-tasks-query";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
@@ -29,17 +30,10 @@ const PRIORITIES = [
   { value: "URGENT", label: "Urgent", color: "bg-[#DC3545]" },
 ];
 
-const STATUSES = [
-  { value: "BACKLOG", label: "Backlog", color: "bg-slate-400" },
-  { value: "TODO", label: "To Do", color: "bg-slate-500" },
-  { value: "IN_PROGRESS", label: "In Progress", color: "bg-[#0D6EFD]" },
-  { value: "IN_REVIEW", label: "In Review", color: "bg-[#FFC107]" },
-  { value: "DONE", label: "Done", color: "bg-[#198754]" },
-];
-
 export function TaskProperties({ task }: TaskPropertiesProps) {
   const { activeOrgId } = useAuth();
   const membersQuery = useOrganizationMembersQuery(activeOrgId || "");
+  const statusesQuery = useStatusesQuery();
   const updateTaskMutation = useUpdateTaskMutation();
 
   const members = (membersQuery.data?.data.members ?? []).map(m => ({
@@ -48,6 +42,30 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
     email: m.email,
     avatarUrl: m.avatarUrl
   }));
+
+  const dynamicStatuses = (statusesQuery.data ?? []).map((s: any) => ({
+    value: s.id || s._id,
+    label: s.name,
+    color: s.color, // We'll handle hex in EditableSelect or here
+    isHex: true
+  }));
+
+  const getStatusId = (status: any) => {
+    if (!status) return "";
+    const id = typeof status === 'object' ? (status.id || status._id) : String(status);
+    
+    // If the ID exists in our dynamic statuses, return it
+    if (dynamicStatuses.some(s => s.value === id)) return id;
+    
+    // FALLBACK: If it's a legacy string (e.g. "IN_PROGRESS" or "In_review")
+    // try to match by name normalization
+    const normalizedId = String(id).toLowerCase().replace(/[\s_-]/g, "");
+    const match = (statusesQuery.data ?? []).find((s: any) => 
+      s.name.toLowerCase().replace(/[\s_-]/g, "") === normalizedId
+    );
+    
+    return match ? (match.id || match._id) : id;
+  };
 
   const handleUpdate = (data: Partial<Task>) => {
     updateTaskMutation.mutate({ id: task.id || (task as any)._id, data });
@@ -72,8 +90,8 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
         </div>
         <div className="col-span-2">
           <EditableSelect
-            value={task.status}
-            options={STATUSES}
+            value={getStatusId(task.status)}
+            options={dynamicStatuses}
             onChange={(status) => handleUpdate({ status: status as any })}
             isSaving={isSaving}
           />
