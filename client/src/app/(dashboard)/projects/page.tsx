@@ -47,18 +47,26 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   useDeleteProjectMutation,
   useProjectsQuery,
+  useUpdateProjectMutation,
 } from "@/features/projects/hooks/use-projects-query";
 import { EditProjectModal } from "@/features/projects/components/edit-project-modal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
 const PAGE_SIZE = 10;
 
 const STATUS_STYLES: Record<string, string> = {
-  ACTIVE: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
-  INACTIVE: "border-slate-500/20 bg-slate-500/10 text-slate-300",
-  PLANNED: "border-indigo-500/20 bg-indigo-500/10 text-indigo-300",
-  ON_HOLD: "border-amber-500/20 bg-amber-500/10 text-amber-300",
-  COMPLETED: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
-  ARCHIVED: "border-slate-500/20 bg-slate-500/10 text-slate-300",
+  ACTIVE: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  INACTIVE: "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400",
+  PLANNED: "border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+  ON_HOLD: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  COMPLETED: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  ARCHIVED: "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400",
 };
 
 function getProjectStatusLabel(status: string) {
@@ -97,16 +105,14 @@ function ProjectActionButton({
   tone?: "default" | "danger";
 }) {
   const baseClasses = cn(
-    "inline-flex items-center justify-center gap-2 px-3.5 py-2.5 min-h-[40px] min-w-[40px] rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 touch-none",
-    "border border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground hover:border-border",
-    tone === "danger" && "text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/20"
+    "inline-flex items-center justify-center size-8 rounded-xl text-xs transition-all duration-200 active:scale-95 touch-none shadow-sm",
+    "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 hover:text-black hover:border-neutral-300",
+    "dark:border-neutral-800 dark:bg-neutral-900/80 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white dark:hover:border-neutral-600 dark:shadow-none",
+    tone === "danger" && "text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:text-red-400/80 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:border-red-500/30"
   );
 
   const content = (
-    <>
-      <Icon className="size-4 shrink-0" aria-hidden="true" />
-      <span className="hidden sm:inline">{label === "Project Overview" ? "View" : label}</span>
-    </>
+    <Icon className="size-4 shrink-0" aria-hidden="true" />
   );
 
   const buttonElement = href ? (
@@ -144,6 +150,7 @@ export default function ProjectsPage() {
 
   const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
   const deleteProject = useDeleteProjectMutation();
+  const updateProject = useUpdateProjectMutation();
 
   const filtered = useMemo(() => {
     let allProjects = projectsQuery.data?.data.items ?? [];
@@ -168,6 +175,21 @@ export default function ProjectsPage() {
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   );
+
+  const stats = useMemo(() => {
+    return filtered.reduce((acc, p) => {
+      const s = p.status.toUpperCase();
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [filtered]);
+
+  const statsSummary = Object.entries(stats)
+    .map(([label, count]) => {
+      const formattedLabel = label.charAt(0) + label.slice(1).toLowerCase().replace('_', ' ');
+      return `${count} ${formattedLabel}`;
+    })
+    .join(", ");
 
   return (
     <TooltipProvider delayDuration={120}>
@@ -267,9 +289,9 @@ export default function ProjectsPage() {
             ) : null}
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="col-span-full flex items-center justify-between px-1 pb-1 text-xs text-muted-foreground outline-none">
-              <span className="font-medium">{filtered.length} active projects</span>
+              <span className="font-semibold">{statsSummary || "No projects"}</span>
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1.5"><Globe className="size-3" /> Public</span>
                 <span className="flex items-center gap-1.5"><Lock className="size-3" /> Private</span>
@@ -284,31 +306,64 @@ export default function ProjectsPage() {
               return (
                 <div
                   key={pid}
-                  className="group relative flex flex-col rounded-[24px] border border-border/40 bg-card/40 p-5 transition-all duration-300 hover:bg-card/60 hover:border-border/80 hover:shadow-2xl hover:shadow-primary/5 active:scale-[0.99] overflow-hidden"
+                  className="group relative flex flex-col rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md dark:border-neutral-800 dark:bg-card dark:hover:bg-card/80 dark:hover:border-neutral-700 dark:shadow-none"
                 >
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="flex flex-col gap-1.5 min-w-0">
+                  {/* HEADER SECTION */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex flex-col gap-2 min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="truncate text-base font-semibold tracking-tight text-foreground group-hover:text-primary transition-colors">
-                          {project.name}
-                        </h3>
-                        {isPrivate && <Lock className="size-3 text-amber-500/70" />}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <h3 className="text-base font-bold text-black leading-tight line-clamp-2 cursor-help group-hover:text-primary transition-colors dark:text-foreground">
+                              {project.name}
+                            </h3>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-[300px] break-words">
+                            {project.name}
+                          </TooltipContent>
+                        </Tooltip>
+                        {isPrivate && <Lock className="size-3.5 text-amber-500/80 shrink-0" />}
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "w-fit h-5 px-1.5 text-[10px] uppercase font-bold tracking-wider rounded-md",
-                          getProjectStatusClass(project.status)
-                        )}
-                      >
-                        {getProjectStatusLabel(project.status)}
-                      </Badge>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild disabled={!canMutate}>
+                          <button
+                            className={cn(
+                              "w-fit h-5 px-2 text-[9px] uppercase font-bold tracking-wider rounded-md border border-transparent transition-all flex items-center gap-1 hover:border-current active:scale-95 disabled:opacity-100 disabled:pointer-events-none",
+                              getProjectStatusClass(project.status)
+                            )}
+                          >
+                            {getProjectStatusLabel(project.status)}
+                            {canMutate && <ChevronDown className="size-2.5 opacity-50" />}
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="min-w-[120px]">
+                          {Object.keys(STATUS_STYLES).map((s) => (
+                            <DropdownMenuItem
+                              key={s}
+                              className="text-[10px] font-bold uppercase tracking-wide"
+                              onClick={() => {
+                                if (s !== project.status.toUpperCase()) {
+                                  updateProject.mutate({
+                                    id: pid,
+                                    data: { status: s as any }
+                                  });
+                                }
+                              }}
+                            >
+                              <div className={cn("size-2 rounded-full mr-2", getProjectStatusClass(s).split(' ')[1])} />
+                              {getProjectStatusLabel(s)}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    
-                    <div className="flex flex-wrap gap-2 shrink-0 md:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+
+                    {/* HOVER ACTIONS - TOP RIGHT */}
+                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 -mr-1 -mt-1 scale-95 group-hover:scale-100">
                        <ProjectActionButton
                           href={`/projects/${pid}`}
-                          label="Project Overview"
+                          label="View"
                           icon={Eye}
                         />
                         {canMutate && (
@@ -329,59 +384,65 @@ export default function ProjectsPage() {
                     </div>
                   </div>
 
-                  {project.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-6 leading-relaxed">
-                      {project.description}
-                    </p>
-                  )}
+                  {/* CONTENT SECTION */}
+                  <div className="space-y-4 mb-6">
+                    {project.description ? (
+                      <p className="text-sm text-neutral-800 line-clamp-2 leading-relaxed font-medium dark:text-muted-foreground">
+                        {project.description}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-neutral-500 italic font-medium dark:text-muted-foreground/50">
+                        Description will be available soon
+                      </p>
+                    )}
 
-                  {techStack.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-6">
-                      {techStack.slice(0, 3).map((tech: string) => (
-                        <Badge key={tech} variant="secondary" className="h-6 text-[10px] bg-primary/5">
-                          {tech}
-                        </Badge>
-                      ))}
-                      {techStack.length > 3 && (
-                        <span className="text-[10px] text-muted-foreground self-center ml-1">+{techStack.length - 3}</span>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-border/10">
-                    <div className="flex flex-col gap-1">
-                      {project.startDate || project.endDate ? (
-                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium uppercase tracking-tight">
-                          <CalendarDays className="size-3 text-primary/60" />
-                          {project.startDate && format(new Date(project.startDate), "MMM d")}
-                          {project.startDate && project.endDate && " — "}
-                          {project.endDate && format(new Date(project.endDate), "MMM d, yyyy")}
-                        </div>
-                      ) : (
-                        <div className="text-[10px] text-muted-foreground uppercase opacity-50">No timeline set</div>
-                      )}
-                    </div>
-
-                    <div className="flex -space-x-1.5">
-                      {members.slice(0, 4).map((user: any) => (
-                        <Avatar key={user.id || user._id} className="size-7 border-2 border-background ring-1 ring-border/10">
-                          <AvatarImage src={user.avatarUrl} />
-                          <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
-                            {user.firstName?.[0]}{user.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                      ))}
-                      {members.length > 4 && (
-                        <div className="flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-bold text-muted-foreground">
-                          +{members.length - 4}
-                        </div>
-                      )}
+                    <div className="flex items-center gap-4 text-[11px] text-neutral-600 font-semibold dark:text-muted-foreground/80">
+                       <div className="flex items-center gap-1.5">
+                         <CalendarDays className="size-3.5 text-primary" />
+                         <span>{project.createdAt ? format(new Date(project.createdAt), "MMM d, yyyy") : "Date N/A"}</span>
+                       </div>
+                       <div className="flex items-center gap-1.5">
+                         <Users className="size-3.5 text-primary/40" />
+                         <span>{members.length} {members.length === 1 ? "Member" : "Members"}</span>
+                       </div>
                     </div>
                   </div>
 
-                  <div className="absolute bottom-0 left-0 h-1 bg-muted/20 w-full overflow-hidden">
+                  {/* FOOTER SECTION */}
+                  <div className="mt-auto">
+                    <div className="pt-3 border-t border-border/40 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                         <div className="flex -space-x-1.5">
+                          {members.slice(0, 3).map((user: any) => (
+                            <Avatar key={user.id || user._id} className="size-7 border-2 border-white dark:border-neutral-900 ring-1 ring-border/10">
+                              <AvatarImage src={user.avatarUrl} />
+                              <AvatarFallback className="text-[9px] bg-primary/5 text-primary font-bold">
+                                {user.firstName?.[0]}{user.lastName?.[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                          ))}
+                          {members.length > 3 && (
+                            <div className="flex size-7 items-center justify-center rounded-full border-2 border-white dark:border-neutral-900 bg-muted text-[10px] font-bold text-muted-foreground">
+                              +{members.length - 3}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest ml-1 dark:text-muted-foreground/60">Team</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-[11px] font-bold text-neutral-500 dark:text-muted-foreground">
+                         <span className="text-black dark:text-primary">{project.taskStats?.completed || 0}</span>
+                         <span className="text-neutral-300 font-normal dark:text-muted-foreground/30">/</span>
+                         <span className="text-black dark:text-foreground/80">{project.taskStats?.total || 0}</span>
+                         <span className="text-[10px] font-bold text-neutral-600 ml-0.5 dark:text-muted-foreground/60">Tasks</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PROGRESS BAR (DEEP BOTTOM) */}
+                  <div className="absolute bottom-0 left-0 h-0.5 bg-muted/40 w-full overflow-hidden">
                      <div 
-                      className="h-full bg-primary/40 transition-all duration-1000 ease-out" 
+                      className="h-full bg-primary/60 transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(var(--primary),0.4)]" 
                       style={{ width: `${project.taskStats?.percent || 0}%` }}
                     ></div>
                   </div>
