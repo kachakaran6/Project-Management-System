@@ -14,10 +14,35 @@ import { ROLES } from '../../constants/index.js';
 export const createProject = async (projectData: Record<string, any>) => {
   const { 
     name, description, workspaceId, organizationId, ownerId, 
-    techStack, startDate, endDate, visibility, members 
+    techStack, startDate, endDate, visibility, members, code 
   } = projectData;
 
   if (!name) throw new AppError('Project name is required.', 400);
+
+  // Helper to generate a unique project code if not provided
+  let projectCode = code;
+  if (!projectCode) {
+    projectCode = name
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .substring(0, 4);
+    
+    // Ensure it's at least 2 chars
+    if (projectCode.length < 2) projectCode = 'PRJ';
+  }
+
+  // Ensure uniqueness (basic check before transaction, schema will also enforce)
+  const existingProject = await Project.findOne({ 
+    organizationId, 
+    code: projectCode.toUpperCase() 
+  });
+  
+  if (existingProject && !code) {
+    // If we auto-generated it and it's not unique, add a random suffix
+    projectCode = `${projectCode}${Math.floor(Math.random() * 100)}`;
+  } else if (existingProject && code) {
+    throw new AppError(`Project code "${code}" is already in use.`, 400);
+  }
 
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -33,7 +58,9 @@ export const createProject = async (projectData: Record<string, any>) => {
       startDate,
       endDate,
       visibility: visibility || 'public',
-      status: (projectData.status || 'active').toLowerCase()
+      status: (projectData.status || 'active').toLowerCase(),
+      code: projectCode.toUpperCase(),
+      taskSequence: 0
     }], { session });
 
     // 1. Add Creator as OWNER
