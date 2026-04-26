@@ -297,6 +297,21 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
       }
     }
 
+    let taskSequence = 0;
+    let projectCode = 'TASK';
+
+    if (projectId) {
+      const project = await Project.findOneAndUpdate(
+        { _id: toObjectId(projectId) },
+        { $inc: { taskSequence: 1 } },
+        { new: true, session }
+      );
+      if (project) {
+        taskSequence = project.taskSequence;
+        projectCode = project.code || 'TASK';
+      }
+    }
+
     const [task] = await Task.create([{
       title: String(title || '').trim(),
       description, 
@@ -309,7 +324,10 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
       creatorId: userId,
       visibility: normalizedVisibility,
       isDraft: draftState,
-      isPublic: !draftState
+      isPublic: !draftState,
+      sequence: taskSequence,
+      taskCode: taskSequence > 0 ? `${projectCode}-${taskSequence}` : undefined,
+      legacyId: undefined // Will be set if migrating or for specific needs
     }], { session });
 
     await syncTaskVisibilityUsers(task._id, normalizedVisibility, visibleToUsers, organizationId, session);
@@ -461,6 +479,7 @@ export const saveDraft = async (draftData: Record<string, any>, userId: string, 
     assigneeId
   ].map(id => String(id || '').trim()).filter(Boolean)));
   const normalizedVisibility = normalizeVisibility(visibility);
+  console.log(`[DEBUG] saveDraft: Start. User: ${userId}, Title: ${title}, Project: ${projectId}`);
 
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -524,6 +543,7 @@ export const saveDraft = async (draftData: Record<string, any>, userId: string, 
         },
         { new: true, runValidators: true, session }
       );
+      console.log(`[DEBUG] saveDraft: Updated existing draft. ID: ${draft?._id}`);
     } else {
       const [createdDraft] = await Task.create([{
         ...updatePayload,
@@ -531,6 +551,7 @@ export const saveDraft = async (draftData: Record<string, any>, userId: string, 
         creatorId: userId
       }], { session });
       draft = createdDraft;
+      console.log(`[DEBUG] saveDraft: Created new draft. ID: ${draft._id}`);
     }
 
     if (!draft) {
@@ -590,6 +611,7 @@ export const publishDraft = async (
     }).session(session);
 
     if (!draft) {
+      console.log(`[DEBUG] publishDraft: Draft not found. ID: ${draftId}, User: ${userId}`);
       throw new AppError('Draft not found.', 404);
     }
 
@@ -628,16 +650,39 @@ export const publishDraft = async (
       unsetPayload.dueDate = 1;
     }
 
+    // Check if task already has a taskCode (e.g. from a previous draft save that didn't publish)
+    // Actually, drafts usually don't have taskCodes until published, unless we want them to.
+    // The requirement says "When creating new tasks".
+    let taskSequence = draft.sequence;
+    let taskCode = draft.taskCode;
+
+    if (!taskSequence && updatePayload.projectId) {
+      const project = await Project.findOneAndUpdate(
+        { _id: updatePayload.projectId },
+        { $inc: { taskSequence: 1 } },
+        { new: true, session }
+      );
+      if (project) {
+        taskSequence = project.taskSequence;
+        taskCode = `${project.code || 'TASK'}-${taskSequence}`;
+      }
+    }
+
     const publishedTask = await Task.findOneAndUpdate(
       { _id: draft._id, creatorId: toObjectId(userId), isActive: true },
       {
-        $set: updatePayload,
+        $set: {
+          ...updatePayload,
+          sequence: taskSequence,
+          taskCode: taskCode
+        },
         ...(Object.keys(unsetPayload).length > 0 ? { $unset: unsetPayload } : {})
       },
       { new: true, runValidators: true, session }
     );
 
     if (!publishedTask) {
+      console.log(`[DEBUG] publishDraft: publishedTask is null. Draft ID: ${draft._id}, User: ${userId}`);
       throw new AppError('Draft not found.', 404);
     }
 
@@ -790,8 +835,14 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
   if (filter.visibility) query.visibility = filter.visibility;
   if (filter.dueDate) query.dueDate = { $lte: new Date(filter.dueDate) };
   if (filter.search) {
-    const regex = new RegExp(String(filter.search).trim(), 'i');
-    query.$or = [{ title: regex }, { description: regex }];
+    const term = String(filter.search).trim();
+    const regex = new RegExp(term, 'i');
+    query.$or = [
+      { title: regex }, 
+      { description: regex },
+      { taskCode: regex },
+      { legacyId: term }
+    ];
   }
 
   if (filter.assigneeId === "UNASSIGNED") {

@@ -144,8 +144,8 @@ export const TaskRow = ({
             className="font-semibold text-[14px] md:text-[15px] hover:text-primary transition-colors line-clamp-1 cursor-pointer text-left">
             {task.title}
           </button>
-          <span className="text-[10px] font-mono text-muted-foreground/60">
-            #{taskId.slice(-6).toUpperCase()}
+          <span className="text-[10px] font-mono text-indigo-500/70">
+            {task.taskCode || (task as any).legacyId || `T-${tid(task).slice(-4).toUpperCase()}`}
           </span>
         </div>
       </TableCell>

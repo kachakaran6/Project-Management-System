@@ -14,6 +14,16 @@ const projectSchema = new mongoose.Schema({
     index: true 
   },
   ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  code: { 
+    type: String, 
+    unique: true, 
+    sparse: true, 
+    trim: true, 
+    uppercase: true,
+    minlength: 2,
+    maxlength: 10
+  },
+  taskSequence: { type: Number, default: 0 },
   status: { type: String, enum: ['active', 'completed', 'archived', 'planned', 'on_hold'], default: 'active' },
   visibility: { type: String, enum: ['public', 'private'], default: 'public' },
   techStack: [{ type: String, trim: true }],

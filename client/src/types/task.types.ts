@@ -62,6 +62,9 @@ export interface Task {
   visibility?: TaskVisibility;
   visibilityUsers?: TaskAssigneeUser[];
   position?: number;
+  taskCode?: string;
+  sequence?: number;
+  legacyId?: string;
   createdAt: string;
   updatedAt: string;
 }

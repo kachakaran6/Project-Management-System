@@ -385,8 +385,8 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, isEmb
             {/* Task ID Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-widest">
-                  T-{tid(task).slice(-4)}
+                <span className="text-[10px] font-bold text-indigo-500/70 uppercase tracking-widest">
+                  {task.taskCode || (task as any).legacyId || `T-${tid(task).slice(-4).toUpperCase()}`}
                 </span>
                 {task.isDraft && (
                   <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] font-bold uppercase tracking-wider border border-slate-200/50 dark:border-slate-700/50">
@@ -1031,6 +1031,47 @@ export function TaskBoard({
   const [isSyncing, setIsSyncing] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; taskId: string } | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+
+  const handleOpen = (id: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("taskId", id);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    openPanel(id);
+  };
+
+  const handleOpenNewTab = (id: string) => {
+    window.open(`/tasks/${id}`, "_blank");
+  };
+
+  const handleDuplicate = async (id: string) => {
+    const task = data.tasks[id];
+    if (!task) return;
+    try {
+      await createTask.mutateAsync({
+        ...task,
+        title: `${task.title} (Copy)`,
+        id: undefined,
+      } as any);
+      toast.success("Task duplicated");
+    } catch {
+      toast.error("Failed to duplicate task");
+    }
+  };
+
+  const handleCopyLink = (id: string) => {
+    const url = `${window.location.origin}/tasks/${id}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link copied to clipboard");
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteTask.mutateAsync(id);
+      toast.success("Task deleted");
+    } catch {
+      toast.error("Failed to delete task");
+    }
+  };
 
   // Clear optimistic data when props change and we are NOT syncing
   useEffect(() => {

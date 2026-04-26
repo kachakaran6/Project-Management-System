@@ -48,7 +48,10 @@ const taskSchema = new mongoose.Schema({
     type: String,
     enum: Object.values(TASK_VISIBILITY),
     default: TASK_VISIBILITY.PUBLIC
-  }
+  },
+  taskCode: { type: String, unique: true, sparse: true },
+  sequence: { type: Number },
+  legacyId: { type: String }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -59,6 +62,10 @@ const taskSchema = new mongoose.Schema({
 taskSchema.virtual('id').get(function() {
   return this._id;
 });
+
+// New indexes for structured IDs
+taskSchema.index({ projectId: 1, sequence: 1 });
+taskSchema.index({ legacyId: 1 });
 
 // Compound indexes for common queries
 taskSchema.index({ projectId: 1, status: 1 });
