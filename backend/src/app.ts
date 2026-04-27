@@ -86,8 +86,8 @@ app.use("/api/v1/billing", billingRoutes);
 app.use("/api/v1/github", githubRoutes);
 
 // ─── Request Parsing ───────────────────────────────────────────────────────────
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(express.json({ limit: "500kb" }));
+app.use(express.urlencoded({ extended: true, limit: "500kb" }));
 app.use(cookieParser());
 
 // ─── HTTP Logging ──────────────────────────────────────────────────────────────
