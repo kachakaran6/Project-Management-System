@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
   ArrowLeft, 
@@ -23,6 +23,8 @@ import { EditProjectModal } from "@/features/projects/components/edit-project-mo
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import Link from "next/link";
 import { TaskDashboard } from "@/features/tasks/components/task-dashboard";
+import { ProjectTasksMobileView } from "@/features/tasks/components/project-tasks-mobile-view";
+import { ProjectActivityFeed } from "@/features/projects/components/project-activity-feed";
 import { cn } from "@/lib/utils";
 
 export default function ProjectDetailsPage() {
@@ -30,12 +32,23 @@ export default function ProjectDetailsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const { activeOrg } = useAuth();
 
   const canEdit = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN" || activeOrg?.role === "MANAGER";
 
   const { data: projectResult, isLoading, error } = useProjectQuery(id as string);
   const project = projectResult?.data;
+
+  // Track mobile breakpoint
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
 
   if (isLoading) return <ProjectDetailsSkeleton />;
   if (error || !project) {
@@ -49,122 +62,102 @@ export default function ProjectDetailsPage() {
 
   return (
     <div className={cn(
-      "mx-auto space-y-8 animate-in fade-in duration-500",
-      activeTab === "tasks" ? "max-w-[1600px]" : "max-w-7xl"
+      "mx-auto space-y-3 animate-in fade-in duration-500",
+      activeTab === "tasks" ? "max-w-[1400px]" : "max-w-[1280px]"
     )}>
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-1 max-md:gap-5">
-        <div className="space-y-4 max-md:space-y-3">
+      {/* TOP NAVIGATION & SETTINGS ROW */}
+      <div className="px-4 md:px-6 pt-3 flex items-center justify-between">
+        <Link href="/projects" className="group flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-all">
+          <div className="p-1 rounded-md bg-muted/20 group-hover:bg-primary/10 transition-colors">
+            <ArrowLeft className="size-3" />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest">Back to Projects</span>
+        </Link>
+
+        {canEdit && (
           <Button 
             variant="ghost" 
-            size="sm" 
-            className="-ml-2 h-8 text-muted-foreground hover:text-foreground transition-colors group max-md:h-7 max-md:text-[11px]"
-            asChild
+            size="icon" 
+            className="size-7 rounded-lg border border-border/10 bg-muted/5 hover:bg-primary/10 hover:text-primary transition-all"
+            onClick={() => setIsEditing(true)}
           >
-            <Link href="/projects">
-              <ArrowLeft className="mr-2 size-3.5 group-hover:-translate-x-1 transition-transform" />
-              Back to Projects
-            </Link>
+            <Settings className="size-3.5" />
           </Button>
- 
-          <div className="space-y-1.5">
-            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
-              <h1 className="text-3xl font-black tracking-tight text-foreground line-clamp-2 max-md:text-2xl">{project.name}</h1>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="h-6 rounded-full border-primary/20 bg-primary/5 text-primary text-[10px] uppercase font-black tracking-widest shadow-sm">
-                  {project.status}
-                </Badge>
-                {project.visibility === 'private' && (
-                  <Badge variant="outline" className="h-6 rounded-full border-amber-500/20 bg-amber-500/5 text-amber-600 text-[10px] uppercase font-black tracking-widest shadow-sm">
-                    Private
-                  </Badge>
-                )}
-              </div>
-            </div>
-            {project.description && (
-              <p className="text-muted-foreground max-w-3xl text-[14px] leading-relaxed font-medium max-md:text-xs">
-                {project.description}
-              </p>
-            )}
-          </div>
-        </div>
+        )}
+      </div>
 
-        <div className="grid grid-cols-2 gap-2 md:flex md:items-center md:gap-3">
-          {canEdit && (
-            <Button 
-              variant="outline" 
-              className="rounded-2xl h-11 px-5 gap-2.5 border-border/40 bg-muted/5 font-bold text-xs transition-all hover:bg-muted/10 active:scale-95 max-md:h-10 max-md:px-3"
-              onClick={() => setIsEditing(true)}
-            >
-              <Settings className="size-4 text-muted-foreground max-md:size-3.5" />
-              Settings
-            </Button>
+      {/* PROJECT HEADER — inline title + status */}
+      <div className="px-4 md:px-6 pb-1">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h1 className="text-2xl font-black tracking-tight text-foreground line-clamp-1 max-md:text-xl leading-tight">
+            {project.name}
+          </h1>
+          <Badge variant="outline" className="h-5 rounded-full border-primary/20 bg-primary/5 text-primary text-[9px] uppercase font-black tracking-widest">
+            {project.status.replace(/_/g, ' ')}
+          </Badge>
+          {project.visibility === 'private' && (
+            <Badge variant="outline" className="h-5 rounded-full border-amber-500/20 bg-amber-500/5 text-amber-600 text-[9px] uppercase font-black tracking-widest">
+              Private
+            </Badge>
           )}
-          <Button 
-            className={cn(
-              "rounded-2xl h-11 px-6 gap-2.5 font-black text-xs shadow-premium bg-primary text-primary-foreground hover:scale-[1.02] active:scale-95 transition-all max-md:h-10 max-md:px-4",
-              !canEdit && "col-span-2 w-full"
-            )} 
-            asChild
-          >
-            <Link href={`/tasks?projectId=${id}`}>
-              <Plus className="size-4 max-md:size-3.5" />
-              New Task
-            </Link>
-          </Button>
         </div>
       </div>
 
       {/* NAVIGATION TABS */}
       <Tabs defaultValue="overview" onValueChange={setActiveTab} className="w-full">
-        <div className="border-b border-border/10 mb-6 sticky top-0 bg-background/50 backdrop-blur-md z-40 overflow-x-auto no-scrollbar">
-          <TabsList className="bg-transparent h-auto p-0 gap-8 md:gap-10 rounded-none border-none min-w-max px-1">
+        <div className="border-b border-border/10 mb-4 sticky top-0 bg-background/80 backdrop-blur-md z-40 overflow-x-auto no-scrollbar">
+          <TabsList className="bg-transparent h-auto p-0 gap-6 md:gap-8 rounded-none border-none min-w-max px-4 md:px-6">
             <TabsTrigger 
               value="overview" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-[13px] font-black uppercase tracking-widest transition-all hover:text-primary/70 max-md:text-[11px]"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-primary/70"
             >
-              <LayoutDashboard className="mr-2 size-4 max-md:size-3.5" />
+              <LayoutDashboard className="mr-1.5 size-3.5" />
               Overview
             </TabsTrigger>
             <TabsTrigger 
               value="tasks" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-[13px] font-black uppercase tracking-widest transition-all hover:text-primary/70 max-md:text-[11px]"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-primary/70"
             >
-              <CheckSquare className="mr-2 size-4 max-md:size-3.5" />
+              <CheckSquare className="mr-1.5 size-3.5" />
               Tasks
             </TabsTrigger>
             <TabsTrigger 
               value="vault" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-[13px] font-black uppercase tracking-widest transition-all hover:text-primary/70 max-md:text-[11px]"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-primary/70"
             >
-              <Shield className="mr-2 size-4 max-md:size-3.5" />
+              <Shield className="mr-1.5 size-3.5" />
               Vault
             </TabsTrigger>
             <TabsTrigger 
               value="activity" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-[13px] font-black uppercase tracking-widest transition-all hover:text-primary/70 max-md:text-[11px]"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-primary/70"
             >
-              <History className="mr-2 size-4 max-md:size-3.5" />
+              <History className="mr-1.5 size-3.5" />
               Activity
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="overview" className="mt-0 ring-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <TabsContent value="overview" className="mt-0 ring-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-300 px-4 md:px-6">
           <ProjectOverview projectId={id as string} />
         </TabsContent>
 
-        <TabsContent value="vault" className="mt-0 ring-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <TabsContent value="vault" className="mt-0 ring-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-300 px-4 md:px-6">
           <ProjectVault projectId={id as string} />
         </TabsContent>
         
-        <TabsContent value="tasks" className="mt-0 ring-0 outline-none h-[calc(100vh-280px)] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <TaskDashboard fixedProjectId={id as string} isEmbedded={true} />
+        <TabsContent value="tasks" className="mt-0 ring-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {/* Mobile: accordion grouped view | Desktop: full task dashboard */}
+          <div className="md:hidden px-4">
+            <ProjectTasksMobileView projectId={id as string} />
+          </div>
+          <div className="hidden md:block">
+            <TaskDashboard fixedProjectId={id as string} isEmbedded={true} />
+          </div>
         </TabsContent>
 
-        <TabsContent value="activity" className="mt-0 ring-0 outline-none text-center py-32 max-md:py-16 bg-muted/5 rounded-[2rem] border border-dashed border-border/50 animate-in fade-in slide-in-from-bottom-2 duration-500">
-           <History className="size-12 text-muted-foreground/10 mx-auto mb-6" />
-           <p className="text-muted-foreground text-[10px] uppercase tracking-[0.3em] font-black">Project History coming soon</p>
+        <TabsContent value="activity" className="mt-0 ring-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-300 px-4 md:px-6">
+          <ProjectActivityFeed projectId={id as string} />
         </TabsContent>
       </Tabs>
 
@@ -181,20 +174,24 @@ export default function ProjectDetailsPage() {
 
 function ProjectDetailsSkeleton() {
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-32" />
-        <Skeleton className="h-12 w-64" />
-        <Skeleton className="h-4 w-full max-w-2xl" />
+    <div className="max-w-[1280px] mx-auto space-y-3 px-4 md:px-6 pt-3">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-5 w-28 rounded-lg" />
+        <Skeleton className="h-7 w-7 rounded-lg" />
       </div>
-      <div className="flex gap-8 border-b pb-3">
-        <Skeleton className="h-6 w-20" />
-        <Skeleton className="h-6 w-20" />
-        <Skeleton className="h-6 w-20" />
+      <div className="flex items-center gap-2.5">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-5 w-16 rounded-full" />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Skeleton className="lg:col-span-2 h-[400px] rounded-3xl" />
-        <Skeleton className="h-[400px] rounded-3xl" />
+      <div className="flex gap-6 border-b border-border/10 pb-2.5 pt-1">
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-4 w-12" />
+        <Skeleton className="h-4 w-12" />
+        <Skeleton className="h-4 w-16" />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2">
+        <Skeleton className="lg:col-span-2 h-[300px] rounded-2xl" />
+        <Skeleton className="h-[300px] rounded-2xl" />
       </div>
     </div>
   );
