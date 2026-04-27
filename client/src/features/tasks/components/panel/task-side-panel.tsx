@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import {
@@ -13,6 +13,7 @@ import {TaskHeader} from "./task-header";
 import {TaskProperties} from "./task-properties";
 import {TaskDescription} from "./task-description";
 import {TaskComments} from "./task-comments";
+import {TaskGithubActivity} from "./task-github-activity";
 import {Skeleton} from "@/components/ui/skeleton";
 import {X} from "lucide-react";
 import {useSearchParams, useRouter, usePathname} from "@/lib/next-navigation";
@@ -116,6 +117,7 @@ export function TaskSidePanel() {
                 <TaskHeader task={task} />
                 <TaskProperties task={task} />
                 <TaskDescription task={task} />
+                <TaskGithubActivity links={task.githubLinks || []} />
                 <div className="border-t pt-2" />
                 <TaskComments taskId={task.id || (task as any)._id} />
               </div>

@@ -29,7 +29,13 @@ const projectSchema = new mongoose.Schema({
   techStack: [{ type: String, trim: true }],
   isActive: { type: Boolean, default: true },
   startDate: { type: Date },
-  endDate: { type: Date }
+  endDate: { type: Date },
+  githubSettings: {
+    repoUrl: { type: String, trim: true },
+    webhookSecret: { type: String },
+    autoStatusUpdate: { type: Boolean, default: false },
+    isEnabled: { type: Boolean, default: false }
+  }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

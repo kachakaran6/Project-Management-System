@@ -51,7 +51,18 @@ const taskSchema = new mongoose.Schema({
   },
   taskCode: { type: String, unique: true, sparse: true },
   sequence: { type: Number },
-  legacyId: { type: String }
+  legacyId: { type: String },
+  githubLinks: [
+    {
+      type: { type: String, enum: ['commit', 'pr', 'branch'] },
+      url: String,
+      message: String,
+      author: String,
+      authorAvatar: String,
+      hash: String,
+      createdAt: { type: Date, default: Date.now }
+    }
+  ]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
