@@ -33,33 +33,33 @@ export function ProjectOverview({ projectId }: ProjectOverviewProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="lg:col-span-2 space-y-8">
-        <Card className="rounded-[2.5rem] border-border/40 shadow-sm bg-card/30 backdrop-blur-xl overflow-hidden border-0 ring-1 ring-border/10">
-          <CardHeader className="pb-4 pt-8 px-8">
-            <CardTitle className="text-xl font-black flex items-center gap-3 tracking-tight">
-              <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
-                <Info className="size-5" />
+        <Card className="rounded-[2.5rem] max-md:rounded-[1.5rem] border-border/40 shadow-sm bg-card/30 backdrop-blur-xl overflow-hidden border-0 ring-1 ring-border/10">
+          <CardHeader className="pb-4 pt-8 px-8 max-md:px-5 max-md:pt-6">
+            <CardTitle className="text-xl font-black flex items-center gap-3 tracking-tight max-md:text-lg">
+              <div className="p-2.5 rounded-2xl bg-primary/10 text-primary max-md:p-2">
+                <Info className="size-5 max-md:size-4" />
               </div>
               Project Description
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-8 pb-10">
-            <p className="text-[15px] leading-relaxed text-muted-foreground/90 font-medium whitespace-pre-wrap">
+          <CardContent className="px-8 pb-10 max-md:px-5 max-md:pb-7">
+            <p className="text-[15px] leading-relaxed text-muted-foreground/90 font-medium whitespace-pre-wrap max-md:text-sm">
               {project.description || "No description provided for this project."}
             </p>
           </CardContent>
         </Card>
  
         {techStack.length > 0 && (
-          <Card className="rounded-[2.5rem] border-border/40 shadow-sm bg-card/30 backdrop-blur-xl border-0 ring-1 ring-border/10">
-            <CardHeader className="pb-4 pt-8 px-8">
-              <CardTitle className="text-xl font-black flex items-center gap-3 tracking-tight">
-                <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
-                  <Layers className="size-5" />
+          <Card className="rounded-[2.5rem] max-md:rounded-[1.5rem] border-border/40 shadow-sm bg-card/30 backdrop-blur-xl border-0 ring-1 ring-border/10">
+            <CardHeader className="pb-4 pt-8 px-8 max-md:px-5 max-md:pt-6">
+              <CardTitle className="text-xl font-black flex items-center gap-3 tracking-tight max-md:text-lg">
+                <div className="p-2.5 rounded-2xl bg-primary/10 text-primary max-md:p-2">
+                  <Layers className="size-5 max-md:size-4" />
                 </div>
                 Technology Stack
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-8 pb-10">
+            <CardContent className="px-8 pb-10 max-md:px-5 max-md:pb-7">
               <div className="flex flex-wrap gap-2.5">
                 {techStack.map((tech) => (
                   <Badge key={tech} variant="secondary" className="px-4 py-1.5 rounded-xl bg-muted/20 hover:bg-primary hover:text-white transition-all border-0 font-bold text-[11px] uppercase tracking-wider cursor-default">
@@ -73,13 +73,13 @@ export function ProjectOverview({ projectId }: ProjectOverviewProps) {
       </div>
 
       <div className="space-y-8">
-        <Card className="rounded-[2.5rem] border-border/40 shadow-sm bg-card/30 backdrop-blur-xl border-0 ring-1 ring-border/10">
-          <CardHeader className="pb-4 pt-8 px-8">
+        <Card className="rounded-[2.5rem] max-md:rounded-[1.5rem] border-border/40 shadow-sm bg-card/30 backdrop-blur-xl border-0 ring-1 ring-border/10">
+          <CardHeader className="pb-4 pt-8 px-8 max-md:px-5 max-md:pt-6">
             <CardTitle className="text-[10px] uppercase tracking-[0.3em] font-black text-muted-foreground/40">
               Key Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-8 pb-10 space-y-8">
+          <CardContent className="px-8 pb-10 space-y-8 max-md:px-5 max-md:pb-7 max-md:space-y-6">
             <div className="space-y-5">
               <div className="flex items-center gap-4 group">
                 <div className="p-2 rounded-xl bg-muted/20 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">

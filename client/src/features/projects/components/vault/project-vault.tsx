@@ -94,23 +94,23 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* TOOLBAR */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:max-w-md">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
+        <div className="relative w-full md:max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/50" />
           <Input 
             placeholder="Search resources, tags, or descriptions..." 
-            className="pl-10 h-11 rounded-2xl bg-muted/20 border-border/40 focus:ring-primary/20"
+            className="pl-10 h-11 rounded-2xl bg-muted/20 border-border/40 focus:ring-primary/20 max-md:h-12"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="grid grid-cols-2 gap-2 w-full md:flex md:w-auto md:items-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-11 rounded-2xl gap-2 px-4 border-border/40 hover:bg-muted/50">
+              <Button variant="outline" className="h-11 rounded-2xl gap-2 px-4 border-border/40 hover:bg-muted/50 max-md:h-12 max-md:text-xs">
                 <Filter className="size-4 opacity-60" />
-                <span className="text-sm font-semibold capitalize">{typeFilter === "all" ? "All Types" : typeFilter}</span>
+                <span className="text-sm font-semibold capitalize max-md:text-xs">{typeFilter === "all" ? "All Types" : typeFilter}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-2xl min-w-[160px]">
@@ -130,7 +130,7 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
           </DropdownMenu>
 
           <Button 
-            className="h-11 rounded-2xl gap-2 px-6 shadow-lg shadow-primary/20 flex-1 sm:flex-none"
+            className="h-11 rounded-2xl gap-2 px-6 shadow-lg shadow-primary/20 max-md:h-12 max-md:text-xs"
             onClick={() => {
               setSelectedResource(null);
               setIsModalOpen(true);

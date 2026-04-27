@@ -300,67 +300,44 @@ export default function ProjectsPage() {
             {rows.map((project: any) => {
               const pid = project.id || project._id;
               const members = project.members || [];
-              const techStack = project.techStack || [];
               const isPrivate = project.visibility === "private";
 
               return (
                 <div
                   key={pid}
-                  className="group relative flex flex-col rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md dark:border-neutral-800 dark:bg-card dark:hover:bg-card/80 dark:hover:border-neutral-700 dark:shadow-none"
+                  onClick={() => {
+                    // Navigate to project details
+                    window.location.href = `/projects/${pid}`;
+                  }}
+                  className={cn(
+                    "group relative flex flex-col rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-all duration-200 cursor-pointer",
+                    "hover:border-primary/40 hover:shadow-md dark:border-neutral-800 dark:bg-card dark:hover:bg-card/80 dark:hover:border-neutral-700 dark:shadow-none",
+                    "active:scale-[0.98] md:active:scale-100", // Visual feedback on tap
+                    "max-md:rounded-[20px] max-md:p-6 max-md:shadow-lg max-md:shadow-neutral-200/50 dark:max-md:shadow-none" // Professional mobile UI
+                  )}
                 >
                   {/* HEADER SECTION */}
-                  <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-start justify-between gap-3 mb-3 max-md:mb-4">
                     <div className="flex flex-col gap-2 min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <h3 className="text-base font-bold text-black leading-tight line-clamp-2 cursor-help group-hover:text-primary transition-colors dark:text-foreground">
-                              {project.name}
-                            </h3>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-[300px] break-words">
-                            {project.name}
-                          </TooltipContent>
-                        </Tooltip>
+                        <h3 className="text-base font-bold text-black leading-tight line-clamp-2 group-hover:text-primary transition-colors dark:text-foreground max-md:text-lg">
+                          {project.name}
+                        </h3>
                         {isPrivate && <Lock className="size-3.5 text-amber-500/80 shrink-0" />}
                       </div>
                       
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild disabled={!canMutate}>
-                          <button
-                            className={cn(
-                              "w-fit h-5 px-2 text-[9px] uppercase font-bold tracking-wider rounded-md border border-transparent transition-all flex items-center gap-1 hover:border-current active:scale-95 disabled:opacity-100 disabled:pointer-events-none",
-                              getProjectStatusClass(project.status)
-                            )}
-                          >
-                            {getProjectStatusLabel(project.status)}
-                            {canMutate && <ChevronDown className="size-2.5 opacity-50" />}
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="min-w-[120px]">
-                          {Object.keys(STATUS_STYLES).map((s) => (
-                            <DropdownMenuItem
-                              key={s}
-                              className="text-[10px] font-bold uppercase tracking-wide"
-                              onClick={() => {
-                                if (s !== project.status.toUpperCase()) {
-                                  updateProject.mutate({
-                                    id: pid,
-                                    data: { status: s as any }
-                                  });
-                                }
-                              }}
-                            >
-                              <div className={cn("size-2 rounded-full mr-2", getProjectStatusClass(s).split(' ')[1])} />
-                              {getProjectStatusLabel(s)}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div
+                        className={cn(
+                          "w-fit h-5 px-2.5 text-[9px] uppercase font-black tracking-widest rounded-full border transition-all flex items-center gap-1 max-md:h-6 max-md:text-[10px] max-md:px-3",
+                          getProjectStatusClass(project.status)
+                        )}
+                      >
+                        {getProjectStatusLabel(project.status)}
+                      </div>
                     </div>
 
-                    {/* HOVER ACTIONS - TOP RIGHT */}
-                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 -mr-1 -mt-1 scale-95 group-hover:scale-100">
+                    {/* ACTIONS - HIDDEN ON MOBILE (Since card is clickable), SHOWN ON HOVER DESKTOP */}
+                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 -mr-1 -mt-1 scale-95 group-hover:scale-100 max-md:hidden">
                        <ProjectActionButton
                           href={`/projects/${pid}`}
                           label="View"
@@ -371,13 +348,19 @@ export default function ProjectsPage() {
                             <ProjectActionButton
                               label="Edit"
                               icon={PencilLine}
-                              onClick={() => setEditingProject(project)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingProject(project);
+                              }}
                             />
                              <ProjectActionButton
                               label="Delete"
                               icon={Trash2}
                               tone="danger"
-                              onClick={() => setDeleteId(pid)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteId(pid);
+                              }}
                             />
                           </>
                         )}
@@ -385,9 +368,9 @@ export default function ProjectsPage() {
                   </div>
 
                   {/* CONTENT SECTION */}
-                  <div className="space-y-4 mb-6">
+                  <div className="space-y-4 mb-6 max-md:mb-8">
                     {project.description ? (
-                      <p className="text-sm text-neutral-800 line-clamp-2 leading-relaxed font-medium dark:text-muted-foreground">
+                      <p className="text-sm text-neutral-800 line-clamp-2 leading-relaxed font-medium dark:text-muted-foreground max-md:text-neutral-600 max-md:line-clamp-3">
                         {project.description}
                       </p>
                     ) : (
@@ -396,13 +379,13 @@ export default function ProjectsPage() {
                       </p>
                     )}
 
-                    <div className="flex items-center gap-4 text-[11px] text-neutral-600 font-semibold dark:text-muted-foreground/80">
+                    <div className="flex items-center gap-4 text-[11px] text-neutral-600 font-semibold dark:text-muted-foreground/80 max-md:text-[12px] max-md:gap-6">
                        <div className="flex items-center gap-1.5">
-                         <CalendarDays className="size-3.5 text-primary" />
+                         <CalendarDays className="size-3.5 text-primary max-md:size-4" />
                          <span>{project.createdAt ? format(new Date(project.createdAt), "MMM d, yyyy") : "Date N/A"}</span>
                        </div>
                        <div className="flex items-center gap-1.5">
-                         <Users className="size-3.5 text-primary/40" />
+                         <Users className="size-3.5 text-primary/40 max-md:size-4" />
                          <span>{members.length} {members.length === 1 ? "Member" : "Members"}</span>
                        </div>
                     </div>
@@ -410,11 +393,11 @@ export default function ProjectsPage() {
 
                   {/* FOOTER SECTION */}
                   <div className="mt-auto">
-                    <div className="pt-3 border-t border-border/40 flex items-center justify-between">
+                    <div className="pt-3 border-t border-border/40 flex items-center justify-between max-md:pt-4">
                       <div className="flex items-center gap-2">
                          <div className="flex -space-x-1.5">
                           {members.slice(0, 3).map((user: any) => (
-                            <Avatar key={user.id || user._id} className="size-7 border-2 border-white dark:border-neutral-900 ring-1 ring-border/10">
+                            <Avatar key={user.id || user._id} className="size-7 border-2 border-white dark:border-neutral-900 ring-1 ring-border/10 max-md:size-8">
                               <AvatarImage src={user.avatarUrl} />
                               <AvatarFallback className="text-[9px] bg-primary/5 text-primary font-bold">
                                 {user.firstName?.[0]}{user.lastName?.[0]}
@@ -422,25 +405,25 @@ export default function ProjectsPage() {
                             </Avatar>
                           ))}
                           {members.length > 3 && (
-                            <div className="flex size-7 items-center justify-center rounded-full border-2 border-white dark:border-neutral-900 bg-muted text-[10px] font-bold text-muted-foreground">
+                            <div className="flex size-7 items-center justify-center rounded-full border-2 border-white dark:border-neutral-900 bg-muted text-[10px] font-bold text-muted-foreground max-md:size-8 max-md:text-[11px]">
                               +{members.length - 3}
                             </div>
                           )}
                         </div>
-                        <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest ml-1 dark:text-muted-foreground/60">Team</span>
+                        <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest ml-1 dark:text-muted-foreground/60 max-md:text-[11px]">Team</span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-[11px] font-bold text-neutral-500 dark:text-muted-foreground">
+                      <div className="flex items-center gap-2 text-[11px] font-bold text-neutral-500 dark:text-muted-foreground max-md:text-[12px]">
                          <span className="text-black dark:text-primary">{project.taskStats?.completed || 0}</span>
                          <span className="text-neutral-300 font-normal dark:text-muted-foreground/30">/</span>
                          <span className="text-black dark:text-foreground/80">{project.taskStats?.total || 0}</span>
-                         <span className="text-[10px] font-bold text-neutral-600 ml-0.5 dark:text-muted-foreground/60">Tasks</span>
+                         <span className="text-[10px] font-bold text-neutral-600 ml-0.5 dark:text-muted-foreground/60 max-md:text-[11px]">Tasks</span>
                       </div>
                     </div>
                   </div>
 
                   {/* PROGRESS BAR (DEEP BOTTOM) */}
-                  <div className="absolute bottom-0 left-0 h-0.5 bg-muted/40 w-full overflow-hidden">
+                  <div className="absolute bottom-0 left-0 h-0.5 bg-muted/40 w-full overflow-hidden max-md:h-1">
                      <div 
                       className="h-full bg-primary/60 transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(var(--primary),0.4)]" 
                       style={{ width: `${project.taskStats?.percent || 0}%` }}

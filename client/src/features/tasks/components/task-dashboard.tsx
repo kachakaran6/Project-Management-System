@@ -441,10 +441,10 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
           viewMode === "kanban" ? "px-4" : isEmbedded ? "px-0" : "px-1"
         )}
       >
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 w-full">
             {/* Search and Filters Unified */}
-            <div className="relative max-w-md w-full group">
+            <div className="relative flex-1 group">
               <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
               <Input
                 value={search}
@@ -453,7 +453,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   setSearch(e.target.value);
                 }}
                 placeholder="Search tasks..."
-                className="h-10 rounded-2xl pl-10 pr-4 text-[13px] font-medium w-full bg-muted/10 border-border/40 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/30"
+                className="h-10 rounded-2xl pl-10 pr-4 text-[13px] font-medium w-full bg-muted/10 border-border/40 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/30 max-md:h-11"
               />
             </div>
 
@@ -511,7 +511,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 dynamicStatuses={dynamicStatuses}
                 hideProjectFilter={Boolean(fixedProjectId)}
                 trigger={
-                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-2xl border-border/40 bg-muted/10 relative shrink-0">
+                  <Button variant="outline" size="icon" className="h-11 w-11 rounded-2xl border-border/40 bg-muted/10 relative shrink-0">
                     <SlidersHorizontal className="size-4" />
                     {activeFilterCount > 0 && <span className="absolute -top-1 -right-1 size-3.5 bg-primary text-[8px] rounded-full flex items-center justify-center text-white font-black shadow-sm">{activeFilterCount}</span>}
                   </Button>
@@ -520,9 +520,9 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
             )}
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-between md:justify-end gap-2.5 w-full md:w-auto">
             {/* View Switcher - Premium Toggle */}
-            <div className="inline-flex rounded-2xl border border-border/40 bg-muted/10 p-1 h-10 items-center shadow-inner-sm">
+            <div className="inline-flex flex-1 md:flex-none rounded-2xl border border-border/40 bg-muted/10 p-1 h-10 md:h-10 items-center shadow-inner-sm max-md:h-11">
               {!isMobile && (
                 <Button
                   variant={viewMode === "kanban" ? "secondary" : "ghost"}
@@ -542,7 +542,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 size="sm"
                 onClick={() => setViewMode("list")}
                 className={cn(
-                  "h-8 px-4 rounded-xl text-[11px] gap-1.5 font-black transition-all shrink-0",
+                  "h-8 px-4 rounded-xl text-[11px] gap-1.5 font-black transition-all shrink-0 flex-1 md:flex-none max-md:h-9",
                   viewMode === "list" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -555,7 +555,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   size="sm"
                   onClick={() => setViewMode("table")}
                   className={cn(
-                    "h-8 px-4 rounded-xl text-[11px] gap-1.5 font-black transition-all shrink-0",
+                    "h-8 px-4 rounded-xl text-[11px] gap-1.5 font-black transition-all shrink-0 flex-1 md:flex-none max-md:h-9",
                     viewMode === "table" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -573,7 +573,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                       variant="outline"
                       size="icon"
                       disabled={isExporting}
-                      className="h-10 w-10 rounded-2xl border-border/40 bg-muted/10 hover:bg-muted/20 transition-all text-muted-foreground shrink-0 shadow-sm"
+                      className="h-10 w-10 md:h-10 md:w-10 rounded-2xl border-border/40 bg-muted/10 hover:bg-muted/20 transition-all text-muted-foreground shrink-0 shadow-sm max-md:h-11 max-md:w-11"
                     >
                       {isExporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
                     </Button>
@@ -688,7 +688,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   {viewMode === "table" ? <TaskTableSkeleton /> : <div className="p-4"><TaskListSkeleton /></div>}
                 </div>
               ) : listRows.length === 0 ? (
-                <div className="flex h-full items-center justify-center py-20">
+                <div className="flex h-full items-center justify-center py-20 max-md:py-10">
                   <EmptyState
                     title="No tasks found"
                     description="Try adjusting filters or create a task."
@@ -830,19 +830,19 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                 <Button
                                   asChild
                                   variant="outline"
-                                  className="h-8 rounded-xl text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10"
+                                  className="h-9 md:h-8 rounded-xl text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 flex-1 md:flex-none"
                                 >
                                   <Link href={`/tasks/${taskId}`}>
-                                    <Eye className="size-3 mr-1" />
+                                    <Eye className="size-3.5 md:size-3 mr-1" />
                                     View
                                   </Link>
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  className="h-8 rounded-xl text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10"
+                                  className="h-9 md:h-8 rounded-xl text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 flex-1 md:flex-none"
                                   onClick={() => setSelectedTask(task)}
                                 >
-                                  <Pencil className="size-3 mr-1" />
+                                  <Pencil className="size-3.5 md:size-3 mr-1" />
                                   Edit
                                 </Button>
                               </div>
