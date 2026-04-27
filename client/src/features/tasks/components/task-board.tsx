@@ -32,6 +32,7 @@ import {
   FileText,
   Sparkles,
 } from "lucide-react";
+import { GithubIcon as Github } from "@/components/icons/github-icon";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -389,6 +390,12 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                   </div>
                 )}
               </div>
+              {task.githubLinks && task.githubLinks.length > 0 && (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/5 border border-primary/10 text-primary animate-in fade-in zoom-in duration-500">
+                  <Github className="size-2.5" />
+                  <span className="text-[8px] font-black uppercase tracking-widest">{task.githubLinks.length}</span>
+                </div>
+              )}
             </div>
               {/* <DropdownMenu>
                 <DropdownMenuTrigger asChild>
