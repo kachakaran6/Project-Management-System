@@ -109,14 +109,25 @@ const linkToTasks = async (taskIds: string[], link: any, text: string, projects:
 const getStatusFromMessage = async (message: string, organizationId: string) => {
   const lowerMsg = message.toLowerCase();
   
-  // DONE keywords
-  if (lowerMsg.includes('fix ') || lowerMsg.includes('close ') || lowerMsg.includes('resolve ') || lowerMsg.includes('fixed ')) {
+  // DONE keywords (will move task to DONE status)
+  const doneKeywords = [
+    'fix', 'fixed', 'fixes', 
+    'close', 'closed', 'closes', 
+    'resolve', 'resolved', 'resolves',
+    'done', 'finish', 'finished', 'completes', 'implement', 'implemented'
+  ];
+
+  if (doneKeywords.some(kw => lowerMsg.includes(kw))) {
     const doneStatus = await Status.findOne({ organizationId, name: /done/i });
     return doneStatus?._id;
   }
   
-  // IN PROGRESS keywords
-  if (lowerMsg.includes('progress ') || lowerMsg.includes('start ') || lowerMsg.includes('working ')) {
+  // IN PROGRESS keywords (will move task to IN PROGRESS status)
+  const progressKeywords = [
+    'progress', 'start', 'started', 'working', 'feat', 'feature', 'refactor', 'chore'
+  ];
+
+  if (progressKeywords.some(kw => lowerMsg.includes(kw))) {
     const inProgressStatus = await Status.findOne({ organizationId, name: /progress/i });
     return inProgressStatus?._id;
   }
