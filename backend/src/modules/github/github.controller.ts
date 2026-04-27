@@ -17,17 +17,23 @@ export const handleWebhook = async (req: Request, res: Response, next: NextFunct
     const bodyString = rawBody.toString('utf-8');
     const payload = JSON.parse(bodyString);
 
-    const repoUrl = payload.repository?.html_url;
+    const repoUrl = payload.repository?.html_url?.replace(/\/$/, '').replace(/\.git$/, '');
+    
+    console.log(`[GITHUB WEBHOOK] Event: ${event}, Normalized Repo: ${repoUrl}`);
+
     if (!repoUrl) {
       return res.status(400).json({ success: false, message: 'Missing repository URL in payload' });
     }
 
+    // Find all projects that have this repo linked. 
+    // We search with regex to handle potential .git or trailing slashes in the database too.
     const projects = await Project.find({ 
-      'githubSettings.repoUrl': repoUrl, 
+      'githubSettings.repoUrl': { $regex: new RegExp(`^${repoUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\.git)?/?$`, 'i') },
       'githubSettings.isEnabled': true 
     });
 
     if (!projects.length) {
+      console.log(`[GITHUB WEBHOOK] No projects configured for repo: ${repoUrl}`);
       return res.status(200).json({ success: true, message: 'No projects configured for this repository' });
     }
 
