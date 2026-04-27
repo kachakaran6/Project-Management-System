@@ -21,9 +21,9 @@ export const extractTaskIds = (text: string) => {
 };
 
 export const processPushEvent = async (payload: any) => {
-  const repoUrl = payload.repository.html_url;
+  const repoUrl = payload.repository.html_url.replace(/\/$/, '').replace(/\.git$/, '');
   const projects = await Project.find({ 
-    'githubSettings.repoUrl': repoUrl, 
+    'githubSettings.repoUrl': { $regex: new RegExp(`^${repoUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\.git)?/?$`, 'i') },
     'githubSettings.isEnabled': true 
   });
 
@@ -48,9 +48,9 @@ export const processPushEvent = async (payload: any) => {
 };
 
 export const processPullRequestEvent = async (payload: any) => {
-  const repoUrl = payload.repository.html_url;
+  const repoUrl = payload.repository.html_url.replace(/\/$/, '').replace(/\.git$/, '');
   const projects = await Project.find({ 
-    'githubSettings.repoUrl': repoUrl, 
+    'githubSettings.repoUrl': { $regex: new RegExp(`^${repoUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\.git)?/?$`, 'i') },
     'githubSettings.isEnabled': true 
   });
 
