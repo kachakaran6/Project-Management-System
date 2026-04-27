@@ -9,6 +9,7 @@ import { logoutAllDevices } from "@/features/auth/authSlice";
 import {
   User,
   KeyRound,
+  UserPlus,
   Paintbrush,
   Bell,
   Building2,
@@ -56,6 +57,8 @@ import { OrganizationMembership } from "@/types/organization.types";
 import * as LucideIcons from "lucide-react";
 import { TagManagement } from "@/features/tags/components/tag-management";
 import { StatusManagement } from "@/features/status/components/status-management";
+import { settingsApi, DefaultAssignee } from "@/features/auth/api/settings.api";
+import { MultiUserSelect } from "@/features/team/components/multi-user-select";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -71,7 +74,8 @@ type SectionId =
   | "integrations"
   | "tags"
   | "workflow"
-  | "org_notifications";
+  | "org_notifications"
+  | "default_assignees";
 
 interface UserWithOrganizations extends UserWithRole {
   organizations?: OrganizationMembership[];
@@ -105,6 +109,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: BellRing,
     adminOnly: true,
   },
+  { id: "default_assignees", label: "Default Assignees", icon: UserPlus },
 ];
 
 // ─── Shared UI Primitives ─────────────────────────────────────────────────────
@@ -1914,7 +1919,96 @@ function renderSection(id: SectionId) {
       return <TagManagement />;
     case "workflow":
       return <StatusManagement />;
+    case "default_assignees":
+      return <DefaultAssigneesSection />;
   }
+}
+
+// ─── 11. DEFAULT ASSIGNEES SECTION ───────────────────────────────────────────
+
+function DefaultAssigneesSection() {
+  const queryClient = useQueryClient();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["settings", "default-assignees"],
+    queryFn: () => settingsApi.getDefaultAssignees(),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (ids: string[]) => settingsApi.updateDefaultAssignees(ids),
+    onSuccess: () => {
+      toast.success("Default assignees updated");
+      queryClient.invalidateQueries({ queryKey: ["settings", "default-assignees"] });
+    },
+    onError: () => {
+      toast.error("Failed to update default assignees");
+    },
+  });
+
+  useEffect(() => {
+    if (data?.data?.defaultAssignees && !isInitialized) {
+      setSelectedIds(data.data.defaultAssignees.map((u: any) => u.id));
+      setIsInitialized(true);
+    }
+  }, [data, isInitialized]);
+
+  const handleSave = () => {
+    updateMutation.mutate(selectedIds);
+  };
+
+  const currentUsers = data?.data?.defaultAssignees || [];
+
+  return (
+    <div className="space-y-5">
+      <SectionCard
+        title="Default Assignees"
+        description="Select team members who will be automatically assigned to new tasks you create.">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Selected Assignees</Label>
+            <MultiUserSelect
+              value={selectedIds}
+              onChange={setSelectedIds}
+              prefilledUsers={currentUsers}
+              placeholder="Search and select default assignees..."
+              disabled={isLoading || updateMutation.isPending}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1 px-1">
+              Note: You can still add or remove assignees manually during task creation.
+            </p>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button
+              onClick={handleSave}
+              disabled={isLoading || updateMutation.isPending || !isInitialized}
+              className="gap-2 min-w-32"
+            >
+              {updateMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Check className="size-4" />
+              )}
+              Save Changes
+            </Button>
+          </div>
+        </div>
+      </SectionCard>
+
+      <div className="rounded-2xl border border-primary/10 bg-primary/5 p-4 flex gap-3">
+        <Sparkles className="size-5 text-primary shrink-0" />
+        <div className="space-y-1">
+          <p className="text-xs font-bold text-primary">Pro Tip</p>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Setting default assignees is great for recurring tasks or if you usually work with the same team members.
+            These users will be pre-filled only when you start a fresh task creation.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
@@ -2035,6 +2129,8 @@ export default function SettingsPage() {
                   "Define organization-wide labels for tasks"}
                 {activeSection === "workflow" &&
                   "Manage task lifecycle and board columns"}
+                {activeSection === "default_assignees" &&
+                  "Automatically pre-select users for new tasks"}
               </p>
             </div>
           </div>

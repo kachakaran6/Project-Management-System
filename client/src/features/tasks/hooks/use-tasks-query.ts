@@ -90,7 +90,7 @@ export function usePublishTaskDraftMutation() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all }),
         queryClient.invalidateQueries({ queryKey: tasksQueryKeys.detail(variables.id) }),
-        queryClient.invalidateQueries({ queryKey: draftsAll }),
+        queryClient.invalidateQueries({ queryKey: tasksQueryKeys.draftsAll }),
       ]);
     },
   });

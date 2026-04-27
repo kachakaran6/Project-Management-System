@@ -19,6 +19,8 @@ import {
 } from "@/features/tasks/hooks/use-tasks-query";
 import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
 import { useAuthStore } from "@/store/auth-store";
+import { useQuery } from "@tanstack/react-query";
+import { settingsApi } from "@/features/auth/api/settings.api";
 import { CreateTaskInput, Task } from "@/types/task.types";
 import {
   buildTaskDraftInput,
@@ -36,7 +38,7 @@ interface CreateTaskModalProps {
   onCreated?: () => void;
 }
 
-const createBaseValues = (defaultProjectId?: string): TaskFormValues => ({
+const createBaseValues = (defaultProjectId?: string, defaultAssigneeIds: string[] = []): TaskFormValues => ({
   title: "",
   description: "",
   projectId: defaultProjectId ?? "",
@@ -44,7 +46,7 @@ const createBaseValues = (defaultProjectId?: string): TaskFormValues => ({
   priority: "MEDIUM",
   visibility: "PUBLIC",
   visibleToUsers: [],
-  assigneeIds: [],
+  assigneeIds: defaultAssigneeIds,
   dueDate: "",
   tags: [],
 });
@@ -100,6 +102,7 @@ export function CreateTaskModal({
   const [draftId, setDraftId] = useState<string | null>(null);
   const [isCheckingDraft, setIsCheckingDraft] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [createMore, setCreateMore] = useState(false);
 
   const draftStorageKeyRef = useRef<string | null>(null);
   const lastSavedFingerprintRef = useRef<string>("");
@@ -158,12 +161,25 @@ export function CreateTaskModal({
     setResetKey((current) => current + 1);
   };
 
+  const { data: settingsData } = useQuery({
+    queryKey: ["settings", "default-assignees"],
+    queryFn: () => settingsApi.getDefaultAssignees(),
+    enabled: open,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   useEffect(() => {
     if (!open) return;
     
     // Always start with fresh values when opening the modal
     // Drafts are now managed on the Kanban board, not via a restore popup
-    const nextBaseValues = createBaseValues(defaultProjectId);
+    const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
+    
+    const nextBaseValues = {
+      ...createBaseValues(defaultProjectId),
+      assigneeIds: defaultAssigneeIds,
+    };
+
     setInitialValues(nextBaseValues);
     setDraftValues(nextBaseValues);
     setDraftId(null);
@@ -171,7 +187,10 @@ export function CreateTaskModal({
     lastSavedFingerprintRef.current = "";
     setResetKey((current) => current + 1);
     setIsCheckingDraft(false);
-  }, [defaultProjectId, open]);
+    // Don't reset createMore here so it persists if they open it again? 
+    // Actually, usually it's better to reset it when modal opens first time.
+    setCreateMore(false);
+  }, [defaultProjectId, open, settingsData]);
 
   const syncDraftToServer = async (
     values: TaskFormValues,
@@ -314,7 +333,7 @@ export function CreateTaskModal({
     };
   };
 
-  const handleSubmit = async (values: TaskFormValues, createMore?: boolean) => {
+  const handleSubmit = async (values: TaskFormValues, createMoreArg?: boolean) => {
     isSubmittingRef.current = true;
     try {
       const publishPayload = buildPublishPayload(values);
@@ -326,6 +345,7 @@ export function CreateTaskModal({
         : null;
 
       if (userId && !savedDraftId) {
+        isSubmittingRef.current = false;
         return;
       }
 
@@ -347,12 +367,13 @@ export function CreateTaskModal({
       toast.success(`Task "${values.title}" created!`);
       onCreated?.();
 
-      if (!createMore) {
+      if (!createMoreArg) {
         setOpen(false);
         return;
       }
 
-      resetDraftState(createBaseValues(defaultProjectId));
+      const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
+      resetDraftState(createBaseValues(defaultProjectId, defaultAssigneeIds));
     } catch (error) {
       const apiError = error as AxiosError<{ message?: string; errors?: string[] }>;
       const message =
@@ -360,6 +381,8 @@ export function CreateTaskModal({
         apiError.response?.data?.message ||
         "Failed to create task. Please try again.";
       toast.error(message);
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
@@ -394,10 +417,12 @@ export function CreateTaskModal({
             onDiscard={handleDiscard}
             onSaveDraft={handleSilentSaveDraft}
             onValuesChange={handleValuesChange}
-            onSubmit={(values, createMore) => handleSubmit(values, createMore)}
+            onSubmit={(values, more) => handleSubmit(values, more)}
             isSubmitting={isSubmitting}
             isSavingDraft={isSavingDraft}
             submitLabel="Create Task"
+            createMore={createMore}
+            onCreateMoreChange={setCreateMore}
           />
         )}
       </DialogContent>

@@ -174,21 +174,20 @@ interface TaskCardProps {
   index: number;
   canEdit?: boolean;
   onContextMenu: (e: React.MouseEvent, taskId: string) => void;
+  onDelete: (id: string) => void;
   isEmbedded?: boolean;
 }
 
-const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, isEmbedded = false }: TaskCardProps) => {
+const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDelete, isEmbedded = false }: TaskCardProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { openPanel } = useTaskPanelStore();
   const { activeOrgId } = useAuthStore();
   const membersQuery = useOrganizationMembersQuery(activeOrgId || "");
-  const deleteTask = useDeleteTaskMutation();
   const updateTask = useUpdateTaskMutation();
   const changeStatus = useUpdateTaskStatusMutation();
   const { data: dynamicStatuses = [] } = useStatusesQuery();
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [assigneeQuery, setAssigneeQuery] = useState("");
   const [openChip, setOpenChip] = useState<
@@ -213,14 +212,9 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, isEmb
     new Date(task.dueDate) < new Date() &&
     task.status !== "DONE";
 
-  const handleDelete = async () => {
-    try {
-      await deleteTask.mutateAsync(tid(task));
-      toast.success("Task deleted");
-      setDeleteOpen(false);
-    } catch {
-      toast.error("Failed to delete task.");
-    }
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(tid(task));
   };
 
   const assignees = task.assigneeUsers || [];
@@ -430,10 +424,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, isEmb
                   {canEdit ? (
                     <DropdownMenuItem
                       className="text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteOpen(true);
-                      }}>
+                      onClick={handleDeleteClick}>
                       Delete
                     </DropdownMenuItem>
                   ) : null}
@@ -740,10 +731,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, isEmb
                   variant="outline"
                   size="sm"
                   className="flex-1 h-8 px-2 gap-1.5 rounded-lg text-[10px] font-bold border-rose-500/20 bg-rose-500/5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 active:scale-95 transition-all"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteOpen(true);
-                  }}
+                  onClick={handleDeleteClick}
                 >
                   <Trash2 className="size-3.5" />
                   <span>Delete</span>
@@ -754,38 +742,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, isEmb
         )}
       </Draggable>
 
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="rounded-2xl border-border/10 max-w-100">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Delete Task</DialogTitle>
-            <DialogDescription className="text-sm">
-              Are you sure? This will permanently remove{" "}
-              <span className="text-foreground font-semibold">
-                &quot;{task.title}&quot;
-              </span>
-              .
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0 mt-4">
-            <Button
-              variant="ghost"
-              onClick={() => setDeleteOpen(false)}
-              className="rounded-xl">
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleteTask.isPending}
-              className="rounded-xl px-6">
-              {deleteTask.isPending && (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              )}
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Deleted local Dialog from TaskCard as it's now handled by TaskBoard */}
 
       {editOpen && (
         <EditTaskModal task={task} open={editOpen} onOpenChange={setEditOpen} />
@@ -1031,6 +988,7 @@ export function TaskBoard({
   const [isSyncing, setIsSyncing] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; taskId: string } | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleOpen = (id: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -1064,10 +1022,16 @@ export function TaskBoard({
     toast.success("Link copied to clipboard");
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await deleteTask.mutateAsync(id);
+      await deleteTask.mutateAsync(deleteId);
       toast.success("Task deleted");
+      setDeleteId(null);
     } catch {
       toast.error("Failed to delete task");
     }
@@ -1189,6 +1153,7 @@ export function TaskBoard({
                   canEdit={canEdit}
                   projectId={projectId}
                   onContextMenu={(e, id) => setContextMenu({ x: e.clientX, y: e.clientY, taskId: id })}
+                  onDelete={handleDelete}
                   isEmbedded={isEmbedded}
                 />
               );
@@ -1217,6 +1182,42 @@ export function TaskBoard({
           onOpenChange={(open) => !open && setEditingTaskId(null)}
         />
       )}
+
+      <Dialog
+        open={Boolean(deleteId)}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+      >
+        <DialogContent className="rounded-2xl border-border/10 max-w-100">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Delete Task</DialogTitle>
+            <DialogDescription className="text-sm">
+              Are you sure? This will permanently remove{" "}
+              <span className="text-foreground font-semibold">
+                &quot;{deleteId && data.tasks[deleteId]?.title}&quot;
+              </span>
+              .
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteId(null)}
+              className="rounded-xl">
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteTask.isPending}
+              className="rounded-xl px-6">
+              {deleteTask.isPending && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1229,6 +1230,7 @@ function KanbanColumn({
   canEdit,
   projectId,
   onContextMenu,
+  onDelete,
   isEmbedded = false,
 }: {
   col: ColumnDef;
@@ -1236,6 +1238,7 @@ function KanbanColumn({
   canEdit: boolean;
   projectId?: string;
   onContextMenu: (e: React.MouseEvent, taskId: string) => void;
+  onDelete: (id: string) => void;
   isEmbedded?: boolean;
 }) {
   const [isQuickAdd, setQuickAdd] = useState(false);
@@ -1293,6 +1296,7 @@ function KanbanColumn({
                   index={index}
                   canEdit={canEdit}
                   onContextMenu={onContextMenu}
+                  onDelete={onDelete}
                   isEmbedded={isEmbedded}
                 />
               ))}
