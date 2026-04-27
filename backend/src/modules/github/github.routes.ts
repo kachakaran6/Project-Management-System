@@ -5,7 +5,7 @@ import { requireAuth } from '../../middlewares/auth.middleware.js';
 const router = express.Router();
 
 // Public webhook endpoint - requires raw body for signature verification
-router.post('/webhook', express.raw({ type: 'application/json' }), githubController.handleWebhook);
+router.post('/webhook', express.raw({ type: 'application/json', limit: '1mb' }), githubController.handleWebhook);
 
 // Protected settings endpoints
 router.use(requireAuth);
