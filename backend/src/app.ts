@@ -121,6 +121,7 @@ import activityLogRoutes from "./modules/activityLog/activityLog.routes.js";
 import sessionRoutes from "./modules/session/session.routes.js";
 import projectResourceRoutes from "./modules/project-resource/project-resource.routes.js";
 import statusRoutes from "./modules/status/status.routes.js";
+import settingsRoutes from "./modules/settings/settings.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/workspaces", workspaceRoutes);
@@ -142,6 +143,7 @@ app.use("/api/v1/activitylogs", activityLogRoutes);
 app.use("/api/v1/telegram", telegramRoutes);
 app.use("/api/v1/sessions", sessionRoutes);
 app.use("/api/v1/statuses", statusRoutes);
+app.use("/api/v1/settings", settingsRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {

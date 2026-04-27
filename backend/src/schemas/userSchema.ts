@@ -59,7 +59,12 @@ const userSchema = new mongoose.Schema({
     notifications: {
       email: { type: Boolean, default: true },
       push: { type: Boolean, default: true }
-    }
+    },
+    defaultAssignees: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: []
+    }]
   },
   organizationId: { 
     type: mongoose.Schema.Types.ObjectId, 

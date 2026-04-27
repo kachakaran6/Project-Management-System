@@ -75,6 +75,8 @@ interface TaskFormProps {
   title?: string;
   subtitle?: string;
   isEdit?: boolean;
+  createMore?: boolean;
+  onCreateMoreChange?: (value: boolean) => void;
 }
 
 const statusConfig: Record<string, {icon: any; color: string}> = {
@@ -141,10 +143,11 @@ export function TaskForm({
   title = "Create new work item",
   subtitle,
   isEdit = false,
+  createMore = false,
+  onCreateMoreChange,
 }: TaskFormProps) {
   const { data: dynamicStatuses = [] } = useStatusesQuery();
   const {user} = useAuthStore();
-  const [createMore, setCreateMore] = useState(false);
   const [dismissedQuery, setDismissedQuery] = useState<string | null>(null);
 
   const currentRole = user?.role || "MEMBER";
@@ -673,7 +676,7 @@ export function TaskForm({
           <Switch
             id="create-more"
             checked={createMore}
-            onCheckedChange={setCreateMore}
+            onCheckedChange={onCreateMoreChange}
             className="data-[state=checked]:bg-primary"
           />
           <Label
