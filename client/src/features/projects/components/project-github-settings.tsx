@@ -26,11 +26,12 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
     enabled: !!projectId
   });
 
-  const [formData, setFormData] = useState<GithubSettings>({
+  const [formData, setFormData] = useState<GithubSettings & { accessToken?: string }>({
     repoUrl: "",
     webhookSecret: "",
     autoStatusUpdate: false,
-    isEnabled: false
+    isEnabled: false,
+    hasAccessToken: false,
   });
 
   useEffect(() => {
@@ -125,6 +126,26 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
                       className="rounded-xl bg-muted/10 border-border/40 h-11"
                     />
                     <p className="text-[10px] text-muted-foreground px-1">Highly recommended for security. Set this in your GitHub Repo Settings &rarr; Webhooks.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Personal Access Token (PAT)
+                    </Label>
+                    <Input 
+                      type="password"
+                      placeholder={formData.hasAccessToken ? "••••••••  (token already saved — leave blank to keep)" : "ghp_xxxxxxxxxxxx"}
+                      onChange={(e) => setFormData(prev => ({ ...prev, accessToken: e.target.value }))}
+                      className="rounded-xl bg-muted/10 border-border/40 h-11"
+                    />
+                    <p className="text-[10px] text-muted-foreground px-1">
+                      Required for the <strong>Full Activity Feed</strong> (5,000 req/hr). 
+                      Generate at <strong>GitHub → Settings → Developer settings → Personal access tokens</strong>.
+                      Needs <code className="bg-muted/30 px-1 rounded">repo</code> scope for private repos.
+                    </p>
+                    {formData.hasAccessToken && (
+                      <p className="text-[10px] text-emerald-600 font-bold px-1">✓ A token is currently saved for this project.</p>
+                    )}
                   </div>
                 </div>
 

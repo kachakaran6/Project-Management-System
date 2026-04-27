@@ -33,6 +33,7 @@ const projectSchema = new mongoose.Schema({
   githubSettings: {
     repoUrl: { type: String, trim: true },
     webhookSecret: { type: String },
+    accessToken: { type: String }, // PAT — never returned to client (excluded in controller)
     autoStatusUpdate: { type: Boolean, default: false },
     isEnabled: { type: Boolean, default: false }
   }

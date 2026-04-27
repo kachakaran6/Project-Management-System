@@ -429,7 +429,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   return (
     <div
       className={cn(
-        "w-full flex-1 flex flex-col overflow-hidden",
+        "w-full flex flex-col pb-[100px]",
         !isEmbedded && viewMode !== "kanban" && "mx-auto max-w-7xl"
       )}
     >
@@ -1024,7 +1024,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
           trigger={
             <Button
               size="icon"
-              className="lg:hidden fixed bottom-20 right-4 size-14 rounded-full shadow-2xl shadow-primary/40 z-50 animate-in zoom-in slide-in-from-bottom-10 duration-500 active:scale-95 transition-transform"
+              className="fixed bottom-20 right-4 size-14 rounded-full shadow-2xl shadow-primary/40 z-50 animate-in zoom-in slide-in-from-bottom-10 duration-500 active:scale-95 transition-transform"
             >
               <Plus className="size-7" />
             </Button>
