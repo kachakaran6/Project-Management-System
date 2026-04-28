@@ -78,13 +78,15 @@ export const reorderStatuses = async (reorderData: { id: string; order: number }
 
 export const createDefaultStatuses = async (organizationId: string) => {
   const defaults = [
-    { name: "Backlog", color: "#64748b", order: 0, organizationId, isDefault: true, isSystem: true, isHiddenIfEmpty: false },
+    { name: "Backlog", color: "#64748b", order: 0, organizationId, isDefault: false, isSystem: true, isHiddenIfEmpty: false },
     { name: "Todo", color: "#3b82f6", order: 1, organizationId, isDefault: true, isSystem: true, isHiddenIfEmpty: false },
-    { name: "In Progress", color: "#f59e0b", order: 2, organizationId, isDefault: true, isSystem: true, isHiddenIfEmpty: false },
-    { name: "In Review", color: "#8b5cf6", order: 3, organizationId, isDefault: true, isSystem: true, isHiddenIfEmpty: true },
-    { name: "Done", color: "#10b981", order: 4, organizationId, isDefault: true, isSystem: true, isHiddenIfEmpty: false },
-    { name: "Archived", color: "#94a3b8", order: 5, organizationId, isDefault: true, isSystem: true, isHiddenIfEmpty: true },
+
+    { name: "In Progress", color: "#f59e0b", order: 2, organizationId, isDefault: false, isSystem: true, isHiddenIfEmpty: false },
+    { name: "In Review", color: "#8b5cf6", order: 3, organizationId, isDefault: false, isSystem: true, isHiddenIfEmpty: true },
+    { name: "Done", color: "#10b981", order: 4, organizationId, isDefault: false, isSystem: true, isHiddenIfEmpty: false },
+    { name: "Archived", color: "#94a3b8", order: 5, organizationId, isDefault: false, isSystem: true, isHiddenIfEmpty: true },
   ];
+
   
   return await Status.insertMany(defaults);
 };

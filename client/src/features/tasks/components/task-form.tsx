@@ -77,7 +77,9 @@ interface TaskFormProps {
   isEdit?: boolean;
   createMore?: boolean;
   onCreateMoreChange?: (value: boolean) => void;
+  defaultStatus?: string;
 }
+
 
 const statusConfig: Record<string, {icon: any; color: string}> = {
   BACKLOG: {icon: Clock, color: "text-muted-foreground"},
@@ -104,11 +106,12 @@ function buildTaskFormDefaults(
   initialValues: Partial<TaskFormValues> | undefined,
   isMemberOnlySelection: boolean,
   userId?: string,
+  defaultStatus?: string,
 ): TaskFormValues {
   return {
     title: initialValues?.title ?? "",
     description: initialValues?.description ?? "",
-    status: initialValues?.status ?? "TODO",
+    status: initialValues?.status ?? defaultStatus ?? "TODO",
     priority: initialValues?.priority ?? "MEDIUM",
     visibility:
       initialValues?.visibility === "PRIVATE" || initialValues?.visibility === "DRAFT"
@@ -145,7 +148,9 @@ export function TaskForm({
   isEdit = false,
   createMore = false,
   onCreateMoreChange,
+  defaultStatus,
 }: TaskFormProps) {
+
   const { data: dynamicStatuses = [] } = useStatusesQuery();
   const {user} = useAuthStore();
   const [dismissedQuery, setDismissedQuery] = useState<string | null>(null);
@@ -162,7 +167,14 @@ export function TaskForm({
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
-    defaultValues: buildTaskFormDefaults(initialValues, isMemberOnlySelection, user?.id),
+    defaultValues: buildTaskFormDefaults(
+      initialValues, 
+      isMemberOnlySelection, 
+      user?.id,
+      defaultStatus || user?.settings?.defaultTaskStatus?.toUpperCase()
+    ),
+
+
   });
 
   const statusValue = form.watch("status");
@@ -203,7 +215,9 @@ export function TaskForm({
           },
           isMemberOnlySelection,
           user?.id,
+          user?.settings?.defaultTaskStatus?.toUpperCase()
         ),
+
       );
     }
   }, [form, isMemberOnlySelection, isSuccess, priorityValue, projectIdValue, statusValue, user?.id]);
@@ -211,8 +225,14 @@ export function TaskForm({
   useEffect(() => {
     if (resetKey === undefined) return;
 
-    form.reset(buildTaskFormDefaults(initialValues, isMemberOnlySelection, user?.id));
-  }, [form, initialValues, isMemberOnlySelection, resetKey, user?.id]);
+    form.reset(buildTaskFormDefaults(
+      initialValues, 
+      isMemberOnlySelection, 
+      user?.id,
+      user?.settings?.defaultTaskStatus?.toUpperCase()
+    ));
+  }, [form, initialValues, isMemberOnlySelection, resetKey, user?.id, user?.settings?.defaultTaskStatus]);
+
 
   useEffect(() => {
     if (!canSearch) {
@@ -226,14 +246,39 @@ export function TaskForm({
   }, [canSearch, dismissedQuery, normalizedQuery]);
 
   useEffect(() => {
-    if (dynamicStatuses.length > 0 && (!statusValue || statusValue === "TODO" || statusValue === "BACKLOG")) {
-      const defaultStatus = dynamicStatuses.find((s: any) => s.isDefault) || dynamicStatuses[0];
-      const defaultId = defaultStatus.id || defaultStatus._id;
-      if (statusValue !== defaultId) {
-        form.setValue("status", defaultId);
+    const preferredStatusName = defaultStatus || user?.settings?.defaultTaskStatus?.toUpperCase();
+
+    
+    if (dynamicStatuses.length > 0 && (!statusValue || statusValue === "TODO" || statusValue === "BACKLOG" || statusValue === preferredStatusName)) {
+      console.log("[DEBUG] TaskForm - Current statusValue:", statusValue);
+      console.log("[DEBUG] TaskForm - Preferred Status Name:", preferredStatusName);
+      
+      // 1. Check user preference first
+      let targetStatus = null;
+
+      if (preferredStatusName) {
+        targetStatus = dynamicStatuses.find(
+          (s: any) => s.name.toLowerCase() === preferredStatusName.toLowerCase()
+        );
+        console.log("[DEBUG] TaskForm - Found target by preference:", targetStatus?.name);
+      }
+
+      // 2. Fallback to organization default
+      if (!targetStatus) {
+        targetStatus = dynamicStatuses.find((s: any) => s.isDefault) || dynamicStatuses[0];
+        console.log("[DEBUG] TaskForm - Falling back to org default:", targetStatus?.name);
+      }
+
+
+      if (targetStatus) {
+        const targetId = targetStatus.id || targetStatus._id;
+        if (statusValue !== targetId) {
+          form.setValue("status", targetId);
+        }
       }
     }
-  }, [dynamicStatuses, statusValue, form]);
+  }, [dynamicStatuses, statusValue, form, user]);
+
 
   useEffect(() => {
     if (!onValuesChange) return;
@@ -244,9 +289,11 @@ export function TaskForm({
           values as Partial<TaskFormValues>,
           isMemberOnlySelection,
           user?.id,
+          user?.settings?.defaultTaskStatus?.toUpperCase()
         ),
       );
     });
+
 
     return () => subscription.unsubscribe();
   }, [form, isMemberOnlySelection, onValuesChange, user?.id]);

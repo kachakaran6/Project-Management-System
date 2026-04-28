@@ -64,7 +64,12 @@ const userSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: []
-    }]
+    }],
+    defaultTaskStatus: { 
+      type: String, 
+      default: null 
+    }
+
   },
   organizationId: { 
     type: mongoose.Schema.Types.ObjectId, 

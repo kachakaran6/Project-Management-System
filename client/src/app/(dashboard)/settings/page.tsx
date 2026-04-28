@@ -44,6 +44,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useAuthStore } from "@/store/auth-store";
 import { api } from "@/lib/api/axios-instance";
@@ -76,6 +84,8 @@ type SectionId =
   | "workflow"
   | "org_notifications"
   | "default_assignees";
+
+
 
 interface UserWithOrganizations extends UserWithRole {
   organizations?: OrganizationMembership[];
@@ -111,6 +121,8 @@ const NAV_ITEMS: NavItem[] = [
   },
   { id: "default_assignees", label: "Default Assignees", icon: UserPlus },
 ];
+
+
 
 // ─── Shared UI Primitives ─────────────────────────────────────────────────────
 
@@ -1924,6 +1936,8 @@ function renderSection(id: SectionId) {
   }
 }
 
+
+
 // ─── 11. DEFAULT ASSIGNEES SECTION ───────────────────────────────────────────
 
 function DefaultAssigneesSection() {
@@ -2012,6 +2026,7 @@ function DefaultAssigneesSection() {
 }
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
+
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SectionId>("profile");
@@ -2132,6 +2147,8 @@ export default function SettingsPage() {
                 {activeSection === "default_assignees" &&
                   "Automatically pre-select users for new tasks"}
               </p>
+
+
             </div>
           </div>
 

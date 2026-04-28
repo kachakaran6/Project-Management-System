@@ -18,4 +18,15 @@ export const settingsApi = {
     const response = await api.put<ApiResponse<{ defaultAssignees: DefaultAssignee[] }>>("/settings/default-assignees", { defaultAssignees: assigneeIds });
     return response.data;
   },
+
+  getDefaultStatus: async (): Promise<ApiResponse<{ defaultTaskStatus: string | null }>> => {
+    const response = await api.get<ApiResponse<{ defaultTaskStatus: string | null }>>("/settings/default-status");
+    return response.data;
+  },
+
+  updateDefaultStatus: async (defaultTaskStatus: string | null): Promise<ApiResponse<{ defaultTaskStatus: string | null }>> => {
+    const response = await api.put<ApiResponse<{ defaultTaskStatus: string | null }>>("/settings/default-status", { defaultTaskStatus });
+    return response.data;
+  },
 };
+
