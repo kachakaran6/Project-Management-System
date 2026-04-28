@@ -2,7 +2,9 @@ import Task from '../../models/Task.js';
 import TaskAssignee from '../../models/TaskAssignee.js';
 import TaskTag from '../../models/TaskTag.js';
 import TaskVisibilityUser from '../../models/TaskVisibilityUser.js';
+import TaskStatusHistory from '../../models/TaskStatusHistory.js';
 import Tag from '../../models/Tag.js';
+
 import Project from '../../models/Project.js';
 import Status from '../../models/Status.js';
 import OrganizationMember from '../../models/OrganizationMember.js';
@@ -13,6 +15,8 @@ import mongoose from 'mongoose';
 import { emitToRoom, emitToUsers } from '../../realtime/socket.server.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../realtime/socket.events.js';
 import { ROLES } from '../../constants/index.js';
+import { logStatusChange } from '../../utils/statusHistoryTriggers.js';
+
 
 const ADMIN_ROLES = new Set(['OWNER', 'ADMIN', 'SUPER_ADMIN']);
 
@@ -338,6 +342,16 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
     }
 
     await session.commitTransaction();
+
+    // Log initial status
+    await logStatusChange({
+      taskId: task._id,
+      userId,
+      fromStatus: null,
+      toStatus: finalStatusId,
+      organizationId: task.organizationId
+    });
+
 
     if (draftState) {
       return getTaskById(task._id, userId, role);
@@ -709,6 +723,18 @@ export const publishDraft = async (
     );
 
     await session.commitTransaction();
+
+    // Log status change if it changed during publish
+    if (String(draft.status) !== String(publishedTask.status)) {
+      await logStatusChange({
+        taskId: publishedTask._id,
+        userId,
+        fromStatus: draft.status,
+        toStatus: publishedTask.status,
+        organizationId: publishedTask.organizationId
+      });
+    }
+
 
     const projectName = await resolveProjectName(publishedTask.projectId);
 
@@ -1137,7 +1163,18 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
   }
 
   if (!draftState) {
+    if (statusUpdated) {
+      await logStatusChange({
+        taskId,
+        userId,
+        fromStatus: previousTask.status,
+        toStatus: task.status,
+        organizationId: task.organizationId
+      });
+    }
+
     activityLog.logActivity({
+
       userId, organizationId: task.organizationId, workspaceId: task.workspaceId,
       projectId: task.projectId,
       resourceId: taskId,
@@ -1269,7 +1306,16 @@ export const changeStatus = async (taskId: any, newStatus: any, userId: any) => 
     }
   });
 
+  await logStatusChange({
+    taskId: task._id,
+    userId,
+    fromStatus: previousTask.status,
+    toStatus: finalStatusId,
+    organizationId: task.organizationId
+  });
+
   return task;
+
 };
 
 export const assignUsers = async (taskId: any, userIds: any[], actorId: any, role?: string | null) => {
@@ -1346,3 +1392,90 @@ export const removeTaskVisibilityUsers = async (taskId: any, userIds: string[], 
 
   await visibilityHelpers.removeTaskVisibilityUsers(taskId, userIds);
 };
+
+/**
+ * Get status history for a task
+ */
+export const getStatusHistory = async (taskId: any, organizationId: any) => {
+  const history = await TaskStatusHistory.find({
+    taskId: toObjectId(taskId),
+    organizationId: toObjectId(organizationId)
+  })
+    .sort({ changedAt: -1 })
+    .populate('changedBy', 'firstName lastName email avatarUrl')
+    .lean();
+
+
+  return history.map(item => ({
+    id: String(item._id),
+    taskId: String(item.taskId),
+    changedBy: String(item.changedBy?._id || item.changedBy),
+    changedByName: item.changedByName,
+    changedByAvatar: (item.changedBy as any)?.avatarUrl,
+    fromStatus: item.fromStatusName ? {
+      id: String(item.fromStatus),
+      name: item.fromStatusName,
+      color: item.fromStatusColor || '#64748b'
+    } : null,
+    toStatus: {
+      id: String(item.toStatus),
+      name: item.toStatusName,
+      color: item.toStatusColor || '#64748b'
+    },
+    changedAt: item.changedAt
+  }));
+};
+
+/**
+ * Get global status history with filters
+ */
+export const getGlobalStatusHistory = async (organizationId: any, filters: any, pagination: { page: number, limit: number }) => {
+  const query: any = { organizationId: toObjectId(organizationId) };
+
+  if (filters.taskId) query.taskId = toObjectId(filters.taskId);
+  if (filters.userId) query.changedBy = toObjectId(filters.userId);
+  if (filters.toStatus) query.toStatusName = filters.toStatus;
+  
+  if (filters.startDate || filters.endDate) {
+    query.changedAt = {};
+    if (filters.startDate) query.changedAt.$gte = new Date(filters.startDate);
+    if (filters.endDate) query.changedAt.$lte = new Date(filters.endDate);
+  }
+
+  const [history, totalCount] = await Promise.all([
+    TaskStatusHistory.find(query)
+      .sort({ changedAt: -1 })
+      .skip((pagination.page - 1) * pagination.limit)
+      .limit(pagination.limit)
+      .populate('changedBy', 'firstName lastName email avatarUrl')
+      .populate('taskId', 'title taskCode')
+      .lean(),
+    TaskStatusHistory.countDocuments(query)
+  ]);
+
+  const tasks = history.map(item => ({
+    id: String(item._id),
+    taskId: String(item.taskId?._id || item.taskId),
+    taskTitle: (item.taskId as any)?.title || 'Deleted Task',
+    taskCode: (item.taskId as any)?.taskCode || 'N/A',
+    changedBy: String(item.changedBy?._id || item.changedBy),
+    changedByName: item.changedByName,
+    changedByAvatar: (item.changedBy as any)?.avatarUrl,
+    fromStatus: item.fromStatusName ? {
+      id: String(item.fromStatus),
+      name: item.fromStatusName,
+      color: item.fromStatusColor || '#64748b'
+    } : null,
+    toStatus: {
+      id: String(item.toStatus),
+      name: item.toStatusName,
+      color: item.toStatusColor || '#64748b'
+    },
+    changedAt: item.changedAt
+  }));
+
+  return { tasks, totalCount };
+};
+
+
+

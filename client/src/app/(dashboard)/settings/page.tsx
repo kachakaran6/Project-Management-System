@@ -35,7 +35,24 @@ import {
   BellRing,
   Smartphone,
   Tablet,
+  CheckCircle2,
+  Clock3,
+  Link,
+  LayoutPanelTop,
+  History,
+  ExternalLink,
+  GitCommit,
+  GitPullRequest,
+  Copy,
+  MessagesSquare,
+  Settings2,
+  Tag,
+  Workflow,
 } from "lucide-react";
+
+
+import { GithubIcon } from "@/components/icons/github-icon";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,8 +61,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useAuthStore } from "@/store/auth-store";
+import { cn } from "@/lib/utils";
+
 import { api } from "@/lib/api/axios-instance";
 import { authApi } from "@/features/auth/api/auth.api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -54,8 +81,8 @@ import { ACCENT_COLORS } from "@/store/theme-store";
 import { organizationsApi } from "@/features/organizations/api/organizations.api";
 import { UserWithRole } from "@/types/user.types";
 import { OrganizationMembership } from "@/types/organization.types";
-import * as LucideIcons from "lucide-react";
 import { TagManagement } from "@/features/tags/components/tag-management";
+
 import { StatusManagement } from "@/features/status/components/status-management";
 import { settingsApi, DefaultAssignee } from "@/features/auth/api/settings.api";
 import { MultiUserSelect } from "@/features/team/components/multi-user-select";
@@ -75,7 +102,11 @@ type SectionId =
   | "tags"
   | "workflow"
   | "org_notifications"
-  | "default_assignees";
+  | "default_assignees"
+  | "github";
+
+
+
 
 interface UserWithOrganizations extends UserWithRole {
   organizations?: OrganizationMembership[];
@@ -101,8 +132,8 @@ const NAV_ITEMS: NavItem[] = [
   { id: "billing", label: "Billing", icon: CreditCard, adminOnly: true },
   { id: "security", label: "Security", icon: ShieldCheck },
   { id: "integrations", label: "Integrations", icon: Puzzle },
-  { id: "tags", label: "Tags", icon: LucideIcons.Tag, managerPlus: true },
-  { id: "workflow", label: "Workflow", icon: LucideIcons.Workflow, managerPlus: true },
+  { id: "tags", label: "Tags", icon: Tag, managerPlus: true },
+  { id: "workflow", label: "Workflow", icon: Workflow, managerPlus: true },
   {
     id: "org_notifications",
     label: "Org Notifications",
@@ -110,7 +141,12 @@ const NAV_ITEMS: NavItem[] = [
     adminOnly: true,
   },
   { id: "default_assignees", label: "Default Assignees", icon: UserPlus },
+  { id: "github", label: "GitHub Workflow", icon: GitBranch },
+
 ];
+
+
+
 
 // ─── Shared UI Primitives ─────────────────────────────────────────────────────
 
@@ -1891,9 +1927,277 @@ function TelegramOrgSection() {
   );
 }
 
+function GithubSection() {
+  const { activeOrg } = useAuth();
+  
+  const doneKeywords = [
+    'fix', 'fixed', 'fixes', 'close', 'closed', 'closes', 
+    'resolve', 'resolved', 'resolves', 'done', 'finish', 
+    'finished', 'completes', 'implement', 'implemented'
+  ];
+
+  const progressKeywords = [
+    'progress', 'start', 'started', 'working', 
+    'feat', 'feature', 'refactor', 'chore'
+  ];
+
+  const examples = [
+    {
+      label: "Fix & Close",
+      value: `git commit -m "fix ${activeOrg?.name ? 'PMS' : 'TASK'}-123 login redirect"`,
+      desc: "Moves the task to DONE automatically.",
+      icon: CheckCircle2,
+      color: "text-emerald-500",
+      bg: "bg-emerald-500/10"
+    },
+    {
+      label: "Start Progress",
+      value: `git commit -m "feat ${activeOrg?.name ? 'PMS' : 'TASK'}-123 adding auth"`,
+      desc: "Moves the task to IN PROGRESS automatically.",
+      icon: Clock3,
+      color: "text-blue-500",
+      bg: "bg-blue-500/10"
+    },
+    {
+      label: "Reference Only",
+      value: `git commit -m "${activeOrg?.name ? 'PMS' : 'TASK'}-123 updating docs"`,
+      desc: "Links activity without changing status.",
+      icon: Link,
+      color: "text-slate-500",
+      bg: "bg-slate-500/10"
+    },
+
+  ];
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* 1. Status Automation Guide */}
+      <SectionCard
+        title="Status Automation"
+        description="Your task status updates automatically based on the keywords you use in GitHub.">
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Done Automation */}
+            <div className="flex flex-col gap-3 p-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 size-20 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all" />
+              <div className="flex items-center gap-2">
+                <div className="size-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <CheckCircle2 className="size-4" />
+                </div>
+                <h4 className="text-sm font-black uppercase tracking-widest text-emerald-700">Move to Done</h4>
+              </div>
+              <p className="text-[11px] text-emerald-600/80 font-medium leading-relaxed">
+                Use any of these keywords to mark a task as completed when you push code or merge a PR.
+              </p>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {doneKeywords.map(kw => (
+                  <code key={kw} className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono text-emerald-700">
+                    {kw}
+                  </code>
+                ))}
+              </div>
+            </div>
+
+            {/* In Progress Automation */}
+            <div className="flex flex-col gap-3 p-5 rounded-2xl border border-blue-500/20 bg-blue-500/5 relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 size-20 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all" />
+              <div className="flex items-center gap-2">
+                <div className="size-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
+                  <Clock3 className="size-4" />
+                </div>
+
+                <h4 className="text-sm font-black uppercase tracking-widest text-blue-700">In Progress</h4>
+              </div>
+              <p className="text-[11px] text-blue-600/80 font-medium leading-relaxed">
+                Use these keywords to signal that you've started working on a task.
+              </p>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {progressKeywords.map(kw => (
+                  <code key={kw} className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-[10px] font-mono text-blue-700">
+                    {kw}
+                  </code>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* 2. Visual Effects on Tasks */}
+      <SectionCard
+        title="Visual Effects on Tasks"
+        description="How linked activity appears inside your project.">
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-4">
+             <div className="flex gap-4 p-4 rounded-2xl border border-border bg-muted/5">
+                <div className="shrink-0 size-10 rounded-xl bg-background border border-border/40 flex items-center justify-center text-primary shadow-sm">
+                  <LayoutPanelTop className="size-5" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold">Activity Sidebar</h4>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    A new "GitHub Activity" section appears in the task sidebar, showing every commit and PR linked to it.
+                  </p>
+                </div>
+             </div>
+             <div className="flex gap-4 p-4 rounded-2xl border border-border bg-muted/5">
+                <div className="shrink-0 size-10 rounded-xl bg-background border border-border/40 flex items-center justify-center text-primary shadow-sm">
+                  <History className="size-5" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold">Audit History</h4>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    Status transitions triggered by GitHub are logged in the activity feed, mentioning "via GitHub".
+                  </p>
+                </div>
+             </div>
+             <div className="flex gap-4 p-4 rounded-2xl border border-border bg-muted/5">
+                <div className="shrink-0 size-10 rounded-xl bg-background border border-border/40 flex items-center justify-center text-primary shadow-sm">
+                  <ExternalLink className="size-5" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold">Direct Navigation</h4>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    Click any linked commit or PR to jump directly to GitHub and view the code changes.
+                  </p>
+                </div>
+             </div>
+          </div>
+
+          {/* Mock Preview Card */}
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-inner relative overflow-hidden group">
+            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4 flex items-center gap-2">
+              <GithubIcon className="size-3" /> Preview: Task Sidebar
+            </h4>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="size-6 rounded-md bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                  <GitCommit className="size-3" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold truncate">fix: resolved login redirect loop</p>
+                  <p className="text-[9px] text-muted-foreground font-medium">Author: @dev_hero • 2m ago</p>
+                </div>
+                <ExternalLink className="size-3 text-muted-foreground/40" />
+              </div>
+              <div className="w-full h-px bg-border/40" />
+              <div className="flex items-center gap-2">
+                <div className="size-6 rounded-md bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                  <GitPullRequest className="size-3" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold truncate">PMS-110 User Profile Redesign</p>
+                  <p className="text-[9px] text-muted-foreground font-medium">Author: @dev_hero • #42 Open</p>
+                </div>
+                <ExternalLink className="size-3 text-muted-foreground/40" />
+              </div>
+            </div>
+
+            <div className="mt-4 p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-center">
+               <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Status updated to DONE</span>
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* 3. Actionable Examples */}
+      <SectionCard
+        title="Copy-Ready Templates"
+        description="Standard patterns for your daily development workflow.">
+        <div className="space-y-4">
+          {examples.map((example, idx) => (
+            <div key={idx} className="group flex flex-col gap-3 p-5 rounded-2xl border border-border bg-muted/5 hover:bg-muted/10 transition-all">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={cn("p-2 rounded-xl border border-border/40 text-foreground shadow-sm", example.bg)}>
+                    <example.icon className={cn("size-4", example.color)} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold">{example.label}</h4>
+                    <p className="text-[10px] text-muted-foreground font-medium">{example.desc}</p>
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => copyToClipboard(example.value)}
+                  className="h-8 rounded-xl border-border/40 bg-background/50 hover:bg-primary hover:text-white transition-all px-4 gap-2 shadow-sm font-black text-[10px] tracking-widest uppercase"
+                >
+                  <Copy className="size-3" />
+                  Copy
+                </Button>
+              </div>
+              <div className="relative">
+                <code className="block px-4 py-3 rounded-xl bg-background border border-border/40 text-[11px] font-mono text-foreground/90 break-all leading-tight shadow-inner">
+                  {example.value}
+                </code>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <div className="size-2 rounded-full bg-primary animate-pulse" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      {/* 4. Tips & Best Practices */}
+      <SectionCard
+        title="Pro Tips"
+        description="Get the most out of your GitHub integration.">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="p-4 rounded-2xl border border-border bg-card space-y-2">
+            <h4 className="text-xs font-bold flex items-center gap-2">
+              <Zap className="size-4 text-amber-500" /> Multi-Linking
+            </h4>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              You can link multiple tasks in a single commit by listing their IDs. Status updates will apply to all tasks mentioned.
+            </p>
+            <code className="block p-2 rounded-lg bg-muted/30 text-[9px] font-mono">
+              git commit -m "fix PMS-101 and PMS-102"
+            </code>
+          </div>
+          <div className="p-4 rounded-2xl border border-border bg-card space-y-2">
+            <h4 className="text-xs font-bold flex items-center gap-2">
+              <ShieldCheck className="size-4 text-blue-500" /> Case Insensitive
+            </h4>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Keywords and Task IDs are case insensitive. <code className="bg-muted px-1 rounded">pms-110</code> and <code className="bg-muted px-1 rounded">PMS-110</code> work exactly the same way.
+            </p>
+          </div>
+          <div className="p-4 rounded-2xl border border-border bg-card space-y-2">
+            <h4 className="text-xs font-bold flex items-center gap-2">
+              <MessagesSquare className="size-4 text-purple-500" /> PR Descriptions
+            </h4>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Don't forget Task IDs in PR descriptions too! We scan titles first, but linking is comprehensive across the PR lifecycle.
+            </p>
+          </div>
+          <div className="p-4 rounded-2xl border border-border bg-card space-y-2">
+             <h4 className="text-xs font-bold flex items-center gap-2">
+              <Settings2 className="size-4 text-slate-500" /> Toggle Automation
+            </h4>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Organization admins can enable/disable automatic status updates in the Project settings under "GitHub Integration".
+            </p>
+          </div>
+        </div>
+      </SectionCard>
+
+    </div>
+  );
+}
+
+
 // ─── SECTION RENDERER ─────────────────────────────────────────────────────────
 
 function renderSection(id: SectionId) {
+
   switch (id) {
     case "profile":
       return <ProfileSection />;
@@ -1921,8 +2225,13 @@ function renderSection(id: SectionId) {
       return <StatusManagement />;
     case "default_assignees":
       return <DefaultAssigneesSection />;
+    case "github":
+      return <GithubSection />;
+
   }
 }
+
+
 
 // ─── 11. DEFAULT ASSIGNEES SECTION ───────────────────────────────────────────
 
@@ -2012,6 +2321,7 @@ function DefaultAssigneesSection() {
 }
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
+
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SectionId>("profile");
@@ -2131,7 +2441,12 @@ export default function SettingsPage() {
                   "Manage task lifecycle and board columns"}
                 {activeSection === "default_assignees" &&
                   "Automatically pre-select users for new tasks"}
+                {activeSection === "github" &&
+                  "Guidelines and examples for linking GitHub activity to tasks"}
+
               </p>
+
+
             </div>
           </div>
 

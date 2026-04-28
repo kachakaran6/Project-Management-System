@@ -8,7 +8,12 @@ export interface User {
   avatarUrl?: string;
   isEmailVerified?: boolean;
   status?: string;
+  settings?: {
+    defaultTaskStatus?: string;
+    defaultAssignees?: string[];
+  };
   createdAt?: string;
+
   updatedAt?: string;
 }
 

@@ -1,23 +1,29 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/auth-store";
+
 import { statusAPI } from "../statusAPI";
 import { Status } from "@/types/task.types";
 
 export const statusesQueryKeys = {
-  all: ["statuses"] as const,
+  all: (orgId?: string | null) => ["statuses", orgId] as const,
 };
 
+
 export function useStatusesQuery() {
+  const { activeOrgId } = useAuthStore();
   return useQuery({
-    queryKey: statusesQueryKeys.all,
+    queryKey: statusesQueryKeys.all(activeOrgId),
     queryFn: async () => {
       const response = await statusAPI.fetchStatuses();
       return response.data.data as Status[];
     },
     staleTime: 60_000,
+    enabled: !!activeOrgId,
   });
 }
+
 
 export function useCreateStatusMutation() {
   const queryClient = useQueryClient();

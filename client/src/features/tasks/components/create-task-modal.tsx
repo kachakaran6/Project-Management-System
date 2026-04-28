@@ -38,11 +38,11 @@ interface CreateTaskModalProps {
   onCreated?: () => void;
 }
 
-const createBaseValues = (defaultProjectId?: string, defaultAssigneeIds: string[] = []): TaskFormValues => ({
+const createBaseValues = (defaultProjectId?: string, defaultAssigneeIds: string[] = [], defaultStatus?: string): TaskFormValues => ({
   title: "",
   description: "",
   projectId: defaultProjectId ?? "",
-  status: "TODO",
+  status: defaultStatus || "TODO",
   priority: "MEDIUM",
   visibility: "PUBLIC",
   visibleToUsers: [],
@@ -50,6 +50,7 @@ const createBaseValues = (defaultProjectId?: string, defaultAssigneeIds: string[
   dueDate: "",
   tags: [],
 });
+
 
 const pickLatestDraft = (
   localDraft: ReturnType<typeof getLatestStoredTaskDraft>,
@@ -93,12 +94,16 @@ export function CreateTaskModal({
 }: CreateTaskModalProps) {
   const [open, setOpen] = useState(false);
   const [resetKey, setResetKey] = useState(0);
+  const { activeOrgId, user } = useAuthStore();
+  const defaultStatus = user?.settings?.defaultTaskStatus?.toUpperCase();
+
   const [initialValues, setInitialValues] = useState<TaskFormValues>(() =>
-    createBaseValues(defaultProjectId),
+    createBaseValues(defaultProjectId, [], defaultStatus),
   );
   const [draftValues, setDraftValues] = useState<TaskFormValues>(() =>
-    createBaseValues(defaultProjectId),
+    createBaseValues(defaultProjectId, [], defaultStatus),
   );
+
   const [draftId, setDraftId] = useState<string | null>(null);
   const [isCheckingDraft, setIsCheckingDraft] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -112,9 +117,9 @@ export function CreateTaskModal({
   const upsertTaskDraft = useUpsertTaskDraftMutation();
   const deleteTaskDraft = useDeleteTaskDraftMutation();
   const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
-  const { activeOrgId, user } = useAuthStore();
 
   const userId = user?.id || "";
+
   const baseValues = useMemo(() => createBaseValues(defaultProjectId), [defaultProjectId]);
   const debouncedDraftValues = useDebounce(draftValues, 2500);
 
@@ -165,20 +170,35 @@ export function CreateTaskModal({
     queryKey: ["settings", "default-assignees"],
     queryFn: () => settingsApi.getDefaultAssignees(),
     enabled: open,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
+
+  const { data: statusPreferenceData } = useQuery({
+    queryKey: ["settings", "default-status"],
+    queryFn: () => settingsApi.getDefaultStatus(),
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (open) {
+      console.log("[DEBUG] Default Assignees:", settingsData?.data?.defaultAssignees);
+      console.log("[DEBUG] Default Status Preference (Settings API):", statusPreferenceData?.data?.defaultTaskStatus);
+      console.log("[DEBUG] Default Status Preference (Auth Store):", user?.settings?.defaultTaskStatus);
+    }
+  }, [open, settingsData, statusPreferenceData, user]);
 
   useEffect(() => {
     if (!open) return;
     
-    // Always start with fresh values when opening the modal
-    // Drafts are now managed on the Kanban board, not via a restore popup
     const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
+    const resolvedDefaultStatus = statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
     
     const nextBaseValues = {
-      ...createBaseValues(defaultProjectId),
-      assigneeIds: defaultAssigneeIds,
+      ...createBaseValues(defaultProjectId, defaultAssigneeIds, resolvedDefaultStatus),
     };
+
+
 
     setInitialValues(nextBaseValues);
     setDraftValues(nextBaseValues);
@@ -190,7 +210,7 @@ export function CreateTaskModal({
     // Don't reset createMore here so it persists if they open it again? 
     // Actually, usually it's better to reset it when modal opens first time.
     setCreateMore(false);
-  }, [defaultProjectId, open, settingsData]);
+  }, [defaultProjectId, open, settingsData, statusPreferenceData, defaultStatus]);
 
   const syncDraftToServer = async (
     values: TaskFormValues,
@@ -373,7 +393,8 @@ export function CreateTaskModal({
       }
 
       const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
-      resetDraftState(createBaseValues(defaultProjectId, defaultAssigneeIds));
+      resetDraftState(createBaseValues(defaultProjectId, defaultAssigneeIds, defaultStatus));
+
     } catch (error) {
       const apiError = error as AxiosError<{ message?: string; errors?: string[] }>;
       const message =
@@ -423,7 +444,9 @@ export function CreateTaskModal({
             submitLabel="Create Task"
             createMore={createMore}
             onCreateMoreChange={setCreateMore}
+            defaultStatus={statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase()}
           />
+
         )}
       </DialogContent>
     </Dialog>

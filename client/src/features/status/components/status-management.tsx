@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/auth-store";
+
 
 import { 
   DndContext, 
@@ -45,6 +47,17 @@ import {
   useDeleteStatusMutation, 
   useReorderStatusesMutation 
 } from "@/features/status/hooks/use-statuses";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { settingsApi } from "@/features/auth/api/settings.api";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Sparkles, CheckCircle2 } from "lucide-react";
+
 
 function SortableStatusItem({ 
   status, 
@@ -183,6 +196,40 @@ export function StatusManagement() {
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
   const [editHidden, setEditHidden] = useState(false);
+
+  const { user, setUser } = useAuthStore();
+  const queryClient = useQueryClient();
+  const { data: settingsData, isLoading: isSettingsLoading } = useQuery({
+    queryKey: ["settings", "default-status"],
+    queryFn: () => settingsApi.getDefaultStatus(),
+  });
+
+  const updateDefaultMutation = useMutation({
+    mutationFn: (val: string | null) => settingsApi.updateDefaultStatus(val),
+    onSuccess: (res) => {
+      toast.success("Default status preference updated");
+      queryClient.invalidateQueries({ queryKey: ["settings", "default-status"] });
+      
+      // Update local auth store so TaskForm reflects changes immediately
+      if (user) {
+        setUser({
+          ...user,
+          settings: {
+            ...user.settings,
+            defaultTaskStatus: res.data.defaultTaskStatus
+          }
+        });
+      }
+
+    },
+    onError: () => {
+      toast.error("Failed to update default status preference");
+    },
+  });
+
+
+  const personalDefaultStatus = settingsData?.data?.defaultTaskStatus;
+
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -393,6 +440,57 @@ export function StatusManagement() {
           )}
         </div>
       </div>
+
+      {/* Personal Default Status Section */}
+      <div className="mt-8 border-t border-border pt-6 space-y-4">
+        <div>
+          <h4 className="text-sm font-semibold flex items-center gap-2">
+            <CheckCircle2 className="size-4 text-primary" />
+            Your Default Status
+          </h4>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Choose which status is automatically selected when you create a new task. This is your personal preference.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
+          <Select
+            value={personalDefaultStatus || "none"}
+            onValueChange={(val) => updateDefaultMutation.mutate(val === "none" ? null : val)}
+            disabled={isSettingsLoading || updateDefaultMutation.isPending}
+          >
+            <SelectTrigger className="w-full sm:w-[240px] h-10 bg-background">
+              <SelectValue placeholder="Select a default status..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No Default (System Fallback)</SelectItem>
+              {statuses.map((s) => (
+                <SelectItem key={s.id} value={s.name.toLowerCase()}>
+                  <div className="flex items-center gap-2">
+                    <div className="size-2 rounded-full" style={{ backgroundColor: s.color }} />
+                    {s.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {updateDefaultMutation.isPending && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in">
+              <Loader2 className="size-3 animate-spin" />
+              Saving preference...
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-primary/10 bg-primary/5 p-4 flex gap-3">
+          <Sparkles className="size-4 text-primary shrink-0 mt-0.5" />
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            <span className="font-bold text-primary">Efficiency Tip:</span> If you usually create tasks that start directly in "To Do", setting it here saves you a click for every new task.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
+

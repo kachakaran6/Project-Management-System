@@ -104,3 +104,17 @@ router.delete(
 );
 
 export default router;
+
+router.get(
+  '/:id/status-history',
+  requirePermission(PERMISSIONS.VIEW_TASK),
+  taskController.getStatusHistory,
+);
+
+
+router.get(
+  '/status-history/all',
+  requirePermission(PERMISSIONS.VIEW_TASK),
+  taskController.getGlobalStatusHistory,
+);
+

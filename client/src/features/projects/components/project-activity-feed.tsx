@@ -344,8 +344,20 @@ export function ProjectActivityFeed({ projectId }: ProjectActivityFeedProps) {
         </button>
       </div>
 
+      {/* GitHub Linking Tip Banner */}
+      <div className="flex items-center gap-3 p-3 rounded-2xl border border-primary/20 bg-primary/5 group hover:bg-primary/10 transition-all">
+        <div className="shrink-0 p-2 rounded-xl bg-background border border-border/40 shadow-sm text-primary group-hover:scale-110 transition-transform">
+          <GithubIcon className="size-4" />
+        </div>
+        <p className="text-[11px] font-medium text-foreground/80 leading-relaxed">
+          <span className="font-black text-primary uppercase mr-1">💡 Pro Tip:</span>
+          Include Task IDs (e.g. <code className="bg-muted/20 px-1 rounded font-mono text-primary font-black uppercase">PMS-110</code>) in your commit messages or PR titles to track specific activity here.
+        </p>
+      </div>
+
       {/* Filter bar */}
       <FilterBar active={typeFilter} onChange={(f) => setTypeFilter(f)} />
+
 
       {isError && (
         <div className="text-center py-6 text-[11px] text-destructive/60 font-medium bg-destructive/5 rounded-2xl border border-destructive/10">

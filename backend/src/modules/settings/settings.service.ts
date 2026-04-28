@@ -49,3 +49,29 @@ export const updateDefaultAssignees = async (userId: string, assigneeIds: string
 
   return { defaultAssignees };
 };
+
+export const getDefaultStatus = async (userId: string) => {
+  const user = await User.findById(userId).select('settings.defaultTaskStatus').lean();
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  return { defaultTaskStatus: user.settings?.defaultTaskStatus || null };
+};
+
+export const updateDefaultStatus = async (userId: string, defaultTaskStatus: string | null) => {
+  const user = await User.findByIdAndUpdate(
+
+    userId,
+    { $set: { 'settings.defaultTaskStatus': defaultTaskStatus } },
+    { new: true }
+  ).select('settings.defaultTaskStatus');
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  return { defaultTaskStatus: user.settings?.defaultTaskStatus || null };
+};
+

@@ -233,3 +233,36 @@ export const removeVisibilityUsers = asyncHandler(async (req, res) => {
   await taskService.removeTaskVisibilityUsers(req.params.id as string, userIds, req.user.id, (req.role as string) || 'MEMBER');
   return successResponse(res, null, 'Users removed from task visibility.');
 });
+
+/**
+ * Controller: Get Task Status History
+ */
+export const getStatusHistory = asyncHandler(async (req, res) => {
+  const history = await taskService.getStatusHistory(
+    req.params.id as string,
+    req.organizationId as string
+  );
+  return successResponse(res, history, 'Task status history retrieved.');
+});
+
+/**
+ * Controller: Get Global Task Status History
+ */
+export const getGlobalStatusHistory = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 20;
+
+  const { tasks, totalCount } = await taskService.getGlobalStatusHistory(
+    req.organizationId as string,
+    {
+      taskId: req.query.taskId,
+      userId: req.query.userId,
+      toStatus: req.query.status,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate
+    },
+    { page, limit }
+  );
+
+  return successResponse(res, paginate(tasks, totalCount, page, limit), 'Global task status history retrieved.');
+});

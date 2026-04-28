@@ -47,6 +47,13 @@ export const useAuthStore = create<AuthState>()(
           organizations[0]?.id ||
           user.organizationId ||
           null;
+
+        // Sync with flat localStorage keys for Axios interceptor
+        localStorage.setItem("token", accessToken);
+        if (activeOrgId) {
+          localStorage.setItem("activeOrgId", activeOrgId);
+        }
+
         set({
           user,
           accessToken,
@@ -56,6 +63,7 @@ export const useAuthStore = create<AuthState>()(
           isLoading: false,
         });
       },
+
 
       setUser: (user) => set({ user }),
 
@@ -68,20 +76,31 @@ export const useAuthStore = create<AuthState>()(
         set({ organizations, activeOrgId: nextOrgId });
       },
 
-      setAccessToken: (accessToken) => set({ accessToken }),
+      setAccessToken: (accessToken) => {
+        localStorage.setItem("token", accessToken);
+        set({ accessToken });
+      },
 
-      setActiveOrgId: (activeOrgId) => set({ activeOrgId }),
+      setActiveOrgId: (activeOrgId) => {
+        localStorage.setItem("activeOrgId", activeOrgId);
+        set({ activeOrgId });
+      },
+
 
       setLoading: (isLoading) => set({ isLoading }),
 
-      clearAuth: () =>
+      clearAuth: () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("activeOrgId");
         set({
           user: null,
           accessToken: null,
           organizations: [],
           activeOrgId: null,
           isAuthenticated: false,
-        }),
+        });
+      },
+
 
       logout: () => {
         get().clearAuth();

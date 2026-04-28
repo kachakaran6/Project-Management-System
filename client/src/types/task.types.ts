@@ -144,3 +144,23 @@ export interface TaskFilters {
 export interface AssignTaskUsersInput {
   userIds: string[];
 }
+
+export interface TaskStatusHistory {
+  id: string;
+  taskId: string;
+  changedBy: string;
+  changedByName: string;
+  changedByAvatar?: string;
+  fromStatus: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
+  toStatus: {
+    id: string;
+    name: string;
+    color: string;
+  };
+  changedAt: string;
+}
+
