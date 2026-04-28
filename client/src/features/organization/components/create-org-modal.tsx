@@ -28,6 +28,9 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { tenantApi } from "../api/tenant.api";
 
+import { useAppDispatch } from "@/hooks/useAppDispatch";
+import { setActiveOrgId as setActiveOrgIdRedux } from "@/features/auth/authSlice";
+
 const createOrgSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   slug: z.string().min(2, "Slug must be at least 2 characters").optional(),
@@ -42,8 +45,10 @@ interface CreateOrgModalProps {
 
 export function CreateOrgModal({ open, onOpenChange }: CreateOrgModalProps) {
   const queryClient = useQueryClient();
+  const dispatch = useAppDispatch();
   const setActiveOrgId = useAuthStore((state) => state.setActiveOrgId);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   const form = useForm<CreateOrgValues>({
     resolver: zodResolver(createOrgSchema),
@@ -66,9 +71,13 @@ export function CreateOrgModal({ open, onOpenChange }: CreateOrgModalProps) {
       queryClient.invalidateQueries({ queryKey: ["team"] });
       
       // Automatically switch to new organization
-      if (data?.data?.id || (data?.data as any)?._id) {
-        setActiveOrgId(data.data.id || (data.data as any)._id);
+      const newOrgId = data?.data?.id || (data?.data as any)?._id;
+      if (newOrgId) {
+        setActiveOrgId(newOrgId);
+        dispatch(setActiveOrgIdRedux(newOrgId));
+        localStorage.setItem("activeOrgId", newOrgId);
       }
+
       
       onOpenChange(false);
       form.reset();
