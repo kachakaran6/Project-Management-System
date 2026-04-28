@@ -8,6 +8,9 @@ import { orgApi } from "@/features/organization/api/org.api";
 import { LoginInput, SignupInput } from "@/types/auth.types";
 import { OrganizationMembership } from "@/types/organization.types";
 import { useAuthStore } from "@/store/auth-store";
+import { useAppDispatch } from "@/hooks/useAppDispatch";
+import { setActiveOrgId as setActiveOrgIdRedux } from "@/features/auth/authSlice";
+
 
 export const authQueryKeys = {
   me: ["auth", "me"] as const,
@@ -121,6 +124,7 @@ export function useVerifyOtpMutation() {
 
 export function useUserQuery(enabled = true) {
   const setUser = useAuthStore((state) => state.setUser);
+  const dispatch = useAppDispatch();
   const query = useQuery({
     queryKey: authQueryKeys.me,
     queryFn: () => authApi.me(),
@@ -145,18 +149,20 @@ export function useUserQuery(enabled = true) {
         const isValidActiveId = organizations.some(o => o.id === currentActiveId);
         
         if (!currentActiveId || !isValidActiveId) {
-          if (organizationId) {
-            store.setActiveOrgId(organizationId);
-          } else if (organizations.length > 0) {
-            store.setActiveOrgId(organizations[0].id);
+          const nextOrgId = organizationId || (organizations.length > 0 ? organizations[0].id : null);
+          if (nextOrgId) {
+            store.setActiveOrgId(nextOrgId);
+            dispatch(setActiveOrgIdRedux(nextOrgId));
+            localStorage.setItem("activeOrgId", nextOrgId);
           }
         }
       }
     }
-  }, [query.data, setUser]);
+  }, [query.data, setUser, dispatch]);
 
   return query;
 }
+
 
 export function useLogoutMutation() {
   const clearAuth = useAuthStore((state) => state.clearAuth);
