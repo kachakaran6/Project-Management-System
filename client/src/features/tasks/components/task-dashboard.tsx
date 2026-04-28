@@ -429,7 +429,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   return (
     <div
       className={cn(
-        "w-full flex flex-col pb-[100px]",
+        "w-full h-full flex flex-col",
         !isEmbedded && viewMode !== "kanban" && "mx-auto max-w-7xl"
       )}
     >
