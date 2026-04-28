@@ -14,6 +14,8 @@ import {TaskProperties} from "./task-properties";
 import {TaskDescription} from "./task-description";
 import {TaskComments} from "./task-comments";
 import {TaskGithubActivity} from "./task-github-activity";
+import {GithubLinkingGuidance} from "./github-linking-guidance";
+
 import {Skeleton} from "@/components/ui/skeleton";
 import {X} from "lucide-react";
 import {useSearchParams, useRouter, usePathname} from "@/lib/next-navigation";
@@ -116,7 +118,12 @@ export function TaskSidePanel() {
               <div className="max-w-3xl mx-auto space-y-2">
                 <TaskHeader task={task} />
                 <TaskProperties task={task} />
+                <GithubLinkingGuidance 
+                  taskCode={task.taskCode} 
+                  isProjectConnected={!!(task.projectId as any)?.githubConfig || !!(task as any).project?.githubConfig} 
+                />
                 <TaskDescription task={task} />
+
                 <TaskGithubActivity links={task.githubLinks || []} />
                 <div className="border-t pt-2" />
                 <TaskComments taskId={task.id || (task as any)._id} />

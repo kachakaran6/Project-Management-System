@@ -23,7 +23,9 @@ import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
 import { useTasksQuery } from "@/features/tasks/hooks/use-tasks-query";
 import { CreateProjectModal } from "@/features/projects/components/create-project-modal";
 import { CreateTaskModal } from "@/features/tasks/components/create-task-modal";
+import { GithubOnboardingBanner } from "@/features/tasks/components/github-onboarding-banner";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
+
 import { resolveStatus, filterVisibleTasks, normalizeId } from "@/features/tasks/utils/resolve-status";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -163,6 +165,8 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-4">
+      <GithubOnboardingBanner />
+
       {/* <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Dashboard
