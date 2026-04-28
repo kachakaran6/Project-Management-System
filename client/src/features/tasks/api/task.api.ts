@@ -8,7 +8,9 @@ import {
   TaskDraftInput,
   TaskFilters,
   UpdateTaskInput,
+  TaskStatusHistory,
 } from "@/types/task.types";
+
 
 export const taskApi = {
   getTasks: async (
@@ -100,4 +102,15 @@ export const taskApi = {
     const response = await api.delete<ApiResponse<null>>(`/tasks/${id}`);
     return response.data;
   },
+  getStatusHistory: async (id: string): Promise<ApiResponse<TaskStatusHistory[]>> => {
+    const response = await api.get<ApiResponse<TaskStatusHistory[]>>(`/tasks/${id}/status-history`);
+    return response.data;
+  },
+
+  getGlobalStatusHistory: async (params: any = {}): Promise<ApiResponse<PaginatedResult<TaskStatusHistory>>> => {
+    const response = await api.get<ApiResponse<PaginatedResult<TaskStatusHistory>>>(`/tasks/status-history/all`, { params });
+    return response.data;
+  },
 };
+
+

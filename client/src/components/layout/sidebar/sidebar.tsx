@@ -79,6 +79,14 @@ const navItems: SidebarNavItem[] = [
     roles: ["SUPER_ADMIN", "ADMIN", "OWNER"],
   },
   {
+    title: "Audit Log",
+    href: "/audit-log",
+    icon: SquareCheckBig,
+    group: "manage",
+    roles: ["ADMIN", "OWNER", "MANAGER", "MEMBER", "USER"],
+  },
+
+  {
     title: "Settings",
     href: "/settings",
     icon: Settings,
