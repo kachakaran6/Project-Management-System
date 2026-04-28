@@ -1,6 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/auth-store";
+
 
 import { taskApi } from "@/features/tasks/api/task.api";
 import {
@@ -13,12 +15,13 @@ import {
 } from "@/types/task.types";
 
 export const tasksQueryKeys = {
-  all: ["tasks"] as const,
-  list: (filters: TaskFilters) => ["tasks", filters] as const,
-  detail: (id: string) => ["tasks", "detail", id] as const,
-  draftsAll: ["tasks", "drafts"] as const,
-  drafts: (filters: TaskDraftFilters = {}) => ["tasks", "drafts", filters] as const,
+  all: (orgId?: string | null) => ["tasks", orgId] as const,
+  list: (filters: TaskFilters, orgId?: string | null) => ["tasks", orgId, filters] as const,
+  detail: (id: string, orgId?: string | null) => ["tasks", orgId, "detail", id] as const,
+  draftsAll: (orgId?: string | null) => ["tasks", orgId, "drafts"] as const,
+  drafts: (filters: TaskDraftFilters = {}, orgId?: string | null) => ["tasks", orgId, "drafts", filters] as const,
 };
+
 
 export function useTasksQuery(
   filters: TaskFilters = {},
@@ -28,15 +31,17 @@ export function useTasksQuery(
     refetchInterval?: number;
   },
 ) {
+  const { activeOrgId } = useAuthStore();
   return useQuery({
-    queryKey: tasksQueryKeys.list(filters),
+    queryKey: tasksQueryKeys.list(filters, activeOrgId),
     queryFn: () => taskApi.getTasks(filters),
     staleTime: options?.staleTime ?? 0,
-    enabled: options?.enabled ?? true,
+    enabled: (options?.enabled ?? true) && !!activeOrgId,
     refetchInterval: options?.refetchInterval,
     refetchOnMount: true,
   });
 }
+
 
 export function useCreateTaskMutation() {
   const queryClient = useQueryClient();
@@ -56,12 +61,14 @@ export function useTaskDraftsQuery(
     staleTime?: number;
   },
 ) {
+  const { activeOrgId } = useAuthStore();
   return useQuery({
-    queryKey: tasksQueryKeys.drafts(filters),
+    queryKey: tasksQueryKeys.drafts(filters, activeOrgId),
     queryFn: () => taskApi.getDrafts(filters),
     staleTime: options?.staleTime ?? 10_000,
-    enabled: options?.enabled ?? true,
+    enabled: (options?.enabled ?? true) && !!activeOrgId,
   });
+
 }
 
 export function useUpsertTaskDraftMutation() {
@@ -133,13 +140,15 @@ export function useUpdateTaskStatusMutation() {
 }
 
 export function useTaskQuery(id: string, enabled = true) {
+  const { activeOrgId } = useAuthStore();
   return useQuery({
-    queryKey: tasksQueryKeys.detail(id),
+    queryKey: tasksQueryKeys.detail(id, activeOrgId),
     queryFn: () => taskApi.getTask(id),
-    enabled: enabled && Boolean(id),
+    enabled: enabled && Boolean(id) && !!activeOrgId,
     staleTime: 0,
     refetchOnMount: true,
   });
+
 }
 
 export function useUpdateTaskMutation() {

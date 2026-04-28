@@ -1,23 +1,29 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/auth-store";
+
 
 import { projectApi } from "@/features/projects/api/project.api";
 import { CreateProjectInput, ProjectFilters } from "@/types/project.types";
 
 export const projectsQueryKeys = {
-  all: ["projects"] as const,
-  list: (filters: ProjectFilters) => ["projects", filters] as const,
-  detail: (id: string) => ["projects", "detail", id] as const,
+  all: (orgId?: string | null) => ["projects", orgId] as const,
+  list: (filters: ProjectFilters, orgId?: string | null) => ["projects", orgId, filters] as const,
+  detail: (id: string, orgId?: string | null) => ["projects", orgId, "detail", id] as const,
 };
 
+
 export function useProjectsQuery(filters: ProjectFilters = {}) {
+  const { activeOrgId } = useAuthStore();
   return useQuery({
-    queryKey: projectsQueryKeys.list(filters),
+    queryKey: projectsQueryKeys.list(filters, activeOrgId),
     queryFn: () => projectApi.getProjects(filters),
     staleTime: 30_000,
+    enabled: !!activeOrgId,
   });
 }
+
 
 export function useCreateProjectMutation() {
   const queryClient = useQueryClient();
@@ -32,13 +38,15 @@ export function useCreateProjectMutation() {
 }
 
 export function useProjectQuery(id: string, enabled = true) {
+  const { activeOrgId } = useAuthStore();
   return useQuery({
-    queryKey: projectsQueryKeys.detail(id),
+    queryKey: projectsQueryKeys.detail(id, activeOrgId),
     queryFn: () => projectApi.getProject(id),
-    enabled: enabled && Boolean(id),
+    enabled: enabled && Boolean(id) && !!activeOrgId,
     staleTime: 20_000,
   });
 }
+
 
 export function useUpdateProjectMutation() {
   const queryClient = useQueryClient();
