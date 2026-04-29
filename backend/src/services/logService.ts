@@ -1,6 +1,7 @@
 import Log from '../models/Log.js';
 import { logger } from '../utils/logger.js';
 import mongoose from 'mongoose';
+import { ErrorAlertService } from '../modules/notification/errorAlert.service.js';
 
 interface LogData {
   message: string;
@@ -47,6 +48,11 @@ export const logEvent = async (data: LogData) => {
   // 1. Log to Winston (Console/Files)
   if (level === 'error') {
     logger.error(message, rest);
+    // Automatically trigger Smart Alerting for all logged errors
+    ErrorAlertService.notifyError({ 
+      error: new Error(message), 
+      statusCode: (rest as any).metadata?.statusCode || 500 
+    }).catch(err => console.error('Telegram alerting from log failed:', err));
   } else if (level === 'warn') {
     logger.warn(message, rest);
   } else if (level === 'debug') {
