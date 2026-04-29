@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { env } from './env.js';
 import { logger } from '../utils/logger.js';
+import { logError } from '../services/logService.js';
 
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 3000;
@@ -22,9 +23,11 @@ const connect = async () => {
     } catch (err: unknown) {
       const error = err as Error;
       lastError = error;
-      logger.error(
-        `❌ MongoDB connection failed (attempt ${attempt}/${MAX_RETRIES}): ${error.message}`,
-      );
+      logError(`❌ MongoDB connection failed (attempt ${attempt}/${MAX_RETRIES}): ${error.message}`, {
+        module: 'DATABASE',
+        action: 'DB_CONNECTION_FAILED',
+        metadata: { attempt, error: error.message }
+      });
 
       if (attempt < MAX_RETRIES) {
         logger.warn(`⏳ Retrying in ${RETRY_DELAY_MS / 1000}s...`);

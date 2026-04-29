@@ -10,14 +10,23 @@ import { startInviteExpiryJob, stopInviteExpiryJob } from './jobs/invite-expiry.
 
 // ─── Crash Guards (register BEFORE anything async) ────────────────────────────
 process.on('uncaughtException', (err) => {
-  logger.error(`💥 Uncaught Exception: ${err.message}`);
-  logger.error(err.stack);
-  process.exit(1);
+  logError(`💥 Uncaught Exception: ${err.message}`, {
+    module: 'SYSTEM',
+    action: 'UNCAUGHT_EXCEPTION',
+    stack: err.stack,
+    metadata: { type: 'CRASH' }
+  });
+  // Give time for Telegram alert to send before exiting
+  setTimeout(() => process.exit(1), 1000);
 });
 
 process.on('unhandledRejection', (reason: unknown) => {
-  logger.error(`💥 Unhandled Rejection: ${reason}`);
-  process.exit(1);
+  logError(`💥 Unhandled Rejection: ${reason}`, {
+    module: 'SYSTEM',
+    action: 'UNHANDLED_REJECTION',
+    metadata: { reason }
+  });
+  setTimeout(() => process.exit(1), 1000);
 });
 
 // ─── Graceful Shutdown ────────────────────────────────────────────────────────
