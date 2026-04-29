@@ -32,7 +32,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     }
 
     // Fetch full user from DB to ensure role/status is current
-    const user = await User.findById(decoded.userId).select('role status isActive isApproved tokenVersion');
+    const user = await User.findById(decoded.userId).select('firstName email role status isActive isApproved tokenVersion');
     
     if (!user) {
       return res.status(401).json({
@@ -103,6 +103,8 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 
     req.user = {
       id: user._id.toString(),
+      email: user.email,
+      name: user.firstName,
       role: contextRole,
       platformRole: user.role
     };

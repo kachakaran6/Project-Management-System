@@ -150,11 +150,14 @@ export class ErrorAlertService {
     }
 
     if (req) {
-      const user = req.user ? `${req.user.email} (${req.user.id})` : 'Anonymous';
+      const userName = req.user?.name || req.user?.email || 'Anonymous';
+      const userId = req.user?.id ? ` (${req.user.id})` : '';
+      const userDisplay = `${userName}${userId}`;
+      
       msg += `\n<b>Request Details:</b>\n`;
       msg += `<b>Endpoint:</b> [${req.method}] ${this.escapeHTML(req.originalUrl)}\n`;
       msg += `<b>Status:</b> ${statusCode}\n`;
-      msg += `<b>User:</b> ${this.escapeHTML(user)}\n`;
+      msg += `<b>User:</b> ${this.escapeHTML(userDisplay)}\n`;
       msg += `<b>Platform:</b> ${this.escapeHTML(req.headers['user-agent'] || 'Unknown')}\n`;
 
       if (req.body && Object.keys(req.body).length > 0) {

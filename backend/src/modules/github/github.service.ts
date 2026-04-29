@@ -469,9 +469,11 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
       }
 
       if (targetStatusName) {
+        // Create a fuzzy regex: replace underscores with spaces and allow both
+        const fuzzyPattern = targetStatusName.replace(/_/g, '[\\s_]');
         const targetStatus = await Status.findOne({ 
           organizationId: project.organizationId, 
-          name: { $regex: new RegExp(`^${targetStatusName}$`, 'i') } 
+          name: { $regex: new RegExp(`^${fuzzyPattern}$`, 'i') } 
         });
         if (targetStatus && String(targetStatus._id) !== String((task.status as any)?._id)) {
           task.status = targetStatus._id;
