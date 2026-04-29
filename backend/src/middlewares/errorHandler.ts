@@ -68,17 +68,13 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
 
   if (statusCode >= 500) {
     logError(`[${req.method}] ${req.originalUrl} → ${statusCode}: ${error.stack || error.message}`, logData);
-    
-    // Notify Telegram for internal server errors
-    ErrorAlertService.notifyError({ error, req, statusCode });
   } else {
     logWarn(`[${req.method}] ${req.originalUrl} → ${statusCode}: ${message}`, logData);
-    
-    // Optional: Notify Telegram for other significant failures (e.g. 401/403/429) if desired
-    if (statusCode === 429 || statusCode === 403) {
-      ErrorAlertService.notifyError({ error, req, statusCode });
-    }
   }
+
+  // 3. Smart Error Alerting
+  // The service now handles intelligent classification, deduplication, and thresholds internally.
+  ErrorAlertService.notifyError({ error, req, statusCode });
 
   res.status(statusCode).json({
     success: false,
