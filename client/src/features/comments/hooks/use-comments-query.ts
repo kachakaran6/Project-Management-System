@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { commentApi } from "@/features/comments/api/comment.api";
-import { useAuthStore } from "@/store/auth-store";
+import { store } from "@/app/store";
 import { PaginatedResult } from "@/types/api.types";
 import { TaskComment } from "@/types/comment.types";
 
@@ -47,7 +47,7 @@ export function useCreateTaskCommentMutation(taskId: string, page = 1, limit = 1
       const previous = queryClient.getQueryData<{ data: PaginatedResult<TaskComment> }>(
         queryKey,
       );
-      const { user } = useAuthStore.getState();
+      const { user } = store.getState().auth;
 
       const optimisticComment: TaskComment = {
         id: `optimistic-${Date.now()}`,

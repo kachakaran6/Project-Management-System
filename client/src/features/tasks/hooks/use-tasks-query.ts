@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/store/auth-store";
+import { useAppSelector } from "@/hooks/useAppSelector";
 
 
 import { taskApi } from "@/features/tasks/api/task.api";
@@ -31,7 +31,7 @@ export function useTasksQuery(
     refetchInterval?: number;
   },
 ) {
-  const { activeOrgId } = useAuthStore();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
   return useQuery({
     queryKey: tasksQueryKeys.list(filters, activeOrgId),
     queryFn: () => taskApi.getTasks(filters),
@@ -61,7 +61,7 @@ export function useTaskDraftsQuery(
     staleTime?: number;
   },
 ) {
-  const { activeOrgId } = useAuthStore();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
   return useQuery({
     queryKey: tasksQueryKeys.drafts(filters, activeOrgId),
     queryFn: () => taskApi.getDrafts(filters),
@@ -140,7 +140,7 @@ export function useUpdateTaskStatusMutation() {
 }
 
 export function useTaskQuery(id: string, enabled = true) {
-  const { activeOrgId } = useAuthStore();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
   return useQuery({
     queryKey: tasksQueryKeys.detail(id, activeOrgId),
     queryFn: () => taskApi.getTask(id),

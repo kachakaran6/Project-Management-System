@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/store/auth-store";
+import { useAppSelector } from "@/hooks/useAppSelector";
 
 
 import { projectApi } from "@/features/projects/api/project.api";
@@ -15,7 +15,7 @@ export const projectsQueryKeys = {
 
 
 export function useProjectsQuery(filters: ProjectFilters = {}) {
-  const { activeOrgId } = useAuthStore();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
   return useQuery({
     queryKey: projectsQueryKeys.list(filters, activeOrgId),
     queryFn: () => projectApi.getProjects(filters),
@@ -38,7 +38,7 @@ export function useCreateProjectMutation() {
 }
 
 export function useProjectQuery(id: string, enabled = true) {
-  const { activeOrgId } = useAuthStore();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
   return useQuery({
     queryKey: projectsQueryKeys.detail(id, activeOrgId),
     queryFn: () => projectApi.getProject(id),

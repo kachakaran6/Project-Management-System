@@ -39,7 +39,7 @@ import {
 } from "@/features/tasks/schemas/task.schema";
 import {MultiUserSelect} from "@/features/team/components/multi-user-select";
 import {TaskDescriptionEditor} from "./task-description-editor";
-import {useAuthStore} from "@/store/auth-store";
+import {useAppSelector} from "@/hooks/useAppSelector";
 import {cn} from "@/lib/utils";
 import {Switch} from "@/components/ui/switch";
 import {Label} from "@/components/ui/label";
@@ -152,7 +152,7 @@ export function TaskForm({
 }: TaskFormProps) {
 
   const { data: dynamicStatuses = [] } = useStatusesQuery();
-  const {user} = useAuthStore();
+  const {user} = useAppSelector((state) => state.auth);
   const [dismissedQuery, setDismissedQuery] = useState<string | null>(null);
 
   const currentRole = user?.role || "MEMBER";

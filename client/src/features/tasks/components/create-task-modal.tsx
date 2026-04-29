@@ -18,7 +18,7 @@ import {
   useUpsertTaskDraftMutation,
 } from "@/features/tasks/hooks/use-tasks-query";
 import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
-import { useAuthStore } from "@/store/auth-store";
+import { useAppSelector } from "@/hooks/useAppSelector";
 import { useQuery } from "@tanstack/react-query";
 import { settingsApi } from "@/features/auth/api/settings.api";
 import { CreateTaskInput, Task } from "@/types/task.types";
@@ -94,7 +94,7 @@ export function CreateTaskModal({
 }: CreateTaskModalProps) {
   const [open, setOpen] = useState(false);
   const [resetKey, setResetKey] = useState(0);
-  const { activeOrgId, user } = useAuthStore();
+  const { activeOrgId, user } = useAppSelector((state) => state.auth);
   const defaultStatus = user?.settings?.defaultTaskStatus?.toUpperCase();
 
   const [initialValues, setInitialValues] = useState<TaskFormValues>(() =>

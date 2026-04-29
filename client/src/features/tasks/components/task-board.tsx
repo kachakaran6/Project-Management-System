@@ -72,7 +72,7 @@ import { EditTaskModal } from "@/features/tasks/components/edit-task-modal";
 import { useTaskDuplicateSuggestions } from "@/features/tasks/hooks/use-task-duplicate-suggestions";
 import { TagPill } from "@/features/tags/components/tag-pill";
 import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
-import { useAuthStore } from "@/store/auth-store";
+import { useAppSelector } from "@/hooks/useAppSelector";
 import { cn } from "@/lib/utils";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
@@ -184,7 +184,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { openPanel } = useTaskPanelStore();
-  const { activeOrgId } = useAuthStore();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
   const membersQuery = useOrganizationMembersQuery(activeOrgId || "");
   const updateTask = useUpdateTaskMutation();
   const changeStatus = useUpdateTaskStatusMutation();
@@ -732,7 +732,7 @@ function QuickAddInput({
 }) {
   const [value, setValue] = useState("");
   const createTask = useCreateTaskMutation();
-  const { user } = useAuthStore();
+  const { user } = useAppSelector((state) => state.auth);
   const isMember = user?.role === "MEMBER";
 
   const handleSubmit = async () => {

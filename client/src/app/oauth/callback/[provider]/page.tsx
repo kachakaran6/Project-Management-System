@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "@/lib/next-navigation";
 import { useAppDispatch } from "@/hooks/useAppDispatch";
-import { handleOAuthCallback } from "@/features/auth/authSlice";
+import { handleOAuthCallback, fetchMe } from "@/features/auth/authSlice";
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api/axios-instance";
@@ -13,6 +14,7 @@ export default function OAuthCallbackPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
   const hasCalled = useRef(false);
 
   const provider = params?.provider as string;
@@ -54,6 +56,8 @@ export default function OAuthCallbackPage() {
         // Handle Authentication (Login)
         const result = await dispatch(handleOAuthCallback({ provider, code })).unwrap();
         if (result.success) {
+          queryClient.clear();
+          await dispatch(fetchMe());
           toast.success("Successfully logged in!");
           router.push("/dashboard");
         }

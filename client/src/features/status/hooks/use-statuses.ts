@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/store/auth-store";
+import { useAppSelector } from "@/hooks/useAppSelector";
 
 import { statusAPI } from "../statusAPI";
 import { Status } from "@/types/task.types";
@@ -12,7 +12,7 @@ export const statusesQueryKeys = {
 
 
 export function useStatusesQuery() {
-  const { activeOrgId } = useAuthStore();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
   return useQuery({
     queryKey: statusesQueryKeys.all(activeOrgId),
     queryFn: async () => {

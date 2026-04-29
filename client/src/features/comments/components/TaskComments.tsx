@@ -12,7 +12,7 @@ import {
   useTaskCommentsQuery,
   useUpdateCommentMutation,
 } from "@/features/comments/hooks/use-comments-query";
-import { useAuthStore } from "@/store/auth-store";
+import { useAppSelector } from "@/hooks/useAppSelector";
 
 interface TaskCommentsProps {
   taskId: string;
@@ -22,7 +22,7 @@ const PAGE = 1;
 const LIMIT = 10;
 
 export function TaskComments({ taskId }: TaskCommentsProps) {
-  const currentUserId = useAuthStore((state) => state.user?.id);
+  const currentUserId = useAppSelector((state) => state.auth.user?.id);
 
   const commentsQuery = useTaskCommentsQuery(taskId, {
     enabled: Boolean(taskId),

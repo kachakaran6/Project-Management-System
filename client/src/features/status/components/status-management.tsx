@@ -17,7 +17,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/store/auth-store";
+import { useAppSelector } from "@/hooks/useAppSelector";
+import { useAppDispatch } from "@/hooks/useAppDispatch";
+import { fetchMe } from "@/features/auth/authSlice";
 
 
 import { 
@@ -197,7 +199,8 @@ export function StatusManagement() {
   const [editColor, setEditColor] = useState("");
   const [editHidden, setEditHidden] = useState(false);
 
-  const { user, setUser } = useAuthStore();
+  const { user } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const { data: settingsData, isLoading: isSettingsLoading } = useQuery({
     queryKey: ["settings", "default-status"],
@@ -210,15 +213,8 @@ export function StatusManagement() {
       toast.success("Default status preference updated");
       queryClient.invalidateQueries({ queryKey: ["settings", "default-status"] });
       
-      // Update local auth store so TaskForm reflects changes immediately
       if (user) {
-        setUser({
-          ...user,
-          settings: {
-            ...user.settings,
-            defaultTaskStatus: res.data.defaultTaskStatus
-          }
-        });
+        dispatch(fetchMe());
       }
 
     },

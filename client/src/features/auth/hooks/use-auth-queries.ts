@@ -7,10 +7,9 @@ import { authApi } from "@/features/auth/api/auth.api";
 import { orgApi } from "@/features/organization/api/org.api";
 import { LoginInput, SignupInput } from "@/types/auth.types";
 import { OrganizationMembership } from "@/types/organization.types";
-import { useAuthStore } from "@/store/auth-store";
 import { useAppDispatch } from "@/hooks/useAppDispatch";
-import { setActiveOrgId as setActiveOrgIdRedux } from "@/features/auth/authSlice";
-
+import { setActiveOrgId as setActiveOrgIdRedux, setToken, fetchMe } from "@/features/auth/authSlice";
+import { store } from "@/app/store";
 
 export const authQueryKeys = {
   me: ["auth", "me"] as const,
@@ -46,53 +45,17 @@ function mergeMemberships(
 
 export function useLoginMutation() {
   const queryClient = useQueryClient();
-  const setAuth = useAuthStore((state) => state.setAuth);
-  const setAccessToken = useAuthStore((state) => state.setAccessToken);
+  const dispatch = useAppDispatch();
 
   return useMutation({
     mutationFn: (payload: LoginInput) => authApi.login(payload),
     onSuccess: async (result) => {
-      const { accessToken, user } = result.data;
+      const { accessToken } = result.data;
 
       // Ensure subsequent API calls in this flow carry bearer token.
-      setAccessToken(accessToken);
+      dispatch(setToken(accessToken));
 
-      const meResult = await authApi.me();
-      const workspaceResult = await orgApi.getOrganizations({
-        page: 1,
-        limit: 100,
-      });
-
-      const meMemberships = mergeMemberships(
-        meResult.data.organizations,
-        [],
-      );
-
-      const workspaceMemberships = deriveMemberships(
-        workspaceResult.data.items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          slug: item.name.toLowerCase().replace(/\s+/g, "-"),
-        })),
-        (meResult.data.role as OrganizationMembership["role"]) ||
-          user.role ||
-          "MEMBER",
-      );
-
-      const memberships = meMemberships.length > 0 ? meMemberships : workspaceMemberships;
-
-      setAuth(
-        {
-          ...meResult.data.user,
-          role:
-            (meResult.data.role as OrganizationMembership["role"]) ||
-            user.role ||
-            undefined,
-          organizationId: meResult.data.organizationId || user.organizationId,
-        },
-        accessToken,
-        memberships,
-      );
+      dispatch(fetchMe());
 
       await queryClient.invalidateQueries({ queryKey: authQueryKeys.me });
       await queryClient.invalidateQueries({
@@ -123,7 +86,6 @@ export function useVerifyOtpMutation() {
 }
 
 export function useUserQuery(enabled = true) {
-  const setUser = useAuthStore((state) => state.setUser);
   const dispatch = useAppDispatch();
   const query = useQuery({
     queryKey: authQueryKeys.me,
@@ -134,44 +96,33 @@ export function useUserQuery(enabled = true) {
 
   useEffect(() => {
     if (query.data?.data) {
-      const { user, organizations, organizationId } = query.data.data;
-      
-      if (user) setUser(user);
-      
+      const { organizations, organizationId } = query.data.data;
+
       if (organizations) {
-        const store = useAuthStore.getState();
-        store.setOrganizations(organizations);
-        
-        // SYNC ORG CONTEXT:
-        // If current activeOrgId is not in the list or was lost,
-        // use the server's resolved organizationId.
-        const currentActiveId = store.activeOrgId;
+        const storeState = store.getState();
+        const currentActiveId = storeState.auth.activeOrgId;
         const isValidActiveId = organizations.some(o => o.id === currentActiveId);
-        
+
         if (!currentActiveId || !isValidActiveId) {
           const nextOrgId = organizationId || (organizations.length > 0 ? organizations[0].id : null);
           if (nextOrgId) {
-            store.setActiveOrgId(nextOrgId);
             dispatch(setActiveOrgIdRedux(nextOrgId));
             localStorage.setItem("activeOrgId", nextOrgId);
           }
         }
       }
     }
-  }, [query.data, setUser, dispatch]);
+  }, [query.data, dispatch]);
 
   return query;
 }
 
-
 export function useLogoutMutation() {
-  const clearAuth = useAuthStore((state) => state.clearAuth);
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: () => authApi.logout(),
     onSettled: async () => {
-      clearAuth();
       await queryClient.clear();
     },
   });

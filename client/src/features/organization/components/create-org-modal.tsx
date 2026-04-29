@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/store/auth-store";
+
 import { toast } from "sonner";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -46,7 +46,7 @@ interface CreateOrgModalProps {
 export function CreateOrgModal({ open, onOpenChange }: CreateOrgModalProps) {
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
-  const setActiveOrgId = useAuthStore((state) => state.setActiveOrgId);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
 
@@ -73,7 +73,7 @@ export function CreateOrgModal({ open, onOpenChange }: CreateOrgModalProps) {
       // Automatically switch to new organization
       const newOrgId = data?.data?.id || (data?.data as any)?._id;
       if (newOrgId) {
-        setActiveOrgId(newOrgId);
+
         dispatch(setActiveOrgIdRedux(newOrgId));
         localStorage.setItem("activeOrgId", newOrgId);
       }

@@ -70,7 +70,7 @@ import {
 } from "@/components/ui/select";
 
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useAuthStore } from "@/store/auth-store";
+import { fetchMe } from "@/features/auth/authSlice";
 import { cn } from "@/lib/utils";
 
 import { api } from "@/lib/api/axios-instance";
@@ -248,7 +248,7 @@ function FormRow({
 
 function ProfileSection() {
   const { user: storeUser } = useAuth();
-  const setUser = useAuthStore((s) => s.setUser);
+  const dispatch = useDispatch<AppDispatch>();
   const queryClient = useQueryClient();
 
   // ── Fetch fresh profile from API ──
@@ -282,21 +282,8 @@ function ProfileSection() {
     mutationFn: (payload: { firstName: string; lastName: string; bio: string }) =>
       authApi.updateMe(payload),
     onSuccess: (res) => {
-      // Normalise across response shapes: { data: { user } } or { data: user }
-      const updatedUser =
-        (res as any)?.data?.user || (res as any)?.user || null;
-
-      if (updatedUser) {
-        setUser({ ...storeUser!, ...updatedUser });
-      } else {
-        // Fallback: patch store with what we sent
-        setUser({
-          ...storeUser!,
-          firstName,
-          lastName,
-        });
-      }
-
+      dispatch(fetchMe());
+      
       // Refresh the query so the avatar / initials update too
       queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       toast.success("Profile updated successfully!");
@@ -1037,6 +1024,7 @@ function WorkspaceSection() {
 function OrganizationSection() {
   const { activeOrg, organizations, user } = useAuth();
   const queryClient = useQueryClient();
+  const dispatch = useDispatch<AppDispatch>();
   const role = activeOrg?.role || user?.role;
   const canManageOrg = role === "SUPER_ADMIN" || role === "ADMIN";
 
@@ -1082,13 +1070,7 @@ function OrganizationSection() {
       const userData = meRes.data.user;
 
       // 3. Update Global Auth Store
-      useAuthStore
-        .getState()
-        .setAuth(
-          userData as any,
-          useAuthStore.getState().accessToken!,
-          organizations as any,
-        );
+      dispatch(fetchMe());
 
       // 4. Update Query Cache
       queryClient.invalidateQueries({

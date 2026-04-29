@@ -6,7 +6,7 @@ import { io, Socket } from "socket.io-client";
 import { toast } from "sonner";
 
 import { notificationApi } from "@/features/notifications/api/notifications.api";
-import { useAuthStore } from "@/store/auth-store";
+import { useAppSelector } from "@/hooks/useAppSelector";
 import { NotificationFilters, NotificationItem } from "@/types/notification.types";
 
 export const notificationQueryKeys = {
@@ -34,7 +34,7 @@ function getSocketUrl() {
 
 export function useNotificationCenter(filters: NotificationFilters = {}) {
   const queryClient = useQueryClient();
-  const { accessToken, activeOrgId, isAuthenticated, user } = useAuthStore();
+  const { token: accessToken, activeOrgId, isAuthenticated, user } = useAppSelector((state) => state.auth);
   const socketRef = useRef<Socket | null>(null);
   const shownJoinToastIdsRef = useRef<Set<string>>(new Set());
 

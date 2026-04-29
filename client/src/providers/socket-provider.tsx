@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import { useAuthStore } from "@/store/auth-store";
+import { useAppSelector } from "@/hooks/useAppSelector";
 import { useDispatch } from "react-redux";
 import { logout } from "@/features/auth/authSlice";
 import { toast } from "sonner";
@@ -16,7 +16,7 @@ const SocketContext = createContext<SocketContextType>({ socket: null });
 export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
-  const { accessToken, isAuthenticated, activeOrgId } = useAuthStore();
+  const { token: accessToken, isAuthenticated, activeOrgId } = useAppSelector((state) => state.auth);
   const socketRef = useRef<Socket | null>(null);
   const dispatch = useDispatch();
 

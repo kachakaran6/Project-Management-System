@@ -117,13 +117,16 @@ const authSlice = createSlice({
         const { user, accessToken, refreshToken, organizations } = action.payload.data;
         state.user = user;
         state.token = accessToken;
-        state.organizations = organizations || [];
-        const activeOrgId = organizations?.[0]?.id || null;
-        state.activeOrgId = activeOrgId;
         state.isAuthenticated = true;
         localStorage.setItem("token", accessToken);
         if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-        if (activeOrgId) localStorage.setItem("activeOrgId", activeOrgId);
+        
+        if (organizations) {
+          state.organizations = organizations;
+          const activeOrgId = organizations?.[0]?.id || null;
+          state.activeOrgId = activeOrgId;
+          if (activeOrgId) localStorage.setItem("activeOrgId", activeOrgId);
+        }
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
@@ -139,13 +142,16 @@ const authSlice = createSlice({
         const { user, accessToken, refreshToken, organizations } = action.payload.data;
         state.user = user;
         state.token = accessToken;
-        state.organizations = organizations || [];
-        const activeOrgId = organizations?.[0]?.id || null;
-        state.activeOrgId = activeOrgId;
         state.isAuthenticated = true;
         localStorage.setItem("token", accessToken);
         if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-        if (activeOrgId) localStorage.setItem("activeOrgId", activeOrgId);
+        
+        if (organizations) {
+          state.organizations = organizations;
+          const activeOrgId = organizations?.[0]?.id || null;
+          state.activeOrgId = activeOrgId;
+          if (activeOrgId) localStorage.setItem("activeOrgId", activeOrgId);
+        }
       })
       .addCase(handleOAuthCallback.rejected, (state, action) => {
         state.loading = false;
