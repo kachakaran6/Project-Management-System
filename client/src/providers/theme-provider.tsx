@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useTheme } from "next-themes";
-import { useThemeStore, resolveMode, AccentColor } from "@/store/theme-store";
+import { useThemeStore, resolveMode, AccentColor, RadiusPreset, RADIUS_CONFIGS } from "@/store/theme-store";
 
 function applyThemeToDocument(mode: "light" | "dark" | "system") {
   const resolvedMode = resolveMode(mode);
@@ -26,6 +26,27 @@ export function AccentApplicator() {
     const html = document.documentElement;
     html.setAttribute("data-accent", accent);
   }, [accent]);
+
+  return null;
+}
+
+/**
+ * RadiusApplicator
+ * ────────────────
+ * Subscribes to the radius preset and applies CSS variables to :root.
+ */
+export function RadiusApplicator() {
+  const radius = useThemeStore((s) => s.radius);
+
+  useEffect(() => {
+    const config = RADIUS_CONFIGS[radius];
+    const root = document.documentElement;
+    root.style.setProperty("--radius-xs", config.xs);
+    root.style.setProperty("--radius-sm", config.sm);
+    root.style.setProperty("--radius-md", config.md);
+    root.style.setProperty("--radius-lg", config.lg);
+    root.style.setProperty("--radius-xl", config.xl);
+  }, [radius]);
 
   return null;
 }
@@ -75,7 +96,7 @@ export function SystemModeWatcher() {
  * Components that need to alter the theme should use this.
  */
 export function useApplyTheme() {
-  const { setMode, setAccent, mode, accent } = useThemeStore();
+  const { setMode, setAccent, setRadius, mode, accent, radius } = useThemeStore();
   const { setTheme } = useTheme();
 
   const changeMode = (m: typeof mode) => {
@@ -94,5 +115,9 @@ export function useApplyTheme() {
     document.documentElement.setAttribute("data-accent", a);
   };
 
-  return { mode, accent, changeMode, changeAccent };
+  const changeRadius = (r: RadiusPreset) => {
+    setRadius(r);
+  };
+
+  return { mode, accent, radius, changeMode, changeAccent, changeRadius };
 }

@@ -7,7 +7,7 @@ import QueryProvider from "./query-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./auth-provider";
 import { SocketProvider } from "./socket-provider";
-import { AccentApplicator, SystemModeWatcher } from "./theme-provider";
+import { AccentApplicator, SystemModeWatcher, RadiusApplicator } from "./theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export function RootProvider({ children }: { children: React.ReactNode }) {
@@ -24,6 +24,8 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
         <AccentApplicator />
         {/* System mode watcher — syncs OS preference to next-themes */}
         <SystemModeWatcher />
+        {/* Radius applicator — applies CSS variables for border-radius */}
+        <RadiusApplicator />
 
         <QueryProvider>
           <AuthProvider>
