@@ -34,8 +34,8 @@ const projectSchema = new mongoose.Schema({
     repoUrl: { type: String, trim: true },
     webhookSecret: { type: String },
     accessToken: { type: String }, // PAT — never returned to client (excluded in controller)
-    autoStatusUpdate: { type: Boolean, default: false },
-    isEnabled: { type: Boolean, default: false }
+    autoStatusUpdate: { type: Boolean, default: true },
+    isEnabled: { type: Boolean, default: true }
   }
 }, {
   timestamps: true,
