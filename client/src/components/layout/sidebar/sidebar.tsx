@@ -19,6 +19,7 @@ import {
   SquareCheckBig,
   Users,
 } from "lucide-react";
+import { GithubIcon as Github } from "@/components/icons/github-icon";
 
 import { useRouter } from "next/navigation";
 import { SidebarGroup } from "@/components/layout/sidebar/sidebar-group";
@@ -61,6 +62,13 @@ const navItems: SidebarNavItem[] = [
     title: "Pages",
     href: "/pages",
     icon: FileText,
+    group: "workspace",
+    roles: ["ADMIN", "OWNER", "MANAGER", "MEMBER", "USER"],
+  },
+  {
+    title: "GitHub",
+    href: "/github",
+    icon: Github,
     group: "workspace",
     roles: ["ADMIN", "OWNER", "MANAGER", "MEMBER", "USER"],
   },

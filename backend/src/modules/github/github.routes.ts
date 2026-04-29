@@ -7,15 +7,32 @@ const router = express.Router();
 // Public webhook endpoint — raw body required for HMAC signature verification
 router.post('/webhook', express.raw({ type: 'application/json', limit: '1mb' }), githubController.handleWebhook);
 
+// OAuth callback is public but needs to verify 'state'
+router.get('/callback', githubController.githubCallback);
+
 // Protected endpoints
-// Note: express.json() is applied here explicitly because app.ts mounts
-// this router BEFORE the global express.json() middleware (needed so that
-// express.raw() on /webhook doesn't get overridden).
 router.use(requireAuth);
 router.use(express.json({ limit: '500kb' }));
+
+// Account Management
+router.get('/connect', githubController.connectGithub);
+router.get('/account', githubController.getAccount);
+router.delete('/account', githubController.disconnectAccount);
+
+// Repository Management
+router.get('/repos', githubController.getRepositories);
+router.post('/repos/link', githubController.linkRepository);
+router.get('/workspace-repos/:workspaceId', githubController.getWorkspaceRepositories);
+router.delete('/repos/:repoId', githubController.unlinkRepository);
+
+// Activity Feed
+router.get('/workspace-activity/:workspaceId', githubController.getWorkspaceActivity);
+
+// Legacy/Project endpoints
 router.get('/settings/:projectId', githubController.getProjectSettings);
 router.put('/settings/:projectId', githubController.updateProjectSettings);
 router.get('/activity/:projectId', githubController.getProjectGithubActivity);
 router.get('/full-activity/:projectId', githubController.getFullGithubActivity);
+
 
 export default router;

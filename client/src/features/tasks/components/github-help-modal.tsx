@@ -9,18 +9,20 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { GithubIcon as Github } from "@/components/icons/github-icon";
-import { 
-  GitCommit, 
-  GitBranch, 
-  GitPullRequest, 
-  CheckCircle2, 
-  Clock3, 
+import {
+  GitCommit,
+  GitBranch,
+  GitPullRequest,
+  CheckCircle2,
+  Clock3,
   History,
   Sparkles,
   Zap,
-  Info
+  Info,
+  // Badge
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -31,125 +33,181 @@ interface GithubHelpModalProps {
 }
 
 export function GithubHelpModal({ open, onOpenChange, taskCode = "PMS-123" }: GithubHelpModalProps) {
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
-  };
-
-  const automationRules = [
+  const steps = [
     {
-      title: "Move to DONE",
-      keywords: ["fix", "close", "resolve", "done", "finish"],
-      icon: <CheckCircle2 className="size-4 text-emerald-500" />,
-      bg: "bg-emerald-500/5",
-      border: "border-emerald-500/20"
+      id: "01",
+      title: "Branch Creation",
+      status: "IN PROGRESS",
+      desc: "Start working by creating a branch with the Task ID.",
+      example: `feature/${taskCode}-auth-flow`,
+      icon: <GitBranch className="size-4 text-blue-500" />,
+      color: "blue"
     },
     {
-      title: "Move to IN PROGRESS",
-      keywords: ["start", "working", "feat", "refactor"],
-      icon: <Clock3 className="size-4 text-blue-500" />,
-      bg: "bg-blue-500/5",
-      border: "border-blue-500/20"
+      id: "02",
+      title: "Open Pull Request",
+      status: "IN REVIEW",
+      desc: "Include the Task ID in your PR title or description.",
+      example: `${taskCode} Add login API`,
+      icon: <GitPullRequest className="size-4 text-purple-500" />,
+      color: "purple"
+    },
+    {
+      id: "03",
+      title: "Merge PR",
+      status: "DONE",
+      desc: "Merging your PR will automatically complete the task.",
+      example: "Merged PR #42",
+      icon: <CheckCircle2 className="size-4 text-emerald-500" />,
+      color: "emerald"
     }
   ];
 
+  const keywords = {
+    done: ["fix", "close", "resolve", "done", "finish", "implement"],
+    progress: ["start", "working", "feat", "refactor", "chore", "progress"]
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl bg-background border-border/40 shadow-2xl rounded-[32px] p-0 overflow-hidden">
-        <div className="p-8 space-y-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
+      <DialogContent className="max-w-2xl bg-background border-border/40 shadow-2xl rounded-[40px] p-0 overflow-hidden">
+        <div className="p-10 space-y-10 max-h-[90vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
-            <div className="flex items-center gap-4 mb-2">
-              <div className="p-3 rounded-2xl bg-primary/10 text-primary shadow-inner">
-                <Github className="size-6" />
+            <div className="flex items-center gap-5 mb-2">
+              <div className="p-4 rounded-[20px] bg-primary/10 text-primary shadow-inner rotate-3">
+                <Github className="size-8" />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-black tracking-tight">GitHub Smart Linking</DialogTitle>
-                <DialogDescription className="text-sm text-muted-foreground font-medium">Connect your code to your tasks automatically.</DialogDescription>
+                <DialogTitle className="text-3xl font-black tracking-tighter">GitHub Automation Guide</DialogTitle>
+                <DialogDescription className="text-base text-muted-foreground font-medium">Master the professional Task → Code workflow.</DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
-          {/* Core Concept */}
-          <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10 flex gap-4">
-            <Sparkles className="size-6 text-primary shrink-0" />
-            <div className="space-y-1">
-              <h4 className="text-sm font-black uppercase tracking-widest text-primary">How it works</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-                Include your Task ID (<span className="font-bold text-foreground">{taskCode}</span>) in any GitHub activity. Our system scans your commits, branches, and PRs to link them instantly.
-              </p>
-            </div>
-          </div>
-
-          {/* Automation Rules */}
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground px-1 flex items-center gap-2">
-              <Zap className="size-3" /> Status Automation
+          {/* Step by Step Workflow */}
+          <div className="space-y-6">
+            <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/60 px-1 flex items-center gap-2">
+              <Zap className="size-4" /> The Lifecycle Workflow
             </h4>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {automationRules.map((rule, idx) => (
-                <div key={idx} className={cn("p-4 rounded-2xl border flex flex-col gap-3", rule.bg, rule.border)}>
-                  <div className="flex items-center gap-2">
-                    {rule.icon}
-                    <span className="text-[11px] font-black uppercase tracking-wider">{rule.title}</span>
+
+            <div className="grid gap-6">
+              {steps.map((step) => (
+                <div key={step.id} className="relative group flex gap-6 p-6 rounded-[28px] border border-border/40 bg-muted/5 hover:bg-muted/10 transition-all">
+                  <div className="absolute -left-3 top-1/2 -translate-y-1/2 font-black text-4xl text-muted-foreground/5 italic pointer-events-none uppercase tracking-tighter">
+                    {step.id}
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    {rule.keywords.map(kw => (
-                      <code key={kw} className="px-1.5 py-0.5 rounded bg-background/50 border border-border/20 text-[9px] font-mono">
-                        {kw}
+
+                  <div className={cn(
+                    "size-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
+                    step.color === 'blue' && "bg-blue-500/10 text-blue-500 shadow-blue-500/10",
+                    step.color === 'purple' && "bg-purple-500/10 text-purple-500 shadow-purple-500/10",
+                    step.color === 'emerald' && "bg-emerald-500/10 text-emerald-500 shadow-emerald-500/10",
+                  )}>
+                    {step.icon}
+                  </div>
+
+                  <div className="flex-1 space-y-3 min-w-0">
+                    <div className="flex items-center justify-between gap-4">
+                      <h5 className="font-black text-lg tracking-tight">{step.title}</h5>
+                      <Badge className={cn(
+                        "h-5 px-2 rounded-full border-none text-[9px] font-black text-white",
+                        step.color === 'blue' && "bg-blue-500",
+                        step.color === 'purple' && "bg-purple-500",
+                        step.color === 'emerald' && "bg-emerald-500",
+                      )}>
+                        → {step.status}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground font-medium leading-relaxed">{step.desc}</p>
+
+                    <div className="mt-4 p-3 rounded-xl bg-background/80 border border-border/40 flex items-center justify-between group/code">
+                      <code className="text-[11px] font-mono font-bold text-primary truncate pr-4">
+                        {step.example}
                       </code>
-                    ))}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-[10px] font-black opacity-0 group-hover/code:opacity-100 transition-opacity"
+                        onClick={() => {
+                          navigator.clipboard.writeText(step.example);
+                          toast.success("Example copied!");
+                        }}
+                      >
+                        COPY
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground italic px-1 flex items-center gap-1.5">
-              <Info className="size-3" /> Example: <code className="bg-muted px-1 rounded not-italic">git commit -m "fix {taskCode} bug"</code>
-            </p>
           </div>
 
-          {/* Visual Effects */}
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground px-1 flex items-center gap-2">
-              <History className="size-3" /> Effects on Task
-            </h4>
-            <div className="space-y-3">
-              <div className="flex items-start gap-4 p-4 rounded-2xl border border-border bg-muted/5 group hover:bg-muted/10 transition-all">
-                <div className="size-8 rounded-xl bg-background border border-border/40 flex items-center justify-center text-primary shrink-0 shadow-sm">
-                  <Github className="size-4" />
-                </div>
-                <div className="space-y-1">
-                  <h5 className="text-xs font-bold leading-none">Activity Feed</h5>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">Detailed commit logs and PR links appear in the task side panel for full traceability.</p>
+          {/* Keyword Magic */}
+          <div className="p-8 rounded-[32px] bg-primary/5 border border-primary/10 space-y-6">
+            <div className="flex items-center gap-3">
+              <Sparkles className="size-5 text-primary" />
+              <h4 className="text-sm font-black uppercase tracking-widest text-primary">Commit Keyword Fallback</h4>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-3">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600/70">To Finish Task</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {keywords.done.map(kw => (
+                    <code key={kw} className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 font-mono text-[10px] font-bold border border-emerald-500/20">
+                      {kw}
+                    </code>
+                  ))}
                 </div>
               </div>
-              <div className="flex items-start gap-4 p-4 rounded-2xl border border-border bg-muted/5 group hover:bg-muted/10 transition-all">
-                <div className="size-8 rounded-xl bg-background border border-border/40 flex items-center justify-center text-primary shrink-0 shadow-sm">
-                  <Clock3 className="size-4" />
-                </div>
-                <div className="space-y-1">
-                  <h5 className="text-xs font-bold leading-none">Automatic Status Transitions</h5>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">Tasks move between "In Progress" and "Done" based on your commit keywords.</p>
+              <div className="space-y-3">
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600/70">To Start Task</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {keywords.progress.map(kw => (
+                    <code key={kw} className="px-2 py-1 rounded-lg bg-blue-500/10 text-blue-600 font-mono text-[10px] font-bold border border-blue-500/20">
+                      {kw}
+                    </code>
+                  ))}
                 </div>
               </div>
             </div>
+
+            <div className="pt-4 border-t border-primary/10">
+              <p className="text-[11px] text-muted-foreground font-medium">
+                <span className="font-black text-foreground">Rule:</span> Combine keyword + Task ID in any order.
+                <br />Example: <code className="bg-background/50 px-1.5 rounded text-foreground italic">git commit -m "feat: {taskCode} add stripe integration"</code>
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
-            <Button 
-              className="flex-1 rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 shadow-lg shadow-primary/20"
+          {/* Pro Tips / Safety */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="p-5 rounded-[24px] border border-border/40 bg-muted/5 space-y-2">
+              <div className="flex items-center gap-2 text-foreground/80">
+                <Zap className="size-3.5" />
+                <h6 className="text-[10px] font-black uppercase tracking-widest">Priority Flow</h6>
+              </div>
+              <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
+                Merge events have the highest priority, followed by PR status, Branch creation, and then Commit keywords.
+              </p>
+            </div>
+            <div className="p-5 rounded-[24px] border border-border/40 bg-muted/5 space-y-2">
+              <div className="flex items-center gap-2 text-foreground/80">
+                <Info className="size-3.5" />
+                <h6 className="text-[10px] font-black uppercase tracking-widest">Safety Guard</h6>
+              </div>
+              <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
+                The system never downgrades a status (e.g., a branch creation won't move a DONE task back to Progress).
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-4">
+            <Button
+              className="flex-1 rounded-[20px] font-black uppercase tracking-widest text-[11px] h-14 shadow-xl shadow-primary/20"
               onClick={() => onOpenChange(false)}
             >
-              Got it, let's code!
-            </Button>
-            <Button 
-              variant="outline"
-              className="rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 px-6"
-              onClick={() => {
-                 onOpenChange(false);
-                 toast.info("Opening full guide...");
-              }}
-            >
-              Full Guide
+              Got it, let's build!
             </Button>
           </div>
         </div>

@@ -599,6 +599,11 @@ body {
   }
 }
 
+@keyframes shimmer-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
 .skeleton-base {
   background: linear-gradient(90deg,
       var(--skeleton-base) 25%,
