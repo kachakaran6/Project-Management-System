@@ -146,6 +146,7 @@ app.use("/api/v1/telegram", telegramRoutes);
 app.use("/api/v1/sessions", sessionRoutes);
 app.use("/api/v1/statuses", statusRoutes);
 app.use("/api/v1/settings", settingsRoutes);
+app.use("/api/v1/activity-logs", activityLogRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {

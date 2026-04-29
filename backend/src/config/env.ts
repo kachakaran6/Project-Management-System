@@ -37,6 +37,8 @@ type Env = {
   telegramBotToken?: string;
   telegramChatId?: string;
   enableTelegramAlerts: boolean;
+  highSeverityThreshold: number;
+  highSeverityWindowMs: number;
   appName: string;
 };
 
@@ -104,5 +106,7 @@ export const env: Env = {
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
   telegramChatId: process.env.TELEGRAM_CHAT_ID,
   enableTelegramAlerts: process.env.ENABLE_TELEGRAM_ALERTS === 'true',
+  highSeverityThreshold: parseInt(process.env.ERROR_HIGH_THRESHOLD || '10', 10),
+  highSeverityWindowMs: parseInt(process.env.ERROR_HIGH_WINDOW_MS || '300000', 10), // 5 minutes
   appName: process.env.APP_NAME || 'Project Management System',
 };
