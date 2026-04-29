@@ -160,7 +160,7 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm">
+    <div className="rounded-md border border-border bg-card shadow-sm">
       <div className="border-b border-border px-6 py-4">
         <h2 className="font-heading text-base font-semibold">{title}</h2>
         {description && (
@@ -182,7 +182,7 @@ function DangerCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-destructive/30 bg-destructive/5 shadow-sm">
+    <div className="rounded-md border border-destructive/30 bg-destructive/5 shadow-sm">
       <div className="border-b border-destructive/20 px-6 py-4">
         <h2 className="font-heading text-base font-semibold text-destructive">
           {title}
@@ -330,16 +330,16 @@ function ProfileSection() {
         description="Update your public profile details.">
         {/* Avatar & name header */}
         <div className="mb-6 flex items-center gap-4">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-md">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground shadow-md">
             {profileUser?.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={profileUser.avatarUrl}
                 alt="avatar"
-                className="h-full w-full rounded-2xl object-cover"
+                className="h-full w-full rounded-full object-cover"
               />
             ) : isLoading ? (
-              <Skeleton className="h-full w-full rounded-2xl" />
+              <Skeleton className="h-full w-full rounded-full" />
             ) : (
               initials
             )}
@@ -569,7 +569,7 @@ function AccountSection() {
 // ─── 3. APPEARANCE SECTION (Full Theme Engine UI) ───────────────────────────
 
 function AppearanceSection() {
-  const { mode, accent, changeMode, changeAccent } = useApplyTheme();
+  const { mode, accent, radius, changeMode, changeAccent, changeRadius } = useApplyTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
@@ -581,25 +581,32 @@ function AppearanceSection() {
     { id: "system" as const, label: "System", icon: Monitor, desc: "Follows OS" },
   ];
 
-  const densityOptions = [
+  const radiusOptions = [
     {
-      id: "comfortable",
+      id: "compact" as const,
+      label: "Compact",
+      desc: "Clean & professional",
+      emoji: "🟦",
+    },
+    {
+      id: "standard" as const,
+      label: "Standard",
+      desc: "Balanced modern UI",
+      emoji: "🟩",
+    },
+    {
+      id: "comfortable" as const,
       label: "Comfortable",
       desc: "More breathing room",
-      emoji: "🌊",
+      emoji: "🟪",
     },
     {
-      id: "compact",
-      label: "Compact",
-      desc: "More content on screen",
-      emoji: "⚡",
+      id: "soft" as const,
+      label: "Soft",
+      desc: "Friendly & rounded",
+      emoji: "🟣",
     },
   ];
-
-  const [density, setDensity] = useState<string>(() => {
-    if (typeof window === "undefined") return "comfortable";
-    return localStorage.getItem("ui-density") ?? "comfortable";
-  });
 
   if (!mounted) {
     return (
@@ -641,7 +648,7 @@ function AppearanceSection() {
                   changeMode(id);
                   toast.success(`Theme set to ${label}`);
                 }}
-                className={`group relative flex flex-col items-center gap-3 rounded-xl border-2 p-5 text-center transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm ${active
+                className={`group relative flex flex-col items-center gap-3 rounded-md border-2 p-5 text-center transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm ${active
                   ? "border-primary bg-primary/8 shadow-sm"
                   : "border-border bg-muted/10 hover:border-primary/40 hover:bg-muted/30"
                   }`}>
@@ -712,7 +719,7 @@ function AppearanceSection() {
                   changeAccent(id);
                   toast.success(`Accent color: ${label}`);
                 }}
-                className={`group relative flex h-14 w-14 items-center justify-center rounded-2xl border-2 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${active
+                className={`group relative flex h-14 w-14 items-center justify-center rounded-md border-2 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${active
                   ? "border-foreground/30 scale-110 shadow-md"
                   : "border-transparent hover:border-foreground/20"
                   }`}
@@ -730,7 +737,7 @@ function AppearanceSection() {
         </div>
 
         {/* Preview pill */}
-        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/20 p-4">
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted/20 p-4">
           <p className="text-xs text-muted-foreground">Live preview</p>
           <button
             className="rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:brightness-95"
@@ -766,23 +773,21 @@ function AppearanceSection() {
         </div>
       </SectionCard>
 
-      {/* ── UI Density ── */}
+      {/* ── Interface Style (Radius) ── */}
       <SectionCard
-        title="UI Density"
-        description="Control how compact the interface feels.">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {densityOptions.map(({ id, label, desc, emoji }) => {
-            const active = density === id;
+        title="Interface Style"
+        description="Choose how rounded or sharp you want the UI elements to be.">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {radiusOptions.map(({ id, label, desc, emoji }) => {
+            const active = radius === id;
             return (
               <button
                 key={id}
                 onClick={() => {
-                  setDensity(id);
-                  if (typeof window !== "undefined")
-                    localStorage.setItem("ui-density", id);
-                  toast.success(`Density set to ${label}`);
+                  changeRadius(id);
+                  toast.success(`Interface style: ${label}`);
                 }}
-                className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 ${active
+                className={`flex flex-col items-center gap-3 rounded-xl border-2 p-5 text-center transition-all hover:-translate-y-0.5 ${active
                   ? "border-primary bg-primary/5 shadow-sm"
                   : "border-border hover:border-primary/40 hover:bg-muted/20"
                   }`}>
@@ -792,12 +797,47 @@ function AppearanceSection() {
                     className={`text-sm font-semibold ${active ? "text-primary" : ""}`}>
                     {label}
                   </p>
-                  <p className="text-xs text-muted-foreground">{desc}</p>
+                  <p className="text-[11px] text-muted-foreground">{desc}</p>
                 </div>
-                {active && <Check className="ml-auto size-4 text-primary" />}
+                {active && (
+                  <div className="mt-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                    <Check className="size-3" />
+                  </div>
+                )}
               </button>
             );
           })}
+        </div>
+
+        {/* Dynamic Radius Preview */}
+        <div className="mt-6 space-y-4">
+          <p className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider px-1">Live Preview</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 rounded-xl border border-border bg-muted/20 p-6">
+            <div className="space-y-3">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Card Component</span>
+              <div className="h-24 bg-surface border border-border rounded-md shadow-sm p-3">
+                <div className="h-2 w-12 bg-muted rounded-full mb-2" />
+                <div className="h-2 w-20 bg-muted/60 rounded-full" />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Interactive elements</span>
+              <div className="space-y-2">
+                <div className="h-10 bg-primary rounded-sm flex items-center justify-center text-primary-foreground text-xs font-bold">
+                  Button Style
+                </div>
+                <div className="h-10 bg-surface border border-border rounded-sm flex items-center px-3 text-[11px] text-muted-foreground">
+                  Input Field...
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Modals & Popovers</span>
+              <div className="h-24 bg-surface border border-border rounded-md shadow-xl flex items-center justify-center">
+                <div className="size-12 rounded-md bg-muted/20 border border-dashed border-border" />
+              </div>
+            </div>
+          </div>
         </div>
       </SectionCard>
     </div>

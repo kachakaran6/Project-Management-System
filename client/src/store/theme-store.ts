@@ -10,6 +10,47 @@ export type AccentColor =
   | "yellow" | "lime" | "green" | "emerald" | "teal"
   | "cyan" | "sky" | "slate" | "coffee" | "plum";
 
+export type RadiusPreset = "compact" | "standard" | "comfortable" | "soft";
+
+export interface RadiusConfig {
+  xs: string;
+  sm: string;
+  md: string;
+  lg: string;
+  xl: string;
+}
+
+export const RADIUS_CONFIGS: Record<RadiusPreset, RadiusConfig> = {
+  compact: {
+    xs: "2px",
+    sm: "4px",
+    md: "6px",
+    lg: "8px",
+    xl: "10px",
+  },
+  standard: {
+    xs: "4px",
+    sm: "6px",
+    md: "8px",
+    lg: "10px",
+    xl: "12px",
+  },
+  comfortable: {
+    xs: "6px",
+    sm: "8px",
+    md: "10px",
+    lg: "12px",
+    xl: "14px",
+  },
+  soft: {
+    xs: "8px",
+    sm: "10px",
+    md: "12px",
+    lg: "14px",
+    xl: "16px",
+  },
+};
+
 export interface AccentDefinition {
   id: AccentColor;
   label: string;
@@ -66,8 +107,10 @@ export const THEME_MODES = [
 interface ThemeState {
   mode: ThemeMode;
   accent: AccentColor;
+  radius: RadiusPreset;
   setMode: (mode: ThemeMode) => void;
   setAccent: (accent: AccentColor) => void;
+  setRadius: (radius: RadiusPreset) => void;
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -75,8 +118,10 @@ export const useThemeStore = create<ThemeState>()(
     (set) => ({
       mode: "system",
       accent: "blue",
+      radius: "compact",
       setMode: (mode) => set({ mode }),
       setAccent: (accent) => set({ accent }),
+      setRadius: (radius) => set({ radius }),
     }),
     {
       name: "themeMode",
