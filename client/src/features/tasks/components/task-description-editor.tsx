@@ -124,7 +124,7 @@ function ToolbarButton({ active = false, onClick, ariaLabel, disabled = false, c
       }}
       disabled={disabled}
       className={cn(
-        "inline-flex h-8 w-8 items-center justify-center rounded-md text-sm transition-all duration-200",
+        "inline-flex h-8 w-8 items-center justify-center rounded-sm text-sm transition-all duration-200",
         "text-muted-foreground hover:bg-muted hover:text-foreground",
         active && "bg-primary/10 text-primary hover:bg-primary/20",
         disabled && "cursor-not-allowed opacity-30"
@@ -260,7 +260,7 @@ export function TaskDescriptionEditor({
         type="button"
         onClick={() => setIsEditing(true)}
         className={cn(
-          "group relative min-h-[100px] w-full rounded-xl border border-transparent p-4 text-left transition-all duration-200",
+          "group relative min-h-[100px] w-full rounded-md border border-transparent p-4 text-left transition-all duration-200",
           "hover:border-border/60 hover:bg-muted/30",
           className
         )}
@@ -284,7 +284,7 @@ export function TaskDescriptionEditor({
     <div 
       ref={containerRef} 
       className={cn(
-        "relative flex flex-col rounded-xl border bg-background transition-all duration-300",
+        "relative flex flex-col rounded-md border bg-background transition-all duration-300",
         isFocused ? "border-primary/40 ring-2 ring-primary/5" : "border-border",
         className
       )}

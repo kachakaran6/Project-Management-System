@@ -112,7 +112,7 @@ const TimelineNode = ({ event, index, isDark }: { event: TimelineEvent, index: n
 
       {/* Glassmorphic Node Card */}
       <div className={cn(
-        "w-[42%] p-4 rounded-2xl backdrop-blur-2xl border shadow-2xl relative overflow-hidden group",
+        "w-[42%] p-4 rounded-md backdrop-blur-2xl border shadow-2xl relative overflow-hidden group",
         isDark ? "bg-white/[0.03] border-white/5" : "bg-white/80 border-black/5 shadow-xl",
         isLeft ? "rounded-tl-none mr-[58%]" : "rounded-tr-none ml-[58%]"
       )}>
@@ -244,7 +244,7 @@ const TaskTimeline: React.FC<{ tasks: Task[] }> = ({ tasks }) => {
         >
           <div className="flex items-center gap-3">
             <h1 className={cn("text-3xl font-bold tracking-tighter", isDark ? "text-white/90" : "text-black/90")}>Task Odyssey</h1>
-            <div className={cn("px-2 py-0.5 rounded-md border", isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10")}>
+            <div className={cn("px-2 py-0.5 rounded-xs border", isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10")}>
               <span className="text-[10px] font-black uppercase tracking-widest text-primary">History</span>
             </div>
           </div>
@@ -286,7 +286,7 @@ const TaskTimeline: React.FC<{ tasks: Task[] }> = ({ tasks }) => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
-                className={cn("px-6 py-2 rounded-full backdrop-blur-xl border shadow-2xl", isDark ? "bg-white/5 border-white/10" : "bg-white/90 border-black/5")}
+                className={cn("px-6 py-2 rounded-md backdrop-blur-xl border shadow-2xl", isDark ? "bg-white/5 border-white/10" : "bg-white/90 border-black/5")}
               >
                 <span className={cn("text-[10px] font-black uppercase tracking-[0.4em]", isDark ? "text-white/40" : "text-black/40")}>
                   {isToday(new Date(date)) ? 'Present' : isYesterday(new Date(date)) ? 'Yesterday' : format(new Date(date), 'MMMM d')}
@@ -704,7 +704,7 @@ export const TaskUniverse: React.FC<TaskUniverseProps> = ({ tasks }) => {
           {hoveredTask && (
             <div className="flow-tooltip-zen animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center gap-3 border-b border-border pb-2 mb-2">
-                <div className="size-7 rounded-lg bg-muted/40 flex items-center justify-center">
+                <div className="size-7 rounded-sm bg-muted/40 flex items-center justify-center">
                   <Zap className="size-3.5 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -732,13 +732,13 @@ export const TaskUniverse: React.FC<TaskUniverseProps> = ({ tasks }) => {
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="size-9 flex items-center justify-center rounded-xl bg-muted/30 hover:bg-muted/50 text-foreground/80 transition-all border border-border"
+                className="size-9 flex items-center justify-center rounded-sm bg-muted/30 hover:bg-muted/50 text-foreground/80 transition-all border border-border"
               >
                 {isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
               </button>
               <button 
                 onClick={() => setTimelineTimestamp(Date.now())}
-                className="size-9 flex items-center justify-center rounded-xl bg-muted/10 hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-all border border-border"
+                className="size-9 flex items-center justify-center rounded-sm bg-muted/10 hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-all border border-border"
               >
                 <RotateCcw className="size-3.5" />
               </button>
@@ -772,7 +772,7 @@ export const TaskUniverse: React.FC<TaskUniverseProps> = ({ tasks }) => {
           </div>
 
           <div className="flex justify-center mt-8">
-            <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground/30 px-4 py-1 rounded-full bg-muted/10 border border-border">
+            <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground/30 px-4 py-1 rounded-xs bg-muted/10 border border-border">
               <span>Deterministic Topology • 60FPS Fluid Motion • Pixel-Perfect Sync</span>
             </div>
           </div>
@@ -785,20 +785,20 @@ export const TaskUniverse: React.FC<TaskUniverseProps> = ({ tasks }) => {
                 <span className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Node Analytics</span>
                 <h3 className="text-lg font-semibold text-foreground/90 tracking-tight">Task Insight</h3>
               </div>
-              <button onClick={() => setSelectedTask(null)} className="size-9 flex items-center justify-center bg-muted/30 hover:bg-muted/50 border border-border rounded-xl transition-all">
+              <button onClick={() => setSelectedTask(null)} className="size-9 flex items-center justify-center bg-muted/30 hover:bg-muted/50 border border-border rounded-sm transition-all">
                 <ChevronRight className="size-4 text-foreground/60" />
               </button>
             </div>
             
             <div className="space-y-8">
-              <div className="p-5 rounded-2xl bg-muted/20 border border-border shadow-sm">
+              <div className="p-5 rounded-md bg-muted/20 border border-border shadow-sm">
                 <span className="text-[9px] font-bold uppercase text-muted-foreground/60 tracking-wider mb-2.5 block">Title</span>
                 <p className="text-sm font-semibold text-foreground/90 leading-snug">{selectedTask.title}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Badge variant="outline" className="bg-primary/5 border-primary/20 text-primary/70 text-[9px] font-bold rounded-md px-1.5 py-0">
+                  <Badge variant="outline" className="bg-primary/5 border-primary/20 text-primary/70 text-[9px] font-bold rounded-xs px-1.5 py-0">
                     {typeof selectedTask.priority === 'object' ? (selectedTask.priority as any).name || (selectedTask.priority as any).label : String(selectedTask.priority)}
                   </Badge>
-                  <Badge variant="outline" className="bg-muted/30 border-border text-muted-foreground text-[9px] font-bold rounded-md px-1.5 py-0">
+                  <Badge variant="outline" className="bg-muted/30 border-border text-muted-foreground text-[9px] font-bold rounded-xs px-1.5 py-0">
                     {(selectedTask.status as any)?.name || String(selectedTask.status)}
                   </Badge>
                 </div>

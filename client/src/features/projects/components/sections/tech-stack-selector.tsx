@@ -33,9 +33,9 @@ export function TechStackSelector({ value, onChange }: TechStackSelectorProps) {
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5 min-h-8 p-1.5 rounded-xl border border-border/40 bg-muted/20">
+      <div className="flex flex-wrap gap-1.5 min-h-8 p-1.5 rounded-md border border-border/40 bg-muted/20">
         {value.map((tag) => (
-          <Badge key={tag} variant="secondary" className="pl-2 pr-1 h-6 text-[10px] bg-primary/5 border-primary/10">
+          <Badge key={tag} variant="secondary" className="pl-2 pr-1 h-6 text-[10px] bg-primary/5 border-primary/10 rounded-xs">
             {tag}
             <Button
               size="icon"

@@ -99,7 +99,7 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/50" />
           <Input 
             placeholder="Search resources, tags, or descriptions..." 
-            className="pl-10 h-11 rounded-2xl bg-muted/20 border-border/40 focus:ring-primary/20 max-md:h-12"
+            className="pl-10 h-11 rounded-sm bg-muted/20 border-border/40 focus:ring-primary/20 max-md:h-12"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -108,12 +108,12 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
         <div className="grid grid-cols-2 gap-2 w-full md:flex md:w-auto md:items-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-11 rounded-2xl gap-2 px-4 border-border/40 hover:bg-muted/50 max-md:h-12 max-md:text-xs">
+              <Button variant="outline" className="h-11 rounded-sm gap-2 px-4 border-border/40 hover:bg-muted/50 max-md:h-12 max-md:text-xs">
                 <Filter className="size-4 opacity-60" />
                 <span className="text-sm font-semibold capitalize max-md:text-xs">{typeFilter === "all" ? "All Types" : typeFilter}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="rounded-2xl min-w-[160px]">
+            <DropdownMenuContent align="end" className="rounded-sm min-w-[160px]">
               <DropdownMenuItem onClick={() => setTypeFilter("all")} className="gap-2">
                 <LayoutGrid className="size-3.5 opacity-60" /> All Resources
               </DropdownMenuItem>
@@ -130,7 +130,7 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
           </DropdownMenu>
 
           <Button 
-            className="h-11 rounded-2xl gap-2 px-6 shadow-lg shadow-primary/20 max-md:h-12 max-md:text-xs"
+            className="h-11 rounded-sm gap-2 px-6 shadow-lg shadow-primary/20 max-md:h-12 max-md:text-xs"
             onClick={() => {
               setSelectedResource(null);
               setIsModalOpen(true);
@@ -143,8 +143,8 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
       </div>
 
       {/* SECURITY NOTICE */}
-      <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/5 border border-primary/10">
-        <div className="size-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+      <div className="flex items-center gap-3 p-4 rounded-md bg-primary/5 border border-primary/10">
+        <div className="size-10 bg-primary/10 rounded-sm flex items-center justify-center shrink-0">
           <ShieldCheck className="size-5 text-primary" />
         </div>
         <div>
@@ -168,7 +168,7 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
           ))}
         </div>
       ) : (
-        <div className="py-20 border border-dashed border-border/60 rounded-3xl bg-muted/5">
+        <div className="py-20 border border-dashed border-border/60 rounded-md bg-muted/5">
           <EmptyState 
             title={search || typeFilter !== "all" ? "No resources found" : "Your Vault is Empty"}
             description={search || typeFilter !== "all" ? "Try adjusting your search or filters to find what you're looking for." : "Store important links, access credentials, and technical notes safely in this project's secure vault."}
@@ -184,7 +184,7 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <AlertDialogContent className="rounded-3xl">
+        <AlertDialogContent className="rounded-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -192,10 +192,10 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-sm">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
-              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="rounded-sm bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete Resource
             </AlertDialogAction>

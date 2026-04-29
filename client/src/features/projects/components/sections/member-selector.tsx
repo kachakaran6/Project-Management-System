@@ -41,13 +41,13 @@ export function MemberSelector({ value, onChange }: MemberSelectorProps) {
             <Button
               variant="outline"
               size="sm"
-              className="h-9 w-9 rounded-full border-dashed p-0 shrink-0 hover:bg-primary/5 hover:border-primary/30"
+              className="h-9 w-9 rounded-sm border-dashed p-0 shrink-0 hover:bg-primary/5 hover:border-primary/30"
               disabled={isLoading}
             >
               <UserPlus className="size-4 opacity-70" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[calc(100vw-32px)] md:w-72 max-h-80 overflow-y-auto p-1.5 rounded-xl shadow-xl border-border/40 backdrop-blur-lg custom-scrollbar">
+          <DropdownMenuContent align="start" className="w-[calc(100vw-32px)] md:w-72 max-h-80 overflow-y-auto p-1.5 rounded-md shadow-xl border-border/40 backdrop-blur-lg custom-scrollbar">
             {members.length === 0 && (
               <div className="p-4 text-center text-xs text-muted-foreground">
                 No team members found
@@ -61,7 +61,7 @@ export function MemberSelector({ value, onChange }: MemberSelectorProps) {
               return (
                 <DropdownMenuItem
                   key={mId}
-                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 cursor-pointer"
+                  className="flex items-center gap-2 rounded-sm px-2 py-1.5 cursor-pointer"
                   onSelect={(e) => {
                     e.preventDefault();
                     toggleMember(mId);

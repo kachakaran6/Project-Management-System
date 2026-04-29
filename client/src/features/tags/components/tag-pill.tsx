@@ -21,7 +21,7 @@ export function TagPill({ label, color, iconName, className, onRemove }: TagPill
         borderColor: `${color}30`,
       }}
       className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[11px] font-bold tracking-tight select-none",
+        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-xs border text-[11px] font-bold tracking-tight select-none",
         className
       )}
     >

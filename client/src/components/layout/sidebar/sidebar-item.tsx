@@ -30,7 +30,7 @@ export function SidebarItem({ item, isActive, collapsed }: SidebarItemProps) {
     <Link
       href={item.href}
       className={cn(
-        "group flex items-center gap-3 rounded-md text-sm font-medium transition-all duration-200",
+        "group flex items-center gap-3 rounded-sm text-sm font-medium transition-all duration-200",
         // Desktop: standard height
         "md:h-10 md:px-3",
         // Mobile: larger touch target (44px minimum)

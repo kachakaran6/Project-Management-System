@@ -154,21 +154,21 @@ export const TaskRow = ({
           {assignees.length > 0 ? (
             <div className="flex items-center -space-x-2">
               {assignees.slice(0, 3).map((a) => (
-                <Avatar key={a.id} className="h-7 w-7 md:h-8 md:w-8 rounded-lg shadow-sm border border-background">
+                <Avatar key={a.id} className="h-7 w-7 md:h-8 md:w-8 rounded-sm shadow-sm border border-background">
                   <AvatarImage src={a.avatarUrl} />
-                  <AvatarFallback className="bg-primary/5 text-primary text-[10px] md:text-xs font-bold rounded-lg border border-primary/10">
+                  <AvatarFallback className="bg-primary/5 text-primary text-[10px] md:text-xs font-bold rounded-sm border border-primary/10">
                     {a.name.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
               ))}
               {assignees.length > 3 && (
-                <div className="h-7 w-7 md:h-8 md:w-8 rounded-lg bg-muted flex items-center justify-center text-[9px] font-bold border border-background">
+                <div className="h-7 w-7 md:h-8 md:w-8 rounded-sm bg-muted flex items-center justify-center text-[9px] font-bold border border-background">
                   +{assignees.length - 3}
                 </div>
               )}
             </div>
           ) : (
-            <div className="h-7 w-7 md:h-8 md:w-8 rounded-lg border border-dashed border-muted-foreground/30 flex items-center justify-center">
+            <div className="h-7 w-7 md:h-8 md:w-8 rounded-sm border border-dashed border-muted-foreground/30 flex items-center justify-center">
               <User className="size-3.5 text-muted-foreground/40" />
             </div>
           )}
@@ -187,7 +187,7 @@ export const TaskRow = ({
             <Button
               variant="ghost"
               className={cn(
-                "h-7 rounded-full border-0 px-3 py-0 text-[10px] font-bold tracking-tight uppercase shadow-sm whitespace-nowrap transition-all",
+                "h-7 rounded-xs border-0 px-3 py-0 text-[10px] font-bold tracking-tight uppercase shadow-sm whitespace-nowrap transition-all",
               )}
               style={{ 
                 backgroundColor: `${statusColor}15`, 
@@ -196,12 +196,12 @@ export const TaskRow = ({
               {statusLabel}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="rounded-xl border-border/50 shadow-xl p-1">
+          <DropdownMenuContent align="start" className="rounded-md border-border/50 shadow-xl p-1">
             {dynamicStatuses.map((s: any) => (
               <DropdownMenuItem 
                 key={s.id || s._id} 
                 onClick={() => handleInlineStatusChange(taskId, s.id || s._id)}
-                className="rounded-lg py-2"
+                className="rounded-sm py-2"
               >
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
@@ -225,7 +225,7 @@ export const TaskRow = ({
             <Button
               variant="ghost"
               className={cn(
-                "h-7 rounded-full border-0 px-3 py-0 text-[10px] font-bold tracking-tight uppercase shadow-sm",
+                "h-7 rounded-xs border-0 px-3 py-0 text-[10px] font-bold tracking-tight uppercase shadow-sm",
                 task.priority === "URGENT" && "bg-rose-500/10 text-rose-600 hover:bg-rose-500/15",
                 task.priority === "HIGH" && "bg-orange-500/10 text-orange-600 hover:bg-orange-500/15",
                 task.priority === "MEDIUM" && "bg-amber-500/10 text-amber-600 hover:bg-amber-500/15",
@@ -234,7 +234,7 @@ export const TaskRow = ({
               {task.priority || "MEDIUM"}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="rounded-xl border-border/50 shadow-xl">
+          <DropdownMenuContent align="start" className="rounded-md border-border/50 shadow-xl">
             <DropdownMenuItem onClick={() => handleInlinePriorityChange(taskId, "URGENT")}>Urgent</DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleInlinePriorityChange(taskId, "HIGH")}>High</DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleInlinePriorityChange(taskId, "MEDIUM")}>Medium</DropdownMenuItem>
@@ -246,7 +246,7 @@ export const TaskRow = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex items-center gap-2 cursor-help group/creator">
-               <Avatar className="h-6 w-6 rounded-md border border-border/40 transition-shadow group-hover/creator:shadow-sm">
+               <Avatar className="h-6 w-6 rounded-sm border border-border/40 transition-shadow group-hover/creator:shadow-sm">
                 <AvatarImage src={createdByUser?.avatarUrl} />
                 <AvatarFallback className="bg-primary/5 text-primary text-[8px] font-bold">
                   {createdByName.charAt(0)}
@@ -255,7 +255,7 @@ export const TaskRow = ({
               <span className="text-xs font-semibold whitespace-nowrap group-hover/creator:text-primary transition-colors">{createdByName}</span>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="flex flex-col gap-0.5 p-2 rounded-lg border-border/40 bg-card/95 backdrop-blur-md shadow-xl z-[100]">
+          <TooltipContent side="bottom" className="flex flex-col gap-0.5 p-2 rounded-sm border-border/40 bg-card/95 backdrop-blur-md shadow-xl z-[100]">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Created By</span>
             <span className="text-xs font-semibold">{createdByName}</span>
             {createdByEmail && <span className="text-[11px] text-muted-foreground font-medium">{createdByEmail}</span>}
@@ -310,21 +310,21 @@ export const TaskRow = ({
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-muted focus-visible:ring-0 active:scale-90 transition-all">
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md hover:bg-muted focus-visible:ring-0 active:scale-90 transition-all">
               <MoreHorizontal className="size-4.5 text-muted-foreground/70" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/50 shadow-2xl p-1.5 slide-in-from-right-2">
-            <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => openPanel(tid(task))}>
+          <DropdownMenuContent align="end" className="w-48 rounded-md border-border/50 shadow-2xl p-1.5 slide-in-from-right-2">
+            <DropdownMenuItem className="rounded-sm px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => openPanel(tid(task))}>
               <Eye className="mr-2.5 size-4 text-muted-foreground" />
               <span className="text-sm font-medium">View Details</span>
             </DropdownMenuItem>
-            {/* <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => setSelectedTask(task)}>
+            {/* <DropdownMenuItem className="rounded-sm px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => setSelectedTask(task)}>
               <Pencil className="mr-2.5 size-4 text-muted-foreground" />
               <span className="text-sm font-medium text-foreground">Edit Task</span>
             </DropdownMenuItem> */}
             <DropdownMenuSeparator className="my-2 bg-border/40" />
-            <DropdownMenuItem className="rounded-xl px-3 py-2 cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive" onClick={() => setDeleteId(taskId)}>
+            <DropdownMenuItem className="rounded-sm px-3 py-2 cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive" onClick={() => setDeleteId(taskId)}>
               <Trash2 className="mr-2.5 size-4" />
               <span className="text-sm font-bold">Delete Task</span>
             </DropdownMenuItem>

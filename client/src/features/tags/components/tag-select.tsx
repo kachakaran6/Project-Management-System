@@ -47,7 +47,7 @@ export function TagSelect({ selectedTagIds = [], onChange, workspaceId }: TagSel
       ))}
 
       {hiddenCount > 0 && (
-        <Badge variant="secondary" className="h-6 px-2 rounded-full bg-muted/40 text-muted-foreground text-[10px] font-bold border-none">
+        <Badge variant="secondary" className="h-6 px-2 rounded-xs bg-muted/40 text-muted-foreground text-[10px] font-bold border-none">
           +{hiddenCount}
         </Badge>
       )}
@@ -57,7 +57,7 @@ export function TagSelect({ selectedTagIds = [], onChange, workspaceId }: TagSel
           <button 
             type="button"
             className={cn(
-              "inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border border-dashed transition-all text-[11px] font-bold shrink-0 outline-none focus:outline-none focus:ring-0 focus-visible:ring-0",
+              "inline-flex items-center gap-1.5 h-6 px-2.5 rounded-sm border border-dashed transition-all text-[11px] font-bold shrink-0 outline-none focus:outline-none focus:ring-0 focus-visible:ring-0",
               selectedTagIds.length > 0 
                 ? "border-primary/40 text-primary bg-primary/5 hover:bg-primary/10"
                 : "border-muted-foreground/30 text-muted-foreground hover:border-primary/50 hover:text-primary bg-transparent"
@@ -68,7 +68,7 @@ export function TagSelect({ selectedTagIds = [], onChange, workspaceId }: TagSel
           </button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-64 p-0 rounded-2xl border border-border/40 bg-popover/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200" 
+          className="w-64 p-0 rounded-md border border-border/40 bg-popover/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden animate-in fade-in zoom-in-95 duration-200" 
           align="start" 
           side="bottom" 
           sideOffset={12}
@@ -100,13 +100,13 @@ export function TagSelect({ selectedTagIds = [], onChange, workspaceId }: TagSel
                       key={tag.id}
                       onSelect={() => toggleTag(tag.id)}
                       className={cn(
-                        "flex items-center justify-between py-2.5 px-3 rounded-xl cursor-pointer transition-all m-0.5 border border-transparent",
+                        "flex items-center justify-between py-2.5 px-3 rounded-sm cursor-pointer transition-all m-0.5 border border-transparent",
                         isSelected ? "bg-primary/20 border-primary/10" : "hover:bg-white/5"
                       )}
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
                         <div 
-                          className="flex h-8 w-8 items-center justify-center rounded-xl shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.2)] transition-all group-hover:scale-105"
+                          className="flex h-8 w-8 items-center justify-center rounded-sm shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.2)] transition-all group-hover:scale-105"
                           style={{ backgroundColor: `${tag.color}25`, color: tag.color }}
                         >
                           <Icon className="size-4" />

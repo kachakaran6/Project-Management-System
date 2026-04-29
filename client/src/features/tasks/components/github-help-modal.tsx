@@ -70,11 +70,11 @@ export function GithubHelpModal({ open, onOpenChange, taskCode = "PMS-123" }: Gi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-background border-border/40 shadow-2xl rounded-[40px] p-0 overflow-hidden">
+      <DialogContent className="max-w-2xl bg-background border-border/40 shadow-2xl rounded-md p-0 overflow-hidden">
         <div className="p-10 space-y-10 max-h-[90vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
             <div className="flex items-center gap-5 mb-2">
-              <div className="p-4 rounded-[20px] bg-primary/10 text-primary shadow-inner rotate-3">
+              <div className="p-4 rounded-sm bg-primary/10 text-primary shadow-inner rotate-3">
                 <Github className="size-8" />
               </div>
               <div>
@@ -92,13 +92,13 @@ export function GithubHelpModal({ open, onOpenChange, taskCode = "PMS-123" }: Gi
 
             <div className="grid gap-6">
               {steps.map((step) => (
-                <div key={step.id} className="relative group flex gap-6 p-6 rounded-[28px] border border-border/40 bg-muted/5 hover:bg-muted/10 transition-all">
+                <div key={step.id} className="relative group flex gap-6 p-6 rounded-md border border-border/40 bg-muted/5 hover:bg-muted/10 transition-all">
                   <div className="absolute -left-3 top-1/2 -translate-y-1/2 font-black text-4xl text-muted-foreground/5 italic pointer-events-none uppercase tracking-tighter">
                     {step.id}
                   </div>
 
                   <div className={cn(
-                    "size-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
+                    "size-12 rounded-sm flex items-center justify-center shrink-0 shadow-lg",
                     step.color === 'blue' && "bg-blue-500/10 text-blue-500 shadow-blue-500/10",
                     step.color === 'purple' && "bg-purple-500/10 text-purple-500 shadow-purple-500/10",
                     step.color === 'emerald' && "bg-emerald-500/10 text-emerald-500 shadow-emerald-500/10",
@@ -110,7 +110,7 @@ export function GithubHelpModal({ open, onOpenChange, taskCode = "PMS-123" }: Gi
                     <div className="flex items-center justify-between gap-4">
                       <h5 className="font-black text-lg tracking-tight">{step.title}</h5>
                       <Badge className={cn(
-                        "h-5 px-2 rounded-full border-none text-[9px] font-black text-white",
+                        "h-5 px-2 rounded-xs border-none text-[9px] font-black text-white",
                         step.color === 'blue' && "bg-blue-500",
                         step.color === 'purple' && "bg-purple-500",
                         step.color === 'emerald' && "bg-emerald-500",
@@ -120,7 +120,7 @@ export function GithubHelpModal({ open, onOpenChange, taskCode = "PMS-123" }: Gi
                     </div>
                     <p className="text-xs text-muted-foreground font-medium leading-relaxed">{step.desc}</p>
 
-                    <div className="mt-4 p-3 rounded-xl bg-background/80 border border-border/40 flex items-center justify-between group/code">
+                    <div className="mt-4 p-3 rounded-sm bg-background/80 border border-border/40 flex items-center justify-between group/code">
                       <code className="text-[11px] font-mono font-bold text-primary truncate pr-4">
                         {step.example}
                       </code>
@@ -143,7 +143,7 @@ export function GithubHelpModal({ open, onOpenChange, taskCode = "PMS-123" }: Gi
           </div>
 
           {/* Keyword Magic */}
-          <div className="p-8 rounded-[32px] bg-primary/5 border border-primary/10 space-y-6">
+          <div className="p-8 rounded-md bg-primary/5 border border-primary/10 space-y-6">
             <div className="flex items-center gap-3">
               <Sparkles className="size-5 text-primary" />
               <h4 className="text-sm font-black uppercase tracking-widest text-primary">Commit Keyword Fallback</h4>
@@ -154,7 +154,7 @@ export function GithubHelpModal({ open, onOpenChange, taskCode = "PMS-123" }: Gi
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600/70">To Finish Task</span>
                 <div className="flex flex-wrap gap-1.5">
                   {keywords.done.map(kw => (
-                    <code key={kw} className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 font-mono text-[10px] font-bold border border-emerald-500/20">
+                    <code key={kw} className="px-2 py-1 rounded-xs bg-emerald-500/10 text-emerald-600 font-mono text-[10px] font-bold border border-emerald-500/20">
                       {kw}
                     </code>
                   ))}
@@ -164,7 +164,7 @@ export function GithubHelpModal({ open, onOpenChange, taskCode = "PMS-123" }: Gi
                 <span className="text-[10px] font-black uppercase tracking-wider text-blue-600/70">To Start Task</span>
                 <div className="flex flex-wrap gap-1.5">
                   {keywords.progress.map(kw => (
-                    <code key={kw} className="px-2 py-1 rounded-lg bg-blue-500/10 text-blue-600 font-mono text-[10px] font-bold border border-blue-500/20">
+                    <code key={kw} className="px-2 py-1 rounded-xs bg-blue-500/10 text-blue-600 font-mono text-[10px] font-bold border border-blue-500/20">
                       {kw}
                     </code>
                   ))}
@@ -182,7 +182,7 @@ export function GithubHelpModal({ open, onOpenChange, taskCode = "PMS-123" }: Gi
 
           {/* Pro Tips / Safety */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="p-5 rounded-[24px] border border-border/40 bg-muted/5 space-y-2">
+            <div className="p-5 rounded-md border border-border/40 bg-muted/5 space-y-2">
               <div className="flex items-center gap-2 text-foreground/80">
                 <Zap className="size-3.5" />
                 <h6 className="text-[10px] font-black uppercase tracking-widest">Priority Flow</h6>
@@ -191,7 +191,7 @@ export function GithubHelpModal({ open, onOpenChange, taskCode = "PMS-123" }: Gi
                 Merge events have the highest priority, followed by PR status, Branch creation, and then Commit keywords.
               </p>
             </div>
-            <div className="p-5 rounded-[24px] border border-border/40 bg-muted/5 space-y-2">
+            <div className="p-5 rounded-md border border-border/40 bg-muted/5 space-y-2">
               <div className="flex items-center gap-2 text-foreground/80">
                 <Info className="size-3.5" />
                 <h6 className="text-[10px] font-black uppercase tracking-widest">Safety Guard</h6>
@@ -204,7 +204,7 @@ export function GithubHelpModal({ open, onOpenChange, taskCode = "PMS-123" }: Gi
 
           <div className="flex items-center gap-3 pt-4">
             <Button
-              className="flex-1 rounded-[20px] font-black uppercase tracking-widest text-[11px] h-14 shadow-xl shadow-primary/20"
+              className="flex-1 rounded-sm font-black uppercase tracking-widest text-[11px] h-14 shadow-xl shadow-primary/20"
               onClick={() => onOpenChange(false)}
             >
               Got it, let's build!

@@ -354,7 +354,7 @@ export function StatusManagement() {
       </div>
 
       {isAdding && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-4 animate-in fade-in slide-in-from-top-2">
+        <div className="rounded-md border border-primary/20 bg-primary/5 p-4 space-y-4 animate-in fade-in slide-in-from-top-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-tight text-muted-foreground">Status Name</label>
@@ -362,7 +362,7 @@ export function StatusManagement() {
                 value={newStatusName}
                 onChange={(e) => setNewStatusName(e.target.value)}
                 placeholder="e.g. In Progress, Quality Check"
-                className="h-9"
+                className="h-9 rounded-sm"
                 autoFocus
               />
             </div>
@@ -373,13 +373,13 @@ export function StatusManagement() {
                   type="color"
                   value={newStatusColor}
                   onChange={(e) => setNewStatusColor(e.target.value)}
-                  className="h-9 w-12 p-1 cursor-pointer bg-transparent"
+                  className="h-9 w-12 p-1 cursor-pointer bg-transparent rounded-sm"
                 />
                 <Input 
                   value={newStatusColor}
                   onChange={(e) => setNewStatusColor(e.target.value)}
                   placeholder="#000000"
-                  className="h-9 font-mono text-xs"
+                  className="h-9 font-mono text-xs rounded-sm"
                 />
               </div>
             </div>
@@ -393,8 +393,8 @@ export function StatusManagement() {
             <Label htmlFor="new-status-hide" className="text-xs text-muted-foreground">Hide from Kanban board if no tasks are present</Label>
           </div>
           <div className="flex justify-end gap-2 pt-2 border-t border-primary/10">
-            <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleAdd} disabled={createMutation.isPending}>
+            <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)} className="rounded-sm">Cancel</Button>
+            <Button size="sm" onClick={handleAdd} disabled={createMutation.isPending} className="rounded-sm">
               {createMutation.isPending ? <Loader2 className="size-3 animate-spin mr-2" /> : <Check className="size-3 mr-2" />}
               Create Status
             </Button>
@@ -402,7 +402,7 @@ export function StatusManagement() {
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-card/50 overflow-hidden">
+      <div className="rounded-md border border-border bg-card/50 overflow-hidden">
         <div className="divide-y divide-border">
           {statuses.length === 0 ? (
             <div className="p-10 text-center text-muted-foreground">
@@ -453,19 +453,19 @@ export function StatusManagement() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-muted/20 p-4 rounded-md border border-border/50">
           <Select
             value={personalDefaultStatus || "none"}
             onValueChange={(val) => updateDefaultMutation.mutate(val === "none" ? null : val)}
             disabled={isSettingsLoading || updateDefaultMutation.isPending}
           >
-            <SelectTrigger className="w-full sm:w-[240px] h-10 bg-background">
+            <SelectTrigger className="w-full sm:w-[240px] h-10 bg-background rounded-sm">
               <SelectValue placeholder="Select a default status..." />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No Default (System Fallback)</SelectItem>
+            <SelectContent className="rounded-md">
+              <SelectItem value="none" className="rounded-sm">No Default (System Fallback)</SelectItem>
               {statuses.map((s) => (
-                <SelectItem key={s.id} value={s.name.toLowerCase()}>
+                <SelectItem key={s.id} value={s.name.toLowerCase()} className="rounded-sm">
                   <div className="flex items-center gap-2">
                     <div className="size-2 rounded-full" style={{ backgroundColor: s.color }} />
                     {s.name}
@@ -483,7 +483,7 @@ export function StatusManagement() {
           )}
         </div>
 
-        <div className="rounded-xl border border-primary/10 bg-primary/5 p-4 flex gap-3">
+        <div className="rounded-md border border-primary/10 bg-primary/5 p-4 flex gap-3">
           <Sparkles className="size-4 text-primary shrink-0 mt-0.5" />
           <p className="text-[11px] text-muted-foreground leading-relaxed">
             <span className="font-bold text-primary">Efficiency Tip:</span> If you usually create tasks that start directly in "To Do", setting it here saves you a click for every new task.

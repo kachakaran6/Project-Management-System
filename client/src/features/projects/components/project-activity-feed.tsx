@@ -88,7 +88,7 @@ function ActivityItem({ item }: { item: GithubFullActivityItem }) {
       <div className="flex flex-col items-center shrink-0">
         <a href={item.authorProfile ?? "#"} target="_blank" rel="noopener noreferrer" title={item.author}>
           <div className={cn(
-            "size-7 rounded-lg flex items-center justify-center ring-1 transition-all group-hover:scale-105 cursor-pointer",
+            "size-7 rounded-sm flex items-center justify-center ring-1 transition-all group-hover:scale-105 cursor-pointer",
             cfg.bg, cfg.ring, cfg.color
           )}>
             {cfg.icon}
@@ -99,11 +99,11 @@ function ActivityItem({ item }: { item: GithubFullActivityItem }) {
 
       {/* Content card */}
       <div className="pb-3 flex-1 min-w-0">
-        <div className="bg-card/20 border border-border/8 rounded-xl px-3 py-2.5 space-y-1.5 hover:border-primary/10 hover:bg-card/40 transition-all">
+        <div className="bg-card/20 border border-border/8 rounded-md px-3 py-2.5 space-y-1.5 hover:border-primary/10 hover:bg-card/40 transition-all">
           {/* Top row */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge className={cn("h-5 text-[9px] font-black uppercase tracking-widest border rounded-lg px-2", cfg.badge)}>
+              <Badge className={cn("h-5 text-[9px] font-black uppercase tracking-widest border rounded-sm px-2", cfg.badge)}>
                 {cfg.label}
               </Badge>
               {item.prNumber && (
@@ -112,7 +112,7 @@ function ActivityItem({ item }: { item: GithubFullActivityItem }) {
               {item.taskCode && (
                 <Link
                   href={`/tasks/${item.taskId}`}
-                  className="inline-flex items-center gap-1 text-[10px] font-black text-primary/70 hover:text-primary uppercase tracking-widest transition-colors bg-primary/5 hover:bg-primary/10 rounded-md px-1.5 py-0.5"
+                  className="inline-flex items-center gap-1 text-[10px] font-black text-primary/70 hover:text-primary uppercase tracking-widest transition-colors bg-primary/5 hover:bg-primary/10 rounded-xs px-1.5 py-0.5"
                 >
                   🔗 {item.taskCode}
                 </Link>
@@ -131,13 +131,13 @@ function ActivityItem({ item }: { item: GithubFullActivityItem }) {
           {/* Footer: author + hash + link */}
           <div className="flex items-center justify-between gap-2 pt-0.5">
             <div className="flex items-center gap-2">
-              <Avatar className="size-5 ring-1 ring-border/20">
+              <Avatar className="size-5 ring-1 ring-border/20 rounded-full">
                 <AvatarImage src={item.authorAvatar} />
-                <AvatarFallback className="text-[8px] font-black bg-primary/10 text-primary">{initials}</AvatarFallback>
+                <AvatarFallback className="text-[8px] font-black bg-primary/10 text-primary rounded-full">{initials}</AvatarFallback>
               </Avatar>
               <span className="text-[10px] font-bold text-muted-foreground/50">{item.author}</span>
               {item.hash && (
-                <span className="text-[9px] font-mono text-muted-foreground/25 bg-muted/10 px-1.5 py-0.5 rounded-md">
+                <span className="text-[9px] font-mono text-muted-foreground/25 bg-muted/10 px-1.5 py-0.5 rounded-xs">
                   {item.hash}
                 </span>
               )}
@@ -174,14 +174,14 @@ function ActivitySkeleton() {
     <div className="space-y-4">
       {[1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="flex gap-4">
-          <Skeleton className="size-9 rounded-xl shrink-0" />
+          <Skeleton className="size-9 rounded-sm shrink-0" />
           <div className="flex-1 space-y-2 py-1">
             <div className="flex gap-2">
-              <Skeleton className="h-5 w-20 rounded-lg" />
-              <Skeleton className="h-5 w-16 rounded-lg" />
+              <Skeleton className="h-5 w-20 rounded-xs" />
+              <Skeleton className="h-5 w-16 rounded-xs" />
             </div>
-            <Skeleton className="h-4 w-full rounded-lg" />
-            <Skeleton className="h-3 w-32 rounded-lg" />
+            <Skeleton className="h-4 w-full rounded-sm" />
+            <Skeleton className="h-3 w-32 rounded-xs" />
           </div>
         </div>
       ))}
@@ -193,7 +193,7 @@ function NotConnectedState({ projectId }: { projectId: string }) {
   const router = useRouter();
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
-      <div className="p-3.5 rounded-2xl bg-muted/10 ring-1 ring-border/10">
+      <div className="p-3.5 rounded-md bg-muted/10 ring-1 ring-border/10">
         <GithubIcon className="size-7 text-muted-foreground/20" />
       </div>
       <div className="space-y-1.5 max-w-sm">
@@ -204,7 +204,7 @@ function NotConnectedState({ projectId }: { projectId: string }) {
         <Button
           size="sm"
           variant="outline"
-          className="mt-2 rounded-lg gap-1.5 text-xs font-bold h-7"
+          className="mt-2 rounded-sm gap-1.5 text-xs font-bold h-7"
           onClick={() => router.push(`/projects`)}
         >
           <Settings2 className="size-3" />
@@ -218,7 +218,7 @@ function NotConnectedState({ projectId }: { projectId: string }) {
 function EmptyActivity() {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
-      <div className="p-3.5 rounded-2xl bg-muted/10 ring-1 ring-border/10">
+      <div className="p-3.5 rounded-md bg-muted/10 ring-1 ring-border/10">
         <GithubIcon className="size-7 text-muted-foreground/20" />
       </div>
       <div className="space-y-1 max-w-xs">
@@ -247,7 +247,7 @@ function FilterBar({ active, onChange }: { active: FilterType; onChange: (f: Fil
           key={f.value}
           onClick={() => onChange(f.value)}
           className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shrink-0 transition-all border",
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest shrink-0 transition-all border",
             active === f.value
               ? "bg-primary/10 text-primary border-primary/20"
               : "bg-muted/5 text-muted-foreground/50 border-border/10 hover:bg-muted/15"

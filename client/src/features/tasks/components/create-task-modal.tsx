@@ -423,7 +423,7 @@ export function CreateTaskModal({
         hideClose
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
-        className="max-w-[640px] w-[95vw] md:w-full h-fit max-h-[90vh] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-2xl gap-0 flex flex-col"
+        className="max-w-[640px] w-[95vw] md:w-full h-fit max-h-[90vh] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-md gap-0 flex flex-col"
       >
         {isCheckingDraft ? (
           <div className="flex min-h-[320px] items-center justify-center text-sm text-muted-foreground">

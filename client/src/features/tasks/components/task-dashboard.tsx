@@ -446,14 +446,14 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
             {/* Search and Filters Unified */}
             <div className="relative flex-1 group">
               <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
-              <Input
+                <Input
                 value={search}
                 onChange={(e) => {
                   setPage(1);
                   setSearch(e.target.value);
                 }}
                 placeholder="Search tasks..."
-                className="h-10 rounded-2xl pl-10 pr-4 text-[13px] font-medium w-full bg-muted/10 border-border/40 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/30 max-md:h-11"
+                className="h-10 rounded-sm pl-10 pr-4 text-[13px] font-medium w-full bg-muted/10 border-border/40 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/30 max-md:h-11"
               />
             </div>
 
@@ -463,7 +463,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   <Button
                     variant="outline"
                     className={cn(
-                      "h-10 rounded-2xl px-5 gap-2.5 border-border/40 bg-muted/10 font-bold text-xs transition-all hover:bg-muted/20 hover:border-border/60 active:scale-95",
+                      "h-10 rounded-sm px-5 gap-2.5 border-border/40 bg-muted/10 font-bold text-xs transition-all hover:bg-muted/20 hover:border-border/60 active:scale-95",
                       activeFilterCount > 0 && "border-primary/40 bg-primary/5 text-primary hover:bg-primary/10"
                     )}
                   >
@@ -476,7 +476,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 p-4 rounded-3xl shadow-2xl border-border/40 bg-card/95 backdrop-blur-xl" align="start">
+                <PopoverContent className="w-80 p-4 rounded-md shadow-2xl border-border/40 bg-card/95 backdrop-blur-xl" align="start">
                   <FilterContent
                     status={status} setStatus={setStatus}
                     priority={priority} setPriority={setPriority}
@@ -511,7 +511,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 dynamicStatuses={dynamicStatuses}
                 hideProjectFilter={Boolean(fixedProjectId)}
                 trigger={
-                  <Button variant="outline" size="icon" className="h-11 w-11 rounded-2xl border-border/40 bg-muted/10 relative shrink-0">
+                  <Button variant="outline" size="icon" className="h-11 w-11 rounded-sm border-border/40 bg-muted/10 relative shrink-0">
                     <SlidersHorizontal className="size-4" />
                     {activeFilterCount > 0 && <span className="absolute -top-1 -right-1 size-3.5 bg-primary text-[8px] rounded-full flex items-center justify-center text-white font-black shadow-sm">{activeFilterCount}</span>}
                   </Button>
@@ -522,14 +522,14 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
 
           <div className="flex items-center justify-between md:justify-end gap-2.5 w-full md:w-auto">
             {/* View Switcher - Premium Toggle */}
-            <div className="inline-flex flex-1 md:flex-none rounded-2xl border border-border/40 bg-muted/10 p-1 h-10 md:h-10 items-center shadow-inner-sm max-md:h-11">
+            <div className="inline-flex flex-1 md:flex-none rounded-sm border border-border/40 bg-muted/10 p-1 h-10 md:h-10 items-center shadow-inner-sm max-md:h-11">
               {!isMobile && (
                 <Button
                   variant={viewMode === "kanban" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("kanban")}
                   className={cn(
-                    "h-8 px-4 rounded-xl text-[11px] gap-1.5 font-black transition-all shrink-0",
+                    "h-8 px-4 rounded-sm text-[11px] gap-1.5 font-black transition-all shrink-0",
                     viewMode === "kanban" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -542,7 +542,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 size="sm"
                 onClick={() => setViewMode("list")}
                 className={cn(
-                  "h-8 px-4 rounded-xl text-[11px] gap-1.5 font-black transition-all shrink-0 flex-1 md:flex-none max-md:h-9",
+                  "h-8 px-4 rounded-sm text-[11px] gap-1.5 font-black transition-all shrink-0 flex-1 md:flex-none max-md:h-9",
                   viewMode === "list" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -555,7 +555,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   size="sm"
                   onClick={() => setViewMode("table")}
                   className={cn(
-                    "h-8 px-4 rounded-xl text-[11px] gap-1.5 font-black transition-all shrink-0 flex-1 md:flex-none max-md:h-9",
+                    "h-8 px-4 rounded-sm text-[11px] gap-1.5 font-black transition-all shrink-0 flex-1 md:flex-none max-md:h-9",
                     viewMode === "table" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -573,7 +573,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                       variant="outline"
                       size="icon"
                       disabled={isExporting}
-                      className="h-10 w-10 md:h-10 md:w-10 rounded-2xl border-border/40 bg-muted/10 hover:bg-muted/20 transition-all text-muted-foreground shrink-0 shadow-sm max-md:h-11 max-md:w-11"
+                      className="h-10 w-10 md:h-10 md:w-10 rounded-sm border-border/40 bg-muted/10 hover:bg-muted/20 transition-all text-muted-foreground shrink-0 shadow-sm max-md:h-11 max-md:w-11"
                     >
                       {isExporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
                     </Button>
@@ -581,11 +581,11 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-[10px] font-bold">Export Data</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="end" className="w-48 rounded-2xl border-border/40 shadow-2xl p-1.5 bg-card/95 backdrop-blur-xl">
-                <DropdownMenuItem className="rounded-xl py-2 cursor-pointer font-medium" disabled={isExporting} onClick={() => handleExport("pdf")}>
+              <DropdownMenuContent align="end" className="w-48 rounded-md border-border/40 shadow-2xl p-1.5 bg-card/95 backdrop-blur-xl">
+                <DropdownMenuItem className="rounded-sm py-2 cursor-pointer font-medium" disabled={isExporting} onClick={() => handleExport("pdf")}>
                   <FileText className="mr-2.5 size-4 opacity-70" /> Export as PDF
                 </DropdownMenuItem>
-                <DropdownMenuItem className="rounded-xl py-2 cursor-pointer font-medium" disabled={isExporting} onClick={() => handleExport("excel")}>
+                <DropdownMenuItem className="rounded-sm py-2 cursor-pointer font-medium" disabled={isExporting} onClick={() => handleExport("excel")}>
                   <FileSpreadsheet className="mr-2.5 size-4 opacity-70" /> Export as Excel
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -596,7 +596,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               <CreateTaskModal
                 defaultProjectId={projectId !== "ALL" ? projectId : undefined}
                 trigger={
-                  <Button size="sm" className="hidden md:inline-flex h-10 rounded-2xl font-black px-6 shadow-premium bg-primary text-primary-foreground hover:scale-[1.02] active:scale-95 transition-all">
+                  <Button size="sm" className="hidden md:inline-flex h-10 rounded-sm font-black px-6 shadow-premium bg-primary text-primary-foreground hover:scale-[1.02] active:scale-95 transition-all">
                     New Task
                   </Button>
                 }
@@ -613,7 +613,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               {status !== "ALL" && (
                 <Badge
                   variant="outline"
-                  className="h-7 px-3 rounded-full text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                  className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                 >
                   {dynamicStatuses.find((s: any) => (s.id || s._id) === status)?.name || status}
                   <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setStatus("ALL")} />
@@ -622,7 +622,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               {priority !== "ALL" && (
                 <Badge
                   variant="outline"
-                  className="h-7 px-3 rounded-full text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                  className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                 >
                   {priority}
                   <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setPriority("ALL")} />
@@ -631,7 +631,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               {!fixedProjectId && projectId !== "ALL" && (
                 <Badge
                   variant="outline"
-                  className="h-7 px-3 rounded-full text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                  className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                 >
                   {resolveProjectName(projectId)}
                   <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setProjectId("ALL")} />
@@ -640,7 +640,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               {assigneeId !== "ALL" && (
                 <Badge
                   variant="outline"
-                  className="h-7 px-3 rounded-full text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                  className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                 >
                   {resolveAssigneeName(assigneeId)}
                   <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setAssigneeId("ALL")} />
@@ -653,7 +653,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   <Badge
                     key={tag.id}
                     variant="outline"
-                    className="h-7 px-3 rounded-full text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                    className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                     style={{ borderColor: `${tag.color}40`, color: tag.color, backgroundColor: `${tag.color}10` }}
                   >
                     {tag.label}
@@ -665,7 +665,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="h-7 px-3 text-[10px] font-black text-muted-foreground/60 hover:text-foreground hover:bg-muted/20 rounded-full"
+                className="h-7 px-3 text-[10px] font-black text-muted-foreground/60 hover:text-foreground hover:bg-muted/20 rounded-xs"
               >
                 Clear All
               </Button>
@@ -682,7 +682,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
       >
         {(viewMode === "list" || viewMode === "table") && (
           <>
-            <div className="flex-1 overflow-auto custom-scrollbar pr-1 relative bg-card/20 rounded-2xl border border-border/40 shadow-inner-sm">
+            <div className="flex-1 overflow-auto custom-scrollbar pr-1 relative bg-card/20 rounded-md border border-border/40 shadow-inner-sm">
               {listQuery.isLoading ? (
                 <div className="animate-in fade-in duration-500">
                   {viewMode === "table" ? <TaskTableSkeleton /> : <div className="p-4"><TaskListSkeleton /></div>}
@@ -697,7 +697,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                         <CreateTaskModal
                           defaultProjectId={projectId !== "ALL" ? projectId : undefined}
                           trigger={
-                            <Button className="mt-4 rounded-xl font-bold px-8">
+                            <Button className="mt-4 rounded-sm font-bold px-8">
                               Create First Task
                             </Button>
                           }
@@ -774,7 +774,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                         return (
                           <div
                             key={taskId}
-                            className="rounded-xl border border-border/50 bg-card p-4 shadow-sm"
+                            className="rounded-md border border-border/50 bg-card p-4 shadow-sm"
                           >
                             <div className="flex items-start justify-between gap-3 mb-3">
                               <div className="min-w-0">
@@ -830,7 +830,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                 <Button
                                   asChild
                                   variant="outline"
-                                  className="h-9 md:h-8 rounded-xl text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 flex-1 md:flex-none"
+                                  className="h-9 md:h-8 rounded-sm text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 flex-1 md:flex-none"
                                 >
                                   <Link href={`/tasks/${taskId}`}>
                                     <Eye className="size-3.5 md:size-3 mr-1" />
@@ -839,7 +839,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  className="h-9 md:h-8 rounded-xl text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 flex-1 md:flex-none"
+                                  className="h-9 md:h-8 rounded-sm text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 flex-1 md:flex-none"
                                   onClick={() => setSelectedTask(task)}
                                 >
                                   <Pencil className="size-3.5 md:size-3 mr-1" />
@@ -922,10 +922,10 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                     setPage(1);
                   }}
                 >
-                  <SelectTrigger className="h-9 w-[105px] sm:w-28 rounded-xl bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
+                  <SelectTrigger className="h-9 w-[105px] sm:w-28 rounded-sm bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
                     <SelectValue placeholder="Limit" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/40">
+                  <SelectContent className="rounded-sm border-border/40">
                     {PAGE_SIZE_OPTIONS.map(opt => (
                       <SelectItem key={opt} value={String(opt)} className="text-xs font-medium">
                         {opt} / page
@@ -955,7 +955,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
             {kanbanQuery.isLoading ? (
               <TaskBoardSkeleton />
             ) : kanbanRows.length === 0 ? (
-              <div className="h-full flex items-center justify-center py-20 bg-card/20 rounded-2xl border border-border/40">
+              <div className="h-full flex items-center justify-center py-20 bg-card/20 rounded-md border border-border/40">
                 <EmptyState
                   title="No tasks found"
                   description="Try changing filters or create a task to get started."
@@ -1067,7 +1067,7 @@ function FilterDrawer({
       <SheetTrigger asChild>
         {trigger}
       </SheetTrigger>
-      <SheetContent className="w-[90vw] sm:max-w-md bg-background/95 backdrop-blur-md border-border/10 rounded-l-[1.5rem] p-0 flex flex-col">
+      <SheetContent className="w-[90vw] sm:max-w-md bg-background/95 backdrop-blur-md border-border/10 rounded-l-md p-0 flex flex-col">
         <SheetHeader className="p-6 border-b border-border/10 shrink-0">
           <SheetTitle className="text-2xl font-black tracking-tighter">Filters</SheetTitle>
           <SheetDescription className="font-medium text-muted-foreground/70">
@@ -1096,10 +1096,10 @@ function FilterDrawer({
             <div className="space-y-2">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Project</label>
               <Select value={projectId} onValueChange={setProjectId}>
-                <SelectTrigger className="rounded-xl bg-muted/10 border-border/40 h-11">
+                <SelectTrigger className="rounded-sm bg-muted/10 border-border/40 h-11">
                   <SelectValue placeholder="All Projects" />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl">
+                <SelectContent className="rounded-md">
                   <SelectItem value="ALL">All Projects</SelectItem>
                   {(projectsQuery.data?.data.items ?? []).map((p: any) => (
                     <SelectItem key={p.id || p._id} value={p.id || p._id}>
@@ -1114,10 +1114,10 @@ function FilterDrawer({
           <div className="space-y-2">
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Assignee</label>
             <Select value={assigneeId} onValueChange={setAssigneeId}>
-              <SelectTrigger className="rounded-xl bg-muted/10 border-border/40 h-11">
+              <SelectTrigger className="rounded-sm bg-muted/10 border-border/40 h-11">
                 <SelectValue placeholder="All Assignees" />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl">
+              <SelectContent className="rounded-md">
                 <SelectItem value="ALL">All Assignees</SelectItem>
                 <SelectItem value="UNASSIGNED">Unassigned</SelectItem>
                 {(membersQuery.data?.data.members ?? []).map((m: any) => (
@@ -1132,10 +1132,10 @@ function FilterDrawer({
           <div className="space-y-2">
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Created By</label>
             <Select value={creatorId} onValueChange={setCreatorId}>
-              <SelectTrigger className="rounded-xl bg-muted/10 border-border/40 h-11">
+              <SelectTrigger className="rounded-sm bg-muted/10 border-border/40 h-11">
                 <SelectValue placeholder="All Creators" />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl">
+              <SelectContent className="rounded-md">
                 <SelectItem value="ALL">All Creators</SelectItem>
                 {(membersQuery.data?.data.members ?? []).map((m: any) => (
                   <SelectItem key={m.id || m._id} value={m.id || m._id}>
@@ -1153,7 +1153,7 @@ function FilterDrawer({
                 value={dueDate ? new Date(dueDate) : undefined}
                 onChange={(date) => setDueDate(date ? date.toISOString() : "")}
                 placeholder="Select date"
-                className="p-1 border border-border/20 rounded-2xl bg-muted/5 origin-left"
+                className="p-1 border border-border/20 rounded-md bg-muted/5 origin-left"
                 inline
               />
             </div>
@@ -1171,9 +1171,9 @@ function FilterDrawer({
         </div>
 
         <div className="p-6 mt-auto border-t border-border/10 flex gap-3 bg-muted/5">
-          <Button variant="outline" onClick={clearFilters} className="flex-1 rounded-xl h-11 font-bold">Clear</Button>
+          <Button variant="outline" onClick={clearFilters} className="flex-1 rounded-sm h-11 font-bold">Clear</Button>
           <SheetClose asChild>
-            <Button className="flex-1 rounded-xl h-11 font-bold shadow-lg shadow-primary/20">Apply</Button>
+            <Button className="flex-1 rounded-sm h-11 font-bold shadow-lg shadow-primary/20">Apply</Button>
           </SheetClose>
         </div>
       </SheetContent>
@@ -1186,10 +1186,10 @@ function FilterSelect({ label, value, onChange, options }: any) {
     <div className="space-y-2">
       <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">{label}</label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="rounded-xl bg-muted/10 border-border/40 h-11">
+        <SelectTrigger className="rounded-sm bg-muted/10 border-border/40 h-11">
           <SelectValue placeholder={`Select ${label}`} />
         </SelectTrigger>
-        <SelectContent className="rounded-2xl">
+        <SelectContent className="rounded-md">
           {options.map((o: any) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
         </SelectContent>
       </Select>
@@ -1213,7 +1213,7 @@ function PaginationMeta({
       <Button
         variant="outline"
         size="icon"
-        className="h-8 w-8 sm:h-9 sm:w-auto sm:px-4 rounded-lg sm:rounded-xl border-border/40 bg-background/50"
+        className="h-8 w-8 sm:h-9 sm:w-auto sm:px-4 rounded-xs sm:rounded-sm border-border/40 bg-background/50"
         disabled={page <= 1 || isFetching}
         onClick={() => onPageChange(Math.max(1, page - 1))}
       >
@@ -1232,7 +1232,7 @@ function PaginationMeta({
       <Button
         variant="outline"
         size="icon"
-        className="h-8 w-8 sm:h-9 sm:w-auto sm:px-4 rounded-lg sm:rounded-xl border-border/40 bg-background/50"
+        className="h-8 w-8 sm:h-9 sm:w-auto sm:px-4 rounded-xs sm:rounded-sm border-border/40 bg-background/50"
         disabled={page >= totalPages || isFetching}
         onClick={() => onPageChange(page + 1)}
       >
@@ -1264,10 +1264,10 @@ function FilterContent({
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Status</label>
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="h-9 rounded-xl bg-muted/20 border-border/40 focus:ring-0 text-xs">
+            <SelectTrigger className="h-9 rounded-sm bg-muted/20 border-border/40 focus:ring-0 text-xs">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-border/40">
+            <SelectContent className="rounded-sm border-border/40">
               <SelectItem value="ALL">All Statuses</SelectItem>
               {dynamicStatuses.map((s: any) => (
                 <SelectItem key={s.id || s._id} value={s.id || s._id}>
@@ -1281,10 +1281,10 @@ function FilterContent({
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Priority</label>
           <Select value={priority} onValueChange={setPriority}>
-            <SelectTrigger className="h-9 rounded-xl bg-muted/20 border-border/40 focus:ring-0 text-xs">
+            <SelectTrigger className="h-9 rounded-sm bg-muted/20 border-border/40 focus:ring-0 text-xs">
               <SelectValue placeholder="All Priorities" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-border/40">
+            <SelectContent className="rounded-sm border-border/40">
               <SelectItem value="ALL">All Priorities</SelectItem>
               <SelectItem value="LOW">Low</SelectItem>
               <SelectItem value="MEDIUM">Medium</SelectItem>
@@ -1298,10 +1298,10 @@ function FilterContent({
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Project</label>
             <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger className="h-9 rounded-xl bg-muted/20 border-border/40 focus:ring-0 text-xs">
+              <SelectTrigger className="h-9 rounded-sm bg-muted/20 border-border/40 focus:ring-0 text-xs">
                 <SelectValue placeholder="All Projects" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-border/40">
+              <SelectContent className="rounded-sm border-border/40">
                 <SelectItem value="ALL">All Projects</SelectItem>
                 {(projectsQuery.data?.data.items ?? []).map((p: any) => (
                   <SelectItem key={p.id || p._id} value={p.id || p._id}>
@@ -1316,10 +1316,10 @@ function FilterContent({
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Assignee</label>
           <Select value={assigneeId} onValueChange={setAssigneeId}>
-            <SelectTrigger className="h-9 rounded-xl bg-muted/20 border-border/40 focus:ring-0 text-xs">
+            <SelectTrigger className="h-9 rounded-sm bg-muted/20 border-border/40 focus:ring-0 text-xs">
               <SelectValue placeholder="All Assignees" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-border/40">
+            <SelectContent className="rounded-sm border-border/40">
               <SelectItem value="ALL">All Assignees</SelectItem>
               <SelectItem value="UNASSIGNED">Unassigned</SelectItem>
               {(membersQuery.data?.data.members ?? []).map((m: any) => (
@@ -1334,10 +1334,10 @@ function FilterContent({
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Created By</label>
           <Select value={creatorId} onValueChange={setCreatorId}>
-            <SelectTrigger className="h-9 rounded-xl bg-muted/20 border-border/40 focus:ring-0 text-xs">
+            <SelectTrigger className="h-9 rounded-sm bg-muted/20 border-border/40 focus:ring-0 text-xs">
               <SelectValue placeholder="All Creators" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-border/40">
+            <SelectContent className="rounded-sm border-border/40">
               <SelectItem value="ALL">All Creators</SelectItem>
               {(membersQuery.data?.data.members ?? []).map((m: any) => (
                 <SelectItem key={m.id || m._id} value={m.id || m._id}>
@@ -1375,7 +1375,7 @@ function FilterContent({
       <div className="flex gap-3 pt-4 mt-auto border-t border-border/40">
         <Button
           variant="outline"
-          className="flex-1 h-10 rounded-xl text-xs font-semibold hover:bg-muted/30"
+          className="flex-1 h-10 rounded-sm text-xs font-semibold hover:bg-muted/30"
           onClick={clearFilters}
         >
           Clear
@@ -1383,7 +1383,7 @@ function FilterContent({
         {!isMobileView && (
           <PopoverClose asChild>
             <Button
-              className="flex-1 h-10 rounded-xl text-xs font-bold shadow-lg shadow-primary/20"
+              className="flex-1 h-10 rounded-sm text-xs font-bold shadow-lg shadow-primary/20"
             >
               Apply
             </Button>
