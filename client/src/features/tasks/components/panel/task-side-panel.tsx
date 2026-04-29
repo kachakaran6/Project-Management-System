@@ -131,7 +131,7 @@ export function TaskSidePanel() {
                 
                 {/* Status Timeline Section */}
                 <div className="pt-8 pb-4">
-                  <div className="flex items-center gap-2 mb-6">
+                  <div className="flex items-center gap-2 mb-4">
                     <div className="size-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm ring-1 ring-primary/20">
                       <History className="size-4" />
                     </div>

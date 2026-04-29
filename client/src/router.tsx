@@ -41,10 +41,12 @@ function wrapElement(modulePath: string, PageComponent: ComponentType) {
 }
 
 // 1. Generate dynamic routes from file system
-const dynamicRoutes = Object.entries(pageModules).map(([modulePath, module]) => ({
-  path: toRoutePath(modulePath),
-  element: wrapElement(modulePath, module.default),
-}));
+const dynamicRoutes = Object.entries(pageModules)
+  .filter(([modulePath]) => !modulePath.includes("/audit-log/"))
+  .map(([modulePath, module]) => ({
+    path: toRoutePath(modulePath),
+    element: wrapElement(modulePath, module.default),
+  }));
 
 // 2. Combine with manual routes and Error Boundary
 const router = createBrowserRouter([
