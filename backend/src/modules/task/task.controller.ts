@@ -111,7 +111,9 @@ export const getAll = asyncHandler(async (req, res) => {
     assigneeId: req.query.assigneeId,
     creatorOrAssigneeId: targetUserId,
     tagId: req.query.tagId,
-    dueDate: req.query.dueDate
+    dueDate: req.query.dueDate,
+    sortBy: req.query.sortBy,
+    sortOrder: req.query.sortOrder
   };
 
   const { tasks, totalCount } = await taskService.getTasks(

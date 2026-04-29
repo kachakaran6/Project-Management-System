@@ -139,6 +139,8 @@ export interface TaskFilters {
   userId?: string;
   tagIds?: string[];
   dueDate?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }
 
 export interface AssignTaskUsersInput {

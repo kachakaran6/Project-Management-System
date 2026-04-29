@@ -281,7 +281,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   );
 
   const listFilters = useMemo(
-    () => ({ ...sharedFilters, page, limit }),
+    () => ({ ...sharedFilters, page, limit, sortBy: "createdAt", sortOrder: "desc" as const }),
     [sharedFilters, page, limit],
   );
   const kanbanFilters = useMemo(

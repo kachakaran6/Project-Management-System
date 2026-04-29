@@ -951,8 +951,17 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
       });
     }
 
+    const sortParams: Record<string, 1 | -1> = {};
+    if (filter.sortBy) {
+      sortParams[filter.sortBy] = filter.sortOrder === 'asc' ? 1 : -1;
+      if (filter.sortBy !== 'position') sortParams.position = 1;
+    } else {
+      sortParams.position = 1;
+      sortParams.createdAt = -1;
+    }
+
     pipeline.push(
-      { $sort: { position: 1, createdAt: -1 } },
+      { $sort: sortParams },
       { $skip: skip },
       { $limit: limit },
       {
