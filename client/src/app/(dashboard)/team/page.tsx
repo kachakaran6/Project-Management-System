@@ -1,4 +1,3 @@
-"use client";
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -654,7 +653,6 @@ function InviteModal({ open, onOpenChange, onInvite }: { open: boolean; onOpenCh
       onOpenChange(false);
       setEmail("");
     } catch (err: any) {
-      console.error("Invite Error:", err);
       const message = err.response?.data?.message || err.message || "Failed to send invitation";
       toast.error(message);
     } finally {

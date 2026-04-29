@@ -110,14 +110,12 @@ api.interceptors.request.use(
     }
 
     if (import.meta.env.DEV) {
-      console.log(`[API REQUEST] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.data || "");
     }
 
     logApiRequest(config.method ?? "GET", config.url ?? "", config.data);
     return config;
   },
   (error: AxiosError) => {
-    console.error("[API REQUEST ERROR]", error);
     return Promise.reject(error);
   },
 );

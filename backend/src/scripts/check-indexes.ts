@@ -15,9 +15,7 @@ async function check() {
   try {
     await mongoose.connect(MONGO_URI!);
     const indexes = await Task.collection.getIndexes();
-    console.log(JSON.stringify(indexes, null, 2));
   } catch (error) {
-    console.error(error);
   } finally {
     await mongoose.disconnect();
   }

@@ -1,4 +1,3 @@
-"use client";
 
 import { AlertTriangle, Play } from "lucide-react";
 import { useMemo, useState } from "react";

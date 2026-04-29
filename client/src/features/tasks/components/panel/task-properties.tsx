@@ -1,4 +1,3 @@
-"use client";
 
 import { Task } from "@/types/task.types";
 import { 

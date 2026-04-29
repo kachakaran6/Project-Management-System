@@ -53,7 +53,6 @@ export const updateMember = asyncHandler(async (req, res) => {
   const orgId = getTargetOrgId(req);
   const { userId } = req.params;
   
-  console.info(`[OrgController] Updating member ${userId} role to ${role} in org ${orgId}`);
   
   const member = await organizationService.updateOrganizationMemberRole(
     orgId,
@@ -62,7 +61,6 @@ export const updateMember = asyncHandler(async (req, res) => {
     req.user.id,
   );
 
-  console.info(`[OrgController] Successfully updated member ${userId}`);
   return successResponse(res, member, 'Organization member updated successfully.');
 });
 

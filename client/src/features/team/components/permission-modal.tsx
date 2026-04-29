@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -125,7 +124,6 @@ export function PermissionModal({
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load permissions';
       setError(message);
-      console.error('Failed to load permissions:', err);
     } finally {
       setLoading(false);
     }
@@ -162,7 +160,6 @@ export function PermissionModal({
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save permissions';
       setError(message);
-      console.error('Failed to save permissions:', err);
     } finally {
       setSaving(false);
     }

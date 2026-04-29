@@ -1,4 +1,3 @@
-"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AxiosError } from "axios";
@@ -182,9 +181,6 @@ export function CreateTaskModal({
 
   useEffect(() => {
     if (open) {
-      console.log("[DEBUG] Default Assignees:", settingsData?.data?.defaultAssignees);
-      console.log("[DEBUG] Default Status Preference (Settings API):", statusPreferenceData?.data?.defaultTaskStatus);
-      console.log("[DEBUG] Default Status Preference (Auth Store):", user?.settings?.defaultTaskStatus);
     }
   }, [open, settingsData, statusPreferenceData, user]);
 

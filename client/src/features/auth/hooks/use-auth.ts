@@ -1,4 +1,3 @@
-"use client";
 
 import { useCallback } from "react";
 import { toast } from "sonner";
@@ -44,7 +43,6 @@ export function useAuth() {
     try {
       await dispatch(logoutAction());
     } catch (error) {
-      console.error("Logout API failed, clearing local session anyway.", error);
       toast.warning("Session cleared locally.");
     }
   }, [dispatch]);

@@ -55,7 +55,6 @@ export const logAuditEvent = async (entry: AuditLogEntry) => {
 
     return auditLog;
   } catch (error) {
-    console.error('[AuditLog] Failed to log event:', error);
   }
 };
 

@@ -1,4 +1,3 @@
-"use client";
 
 import { useParams, useRouter } from "@/lib/next-navigation";
 import { toast } from "sonner";

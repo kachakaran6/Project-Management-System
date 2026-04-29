@@ -493,7 +493,6 @@ export const saveDraft = async (draftData: Record<string, any>, userId: string, 
     assigneeId
   ].map(id => String(id || '').trim()).filter(Boolean)));
   const normalizedVisibility = normalizeVisibility(visibility);
-  console.log(`[DEBUG] saveDraft: Start. User: ${userId}, Title: ${title}, Project: ${projectId}`);
 
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -557,7 +556,6 @@ export const saveDraft = async (draftData: Record<string, any>, userId: string, 
         },
         { new: true, runValidators: true, session }
       );
-      console.log(`[DEBUG] saveDraft: Updated existing draft. ID: ${draft?._id}`);
     } else {
       const [createdDraft] = await Task.create([{
         ...updatePayload,
@@ -565,7 +563,6 @@ export const saveDraft = async (draftData: Record<string, any>, userId: string, 
         creatorId: userId
       }], { session });
       draft = createdDraft;
-      console.log(`[DEBUG] saveDraft: Created new draft. ID: ${draft._id}`);
     }
 
     if (!draft) {
@@ -625,7 +622,6 @@ export const publishDraft = async (
     }).session(session);
 
     if (!draft) {
-      console.log(`[DEBUG] publishDraft: Draft not found. ID: ${draftId}, User: ${userId}`);
       throw new AppError('Draft not found.', 404);
     }
 
@@ -696,7 +692,6 @@ export const publishDraft = async (
     );
 
     if (!publishedTask) {
-      console.log(`[DEBUG] publishDraft: publishedTask is null. Draft ID: ${draft._id}, User: ${userId}`);
       throw new AppError('Draft not found.', 404);
     }
 

@@ -1,4 +1,3 @@
-"use client";
 
 import { TaskDashboard } from "@/features/tasks/components/task-dashboard";
 

@@ -1,4 +1,3 @@
-"use client";
 
 import {FormWrapper} from "@/components/shared/form-wrapper";
 import {loginSchema, LoginValues} from "./login-schema";

@@ -45,7 +45,6 @@ export function logApiRequest(method: string, url: string, data?: unknown) {
   });
 
   if (!isApiDebugEnabled) return;
-  console.info(`[API][REQ] ${method.toUpperCase()} ${url}`, data ?? "");
 }
 
 export function logApiResponse(

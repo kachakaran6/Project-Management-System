@@ -1,4 +1,3 @@
-"use client";
 
 import { useRouteError, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,6 @@ import { AlertTriangle, RefreshCcw, LayoutDashboard } from "lucide-react";
 
 export default function ErrorBoundary() {
   const error = useRouteError() as any;
-  console.error("Application Error:", error);
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-background">

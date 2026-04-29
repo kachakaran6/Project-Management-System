@@ -74,7 +74,6 @@ export const logStatusChange = async ({
 
     return history;
   } catch (error) {
-    console.error('[logStatusChange] Error logging status change:', error);
     return null;
   }
 };

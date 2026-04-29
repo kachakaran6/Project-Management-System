@@ -20,7 +20,6 @@ export const handlePresence = (socket: Socket, io: Server) => {
       activeUsers
     });
     
-    console.log(`Presence: User ${socket.userId} joined workspace ${workspaceId}`);
   });
 
   socket.on(SOCKET_EVENTS.PRESENCE_LEAVE, ({ workspaceId }: { workspaceId?: string }) => {

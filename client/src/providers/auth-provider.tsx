@@ -44,13 +44,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (delay > 0) {
         const timer = setTimeout(async () => {
-          console.log("[AUTH] Token refresh needed soon...");
         }, delay);
 
         return () => clearTimeout(timer);
       }
     } catch (e) {
-      console.warn("[AUTH] Failed to schedule auto-refresh", e);
     }
   }, [token]);
 

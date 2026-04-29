@@ -15,17 +15,13 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/pms';
 
 async function migrate() {
-  console.log('🚀 Starting Task ID Migration...');
 
   try {
     await mongoose.connect(MONGO_URI);
-    console.log('✅ Connected to Database');
 
     const projects = await Project.find({ isActive: true });
-    console.log(`📂 Found ${projects.length} active projects`);
 
     for (const project of projects) {
-      console.log(`\n--- Processing Project: ${project.name} ---`);
 
       // Phase 1: Ensure Project Code exists
       if (!project.code) {
@@ -55,7 +51,6 @@ async function migrate() {
 
         project.code = code;
         await project.save();
-        console.log(`✨ Assigned project code: ${code}`);
       }
 
       // Phase 2: Get all tasks for this project sorted by creation date
@@ -64,7 +59,6 @@ async function migrate() {
         isActive: true
       }).sort({ createdAt: 1 });
 
-      console.log(`📝 Found ${tasks.length} tasks for project ${project.code}`);
 
       let sequence = 0;
       const bulkOps = [];
@@ -95,22 +89,17 @@ async function migrate() {
       }
 
       if (bulkOps.length > 0) {
-        console.log(`⬆️ Updating ${bulkOps.length} tasks...`);
         // Use bulkWrite for efficiency
         await Task.bulkWrite(bulkOps);
         
         // Update project taskSequence
         project.taskSequence = sequence;
         await project.save();
-        console.log(`✅ Updated ${project.code} tasks. New sequence: ${sequence}`);
       } else {
-        console.log(`⏩ No tasks to update for ${project.code}`);
       }
     }
 
-    console.log('\n🏁 Migration Completed Successfully!');
   } catch (error) {
-    console.error('❌ Migration Failed:', error);
   } finally {
     await mongoose.disconnect();
   }

@@ -254,7 +254,6 @@ export const updateOrganizationMemberRole = async (
       });
     }
   } catch (error) {
-    console.error('[Socket] Failed to emit member_role_changed:', error);
   }
 
   return {
@@ -346,7 +345,6 @@ export const updateMemberPermissions = async (
       });
     }
   } catch (error) {
-    console.error('[Socket] Failed to emit permissions_updated:', error);
   }
 
   return {
@@ -461,7 +459,6 @@ export const removeOrganizationMember = async (organizationId: string, userId: s
       });
     }
   } catch (error) {
-    console.error('[Socket] Failed to emit member_removed:', error);
   }
 
   return { success: true };

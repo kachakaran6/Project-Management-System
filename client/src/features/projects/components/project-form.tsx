@@ -1,4 +1,3 @@
-"use client";
 
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
@@ -73,11 +72,9 @@ export function ProjectForm({
         className="flex flex-col max-h-[75vh] md:max-h-[min(800px,70vh)]"
         onSubmit={form.handleSubmit(
           async (values) => {
-            console.log("Submitting values:", values);
             await onSubmit(values);
           },
           (errors) => {
-            console.error("Form errors:", errors);
             toast.error("Please check the form for errors.");
           }
         )}

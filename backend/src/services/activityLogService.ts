@@ -226,7 +226,6 @@ const buildUnifiedUserMap = async (items: any[]) => {
 };
 
 export async function createActivityLog(input: CreateActivityLogInput) {
-  console.log('Creating activity log:', input);
 
   if (!input.organizationId) {
     throw new AppError('organizationId is required for activity logs.', 400);
@@ -263,7 +262,6 @@ export async function createActivityLog(input: CreateActivityLogInput) {
   try {
     return await ActivityLog.create(payload);
   } catch (error) {
-    console.error('[ActivityLog] Failed to create log:', error);
     throw error;
   }
 }

@@ -1,4 +1,3 @@
-"use client";
 
 import { useMemo, useState } from "react";
 import { Check, Loader2, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";

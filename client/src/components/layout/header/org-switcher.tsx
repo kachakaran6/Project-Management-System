@@ -1,4 +1,3 @@
-"use client";
 
 import { useState } from "react";
 import { Building2, Check, ChevronDown, User2, Loader2 } from "lucide-react";

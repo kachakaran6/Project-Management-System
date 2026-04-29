@@ -1,4 +1,3 @@
-"use client";
 
 import { ComponentType, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "@/lib/next-navigation";
@@ -600,7 +599,6 @@ export default function PageEditorPage() {
       pdf.save(`${title.replace(/\s+/g, "_") || "Page_Export"}.pdf`);
       toast.success("Professional PDF generated", { id: toastId });
     } catch (error) {
-      console.error("PDF Export Critical Failure:", error);
       toast.error("Export failed. Please check content for large images and try again.", { id: toastId });
     }
   };

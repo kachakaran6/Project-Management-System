@@ -1,4 +1,3 @@
-"use client";
 
 import { useState } from "react";
 import { Loader2, SendHorizontal } from "lucide-react";

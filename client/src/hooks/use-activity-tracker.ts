@@ -44,7 +44,6 @@ export function useActivityTracker() {
         }
       }).catch(err => {
         // Silently fail to not interrupt user experience
-        console.debug('Activity tracking failed:', err);
       });
     }, 1000);
 

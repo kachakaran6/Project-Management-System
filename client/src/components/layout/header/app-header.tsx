@@ -104,7 +104,6 @@ export function AppHeader({ title = "Dashboard" }: AppHeaderProps) {
               try {
                 await logout();
               } catch (error) {
-                console.error("Sign out failed unexpectedly.", error);
               }
               router.push("/login");
             }}

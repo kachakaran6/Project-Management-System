@@ -15,9 +15,7 @@ async function check() {
   try {
     await mongoose.connect(MONGO_URI!);
     const s = await Status.findOne();
-    console.log(JSON.stringify(s, null, 2));
   } catch (error) {
-    console.error(error);
   } finally {
     await mongoose.disconnect();
   }

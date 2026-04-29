@@ -128,7 +128,6 @@ export class ErrorAlertService {
       this.sendToTelegram(message).catch(err => console.error('SmartAlert Background Fail:', err));
 
     } catch (err) {
-      console.error('CRITICAL: Smart Error System Failure:', err);
     }
   }
 

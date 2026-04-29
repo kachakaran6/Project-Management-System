@@ -46,7 +46,6 @@ const requiredEnvVars = ["PORT", "MONGO_URI", "NODE_ENV"];
 
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
-    console.error(`❌ Missing required environment variable: ${envVar}`);
     process.exit(1);
   }
 }

@@ -1,4 +1,3 @@
-"use client";
 
 import Link from "@/lib/next-link";
 import { type ElementType, useMemo, useState } from "react";

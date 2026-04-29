@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState, useEffect } from "react";
 import { GithubIcon as Github } from "@/components/icons/github-icon";

@@ -1,4 +1,3 @@
-"use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { githubApi } from "@/features/projects/api/github.api";

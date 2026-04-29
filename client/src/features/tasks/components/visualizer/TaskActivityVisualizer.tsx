@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import ReactFlow, {
@@ -47,7 +46,6 @@ export function TaskActivityVisualizer() {
 
   // Mandatory debug logging
   useEffect(() => {
-    console.log("FINAL STATS SYNC:", { tasks, statuses });
   }, [tasks, statuses]);
 
   // Derived STAGES from Redux statuses

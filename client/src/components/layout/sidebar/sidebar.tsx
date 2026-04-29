@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useEffect } from "react";
 
@@ -188,7 +187,6 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
       await logout();
       router.push("/login");
     } catch (error) {
-      console.error("Logout failed:", error);
     }
   };
 

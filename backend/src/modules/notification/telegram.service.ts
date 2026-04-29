@@ -246,7 +246,6 @@ export const broadcastToOrg = async ({
       }).catch(err => console.error(`Telegram message failed for chatId ${chatId}:`, err))
     );
   } catch (error) {
-    console.error('Telegram broadcast failed:', error);
   }
 };
 
@@ -271,7 +270,6 @@ export const sendDirectNotification = async (userId: string, organizationId: str
       })
     }).catch(err => console.error('Telegram direct message failed:', err));
   } catch (error) {
-    console.error('Telegram direct message failed:', error);
   }
 };
 
@@ -331,7 +329,6 @@ export const syncTelegramConnection = async (userId: string, organizationId: str
 
     return null;
   } catch (error) {
-    console.error('Telegram sync failed:', error);
     throw new AppError('Failed to sync with Telegram', 500);
   }
 };

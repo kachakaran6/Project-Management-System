@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
 
 import React, {useEffect, useMemo, useState} from "react";
 import {zodResolver} from "@hookform/resolvers/zod";
@@ -250,8 +249,6 @@ export function TaskForm({
 
     
     if (dynamicStatuses.length > 0 && (!statusValue || statusValue === "TODO" || statusValue === "BACKLOG" || statusValue === preferredStatusName)) {
-      console.log("[DEBUG] TaskForm - Current statusValue:", statusValue);
-      console.log("[DEBUG] TaskForm - Preferred Status Name:", preferredStatusName);
       
       // 1. Check user preference first
       let targetStatus = null;
@@ -260,13 +257,11 @@ export function TaskForm({
         targetStatus = dynamicStatuses.find(
           (s: any) => s.name.toLowerCase() === preferredStatusName.toLowerCase()
         );
-        console.log("[DEBUG] TaskForm - Found target by preference:", targetStatus?.name);
       }
 
       // 2. Fallback to organization default
       if (!targetStatus) {
         targetStatus = dynamicStatuses.find((s: any) => s.isDefault) || dynamicStatuses[0];
-        console.log("[DEBUG] TaskForm - Falling back to org default:", targetStatus?.name);
       }
 
 

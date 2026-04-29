@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "next-themes";
@@ -1535,7 +1534,6 @@ function IntegrationsSection() {
       const res = await api.get("/telegram/settings");
       setData(res.data.data);
     } catch (error) {
-      console.error("Failed to fetch telegram data", error);
     } finally {
       setLoading(false);
     }
@@ -1757,7 +1755,6 @@ function TelegramOrgSection() {
       const res = await api.get("/telegram/settings");
       setData(res.data.data);
     } catch (error) {
-      console.error("Failed to fetch org telegram data", error);
     } finally {
       setLoading(false);
     }

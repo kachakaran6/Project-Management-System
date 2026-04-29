@@ -73,7 +73,6 @@ export const logEvent = async (data: LogData) => {
     }
   } catch (err) {
     // Fallback if DB logging fails - don't crash the app
-    console.error('CRITICAL: Failed to write log to MongoDB:', err);
   }
 };
 

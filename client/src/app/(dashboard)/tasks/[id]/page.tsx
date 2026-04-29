@@ -1,4 +1,3 @@
-"use client";
 
 import Link from "@/lib/next-link";
 import { useParams, useRouter } from "@/lib/next-navigation";

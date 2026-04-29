@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -365,7 +364,6 @@ export default function GithubPage() {
       }
     } catch (err: any) {
       if (err.response?.status !== 404) {
-        console.error("GitHub data fetch error:", err);
       }
     } finally {
       setLoading(false);

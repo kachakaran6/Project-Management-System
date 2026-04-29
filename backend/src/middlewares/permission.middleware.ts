@@ -45,7 +45,6 @@ export const requirePermission = (permission: string) => {
       }
 
       if (!role) {
-        console.warn(`[PermissionGuard] Denied: No role found for request to ${req.originalUrl}`);
         return res.status(403).json({
           success: false,
           message: "Access denied: No role context.",
@@ -69,9 +68,7 @@ export const requirePermission = (permission: string) => {
           : null;
 
         if (memberRecord) {
-          console.info(`[PermissionGuard] Found member record for user ${userId} in org ${organizationId}. Role: ${memberRecord.role}`);
         } else if (organizationId) {
-          console.warn(`[PermissionGuard] NO member record for user ${userId} in org ${organizationId}`);
         }
 
         // Combine role-based and custom permissions
@@ -102,7 +99,6 @@ export const requirePermission = (permission: string) => {
           message: `Forbidden: Lack of permission '${permission}' for this role.`,
         });
       } catch (dbError) {
-        console.error('[PermissionGuard] DB error checking permissions:', dbError);
         // Fall back to static defaults if DB check fails
         const fallbackPermissions = fallbackPermissionsByRole[role as keyof typeof fallbackPermissionsByRole] || [];
         if (fallbackPermissions.includes(permission)) {
@@ -115,7 +111,6 @@ export const requirePermission = (permission: string) => {
         });
       }
     } catch (error: unknown) {
-      console.error("requirePermission error:", error);
       return res.status(500).json({
         success: false,
         message: "Internal server error while checking permissions.",
@@ -157,7 +152,6 @@ export const userHasPermission = async (
 
     return effectivePermissions.includes(permission);
   } catch (error) {
-    console.error('[PermissionCheck] Error checking permission:', error);
     return false;
   }
 };

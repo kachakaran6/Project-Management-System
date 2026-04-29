@@ -1,4 +1,3 @@
-"use client";
 
 import { LoginForm } from "@/features/auth/login-form";
 import { GuestGuard } from "@/features/auth/components/guards";

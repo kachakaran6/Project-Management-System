@@ -1,4 +1,3 @@
-"use client";
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -64,7 +63,6 @@ export default function CreateProjectPage() {
       toast.success(`Project "${values.name}" created!`);
       router.push("/projects");
     } catch (err: any) {
-      console.error("Create error:", err);
       const message = err?.response?.data?.message || "Failed to create project.";
       toast.error(message);
     }

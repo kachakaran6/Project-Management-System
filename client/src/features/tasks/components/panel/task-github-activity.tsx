@@ -1,4 +1,3 @@
-"use client";
 
 import { ExternalLink, GitPullRequest, GitCommit, GitBranch, Calendar } from "lucide-react";
 import { GithubIcon as Github } from "@/components/icons/github-icon";

@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { AlertCircle, Cookie, X, ShieldAlert, CheckCircle2 } from "lucide-react";

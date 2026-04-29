@@ -43,7 +43,6 @@ export const authSocket = async (socket: Socket, next: (err?: ExtendedError | Er
     next();
   } catch (err: unknown) {
     const error = err as Error;
-    console.error('Socket authentication error:', error.message);
     next(new Error('Authentication error.'));
   }
 };

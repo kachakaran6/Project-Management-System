@@ -136,7 +136,6 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     next();
   } catch (error: unknown) {
     const authError = error as Error & { name?: string };
-    console.error("requireAuth error:", error);
     if (authError.name === "TokenExpiredError") {
       return res.status(401).json({
         success: false,

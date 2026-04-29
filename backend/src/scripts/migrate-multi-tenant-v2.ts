@@ -16,26 +16,21 @@ dotenv.config();
 const migrate = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI!);
-    console.log('Connected to MongoDB');
 
     // 1. Find all users
     const allUsers = await User.find();
-    console.log(`Found ${allUsers.length} users to migrate.`);
     
     // 2. Identify the broken shared "Default Organization"
     const sharedDefaultOrg = await Organization.findOne({ slug: 'default-org' });
     if (sharedDefaultOrg) {
-      console.log(`Shared default organization found: ${sharedDefaultOrg._id}. Will re-scope data.`);
     }
 
     for (const user of allUsers) {
-      console.log(`\nProcessing user: ${user.email} (${user.firstName})`);
       
       // A. Check if user already has a private default organization
       let privateOrg = await Organization.findOne({ ownerId: user._id, isDefault: true });
       
       if (!privateOrg) {
-        console.log(`Creating private default organization for ${user.firstName}...`);
         const orgName = `${user.firstName}'s Workspace`;
         const slug = `${user.firstName.toLowerCase().replace(/\s+/g, '-')}-${Math.random().toString(36).substring(2, 7)}`;
         
@@ -46,9 +41,7 @@ const migrate = async () => {
           isDefault: true,
           isActive: true
         }]);
-        console.log(`Created private org: ${privateOrg._id}`);
       } else {
-        console.log(`User already has private org: ${privateOrg._id}`);
       }
 
       const orgId = privateOrg._id;
@@ -62,7 +55,6 @@ const migrate = async () => {
           role: 'OWNER',
           isActive: true
         });
-        console.log(`Assigned OWNER role to user in private org.`);
       }
 
       // C. Update user's organizationId
@@ -95,23 +87,18 @@ const migrate = async () => {
           { $set: { organizationId: orgId } }
         );
         if (updateResult.modifiedCount > 0) {
-          console.log(`Moved ${updateResult.modifiedCount} ${name} records to private org.`);
         }
       }
     }
 
     // 3. Cleanup: Remove shared default org memberships and then the org itself
     if (sharedDefaultOrg) {
-      console.log('\nCleaning up shared default organization...');
       await OrganizationMember.deleteMany({ organizationId: sharedDefaultOrg._id });
       await Organization.deleteOne({ _id: sharedDefaultOrg._id });
-      console.log('Shared default organization removed.');
     }
 
-    console.log('\nMigration completed successfully!');
     process.exit(0);
   } catch (error) {
-    console.error('Migration failed:', error);
     process.exit(1);
   }
 };

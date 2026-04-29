@@ -243,7 +243,6 @@ export const logActivity = async (params: ActivityParams) => {
       }
 
     } catch (error) {
-      console.error('[ActivityLog] Failed to create activity log from systemTriggers:', error);
     }
   }
 
@@ -383,7 +382,6 @@ export const triggerNotification = async ({
 
     return createdNotifications;
   } catch (error) {
-    console.error('Notification trigger failed:', error);
     return [];
   }
 };

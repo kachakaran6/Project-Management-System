@@ -1,4 +1,3 @@
-"use client";
 
 import { useProjectQuery } from "@/features/projects/hooks/use-projects-query";
 import { 

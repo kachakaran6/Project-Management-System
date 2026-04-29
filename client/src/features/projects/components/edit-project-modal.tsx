@@ -1,4 +1,3 @@
-"use client";
 
 import { toast } from "sonner";
 
@@ -53,7 +52,6 @@ export function EditProjectModal({
       // Actually, standard behavior is fine.
       onOpenChange(false);
     } catch (err: any) {
-      console.error("Update error:", err);
       const message = err?.response?.data?.message || "Failed to update project. Please try again.";
       toast.error(message);
     }

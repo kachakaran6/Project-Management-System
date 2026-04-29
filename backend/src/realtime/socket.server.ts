@@ -28,7 +28,6 @@ export const initSocket = (httpServer: HttpServer) => {
   socketServer.use(authSocket);
 
   socketServer.on('connection', (socket) => {
-    console.log(`Socket Connected: User ${socket.userId} (${socket.id})`);
 
     // Setup room context (Org, User rooms)
     handlers.handleRoomContext(socket);
@@ -38,7 +37,6 @@ export const initSocket = (httpServer: HttpServer) => {
     handlers.handleCollaboration(socket, socketServer);
 
     socket.on('disconnect', () => {
-      console.log(`Socket Disconnected: ${socket.id}`);
     });
   });
 

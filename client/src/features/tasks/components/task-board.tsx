@@ -1,4 +1,3 @@
-"use client";
 // HMR trigger luxury
 
 import { useRouter, useSearchParams, usePathname } from "@/lib/next-navigation";

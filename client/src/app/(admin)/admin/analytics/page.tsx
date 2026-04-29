@@ -1,4 +1,3 @@
-"use client";
 
 import { Activity, Building2, CheckCircle2, Users } from "lucide-react";
 

@@ -1,4 +1,3 @@
-"use client";
 
 import {
   BarChart3,
@@ -75,7 +74,6 @@ export function AppSidebar({
       await logout();
       router.push("/login");
     } catch (error) {
-      console.error("Logout failed:", error);
     }
   };
 
