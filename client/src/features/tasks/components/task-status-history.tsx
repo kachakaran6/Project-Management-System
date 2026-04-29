@@ -38,7 +38,7 @@ export const TaskStatusHistory: React.FC<TaskStatusHistoryProps> = ({ taskId }) 
             <Skeleton className="h-10 w-10 rounded-full shrink-0" />
             <div className="space-y-2 flex-1">
               <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-8 w-full rounded-xl" />
+              <Skeleton className="h-8 w-full rounded-sm" />
             </div>
           </div>
         ))}
@@ -49,7 +49,7 @@ export const TaskStatusHistory: React.FC<TaskStatusHistoryProps> = ({ taskId }) 
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-        <div className="size-12 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive mb-4">
+        <div className="size-12 rounded-sm bg-destructive/10 flex items-center justify-center text-destructive mb-4">
           <AlertCircle className="size-6" />
         </div>
         <h3 className="text-sm font-bold">Failed to load history</h3>
@@ -60,7 +60,7 @@ export const TaskStatusHistory: React.FC<TaskStatusHistoryProps> = ({ taskId }) 
 
   if (history.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-border/60 rounded-3xl bg-muted/5">
+      <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-border/60 rounded-md bg-muted/5">
         <div className="size-14 rounded-full bg-muted flex items-center justify-center text-muted-foreground mb-4">
           <History className="size-6" />
         </div>
@@ -121,7 +121,7 @@ export const TaskStatusHistory: React.FC<TaskStatusHistoryProps> = ({ taskId }) 
                             color: item.fromStatus?.color || '#64748b', 
                             backgroundColor: `${(item.fromStatus?.color || '#64748b')}08` 
                           }}
-                          className="text-[9px] px-1.5 py-0 border-[0.5px] uppercase font-bold tracking-tight h-5 flex items-center"
+                          className="text-[9px] px-1.5 py-0 border-[0.5px] uppercase font-bold tracking-tight h-5 flex items-center rounded-xs"
                         >
                           {item.fromStatus?.name || 'Unknown'}
                         </Badge>
@@ -135,7 +135,7 @@ export const TaskStatusHistory: React.FC<TaskStatusHistoryProps> = ({ taskId }) 
                     
                     <Badge 
                       style={{ backgroundColor: item.toStatus?.color || '#64748b', color: 'white' }}
-                      className="text-[9px] px-1.5 py-0 border-none shadow-sm uppercase font-bold tracking-tight h-5 flex items-center"
+                      className="text-[9px] px-1.5 py-0 border-none shadow-sm uppercase font-bold tracking-tight h-5 flex items-center rounded-xs"
                     >
                       {item.toStatus?.name || 'Unknown'}
                     </Badge>

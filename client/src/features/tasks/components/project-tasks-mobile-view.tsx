@@ -78,7 +78,7 @@ function MobileTaskCard({ task, statusName }: { task: Task; statusName: string }
 
   return (
     <Link href={`/tasks/${taskId}`} className="block active:scale-[0.98] transition-transform">
-      <div className="bg-card/40 backdrop-blur-sm border border-border/10 rounded-2xl px-4 py-3.5 space-y-2.5 hover:border-primary/20 hover:bg-card/60 transition-all">
+      <div className="bg-card/40 backdrop-blur-sm border border-border/10 rounded-md px-4 py-3.5 space-y-2.5 hover:border-primary/20 hover:bg-card/60 transition-all">
         {/* Title row */}
         <div className="flex items-start gap-2">
           <PriorityDot priority={task.priority} />
@@ -100,9 +100,9 @@ function MobileTaskCard({ task, statusName }: { task: Task; statusName: string }
               </span>
             )}
             {assignee ? (
-              <Avatar className="size-5 ring-1 ring-border/20">
+              <Avatar className="size-5 ring-1 ring-border/20 rounded-full">
                 <AvatarImage src={assignee.avatarUrl} />
-                <AvatarFallback className="text-[8px] font-black bg-primary/10 text-primary">
+                <AvatarFallback className="text-[8px] font-black bg-primary/10 text-primary rounded-full">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -132,7 +132,7 @@ function StatusGroup({
   const style = getStatusStyle(statusName);
 
   return (
-    <div className={cn("rounded-2xl overflow-hidden ring-1 transition-all", style.ring)}>
+    <div className={cn("rounded-md overflow-hidden ring-1 transition-all", style.ring)}>
       {/* HEADER */}
       <button
         className="w-full flex items-center justify-between px-4 py-3.5 bg-card/30 backdrop-blur-sm active:bg-muted/30 transition-colors"
@@ -145,7 +145,7 @@ function StatusGroup({
           </span>
           <Badge
             className={cn(
-              "h-5 min-w-[20px] px-1.5 text-[9px] font-black border rounded-full",
+              "h-5 min-w-[20px] px-1.5 text-[9px] font-black border rounded-xs",
               style.badge
             )}
           >
@@ -256,7 +256,7 @@ export function ProjectTasksMobileView({ projectId }: ProjectTasksMobileViewProp
     return (
       <div className="flex flex-col gap-3 pb-[100px]">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-14 rounded-2xl bg-muted/20 animate-pulse" />
+          <div key={i} className="h-14 rounded-md bg-muted/20 animate-pulse" />
         ))}
       </div>
     );
@@ -271,7 +271,7 @@ export function ProjectTasksMobileView({ projectId }: ProjectTasksMobileViewProp
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search tasks..."
-          className="pl-10 h-11 rounded-2xl bg-muted/10 border-border/30 text-sm placeholder:text-muted-foreground/30 focus:ring-primary/20 focus:bg-background"
+          className="pl-10 h-11 rounded-sm bg-muted/10 border-border/30 text-sm placeholder:text-muted-foreground/30 focus:ring-primary/20 focus:bg-background"
         />
       </div>
 
@@ -311,7 +311,7 @@ export function ProjectTasksMobileView({ projectId }: ProjectTasksMobileViewProp
             <CreateTaskModal
               defaultProjectId={projectId}
               trigger={
-                <Button size="sm" className="rounded-xl mt-1 h-9 px-5 text-xs font-bold">
+                <Button size="sm" className="rounded-sm mt-1 h-9 px-5 text-xs font-bold">
                   Create First Task
                 </Button>
               }
@@ -327,7 +327,7 @@ export function ProjectTasksMobileView({ projectId }: ProjectTasksMobileViewProp
           trigger={
             <Button
               size="icon"
-              className="fixed bottom-20 right-4 size-14 rounded-full shadow-2xl shadow-primary/40 z-50 animate-in zoom-in slide-in-from-bottom-10 duration-500 active:scale-95 transition-transform"
+              className="fixed bottom-20 right-4 size-14 rounded-md shadow-2xl shadow-primary/40 z-50 animate-in zoom-in slide-in-from-bottom-10 duration-500 active:scale-95 transition-transform"
             >
               <Plus className="size-7" />
             </Button>

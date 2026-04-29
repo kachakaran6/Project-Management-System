@@ -55,7 +55,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
       <div className="flex items-center gap-2 pb-2">
         <MessageSquare className="size-4 text-muted-foreground/70" />
         <h3 className="text-[12px] font-bold text-muted-foreground/70 uppercase tracking-widest">Activity & Comments</h3>
-        <span className="ml-2 text-[11px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+        <span className="ml-2 text-[11px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-xs">
           {comments.length}
         </span>
       </div>
@@ -67,12 +67,12 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
               <Skeleton className="size-8 rounded-full" />
               <div className="space-y-2 flex-1 pt-1">
                 <Skeleton className="h-4 w-1/4" />
-                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-sm" />
               </div>
             </div>
           </div>
         ) : comments.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground/50 italic text-sm border-2 border-dashed rounded-xl border-muted">
+          <div className="text-center py-10 text-muted-foreground/50 italic text-sm border-2 border-dashed rounded-md border-muted">
             No discussion yet. Be the first to chime in!
           </div>
         ) : (
@@ -111,7 +111,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
                       )}
                     </div>
                     <div className="relative group/content max-w-[90%] flex items-start gap-2">
-                       <div className="text-[14px] bg-accent/20 dark:bg-accent/10 p-3 rounded-lg rounded-tl-none border border-border/40 text-foreground/90 leading-relaxed flex-1">
+                       <div className="text-[14px] bg-accent/20 dark:bg-accent/10 p-3 rounded-sm rounded-tl-none border border-border/40 text-foreground/90 leading-relaxed flex-1">
                         {comment.content}
                       </div>
                       {comment.canDelete && (
@@ -121,7 +121,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
                               deleteCommentMutation.mutate(comment.id || comment._id || "");
                             }
                           }}
-                          className="opacity-0 group-hover/content:opacity-100 p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-md transition-all self-center"
+                          className="opacity-0 group-hover/content:opacity-100 p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-xs transition-all self-center"
                           title="Delete comment"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
@@ -146,7 +146,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Discuss this task..."
-            className="w-full min-h-[100px] p-4 text-sm bg-accent/10 border-border/40 border-2 rounded-xl focus:outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/5 transition-all resize-none placeholder:text-muted-foreground/40"
+            className="w-full min-h-[100px] p-4 text-sm bg-accent/10 border-border/40 border-2 rounded-sm focus:outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/5 transition-all resize-none placeholder:text-muted-foreground/40"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -159,7 +159,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
               size="sm" 
               onClick={() => handleSubmit()} 
               disabled={!content.trim() || createCommentMutation.isPending}
-              className="h-8 rounded-lg shadow-sm font-semibold text-[12px] px-3"
+              className="h-8 rounded-sm shadow-sm font-semibold text-[12px] px-3"
             >
               {createCommentMutation.isPending ? (
                 <Loader2 className="size-3 animate-spin mr-1" />

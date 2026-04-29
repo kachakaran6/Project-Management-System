@@ -38,7 +38,7 @@ export function ResourceFieldArray() {
           type="button"
           variant="outline"
           size="sm"
-          className="h-7 rounded-lg px-2 text-[10px] font-bold uppercase tracking-tight gap-1.5 border-primary/20 text-primary hover:bg-primary/5"
+          className="h-7 rounded-sm px-2 text-[10px] font-bold uppercase tracking-tight gap-1.5 border-primary/20 text-primary hover:bg-primary/5"
           onClick={() => append({ title: "", type: "link", url: "", username: "", password: "", description: "" })}
         >
           <Plus className="size-3" />
@@ -53,13 +53,13 @@ export function ResourceFieldArray() {
           return (
             <div 
               key={field.id} 
-              className="group relative bg-muted/30 p-4 rounded-2xl border border-border/40 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300"
+              className="group relative bg-muted/30 p-4 rounded-md border border-border/40 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300"
             >
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute top-2 right-2 h-7 w-7 rounded-lg text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 h-7 w-7 rounded-sm text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => remove(index)}
               >
                 <Trash2 className="size-3.5" />
@@ -74,11 +74,11 @@ export function ResourceFieldArray() {
                       <FormLabel className="text-[10px] font-bold opacity-60 uppercase tracking-tight">Type</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-9 rounded-xl bg-background border-border/40">
+                          <SelectTrigger className="h-9 rounded-sm bg-background border-border/40">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="rounded-xl">
+                        <SelectContent className="rounded-sm">
                           <SelectItem value="link">Link</SelectItem>
                           <SelectItem value="credential">Credential</SelectItem>
                           <SelectItem value="note">Note</SelectItem>
@@ -95,7 +95,7 @@ export function ResourceFieldArray() {
                     <FormItem>
                       <FormLabel className="text-[10px] font-bold opacity-60 uppercase tracking-tight">Title</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="e.g. AWS Console" className="h-9 rounded-xl bg-background border-border/40" />
+                        <Input {...field} placeholder="e.g. AWS Console" className="h-9 rounded-sm bg-background border-border/40" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -112,7 +112,7 @@ export function ResourceFieldArray() {
                       <FormItem className="sm:col-span-2">
                         <FormLabel className="text-[10px] font-bold opacity-60 uppercase tracking-tight">URL</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="https://..." className="h-9 rounded-xl bg-background border-border/40" />
+                          <Input {...field} placeholder="https://..." className="h-9 rounded-sm bg-background border-border/40" />
                         </FormControl>
                       </FormItem>
                     )}
@@ -128,7 +128,7 @@ export function ResourceFieldArray() {
                         <FormItem>
                           <FormLabel className="text-[10px] font-bold opacity-60 uppercase tracking-tight">Username</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="User" className="h-9 rounded-xl bg-background border-border/40" />
+                            <Input {...field} placeholder="User" className="h-9 rounded-sm bg-background border-border/40" />
                           </FormControl>
                         </FormItem>
                       )}
@@ -140,7 +140,7 @@ export function ResourceFieldArray() {
                         <FormItem>
                           <FormLabel className="text-[10px] font-bold opacity-60 uppercase tracking-tight">Password</FormLabel>
                           <FormControl>
-                            <Input {...field} type="password" placeholder="Pass" className="h-9 rounded-xl bg-background border-border/40" />
+                            <Input {...field} type="password" placeholder="Pass" className="h-9 rounded-sm bg-background border-border/40" />
                           </FormControl>
                         </FormItem>
                       )}
@@ -153,7 +153,7 @@ export function ResourceFieldArray() {
         })}
 
         {fields.length === 0 && (
-          <div className="py-8 text-center border border-dashed border-border/40 rounded-2xl bg-muted/10">
+          <div className="py-8 text-center border border-dashed border-border/40 rounded-md bg-muted/10">
             <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">No initial resources added</p>
           </div>
         )}

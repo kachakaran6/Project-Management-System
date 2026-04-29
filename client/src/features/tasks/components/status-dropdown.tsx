@@ -60,7 +60,7 @@ export function StatusDropdown({ taskId, currentStatus, disabled }: StatusDropdo
     <DropdownMenu>
       <DropdownMenuTrigger asChild disabled={disabled || changeStatus.isPending}>
         <button
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-opacity hover:opacity-80 focus:outline-none ${current.cls}`}
+          className={`inline-flex items-center gap-1.5 rounded-xs border px-2.5 py-0.5 text-xs font-medium transition-opacity hover:opacity-80 focus:outline-none ${current.cls}`}
         >
           {changeStatus.isPending ? (
             <Loader2 className="size-3 animate-spin" />

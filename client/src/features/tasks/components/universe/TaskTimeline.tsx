@@ -87,7 +87,7 @@ const TimelineNode = ({ event, index, isDark }: { event: TimelineEvent, index: n
 
       {/* Glassmorphic Node Card */}
       <div className={cn(
-        "w-[42%] p-4 rounded-2xl backdrop-blur-2xl border shadow-2xl relative overflow-hidden group",
+        "w-[42%] p-4 rounded-md backdrop-blur-2xl border shadow-2xl relative overflow-hidden group",
         isDark ? "bg-white/[0.03] border-white/5" : "bg-white/80 border-black/5 shadow-xl",
         isLeft ? "rounded-tl-none mr-[58%]" : "rounded-tr-none ml-[58%]"
       )}>
@@ -95,7 +95,7 @@ const TimelineNode = ({ event, index, isDark }: { event: TimelineEvent, index: n
         {isDark && <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none" />}
         
         <div className={cn("flex items-center gap-1.5 mb-2", isLeft ? "justify-start" : "justify-end")}>
-          <div className={cn("flex items-center gap-1 px-1.5 py-0.5 rounded-full border", isDark ? "bg-white/5 border-white/5" : "bg-black/5 border-black/5")}>
+          <div className={cn("flex items-center gap-1 px-1.5 py-0.5 rounded-xs border", isDark ? "bg-white/5 border-white/5" : "bg-black/5 border-black/5")}>
             <Clock className={cn("size-2", isDark ? "text-white/40" : "text-black/40")} />
             <span className={cn("text-[8px] font-bold tracking-wider", isDark ? "text-white/60" : "text-black/60")}>
               {format(event.timestamp, 'HH:mm')}
@@ -213,7 +213,7 @@ export const TaskTimeline: React.FC<TaskTimelineProps> = ({ tasks }) => {
         >
           <div className="flex items-center gap-3">
             <h1 className={cn("text-3xl font-bold tracking-tighter", isDark ? "text-white/90" : "text-black/90")}>Task Odyssey</h1>
-            <div className={cn("px-2 py-0.5 rounded-md border", isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10")}>
+            <div className={cn("px-2 py-0.5 rounded-xs border", isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10")}>
               <span className="text-[10px] font-black uppercase tracking-widest text-primary">Beta</span>
             </div>
           </div>
@@ -255,7 +255,7 @@ export const TaskTimeline: React.FC<TaskTimelineProps> = ({ tasks }) => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
-                className={cn("px-6 py-2 rounded-full backdrop-blur-xl border shadow-2xl", isDark ? "bg-white/5 border-white/10" : "bg-white/90 border-black/5")}
+                className={cn("px-6 py-2 rounded-md backdrop-blur-xl border shadow-2xl", isDark ? "bg-white/5 border-white/10" : "bg-white/90 border-black/5")}
               >
                 <span className={cn("text-[10px] font-black uppercase tracking-[0.4em]", isDark ? "text-white/40" : "text-black/40")}>
                   {isToday(new Date(date)) ? 'Present' : isYesterday(new Date(date)) ? 'Yesterday' : format(new Date(date), 'MMMM d')}

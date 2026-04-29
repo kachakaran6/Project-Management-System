@@ -85,11 +85,11 @@ export function ResourceCard({
   };
 
   return (
-    <Card className="group relative overflow-hidden rounded-2xl border-border/40 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
+    <Card className="group relative overflow-hidden rounded-md border-border/40 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
       <CardHeader className="p-5 pb-3 flex flex-row items-start justify-between space-y-0">
         <div className="space-y-1.5 flex-1 min-w-0 pr-4">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className={cn("h-5 px-1.5 rounded-md text-[10px] uppercase font-bold tracking-wider", getTypeColor())}>
+            <Badge variant="outline" className={cn("h-5 px-1.5 rounded-xs text-[10px] uppercase font-bold tracking-wider", getTypeColor())}>
               {resource.type}
             </Badge>
             <h3 className="font-bold text-base tracking-tight truncate">{resource.title}</h3>
@@ -103,11 +103,11 @@ export function ResourceCard({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity">
               <MoreVertical className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="rounded-xl">
+          <DropdownMenuContent align="end" className="rounded-sm">
             <DropdownMenuItem onClick={() => onEdit(resource)} className="gap-2 text-sm">
               <Edit2 className="size-3.5" />
               Edit
@@ -128,7 +128,7 @@ export function ResourceCard({
         {/* Content Section */}
         <div className="space-y-2.5">
           {resource.url && (
-            <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-muted/30 border border-border/10 group/item">
+            <div className="flex items-center justify-between gap-2 p-2 rounded-sm bg-muted/30 border border-border/10 group/item">
               <div className="flex items-center gap-2 min-w-0">
                 <Globe className="size-3.5 text-muted-foreground shrink-0" />
                 <span className="text-xs font-medium truncate text-muted-foreground/80">{resource.url}</span>
@@ -137,12 +137,12 @@ export function ResourceCard({
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-9 w-9 rounded-xl hover:bg-muted/50 active:scale-90 transition-all" 
+                  className="h-9 w-9 rounded-sm hover:bg-muted/50 active:scale-90 transition-all" 
                   onClick={() => copyToClipboard(resource.url!, "URL")}
                 >
                   {copiedField === "URL" ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4" />}
                 </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-muted/50 active:scale-90 transition-all" asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-sm hover:bg-muted/50 active:scale-90 transition-all" asChild>
                   <a href={resource.url} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="size-4" />
                   </a>
@@ -154,7 +154,7 @@ export function ResourceCard({
           {resource.type === "credential" && (
             <div className="space-y-2">
               {resource.username && (
-                <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-muted/30 border border-border/10 group/item">
+                <div className="flex items-center justify-between gap-2 p-2 rounded-sm bg-muted/30 border border-border/10 group/item">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest shrink-0">User</span>
                     <span className="text-xs font-bold truncate">{resource.username}</span>
@@ -162,7 +162,7 @@ export function ResourceCard({
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-9 w-9 rounded-xl shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-muted/50 active:scale-90" 
+                    className="h-9 w-9 rounded-sm shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-muted/50 active:scale-90" 
                     onClick={() => copyToClipboard(resource.username!, "Username")}
                   >
                     {copiedField === "Username" ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4" />}
@@ -170,7 +170,7 @@ export function ResourceCard({
                 </div>
               )}
 
-              <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-muted/30 border border-border/10 group/item">
+              <div className="flex items-center justify-between gap-2 p-2 rounded-sm bg-muted/30 border border-border/10 group/item">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest shrink-0">Pass</span>
                   <span className={cn(
@@ -184,7 +184,7 @@ export function ResourceCard({
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-9 w-9 rounded-xl hover:bg-muted/50 active:scale-90 transition-all" 
+                    className="h-9 w-9 rounded-sm hover:bg-muted/50 active:scale-90 transition-all" 
                     onClick={handleReveal}
                     disabled={isLoading}
                   >
@@ -194,7 +194,7 @@ export function ResourceCard({
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-9 w-9 rounded-xl hover:bg-muted/50 active:scale-90 transition-all" 
+                      className="h-9 w-9 rounded-sm hover:bg-muted/50 active:scale-90 transition-all" 
                       onClick={() => copyToClipboard(decryptedPassword, "Password")}
                     >
                       {copiedField === "Password" ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4" />}
@@ -210,7 +210,7 @@ export function ResourceCard({
         {resource.tags && resource.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {resource.tags.map(tag => (
-              <span key={tag} className="text-[10px] font-bold text-muted-foreground/60 bg-muted px-2 py-0.5 rounded-full border border-border/10">
+              <span key={tag} className="text-[10px] font-bold text-muted-foreground/60 bg-muted px-2 py-0.5 rounded-xs border border-border/10">
                 #{tag}
               </span>
             ))}

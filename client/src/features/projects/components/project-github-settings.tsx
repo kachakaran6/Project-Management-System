@@ -75,10 +75,10 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/40 bg-card/50 overflow-hidden rounded-[24px]">
+      <Card className="border-border/40 bg-card/50 overflow-hidden rounded-md">
         <CardHeader className="bg-primary/5 border-b border-border/10">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-foreground text-background rounded-lg">
+            <div className="p-2 bg-foreground text-background rounded-sm">
               <Github className="size-5" />
             </div>
             <div>
@@ -91,7 +91,7 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="flex items-center justify-between p-4 bg-muted/5 rounded-2xl border border-border/40">
+            <div className="flex items-center justify-between p-4 bg-muted/5 rounded-md border border-border/40">
               <div className="space-y-0.5">
                 <Label className="text-sm font-bold">Enable Integration</Label>
                 <p className="text-[11px] text-muted-foreground">Activate GitHub webhook processing for this project.</p>
@@ -111,7 +111,7 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
                       placeholder="https://github.com/user/repo" 
                       value={formData.repoUrl}
                       onChange={(e) => setFormData(prev => ({ ...prev, repoUrl: e.target.value }))}
-                      className="rounded-xl bg-muted/10 border-border/40 h-11"
+                      className="rounded-sm bg-muted/10 border-border/40 h-11"
                     />
                     <p className="text-[10px] text-muted-foreground px-1">Must match the URL GitHub sends in the webhook payload.</p>
                   </div>
@@ -123,7 +123,7 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
                       placeholder="Your GitHub Webhook Secret" 
                       value={formData.webhookSecret}
                       onChange={(e) => setFormData(prev => ({ ...prev, webhookSecret: e.target.value }))}
-                      className="rounded-xl bg-muted/10 border-border/40 h-11"
+                      className="rounded-sm bg-muted/10 border-border/40 h-11"
                     />
                     <p className="text-[10px] text-muted-foreground px-1">Highly recommended for security. Set this in your GitHub Repo Settings &rarr; Webhooks.</p>
                   </div>
@@ -136,12 +136,12 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
                       type="password"
                       placeholder={formData.hasAccessToken ? "••••••••  (token already saved — leave blank to keep)" : "ghp_xxxxxxxxxxxx"}
                       onChange={(e) => setFormData(prev => ({ ...prev, accessToken: e.target.value }))}
-                      className="rounded-xl bg-muted/10 border-border/40 h-11"
+                      className="rounded-sm bg-muted/10 border-border/40 h-11"
                     />
                     <p className="text-[10px] text-muted-foreground px-1">
                       Required for the <strong>Full Activity Feed</strong> (5,000 req/hr). 
                       Generate at <strong>GitHub → Settings → Developer settings → Personal access tokens</strong>.
-                      Needs <code className="bg-muted/30 px-1 rounded">repo</code> scope for private repos.
+                      Needs <code className="bg-muted/30 px-1 rounded-xs">repo</code> scope for private repos.
                     </p>
                     {formData.hasAccessToken && (
                       <p className="text-[10px] text-emerald-600 font-bold px-1">✓ A token is currently saved for this project.</p>
@@ -149,7 +149,7 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                <div className="flex items-center justify-between p-4 bg-primary/5 rounded-md border border-primary/10">
                   <div className="space-y-0.5">
                     <Label className="text-sm font-bold">Auto Status Updates</Label>
                     <p className="text-[11px] text-muted-foreground">Automatically move tasks to "In Progress" or "Done" based on keywords in commit messages.</p>
@@ -160,7 +160,7 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
                   />
                 </div>
 
-                <div className="p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10 space-y-3">
+                <div className="p-4 bg-blue-500/5 rounded-md border border-blue-500/10 space-y-3">
                   <div className="flex items-center gap-2 text-blue-500">
                     <Info className="size-4" />
                     <span className="text-xs font-bold uppercase tracking-wider">How to Setup</span>
@@ -179,14 +179,14 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
                     </p>
                     
                     <div className="flex items-center gap-2 mt-2">
-                      <div className="flex-1 bg-muted/20 rounded-lg px-3 py-2 text-[10px] font-mono truncate border border-border/20">
+                      <div className="flex-1 bg-muted/20 rounded-sm px-3 py-2 text-[10px] font-mono truncate border border-border/20">
                         {window.location.origin.replace(":3000", ":5000")}/api/v1/github/webhook
                       </div>
                       <Button 
                         type="button" 
                         variant="ghost" 
                         size="icon" 
-                        className="size-8 rounded-lg"
+                        className="size-8 rounded-sm"
                         onClick={handleCopyWebhookUrl}
                       >
                         {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
@@ -201,7 +201,7 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
               <Button 
                 type="submit" 
                 disabled={updateMutation.isPending}
-                className="rounded-xl h-11 px-8 font-bold gap-2 min-w-[140px]"
+                className="rounded-sm h-11 px-8 font-bold gap-2 min-w-[140px]"
               >
                 {updateMutation.isPending && <Loader2 className="size-4 animate-spin" />}
                 Save Configuration
@@ -211,7 +211,7 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
         </CardContent>
       </Card>
       
-      <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex gap-3">
+      <div className="p-4 rounded-md bg-amber-500/5 border border-amber-500/10 flex gap-3">
         <ExternalLink className="size-4 text-amber-500 shrink-0 mt-0.5" />
         <p className="text-[11px] text-muted-foreground leading-relaxed">
           <strong className="text-amber-600 block mb-1">Developer Guidelines</strong>

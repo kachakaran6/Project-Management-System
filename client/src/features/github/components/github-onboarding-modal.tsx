@@ -9,7 +9,9 @@ import {
   ArrowRight,
   Sparkles,
   Command,
-  Layout
+  Layout,
+  Link2,
+  ShieldCheck
 } from "lucide-react";
 import { GithubIcon as Github } from "@/components/icons/github-icon";
 import {
@@ -40,83 +42,77 @@ export const GithubOnboardingModal = () => {
     setIsOpen(false);
   };
 
-  const steps = [
-    {
-      icon: Github,
-      title: "Connect & Link",
-      description: "Authorize your account and link repositories to your workspace with one click.",
-      color: "text-blue-500",
-      bg: "bg-blue-500/10"
-    },
-    {
-      icon: Command,
-      title: "Use Task Codes",
-      description: "Include IDs like 'PMS-123' in your commits or branches to enable automation.",
-      color: "text-purple-500",
-      bg: "bg-purple-500/10"
-    },
-    {
-      icon: Zap,
-      title: "Auto-Automation",
-      description: "Tasks move through 'Done' or 'Review' automatically based on your code activity.",
-      color: "text-amber-500",
-      bg: "bg-amber-500/10"
-    }
-  ];
-
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl rounded-3xl bg-background">
-        <div className="relative p-6 sm:p-8 space-y-6">
-          {/* Header Visual */}
-          <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-            <Github className="size-48 rotate-12" />
-          </div>
-
-          <DialogHeader className="relative z-10 space-y-3 text-left">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary w-fit border border-primary/20">
-              <Sparkles className="size-3" />
-              <span className="text-[10px] font-black uppercase tracking-widest">New Experience</span>
-            </div>
-            <DialogTitle className="text-2xl sm:text-3xl font-black tracking-tight text-foreground leading-tight">
-              Developer <br />Control Center
-            </DialogTitle>
-            <DialogDescription className="text-sm font-medium text-muted-foreground leading-relaxed max-w-[340px]">
-              Your GitHub workflow is now seamlessly integrated with your workspace tasks.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-6 py-4">
-            {steps.map((step, idx) => (
-              <div key={idx} className="flex gap-4 group">
-                <div className={cn(
-                  "size-10 rounded-2xl shrink-0 flex items-center justify-center transition-all group-hover:scale-110",
-                  step.bg,
-                  step.color
-                )}>
-                  <step.icon className="size-5" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-foreground leading-none">{step.title}</h4>
-                  <p className="text-[11px] font-medium text-muted-foreground leading-normal">
-                    {step.description}
-                  </p>
-                </div>
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl rounded-md bg-background">
+        <div className="relative">
+          {/* Decorative Header with pattern */}
+          <div className="h-28 bg-gradient-to-br from-primary via-primary/90 to-primary/80 relative overflow-hidden">
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+            <div className="absolute bottom-4 left-6">
+              <div className="flex items-center gap-2 px-3 py-1 rounded-xs bg-primary/10 text-primary w-fit border border-primary/20 backdrop-blur-md bg-white/10">
+                <Github className="size-4" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">GitHub Integration</span>
               </div>
-            ))}
+              <h2 className="text-2xl font-black text-white mt-1 tracking-tight">Welcome to Orbit</h2>
+            </div>
           </div>
 
-          <div className="pt-2">
+          <div className="p-6 space-y-6">
+            <div className="grid gap-4">
+              {[
+                { 
+                  icon: <Link2 className="size-5" />, 
+                  title: "Link Repositories", 
+                  desc: "Connect your GitHub repos to workspace projects effortlessly.",
+                  color: "bg-blue-500/10 text-blue-500"
+                },
+                { 
+                  icon: <GitBranch className="size-5" />, 
+                  title: "Smart Tracking", 
+                  desc: "Tasks move to 'In Progress' automatically when you create a branch.",
+                  color: "bg-emerald-500/10 text-emerald-500"
+                },
+                { 
+                  icon: <ShieldCheck className="size-5" />, 
+                  title: "Sync History", 
+                  desc: "See commit logs and PR activity directly inside your tasks.",
+                  color: "bg-purple-500/10 text-purple-500"
+                }
+              ].map((feature, i) => (
+                <div key={i} className="flex gap-4 group">
+                  <div className={cn(
+                    "size-10 rounded-sm shrink-0 flex items-center justify-center transition-all group-hover:scale-110",
+                    feature.color
+                  )}>
+                    {feature.icon}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground mb-0.5">{feature.title}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{feature.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-muted/30 p-4 rounded-md border border-border/40">
+              <div className="flex items-center gap-2 text-xs font-bold text-foreground mb-2">
+                <span className="flex size-5 items-center justify-center rounded-xs bg-primary text-primary-foreground text-[10px]">!</span>
+                Pro Tip: Task Automation
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Include the Task ID (e.g., <code className="bg-primary/10 text-primary px-1 rounded-xs">PMS-123</code>) in your branch name or commit message to link activity automatically.
+              </p>
+            </div>
+
             <Button 
               onClick={handleClose}
-              className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all group"
+              className="w-full h-12 rounded-sm bg-primary text-primary-foreground font-bold text-sm shadow-xl shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all group"
             >
               Get Started
-              <ArrowRight className="ml-2 size-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="size-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <p className="text-center mt-4 text-[10px] font-medium text-muted-foreground/60 uppercase tracking-widest">
-              Ready to automate your workflow?
-            </p>
           </div>
         </div>
       </DialogContent>

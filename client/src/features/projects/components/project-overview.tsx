@@ -170,8 +170,8 @@ export function ProjectOverview({ projectId }: ProjectOverviewProps) {
 
 function InsightCard({ label, value, icon, color }: { label: string; value: string | number; icon: React.ReactNode; color: string }) {
   return (
-    <Card className="rounded-xl border-0 ring-1 ring-border/10 bg-card/20 backdrop-blur-md p-3 hover:ring-primary/20 transition-all group overflow-hidden relative">
-      <div className={cn("p-1.5 rounded-lg w-fit mb-2", color)}>{icon}</div>
+    <Card className="rounded-md border-0 ring-1 ring-border/10 bg-card/20 backdrop-blur-md p-3 hover:ring-primary/20 transition-all group overflow-hidden relative">
+      <div className={cn("p-1.5 rounded-sm w-fit mb-2", color)}>{icon}</div>
       <div className="flex flex-col">
         <span className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest mb-0.5">{label}</span>
         <span className="text-lg font-black tracking-tight">{value}</span>
@@ -183,7 +183,7 @@ function InsightCard({ label, value, icon, color }: { label: string; value: stri
 function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-start gap-3 group">
-      <div className="p-1.5 rounded-lg bg-muted/20 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors shrink-0">
+      <div className="p-1.5 rounded-sm bg-muted/20 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors shrink-0">
         {icon}
       </div>
       <div className="flex flex-col min-w-0">

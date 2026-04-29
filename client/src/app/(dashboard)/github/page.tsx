@@ -84,7 +84,7 @@ const RepoStatusBadge = ({ status }: { status: string }) => {
 const GithubProfileChip = ({ account, onDisconnect, onConnect, isDisconnecting }: any) => {
   if (!account) {
     return (
-      <Button onClick={onConnect} size="sm" className="h-7 rounded-md px-3 font-bold bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-sm text-[10px]">
+      <Button onClick={onConnect} size="sm" className="h-7 rounded-sm px-3 font-bold bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-sm text-[10px]">
         <Github className="mr-1.5 size-3" />
         Connect
       </Button>
@@ -94,7 +94,7 @@ const GithubProfileChip = ({ account, onDisconnect, onConnect, isDisconnecting }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 px-1.5 rounded-lg hover:bg-muted/50 gap-2 border border-border/40 shrink-0">
+        <Button variant="ghost" className="h-8 px-1.5 rounded-sm hover:bg-muted/50 gap-2 border border-border/40 shrink-0">
           <Avatar className="size-5 border border-border/60">
             <AvatarImage src={account.avatarUrl} />
             <AvatarFallback className="bg-primary/5 text-primary text-[7px] font-bold">{account.username?.[0]}</AvatarFallback>
@@ -108,9 +108,9 @@ const GithubProfileChip = ({ account, onDisconnect, onConnect, isDisconnecting }
           </div>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/60 shadow-xl p-1">
+      <DropdownMenuContent align="end" className="w-48 rounded-md border-border/60 shadow-xl p-1">
         <DropdownMenuItem
-          className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer font-bold text-xs py-2"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-sm cursor-pointer font-bold text-xs py-2"
           disabled={isDisconnecting}
           onClick={onDisconnect}
         >
@@ -138,7 +138,7 @@ const RepositoryRowDesktop = ({ repo, status, onLink, onUnlink, isLinking, isUnl
     <div className="group flex items-center h-14 py-2 px-4 hover:bg-muted/30 border-b border-border/20 last:border-0 transition-all">
       {/* LEFT: Identity (Flexible) */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="size-8 rounded-lg bg-primary/5 flex items-center justify-center shrink-0 border border-primary/10">
+        <div className="size-8 rounded-sm bg-primary/5 flex items-center justify-center shrink-0 border border-primary/10">
           <Github className="size-4 text-primary/70" />
         </div>
         <div className="flex flex-col min-w-0">
@@ -176,7 +176,7 @@ const RepositoryRowDesktop = ({ repo, status, onLink, onUnlink, isLinking, isUnl
         <Button
           variant="ghost"
           size="icon"
-          className="size-8 rounded-lg text-muted-foreground hover:bg-primary/5 hover:text-primary transition-all"
+          className="size-8 rounded-sm text-muted-foreground hover:bg-primary/5 hover:text-primary transition-all"
           onClick={() => window.open(repo.html_url || `https://github.com/${repo.fullName}`, '_blank')}
         >
           <ExternalLink className="size-3.5" />
@@ -186,7 +186,7 @@ const RepositoryRowDesktop = ({ repo, status, onLink, onUnlink, isLinking, isUnl
           <Button
             variant="ghost"
             size="icon"
-            className="size-8 rounded-lg text-destructive hover:bg-destructive/10 transition-all lg:opacity-0 lg:group-hover:opacity-100"
+            className="size-8 rounded-sm text-destructive hover:bg-destructive/10 transition-all lg:opacity-0 lg:group-hover:opacity-100"
             disabled={isUnlinking}
             onClick={onUnlink}
           >
@@ -196,7 +196,7 @@ const RepositoryRowDesktop = ({ repo, status, onLink, onUnlink, isLinking, isUnl
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 px-3 rounded-lg font-black uppercase tracking-widest text-[9px] text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all"
+            className="h-8 px-3 rounded-sm font-black uppercase tracking-widest text-[9px] text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all"
             disabled={isLinking}
             onClick={() => onLink(repo)}
           >
@@ -208,7 +208,7 @@ const RepositoryRowDesktop = ({ repo, status, onLink, onUnlink, isLinking, isUnl
           <Button
             variant="outline"
             size="sm"
-            className="h-8 px-3 rounded-lg font-black uppercase tracking-widest text-[9px] border-amber-500/20 bg-amber-500/5 text-amber-600 hover:bg-amber-600 hover:text-white transition-all shadow-sm"
+            className="h-8 px-3 rounded-sm font-black uppercase tracking-widest text-[9px] border-amber-500/20 bg-amber-500/5 text-amber-600 hover:bg-amber-600 hover:text-white transition-all shadow-sm"
             disabled={isLinking}
             onClick={() => onLink(repo)}
           >
@@ -229,10 +229,10 @@ const RepositoryCardMobile = ({ repo, status, onLink, onUnlink, isLinking, isUnl
   const isLegacy = status === "legacy";
 
   return (
-    <div className="p-4 bg-card/40 rounded-xl border border-border/40 space-y-3">
+    <div className="p-4 bg-card/40 rounded-md border border-border/40 space-y-3">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="size-8 rounded-lg bg-primary/5 flex items-center justify-center">
+          <div className="size-8 rounded-sm bg-primary/5 flex items-center justify-center">
             <Github className="size-4 text-primary" />
           </div>
           <div className="min-w-0">
@@ -254,7 +254,7 @@ const RepositoryCardMobile = ({ repo, status, onLink, onUnlink, isLinking, isUnl
         <Button
           variant="outline"
           size="sm"
-          className="h-9 flex-1 rounded-lg text-[10px] font-bold"
+          className="h-9 flex-1 rounded-sm text-[10px] font-bold"
           onClick={() => window.open(repo.html_url || `https://github.com/${repo.fullName}`, '_blank')}
         >
           <ExternalLink className="size-3 mr-1.5" />
@@ -265,7 +265,7 @@ const RepositoryCardMobile = ({ repo, status, onLink, onUnlink, isLinking, isUnl
           <Button
             variant="ghost"
             size="sm"
-            className="h-9 px-3 rounded-lg text-destructive hover:bg-destructive/10"
+            className="h-9 px-3 rounded-sm text-destructive hover:bg-destructive/10"
             disabled={isUnlinking}
             onClick={onUnlink}
           >
@@ -274,7 +274,7 @@ const RepositoryCardMobile = ({ repo, status, onLink, onUnlink, isLinking, isUnl
         ) : !isLegacy ? (
           <Button
             size="sm"
-            className="h-9 flex-1 rounded-lg text-[10px] font-bold bg-primary text-primary-foreground"
+            className="h-9 flex-1 rounded-sm text-[10px] font-bold bg-primary text-primary-foreground"
             disabled={isLinking}
             onClick={() => onLink(repo)}
           >
@@ -284,7 +284,7 @@ const RepositoryCardMobile = ({ repo, status, onLink, onUnlink, isLinking, isUnl
           <Button
             variant="outline"
             size="sm"
-            className="h-9 flex-1 rounded-lg text-[10px] font-bold border-amber-500/20 bg-amber-500/5 text-amber-600"
+            className="h-9 flex-1 rounded-sm text-[10px] font-bold border-amber-500/20 bg-amber-500/5 text-amber-600"
             disabled={isLinking}
             onClick={() => onLink(repo)}
           >
@@ -297,7 +297,7 @@ const RepositoryCardMobile = ({ repo, status, onLink, onUnlink, isLinking, isUnl
 };
 
 const ActivityItemMobile = ({ activity }: any) => (
-  <div className="p-3 bg-card/40 rounded-xl border border-border/40 flex gap-3" onClick={() => window.open(activity.url, '_blank')}>
+  <div className="p-3 bg-card/40 rounded-md border border-border/40 flex gap-3" onClick={() => window.open(activity.url, '_blank')}>
     <Avatar className="size-8 shrink-0 border border-border/40">
       <AvatarImage src={activity.author.avatarUrl} />
       <AvatarFallback className="text-[10px] font-black uppercase">{activity.author.username?.slice(0, 2)}</AvatarFallback>
@@ -458,12 +458,12 @@ export default function GithubPage() {
         </header>
 
         <Tabs defaultValue="repos" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 h-10 p-1 bg-muted/40 rounded-xl">
-            <TabsTrigger value="repos" className="rounded-lg text-xs font-bold gap-2">
+          <TabsList className="w-full grid grid-cols-2 h-10 p-1 bg-muted/40 rounded-md">
+            <TabsTrigger value="repos" className="rounded-sm text-xs font-bold gap-2">
               <LayoutGrid className="size-3.5" />
               Repositories
             </TabsTrigger>
-            <TabsTrigger value="activity" className="rounded-lg text-xs font-bold gap-2">
+            <TabsTrigger value="activity" className="rounded-sm text-xs font-bold gap-2">
               <History className="size-3.5" />
               Activity
             </TabsTrigger>
@@ -474,7 +474,7 @@ export default function GithubPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <input
                 placeholder="Search repositories..."
-                className="w-full h-10 rounded-xl border border-border/40 bg-card/40 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                className="w-full h-10 rounded-sm border border-border/40 bg-card/40 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -482,7 +482,7 @@ export default function GithubPage() {
 
             <div className="space-y-3">
               {repos.length === 0 && !loading && (
-                <div className="p-8 text-center bg-muted/5 rounded-xl border border-dashed border-border/60">
+                <div className="p-8 text-center bg-muted/5 rounded-md border border-dashed border-border/60">
                   <p className="text-xs font-bold text-muted-foreground">No repositories found.</p>
                 </div>
               )}
@@ -521,18 +521,18 @@ export default function GithubPage() {
       </div>
 
       {/* 🖥️ DESKTOP LAYOUT (>= 1024px) */}
-      <main className="hidden lg:flex flex-1 overflow-hidden gap-4">
+      <main className="hidden lg:flex flex-1 overflow-hidden gap-4 p-4">
         {/* LEFT: REPOSITORY PANEL */}
-        <section className="flex-[0.7] flex flex-col min-w-0 bg-white/50 dark:bg-card/20 rounded-xl border border-border/60 shadow-sm overflow-hidden">
+        <section className="flex-[0.7] flex flex-col min-w-0 bg-white/50 dark:bg-card/20 rounded-md border border-border/60 shadow-sm overflow-hidden">
           <div className="px-4 py-2 border-b border-border/40 flex items-center gap-4 shrink-0 bg-muted/5">
             <div className="flex items-center gap-2">
-              <div className="size-6 rounded-lg bg-primary flex items-center justify-center text-primary-foreground shadow-sm shrink-0">
+              <div className="size-6 rounded-sm bg-primary flex items-center justify-center text-primary-foreground shadow-sm shrink-0">
                 <Github className="size-3.5" />
               </div>
               <div className="flex flex-col">
                 <h2 className="text-[11px] font-black uppercase tracking-tight text-foreground leading-none">GitHub</h2>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <Badge variant="outline" className="h-3 px-1 rounded-full text-[7px] font-black bg-primary/5 text-primary border-primary/20 leading-none">
+                  <Badge variant="outline" className="h-3 px-1 rounded-xs text-[7px] font-black bg-primary/5 text-primary border-primary/20 leading-none">
                     {repos.length} REPOS
                   </Badge>
                 </div>
@@ -545,7 +545,7 @@ export default function GithubPage() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-2.5 text-muted-foreground" />
               <input
                 placeholder="Search..."
-                className="w-full h-7 rounded-md border border-border/40 bg-white/80 dark:bg-card/40 pl-7 text-[10px] font-medium focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all"
+                className="w-full h-7 rounded-sm border border-border/40 bg-white/80 dark:bg-card/40 pl-7 text-[10px] font-medium focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -561,10 +561,10 @@ export default function GithubPage() {
 
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             {!loading && !account && (
-              <div className="p-4 flex items-center gap-3 bg-muted/5 rounded-lg m-4 border border-dashed border-border/60">
+              <div className="p-4 flex items-center gap-3 bg-muted/5 rounded-sm m-4 border border-dashed border-border/60">
                 <Github className="size-4 text-muted-foreground" />
                 <span className="text-[11px] font-bold text-muted-foreground flex-1">Authorize access to see your repositories.</span>
-                <Button onClick={handleConnect} size="sm" className="h-7 px-3 text-[10px] font-bold bg-primary text-primary-foreground">Connect Account</Button>
+                <Button onClick={handleConnect} size="sm" className="h-7 px-3 text-[10px] font-bold bg-primary text-primary-foreground rounded-sm">Connect Account</Button>
               </div>
             )}
 
@@ -597,7 +597,7 @@ export default function GithubPage() {
         </section>
 
         {/* RIGHT: ACTIVITY PANEL */}
-        <section className="flex-[0.3] flex flex-col min-w-0 bg-white/50 dark:bg-card/20 rounded-xl border border-border/60 shadow-sm overflow-hidden">
+        <section className="flex-[0.3] flex flex-col min-w-0 bg-white/50 dark:bg-card/20 rounded-md border border-border/60 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between shrink-0 bg-muted/5">
             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground">Live Activity</h2>
             <History className="size-3 text-muted-foreground" />
@@ -623,7 +623,7 @@ export default function GithubPage() {
 }
 
 const ActivityRowDesktop = ({ activity }: any) => (
-  <div className="group relative flex gap-2.5 py-2 px-1 hover:bg-muted/20 rounded-md transition-colors cursor-pointer" onClick={() => window.open(activity.url, '_blank')}>
+  <div className="group relative flex gap-2.5 py-2 px-1 hover:bg-muted/20 rounded-sm transition-colors cursor-pointer" onClick={() => window.open(activity.url, '_blank')}>
     <Avatar className="size-5 shrink-0 border border-border/40 mt-0.5">
       <AvatarImage src={activity.author.avatarUrl} />
       <AvatarFallback className="text-[7px] font-black uppercase">{activity.author.username?.slice(0, 2)}</AvatarFallback>

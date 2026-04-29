@@ -59,7 +59,7 @@ export function CreateProjectModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl p-6 rounded-3xl">
+      <DialogContent className="max-w-2xl p-6 rounded-md">
         <DialogHeader>
           <DialogTitle className="text-xl">Create New Project</DialogTitle>
           <DialogDescription>
