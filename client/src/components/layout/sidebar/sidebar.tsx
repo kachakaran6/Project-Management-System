@@ -19,6 +19,7 @@ import {
   SquareCheckBig,
   Users,
 } from "lucide-react";
+import { GithubIcon as Github } from "@/components/icons/github-icon";
 
 import { useRouter } from "next/navigation";
 import { SidebarGroup } from "@/components/layout/sidebar/sidebar-group";
@@ -65,6 +66,13 @@ const navItems: SidebarNavItem[] = [
     roles: ["ADMIN", "OWNER", "MANAGER", "MEMBER", "USER"],
   },
   {
+    title: "GitHub",
+    href: "/github",
+    icon: Github,
+    group: "workspace",
+    roles: ["ADMIN", "OWNER", "MANAGER", "MEMBER", "USER"],
+  },
+  {
     title: "Organization Members",
     href: "/team",
     icon: Users,
@@ -78,13 +86,13 @@ const navItems: SidebarNavItem[] = [
     group: "manage",
     roles: ["SUPER_ADMIN", "ADMIN", "OWNER"],
   },
-  {
-    title: "Audit Log",
-    href: "/audit-log",
-    icon: SquareCheckBig,
-    group: "manage",
-    roles: ["ADMIN", "OWNER", "MANAGER", "MEMBER", "USER"],
-  },
+  // {
+  //   title: "Audit Log",
+  //   href: "/audit-log",
+  //   icon: SquareCheckBig,
+  //   group: "manage",
+  //   roles: ["ADMIN", "OWNER", "MANAGER", "MEMBER", "USER"],
+  // },
 
   {
     title: "Settings",

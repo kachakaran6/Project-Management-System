@@ -73,85 +73,84 @@ export const TaskStatusHistory: React.FC<TaskStatusHistoryProps> = ({ taskId }) 
   }
 
   return (
-    <div className="relative pl-2 pb-8">
+    <div className="relative pl-0 pb-2">
       {/* Timeline Line */}
-      <div className="absolute left-7 top-4 bottom-0 w-px bg-gradient-to-b from-border via-border/60 to-transparent" />
+      <div className="absolute left-4 top-2 bottom-0 w-[1.5px] bg-border/40" />
 
-      <div className="space-y-8 relative">
+      <div className="space-y-5 relative">
         <AnimatePresence mode="popLayout">
           {history.map((item, index) => (
             <motion.div
               key={item.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="group relative flex gap-5 items-start"
+              className="group relative flex gap-3 items-center"
             >
-              {/* Avatar / Icon Container */}
-              <div className="relative z-10">
-                <Avatar className="size-10 border-2 border-background shadow-sm ring-1 ring-border/50 group-hover:ring-primary/50 transition-all">
+              {/* Avatar Container */}
+              <div className="relative z-10 shrink-0">
+                <Avatar className="size-8 border border-background shadow-sm ring-1 ring-border/30 group-hover:ring-primary/40 transition-all">
                   <AvatarImage src={item.changedByAvatar} />
-                  <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
+                  <AvatarFallback className="bg-primary/5 text-primary text-[8px] font-bold">
                     {item.changedByName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
                 
-                {/* Visual Connector Dot */}
-                <div className="absolute -right-1 -bottom-1 size-4 rounded-full bg-background flex items-center justify-center border border-border group-hover:border-primary/50 transition-colors">
-                   <div className={cn(
-                     "size-2 rounded-full",
-                     index === 0 ? "bg-primary animate-pulse" : "bg-muted-foreground/30"
-                   )} />
-                </div>
+                {/* Connector Dot */}
+                {index === 0 && (
+                  <div className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full bg-background flex items-center justify-center border border-border">
+                    <div className="size-1.5 rounded-full bg-primary animate-pulse" />
+                  </div>
+                )}
               </div>
 
-              {/* Content Card */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-4 mb-1.5">
-                  <span className="text-sm font-bold text-foreground/90 group-hover:text-primary transition-colors">
+              {/* In-line Content */}
+              <div className="flex-1 min-w-0 flex items-center justify-between gap-3 py-1">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 overflow-hidden">
+                  <span className="text-[13px] font-bold text-foreground/90 truncate max-w-[120px]">
                     {item.changedByName}
                   </span>
-                  <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full whitespace-nowrap">
-                    <Clock className="size-3" />
-                    {formatDistanceToNow(new Date(item.changedAt), { addSuffix: true })}
-                  </div>
-                </div>
-
-                <div className="relative p-4 rounded-2xl border border-border/80 bg-card/50 backdrop-blur-sm group-hover:border-primary/20 group-hover:bg-primary/[0.02] transition-all shadow-sm">
-                  <div className="flex flex-wrap items-center gap-2.5">
+                  
+                  <div className="flex items-center gap-1.5 shrink-0 scale-[0.85] origin-left">
                     {item.fromStatus ? (
                       <>
                         <Badge 
                           variant="outline" 
-                          style={{ borderColor: `${(item.fromStatus?.color || '#64748b')}40`, color: item.fromStatus?.color || '#64748b', backgroundColor: `${(item.fromStatus?.color || '#64748b')}10` }}
-                          className="text-[10px] px-2 py-0 border-[0.5px] uppercase font-black tracking-wider"
+                          style={{ 
+                            borderColor: `${(item.fromStatus?.color || '#64748b')}30`, 
+                            color: item.fromStatus?.color || '#64748b', 
+                            backgroundColor: `${(item.fromStatus?.color || '#64748b')}08` 
+                          }}
+                          className="text-[9px] px-1.5 py-0 border-[0.5px] uppercase font-bold tracking-tight h-5 flex items-center"
                         >
                           {item.fromStatus?.name || 'Unknown'}
                         </Badge>
-                        <ArrowRight className="size-3 text-muted-foreground/50" />
+                        <ArrowRight className="size-2.5 text-muted-foreground/40" />
                       </>
                     ) : (
-                      <span className="text-[10px] font-bold text-muted-foreground/70 bg-muted/50 px-2 py-0.5 rounded-md border border-border/40 uppercase tracking-tighter italic">
-                        Initial Creation
+                      <span className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-tighter italic mr-1">
+                        Created
                       </span>
                     )}
                     
                     <Badge 
                       style={{ backgroundColor: item.toStatus?.color || '#64748b', color: 'white' }}
-                      className="text-[10px] px-2 py-0 border-none shadow-sm shadow-black/5 uppercase font-black tracking-wider"
+                      className="text-[9px] px-1.5 py-0 border-none shadow-sm uppercase font-bold tracking-tight h-5 flex items-center"
                     >
                       {item.toStatus?.name || 'Unknown'}
                     </Badge>
+                  </div>
+                </div>
 
+                <div className="flex flex-col items-end shrink-0">
+                  <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground/70">
+                    <Clock className="size-2.5" />
+                    {formatDistanceToNow(new Date(item.changedAt), { addSuffix: true })}
                   </div>
-                  
-                  {/* Absolute Timestamp on Hover */}
-                  <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <History className="size-3 text-muted-foreground/40" />
-                    <span className="text-[9px] font-medium text-muted-foreground">
-                      {format(new Date(item.changedAt), "MMM d, yyyy 'at' h:mm a")}
-                    </span>
-                  </div>
+                  {/* Precise date on hover (subtle) */}
+                  <span className="text-[8px] text-muted-foreground/0 group-hover:text-muted-foreground/40 transition-colors">
+                    {format(new Date(item.changedAt), "MMM d, HH:mm")}
+                  </span>
                 </div>
               </div>
             </motion.div>
