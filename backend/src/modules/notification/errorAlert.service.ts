@@ -1,6 +1,6 @@
 import os from 'os';
-import { env } from '../config/env.js';
-import packageJson from '../../package.json' assert { type: 'json' };
+import { env } from '../../config/env.js';
+import packageJson from '../../../package.json' with { type: 'json' };
 
 // Cache for deduplication: key -> { count, lastSent }
 const errorCache = new Map<string, { count: number; lastSent: number }>();
