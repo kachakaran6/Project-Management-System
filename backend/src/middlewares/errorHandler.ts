@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import type { ErrorRequestHandler } from 'express';
 import { env } from '../config/env.js';
 import { logError, logWarn } from '../services/logService.js';
+import { ErrorAlertService } from '../modules/notification/errorAlert.service.js';
 
 /**
  * Normalizes different error types into a consistent shape.
@@ -67,8 +68,16 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
 
   if (statusCode >= 500) {
     logError(`[${req.method}] ${req.originalUrl} → ${statusCode}: ${error.stack || error.message}`, logData);
+    
+    // Notify Telegram for internal server errors
+    ErrorAlertService.notifyError({ error, req, statusCode });
   } else {
     logWarn(`[${req.method}] ${req.originalUrl} → ${statusCode}: ${message}`, logData);
+    
+    // Optional: Notify Telegram for other significant failures (e.g. 401/403/429) if desired
+    if (statusCode === 429 || statusCode === 403) {
+      ErrorAlertService.notifyError({ error, req, statusCode });
+    }
   }
 
   res.status(statusCode).json({

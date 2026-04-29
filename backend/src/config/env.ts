@@ -34,6 +34,10 @@ type Env = {
   googleClientSecret?: string;
   githubClientId?: string;
   githubClientSecret?: string;
+  telegramBotToken?: string;
+  telegramChatId?: string;
+  enableTelegramAlerts: boolean;
+  appName: string;
 };
 
 const requiredEnvVars = ["PORT", "MONGO_URI", "NODE_ENV"];
@@ -95,4 +99,10 @@ export const env: Env = {
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
   githubClientId: process.env.GITHUB_CLIENT_ID,
   githubClientSecret: process.env.GITHUB_CLIENT_SECRET,
+
+  // Telegram Alerts
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+  telegramChatId: process.env.TELEGRAM_CHAT_ID,
+  enableTelegramAlerts: process.env.ENABLE_TELEGRAM_ALERTS === 'true',
+  appName: process.env.APP_NAME || 'Project Management System',
 };
