@@ -63,6 +63,120 @@ const normalizeUser = (user: any) => {
   return { id, name, email: user.email || '', avatarUrl: user.avatarUrl };
 };
 
+const buildTaskSortStages = (filter: { sortBy?: string; sortOrder?: string }) => {
+  const sortOrder: 1 | -1 = filter.sortOrder === 'asc' ? 1 : -1;
+  const sortParams: Record<string, 1 | -1> = {};
+  const stages: any[] = [];
+
+  if (!filter.sortBy) {
+    sortParams.createdAt = -1;
+    sortParams.position = 1;
+    return { stages, sortParams };
+  }
+
+  if (filter.sortBy === 'status') {
+    stages.push(
+      {
+        $lookup: {
+          from: 'statuses',
+          localField: 'status',
+          foreignField: '_id',
+          as: 'sortStatus'
+        }
+      },
+      { $unwind: { path: '$sortStatus', preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          statusSortMissing: {
+            $cond: [{ $ifNull: ['$sortStatus._id', false] }, 0, 1]
+          },
+          statusSortOrder: { $ifNull: ['$sortStatus.order', 999999] },
+          statusSortName: { $toLower: { $ifNull: ['$sortStatus.name', ''] } }
+        }
+      }
+    );
+
+    sortParams.statusSortMissing = 1;
+    sortParams.statusSortOrder = sortOrder;
+    sortParams.statusSortName = 1;
+  } else if (filter.sortBy === 'priority') {
+    stages.push({
+      $addFields: {
+        prioritySortRank: {
+          $switch: {
+            branches: [
+              { case: { $eq: ['$priority', 'LOW'] }, then: 1 },
+              { case: { $eq: ['$priority', 'MEDIUM'] }, then: 2 },
+              { case: { $eq: ['$priority', 'HIGH'] }, then: 3 },
+              { case: { $eq: ['$priority', 'URGENT'] }, then: 4 },
+            ],
+            default: 0,
+          }
+        }
+      }
+    });
+
+    sortParams.prioritySortRank = sortOrder;
+  } else if (filter.sortBy === 'assignee') {
+    stages.push(
+      {
+        $lookup: {
+          from: 'taskassignees',
+          let: { taskId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$taskId', '$$taskId'] }
+              }
+            },
+            { $sort: { createdAt: 1, _id: 1 } },
+            { $limit: 1 },
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'userId',
+                foreignField: '_id',
+                as: 'user'
+              }
+            },
+            { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } }
+          ],
+          as: 'sortAssignee'
+        }
+      },
+      {
+        $addFields: {
+          assigneeSortMissing: {
+            $cond: [{ $gt: [{ $size: '$sortAssignee' }, 0] }, 0, 1]
+          },
+          assigneeSortName: {
+            $toLower: {
+              $trim: {
+                input: {
+                  $concat: [
+                    { $ifNull: [{ $arrayElemAt: ['$sortAssignee.user.firstName', 0] }, ''] },
+                    ' ',
+                    { $ifNull: [{ $arrayElemAt: ['$sortAssignee.user.lastName', 0] }, ''] }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    );
+
+    sortParams.assigneeSortMissing = 1;
+    sortParams.assigneeSortName = sortOrder;
+  } else {
+    sortParams[filter.sortBy] = sortOrder;
+  }
+
+  if (filter.sortBy !== 'position') sortParams.position = 1;
+
+  return { stages, sortParams };
+};
+
 /**
  * Normalize tags from TaskTag records into rich objects.
  */
@@ -854,6 +968,7 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
   }
   if (filter.priority) query.priority = filter.priority;
   if (filter.visibility) query.visibility = filter.visibility;
+  if (filter.creatorId) query.creatorId = toObjectId(filter.creatorId);
   if (filter.dueDate) query.dueDate = { $lte: new Date(filter.dueDate) };
   if (filter.search) {
     const term = String(filter.search).trim();
@@ -885,8 +1000,13 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
     ];
   }
 
-  if (filter.tagIds && Array.isArray(filter.tagIds) && filter.tagIds.length > 0) {
-    const tagIds = filter.tagIds.map(toObjectId).filter(Boolean);
+  let normalizedTagIds = filter.tagIds;
+  if (typeof normalizedTagIds === 'string') {
+    normalizedTagIds = normalizedTagIds.split(',').filter(Boolean);
+  }
+
+  if (normalizedTagIds && Array.isArray(normalizedTagIds) && normalizedTagIds.length > 0) {
+    const tagIds = normalizedTagIds.map(toObjectId).filter(Boolean);
     const tasksWithTags = await TaskTag.aggregate([
       { $match: { tagId: { $in: tagIds }, organizationId: query.organizationId } },
       { $group: { _id: '$taskId', count: { $sum: 1 } } },
@@ -951,13 +1071,10 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
       });
     }
 
-    const sortParams: Record<string, 1 | -1> = {};
-    if (filter.sortBy) {
-      sortParams[filter.sortBy] = filter.sortOrder === 'asc' ? 1 : -1;
-      if (filter.sortBy !== 'position') sortParams.position = 1;
-    } else {
-      sortParams.position = 1;
-      sortParams.createdAt = -1;
+    const { stages: sortStages, sortParams } = buildTaskSortStages(filter);
+
+    if (sortStages.length > 0) {
+      pipeline.push(...sortStages);
     }
 
     pipeline.push(
@@ -1090,10 +1207,28 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
 
   const updatePayload: Record<string, any> = { ...otherData };
   
-  // AUTO-PUBLISH LOGIC: Only publish if it was a draft AND we are changing its status
-  if (previousTask.isDraft && updateData.status && String(updateData.status) !== String(previousTask.status)) {
+  // AUTO-PUBLISH LOGIC: Only publish if it was a draft AND (we are changing its status OR explicitly publishing)
+  const isPublishing = previousTask.isDraft && (updateData.isDraft === false || (updateData.status && String(updateData.status) !== String(previousTask.status)));
+  
+  if (isPublishing) {
     updatePayload.isDraft = false;
     updatePayload.isPublic = true;
+
+    // Generate taskCode if it doesn't exist
+    if (!previousTask.taskCode) {
+      const pId = updatePayload.projectId || previousTask.projectId;
+      if (pId) {
+        const project = await Project.findOneAndUpdate(
+          { _id: pId },
+          { $inc: { taskSequence: 1 } },
+          { new: true }
+        );
+        if (project) {
+          updatePayload.sequence = project.taskSequence;
+          updatePayload.taskCode = `${project.code || 'TASK'}-${project.taskSequence}`;
+        }
+      }
+    }
   }
 
   const unsetPayload: Record<string, any> = {};

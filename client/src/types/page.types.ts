@@ -1,10 +1,15 @@
-export type PageVisibility = "PUBLIC" | "PRIVATE";
+export type PageVisibility = "PRIVATE" | "WORKSPACE" | "PUBLIC";
 
 export interface PageAuthor {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
+  avatarUrl?: string;
+}
+
+export interface PublicPageAuthor {
+  name: string;
   avatarUrl?: string;
 }
 
@@ -16,8 +21,20 @@ export interface PageDoc {
   creatorId: string;
   creator?: PageAuthor;
   allowedUsers?: string[];
+  publicId?: string | null;
+  publicSlug?: string | null;
+  publicUrl?: string | null;
+  isPublished?: boolean;
   updatedAt: string;
   createdAt: string;
+}
+
+export interface PublicPageDoc {
+  title: string;
+  content: string;
+  publicUrl?: string | null;
+  author?: PublicPageAuthor | null;
+  updatedAt: string;
 }
 
 export interface PageFilters {

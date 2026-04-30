@@ -12,6 +12,7 @@ export const pagesQueryKeys = {
   all: ["pages"] as const,
   list: (filters: PageFilters) => ["pages", "list", filters] as const,
   detail: (id: string) => ["pages", "detail", id] as const,
+  publicDetail: (slug: string) => ["pages", "public", slug] as const,
 };
 
 export function usePagesQuery(filters: PageFilters = {}) {
@@ -28,6 +29,16 @@ export function usePageQuery(id: string, enabled = true) {
     queryFn: () => pageApi.getPage(id),
     enabled: enabled && Boolean(id),
     staleTime: 10_000,
+  });
+}
+
+export function usePublicPageQuery(slug: string, enabled = true) {
+  return useQuery({
+    queryKey: pagesQueryKeys.publicDetail(slug),
+    queryFn: () => pageApi.getPublicPage(slug),
+    enabled: enabled && Boolean(slug),
+    staleTime: 30_000,
+    retry: false,
   });
 }
 

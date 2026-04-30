@@ -426,47 +426,51 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                 </TooltipContent>
               </Tooltip>
 
-              <DropdownMenu
-                open={openChip === "status"}
-                onOpenChange={(open) => setOpenChip(open ? "status" : null)}>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    onClick={(e) => e.stopPropagation()}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 transition-all",
-                      isEmbedded
-                        ? "px-2.5 py-1.5 rounded-sm text-[9px] font-black border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
-                        : "px-2 py-1 rounded-xs text-[10px] font-bold border border-border/40 bg-muted/50 text-muted-foreground hover:bg-muted/70"
-                    )}
-                  >
-                    <div
+              {!task.isDraft && (
+                <DropdownMenu
+                  open={openChip === "status"}
+                  onOpenChange={(open) => setOpenChip(open ? "status" : null)}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      onClick={(e) => e.stopPropagation()}
                       className={cn(
-                        "h-1.5 w-1.5 rounded-full",
-                        isEmbedded && "shadow-[0_0_5px_currentColor]"
+                        "inline-flex items-center gap-1.5 transition-all",
+                        isEmbedded
+                          ? "px-2.5 py-1.5 rounded-sm text-[9px] font-black border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
+                          : "px-2 py-1 rounded-xs text-[10px] font-bold border border-border/40 bg-muted/50 text-muted-foreground hover:bg-muted/70"
                       )}
-                      style={{
-                        backgroundColor: statusColor,
-                      }}
-                    />
-                    <span className={cn(!isEmbedded && "capitalize")}>{statusLabel}</span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48 rounded-md border-border/40">
-                  {statusItems.map((item) => (
-                    <DropdownMenuItem
-                      key={item.value}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStatusChange(item.value);
-                      }}
-                      className="flex items-center justify-between rounded-sm"
                     >
-                      <span>{item.label}</span>
-                      {currentStatusId === item.value ? <Check className="size-3.5" /> : null}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                      <div
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full",
+                          isEmbedded && "shadow-[0_0_5px_currentColor]"
+                        )}
+                        style={{
+                          backgroundColor: statusColor,
+                        }}
+                      />
+                      <span className={cn(!isEmbedded && "capitalize")}>
+                        {task.isDraft ? "Draft" : statusLabel}
+                      </span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48 rounded-md border-border/40">
+                    {statusItems.map((item) => (
+                      <DropdownMenuItem
+                        key={item.value}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange(item.value);
+                        }}
+                        className="flex items-center justify-between rounded-sm"
+                      >
+                        <span>{item.label}</span>
+                        {currentStatusId === item.value ? <Check className="size-3.5" /> : null}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
 
               <DropdownMenu
                 open={openChip === "priority"}
@@ -565,13 +569,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                         ))}
                       </div>
                     ) : (
-                      isEmbedded ? (
-                        <div className="p-1 rounded-full bg-muted/20">
-                          <User className="size-3 text-muted-foreground/40" />
-                        </div>
-                      ) : (
-                        <Users className="size-3 text-muted-foreground" />
-                      )
+                      <Users className="size-3 text-muted-foreground" />
                     )}
                     {assignees.length > 3 ? (
                       <span className={isEmbedded ? "text-[9px] font-black text-muted-foreground/40" : "text-[10px] text-muted-foreground"}>+{assignees.length - 3}</span>
@@ -817,9 +815,20 @@ export function TaskBoard({
     }
 
     // Sort by order
-    const sorted = [...dynamicStatuses].sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
-
-    const cols = sorted.map((s: any) => {
+    const cols = [...dynamicStatuses];
+    
+    // Always ensure Drafts column is present if not already there
+    if (!cols.some(c => c.value === 'DRAFT' || (c as any).id === 'draft')) {
+      cols.unshift({
+        _id: 'draft',
+        name: 'Drafts',
+        value: 'DRAFT',
+        color: '#94a3b8',
+        order: -1
+      } as any);
+    }
+    
+    return cols.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)).map((s: any) => {
       const id = normalizeId(s.id || s._id) || "";
       const normalizedName = s.name.toLowerCase().replace(/[\s_-]/g, "");
       const configMatch = ALL_STATUS_CONFIG.find(c =>
@@ -843,18 +852,6 @@ export function TaskBoard({
         isHiddenIfEmpty: isHidden,
       };
     });
-
-    // PREPEND DRAFT COLUMN
-    return [
-      {
-        id: "DRAFT_COLUMN",
-        label: "Drafts",
-        icon: FileText,
-        dotColor: "#94a3b8",
-        isHiddenIfEmpty: true, // Only show if user has drafts
-      },
-      ...cols
-    ];
   }, [dynamicStatuses]);
 
   // Derived grouping from props (used when NOT syncing)
@@ -871,30 +868,22 @@ export function TaskBoard({
       const id = normalizeId(t.id || (t as any)._id) || "";
       tasks[id] = t;
 
-      // IF DRAFT, PUT IN DRAFT COLUMN
-      if (t.isDraft) {
-        if (columns["DRAFT_COLUMN"]) {
-          columns["DRAFT_COLUMN"].push(id);
-        }
-        return;
-      }
-
+      // Force 'draft' status column for draft tasks
       const resolved = resolveStatus(t, dynamicStatuses);
-      const statusId = resolved ? (normalizeId(resolved._id) || normalizeId(resolved.id)) : normalizeId(t.status);
+      const statusId = resolved 
+        ? (normalizeId(resolved._id) || normalizeId(resolved.id)) 
+        : (t.isDraft ? "draft" : normalizeId(t.status));
 
       if (statusId && columns[statusId]) {
         columns[statusId].push(id);
-      } else if (statusId) {
-        // Fallback for robust matching if strict ID comparison fails
-        const matchedCol = boardColumns.find(c =>
-          normalizeId(c.id) === statusId ||
-          (c.id !== "DRAFT_COLUMN" && c.label.toLowerCase().replace(/[\s_-]/g, "") === String(statusId).toLowerCase().replace(/[\s_-]/g, ""))
+      } else {
+        // Find by fallback (name match)
+        const matchedCol = boardColumns.find(c => 
+          normalizeId(c.id) === statusId || 
+          c.label.toLowerCase().replace(/[\s_-]/g, "") === String(statusId).toLowerCase().replace(/[\s_-]/g, "")
         );
-        if (matchedCol) {
-          const mId = normalizeId(matchedCol.id);
-          if (mId && columns[mId]) {
-            columns[mId].push(id);
-          }
+        if (matchedCol && columns[matchedCol.id]) {
+          columns[matchedCol.id].push(id);
         }
       }
     });

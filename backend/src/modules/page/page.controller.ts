@@ -2,27 +2,92 @@ import { asyncHandler } from '../../middlewares/asyncHandler.js';
 import { paginate, successResponse } from '../../utils/apiResponse.js';
 import * as pageService from './page.service.js';
 
-const normalizePagePayload = async (page: Record<string, unknown>) => {
-  const enriched = await pageService.enrichPageAuthor(page);
-
-  return {
-    id: String(enriched._id || ''),
-    title: String(enriched.title || 'Untitled page'),
-    content: String(enriched.content || ''),
-    visibility: String(enriched.visibility || 'PRIVATE').toUpperCase(),
-    creatorId: String(enriched.creatorId || ''),
-    creator: enriched.creator,
-    createdAt: enriched.createdAt,
-    updatedAt: enriched.updatedAt,
-  };
-};
-
 const readParam = (value: string | string[] | undefined) => {
   if (Array.isArray(value)) {
     return value[0] || '';
   }
 
   return value || '';
+};
+
+const normalizeCreator = (value: unknown) => {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+
+  const creator = value as {
+    _id?: unknown;
+    firstName?: unknown;
+    lastName?: unknown;
+    email?: unknown;
+    avatarUrl?: unknown;
+  };
+
+  const id = creator._id ? String(creator._id) : '';
+  if (!id) {
+    return undefined;
+  }
+
+  return {
+    id,
+    firstName: String(creator.firstName || ''),
+    lastName: String(creator.lastName || ''),
+    email: String(creator.email || ''),
+    avatarUrl: creator.avatarUrl ? String(creator.avatarUrl) : undefined,
+  };
+};
+
+const normalizePagePayload = async (page: Record<string, unknown>) => {
+  const enriched = await pageService.enrichPageAuthor(page);
+  const creator = normalizeCreator((enriched as { creator?: unknown }).creator);
+  const visibility = pageService.getEffectiveVisibility(enriched);
+  const allowedUsers = Array.isArray((enriched as any).allowedUsers)
+    ? (enriched as any).allowedUsers.map((item: unknown) =>
+        typeof item === 'object' && item !== null && '_id' in item
+          ? String((item as { _id: unknown })._id)
+          : String(item),
+      )
+    : [];
+
+  return {
+    id: String(enriched._id || ''),
+    title: String(enriched.title || 'Untitled page'),
+    content: String(enriched.content || ''),
+    visibility,
+    creatorId: String((enriched as { creatorId?: unknown }).creatorId || creator?.id || ''),
+    creator,
+    allowedUsers,
+    publicId: enriched.publicId ? String(enriched.publicId) : null,
+    publicSlug: enriched.publicSlug ? String(enriched.publicSlug) : null,
+    publicUrl: pageService.buildPublicPagePath(enriched),
+    isPublished: visibility === 'PUBLIC' && Boolean(enriched.isPublished),
+    createdAt: enriched.createdAt,
+    updatedAt: enriched.updatedAt,
+  };
+};
+
+const normalizePublicPagePayload = (page: Record<string, unknown>) => {
+  const rawPage = page as { creatorId?: unknown; creator?: unknown };
+  const creator =
+    normalizeCreator(rawPage.creatorId) ||
+    normalizeCreator(rawPage.creator);
+
+  const authorName = creator
+    ? `${creator.firstName || ''} ${creator.lastName || ''}`.trim()
+    : '';
+
+  return {
+    title: String(page.title || 'Untitled page'),
+    content: String(page.content || ''),
+    publicUrl: pageService.buildPublicPagePath(page),
+    author: authorName
+      ? {
+          name: authorName,
+          avatarUrl: creator?.avatarUrl,
+        }
+      : null,
+    updatedAt: page.updatedAt,
+  };
 };
 
 export const create = asyncHandler(async (req, res) => {
@@ -32,6 +97,7 @@ export const create = asyncHandler(async (req, res) => {
     title: req.body.title,
     content: req.body.content,
     visibility: req.body.visibility,
+    allowedUsers: req.body.allowedUsers,
     creatorId: req.user.id,
     organizationId,
   });
@@ -83,6 +149,14 @@ export const getById = asyncHandler(async (req, res) => {
   return successResponse(res, payload, 'Page retrieved successfully.');
 });
 
+export const getPublicBySlug = asyncHandler(async (req, res) => {
+  const slug = readParam(req.params.slug);
+  const page = await pageService.getPublicPageBySlug(slug);
+
+  const payload = normalizePublicPagePayload(page as unknown as Record<string, unknown>);
+  return successResponse(res, payload, 'Public page retrieved successfully.');
+});
+
 export const update = asyncHandler(async (req, res) => {
   const organizationId = pageService.resolveOrganizationId(req);
   const id = readParam(req.params.id);
@@ -93,6 +167,7 @@ export const update = asyncHandler(async (req, res) => {
       title: req.body.title,
       content: req.body.content,
       visibility: req.body.visibility,
+      allowedUsers: req.body.allowedUsers,
     },
     req.user.id,
     req.user.role,

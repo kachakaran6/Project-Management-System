@@ -18,6 +18,7 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
   SlidersHorizontal,
   User,
@@ -88,7 +89,7 @@ import { CreateTaskModal } from "@/features/tasks/components/create-task-modal";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { Task, TaskStatus, TaskPriority } from "@/types/task.types";
 import { cn } from "@/lib/utils";
-import { useSearchParams, useRouter } from "@/lib/next-navigation";
+import { useSearchParams, useRouter, usePathname } from "@/lib/next-navigation";
 import { TaskRow } from "@/features/tasks/components/task-row";
 import { taskApi } from "@/features/tasks/api/task.api";
 import {
@@ -107,12 +108,36 @@ import { useTagsQuery } from "@/features/tags/hooks/use-tags";
 import { TaskListSkeleton, TaskBoardSkeleton, TaskTableSkeleton } from "@/features/tasks/components/task-skeleton";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { resolveStatus, filterVisibleTasks, normalizeId } from "@/features/tasks/utils/resolve-status";
+import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
 
 // Pagination Constants
+import {
+  DEFAULT_TASK_SORT_DIRECTION,
+  DEFAULT_TASK_SORT_FIELD,
+  TASK_SORT_OPTIONS,
+  getDefaultTaskSortState,
+  getTaskSortLabel,
+  isTaskSortDirection,
+  isTaskSortField,
+  readTaskSortPreference,
+  writeTaskSortPreference,
+} from "@/features/tasks/utils/task-sort";
+import { TaskSortDirection, TaskSortField } from "@/types/task.types";
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const VIEW_STORAGE_KEY = "tasks:view-mode";
 type TaskViewMode = "list" | "kanban" | "table";
+
+const getInitialTaskSortState = (searchParams: { get: (key: string) => string | null }) => {
+  const stored = readTaskSortPreference() ?? getDefaultTaskSortState();
+  const urlField = searchParams.get("sortBy");
+  const urlDirection = searchParams.get("sortOrder");
+
+  return {
+    field: isTaskSortField(urlField) ? urlField : stored.field,
+    direction: isTaskSortDirection(urlDirection) ? urlDirection : stored.direction,
+  };
+};
 
 interface TaskDashboardProps {
   fixedProjectId?: string;
@@ -121,21 +146,20 @@ interface TaskDashboardProps {
 
 export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashboardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isMounted, setIsMounted] = useState(false);
 
-  const [viewMode, setViewMode] = useState<TaskViewMode>(() => {
-    if (typeof window === "undefined") return "kanban";
-    const saved = window.localStorage.getItem(VIEW_STORAGE_KEY) as TaskViewMode;
-    const isMobileInitial = window.innerWidth < 768;
+  // Initialize viewMode from URL or default to kanban
+  const initialView = (searchParams.get("view") as any) || "kanban";
+  const [viewMode, setViewMode] = useState<"kanban" | "list" | "table">(initialView);
 
-    if (isMobileInitial) {
-      if (saved === "table" || saved === "list") return saved;
-      return "list"; // Kanban not allowed on mobile
-    } else {
-      if (saved === "kanban" || saved === "list") return saved;
-      return "kanban"; // Table not allowed on desktop
-    }
-  });
+  // Sync isMounted
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const { openPanel } = useTaskPanelStore();
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -145,14 +169,6 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
-
-  useEffect(() => {
-    if (isMobile && viewMode === "kanban") {
-      setViewMode("list");
-    } else if (!isMobile && viewMode === "table") {
-      setViewMode("list");
-    }
-  }, [isMobile, viewMode]);
 
   useEffect(() => {
     if (fixedProjectId) {
@@ -193,6 +209,9 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   const [tagIds, setTagIds] = useState<string[]>(
     searchParams.get("tagIds")?.split(",").filter(Boolean) || [],
   );
+  const initialSort = useMemo(() => getInitialTaskSortState(searchParams), [searchParams]);
+  const [selectedSortField, setSelectedSortField] = useState<TaskSortField>(initialSort.field);
+  const [selectedSortDirection, setSelectedSortDirection] = useState<TaskSortDirection>(initialSort.direction);
   const [isExporting, setIsExporting] = useState(false);
 
   const { activeOrg, activeOrgId } = useAuth();
@@ -207,10 +226,93 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     activeOrg?.role === "ADMIN" ||
     activeOrg?.role === "MANAGER";
 
+  // --- 4. URL & LOCALSTORAGE SYNC ---
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
   }, [viewMode]);
+
+  useEffect(() => {
+    writeTaskSortPreference({
+      field: selectedSortField,
+      direction: selectedSortDirection,
+    });
+  }, [selectedSortField, selectedSortDirection]);
+
+  // Sync state FROM URL (Initial and on back/forward)
+  useEffect(() => {
+    const urlField = searchParams.get("sortBy");
+    const urlDirection = searchParams.get("sortOrder");
+    const urlView = searchParams.get("view");
+
+    if (isTaskSortField(urlField) && urlField !== selectedSortField) {
+      setSelectedSortField(urlField);
+    }
+    if (isTaskSortDirection(urlDirection) && urlDirection !== selectedSortDirection) {
+      setSelectedSortDirection(urlDirection);
+    }
+    if (urlView && (urlView === "kanban" || urlView === "list" || urlView === "table") && urlView !== viewMode) {
+      setViewMode(urlView as TaskViewMode);
+    }
+  }, [searchParams]);
+
+  // Consolidated URL State Sync (State -> URL)
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    
+    // Core parameters
+    params.set("view", viewMode);
+    params.set("sortBy", selectedSortField);
+    params.set("sortOrder", selectedSortDirection);
+    
+    // Filters
+    if (status !== "ALL") params.set("status", status); else params.delete("status");
+    if (priority !== "ALL") params.set("priority", priority); else params.delete("priority");
+    if (search) params.set("q", search); else params.delete("q");
+    
+    if (!fixedProjectId) {
+      if (projectId !== "ALL") params.set("projectId", projectId); else params.delete("projectId");
+    }
+    
+    if (assigneeId !== "ALL") params.set("assigneeId", assigneeId); else params.delete("assigneeId");
+    if (creatorId !== "ALL") params.set("creatorId", creatorId); else params.delete("creatorId");
+    if (dueDate) params.set("dueDate", dueDate); else params.delete("dueDate");
+    if (tagIds.length > 0) params.set("tagIds", tagIds.join(",")); else params.delete("tagIds");
+
+    if (page > 1) params.set("page", page.toString()); else params.delete("page");
+    
+    // Limit is view-dependent
+    const targetLimit = viewMode === "kanban" ? 1000 : limit;
+    params.set("limit", targetLimit.toString());
+
+    const newQuery = params.toString();
+    const currentQuery = searchParams.toString();
+
+    if (newQuery !== currentQuery) {
+      router.replace(`${pathname}?${newQuery}`, { scroll: false });
+    }
+  }, [
+    isMounted,
+    viewMode,
+    selectedSortField,
+    selectedSortDirection,
+    status,
+    priority,
+    search,
+    projectId,
+    assigneeId,
+    creatorId,
+    dueDate,
+    tagIds,
+    page,
+    limit,
+    pathname,
+    router,
+    fixedProjectId,
+    searchParams
+  ]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -232,36 +334,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     }
   }, [dynamicStatuses, status]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (status !== "ALL") params.set("status", status);
-    else params.delete("status");
-    if (priority !== "ALL") params.set("priority", priority);
-    else params.delete("priority");
 
-    // Only update projectId param if it's NOT fixed
-    if (!fixedProjectId) {
-      if (projectId !== "ALL") params.set("projectId", projectId);
-      else params.delete("projectId");
-    }
-
-    if (assigneeId !== "ALL") params.set("assigneeId", assigneeId);
-    else params.delete("assigneeId");
-    if (creatorId !== "ALL") params.set("creatorId", creatorId);
-    else params.delete("creatorId");
-    if (dueDate) params.set("dueDate", dueDate);
-    else params.delete("dueDate");
-    if (tagIds.length > 0) params.set("tagIds", tagIds.join(","));
-    else params.delete("tagIds");
-
-    // Pagination params
-    if (page > 1) params.set("page", String(page));
-    else params.delete("page");
-    if (limit !== DEFAULT_PAGE_SIZE) params.set("limit", String(limit));
-    else params.delete("limit");
-
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, page, limit, router, fixedProjectId, searchParams]);
 
   const sharedFilters = useMemo(
     () => ({
@@ -276,14 +349,48 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
       creatorId: creatorId === "ALL" || !creatorId ? undefined : creatorId,
       dueDate: dueDate || undefined,
       tagIds: tagIds.length > 0 ? tagIds : undefined,
+      sortBy: selectedSortField,
+      sortOrder: selectedSortDirection,
     }),
-    [debouncedSearch, status, priority, projectId, assigneeId, creatorId, dueDate, tagIds],
+    [debouncedSearch, status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, selectedSortField, selectedSortDirection],
   );
 
   const listFilters = useMemo(
-    () => ({ ...sharedFilters, page, limit, sortBy: "createdAt", sortOrder: "desc" as const }),
-    [sharedFilters, page, limit],
+    () => ({
+      ...sharedFilters,
+      page: (viewMode === "list" && isMobile) ? 1 : page,
+      limit: (viewMode === "list" && isMobile) ? 500 : limit,
+    }),
+    [sharedFilters, page, limit, viewMode, isMobile],
   );
+    const selectedSortLabel = getTaskSortLabel(selectedSortField);
+    const isDefaultSort = selectedSortField === DEFAULT_TASK_SORT_FIELD && selectedSortDirection === DEFAULT_TASK_SORT_DIRECTION;
+
+    const handleSortFieldChange = (field: TaskSortField) => {
+      if (selectedSortField === field) {
+        setSelectedSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      } else {
+        setSelectedSortField(field);
+        // Default to desc for dates, asc for others
+        if (field === "createdAt" || field === "updatedAt" || field === "dueDate") {
+          setSelectedSortDirection("desc");
+        } else {
+          setSelectedSortDirection("asc");
+        }
+      }
+      setPage(1);
+    };
+
+    const toggleSortDirection = () => {
+      setSelectedSortDirection((current) => (current === "desc" ? "asc" : "desc"));
+      setPage(1);
+    };
+
+    const resetSort = () => {
+      setSelectedSortField(DEFAULT_TASK_SORT_FIELD);
+      setSelectedSortDirection(DEFAULT_TASK_SORT_DIRECTION);
+      setPage(1);
+    };
   const kanbanFilters = useMemo(
     () => ({ ...sharedFilters, page: 1, limit: 1000 }),
     [sharedFilters],
@@ -293,20 +400,59 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     enabled: viewMode === "list" || viewMode === "table",
   });
   const kanbanQuery = useTasksQuery(kanbanFilters, {
-    enabled: viewMode === "kanban" && !isMobile,
+    enabled: viewMode === "kanban",
   });
 
+  const isAnyFetching = listQuery.isFetching || kanbanQuery.isFetching;
+
   const totalPages = Math.max(1, listQuery.data?.data.meta?.totalPages ?? 1);
-  const listRows = useMemo(() => filterVisibleTasks(listQuery.data?.data.items ?? []), [listQuery.data]);
-  const kanbanRows = useMemo(() => filterVisibleTasks(kanbanQuery.data?.data.items ?? []), [kanbanQuery.data]);
+  const listRows = useMemo(() => filterVisibleTasks(listQuery.data?.data.items ?? [], true), [listQuery.data]);
+  
+  const groupedTasks = useMemo(() => {
+    if (viewMode !== "list" || !isMobile) return {};
+    const groups: Record<string, Task[]> = {};
+    
+    // Initialize groups from dynamic statuses using NAMES
+    dynamicStatuses.forEach(s => {
+      groups[s.name.toUpperCase()] = [];
+    });
+    
+    // Fallback groups if none loaded
+    if (dynamicStatuses.length === 0) {
+      ["TODO", "IN PROGRESS", "DONE"].forEach(s => { groups[s] = []; });
+    }
+    
+    listRows.forEach(task => {
+      const resolved = resolveStatus(task, dynamicStatuses);
+      const statusName = resolved?.name || "TODO";
+      const normalizedName = statusName.toUpperCase();
+      
+      if (!groups[normalizedName]) groups[normalizedName] = [];
+      groups[normalizedName].push(task);
+    });
+    
+    return groups;
+  }, [listRows, dynamicStatuses, viewMode]);
+
+  const kanbanRows = useMemo(() => filterVisibleTasks(kanbanQuery.data?.data.items ?? [], true), [kanbanQuery.data]);
 
   const getTaskId = (task: Task) => String(task.id || (task as any)._id || "");
   const getAssignees = (task: Task) => task.assigneeUsers ?? [];
 
   const getStatusName = (status: any) => {
     if (!status) return "Unknown";
+    // Try to find in dynamic statuses first
+    const resolved = resolveStatus({ status }, dynamicStatuses);
+    if (resolved) return resolved.name;
+    
     if (typeof status === 'object') return status.name || "Unknown";
-    return String(status).replace("_", " ");
+    return String(status).replace(/_/g, " ");
+  };
+
+  const getStatusColor = (status: any) => {
+    if (!status) return "#94a3b8";
+    const resolved = resolveStatus({ status }, dynamicStatuses);
+    return resolved?.color || "#94a3b8";
   };
 
   const activeFilterCount = useMemo(() => {
@@ -384,6 +530,8 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     while (true) {
       const response = await taskApi.getTasks({
         ...sharedFilters,
+        sortBy: selectedSortField,
+        sortOrder: selectedSortDirection,
         page: currentPage,
         limit,
       });
@@ -494,6 +642,69 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               </Popover>
             )}
 
+            <div className="flex items-center gap-2 shrink-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "h-10 max-w-48 rounded-sm px-3.5 gap-2 border-border/40 bg-muted/10 text-[11px] font-bold transition-all hover:bg-muted/20 hover:border-border/60 active:scale-95",
+                        !isDefaultSort && "border-primary/40 bg-primary/5 text-primary",
+                      )}
+                    >
+                      <span className="truncate">Sort by: {selectedSortLabel}</span>
+                      <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 rounded-md border-border/40 p-1.5 shadow-2xl bg-card/95 backdrop-blur-xl">
+                    {TASK_SORT_OPTIONS.map((option) => {
+                      const isSelected = option.value === selectedSortField;
+                      return (
+                        <DropdownMenuItem
+                          key={option.value}
+                          onClick={() => handleSortFieldChange(option.value)}
+                          className={cn(
+                            "rounded-sm py-2.5 text-sm font-medium cursor-pointer",
+                            isSelected && "bg-primary/10 text-primary",
+                          )}
+                        >
+                          <div className="flex w-full items-center justify-between gap-3">
+                            <span>{option.label}</span>
+                            {isSelected && <span className="text-[10px] font-black uppercase tracking-[0.2em]">Active</span>}
+                          </div>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={resetSort}
+                      className="rounded-sm py-2.5 text-sm font-medium cursor-pointer"
+                      disabled={isDefaultSort}
+                    >
+                      Reset to Default
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleSortDirection}
+                  className={cn(
+                    "h-10 w-10 rounded-sm border-border/40 bg-muted/10 text-xs font-black transition-all hover:bg-muted/20 hover:border-border/60 active:scale-95",
+                    !isDefaultSort && "border-primary/40 bg-primary/5 text-primary",
+                  )}
+                  aria-label={`Sort ${selectedSortDirection === "desc" ? "descending" : "ascending"}`}
+                  title={selectedSortDirection === "desc" ? "Descending" : "Ascending"}
+                >
+                   {isAnyFetching ? (
+                    <Loader2 className="size-3.5 animate-spin opacity-70" />
+                  ) : (
+                    selectedSortDirection === "desc" ? "↓" : "↑"
+                  )}
+                </Button>
+              </div>
+
             {isMobile && (
               <FilterDrawer
                 status={status} setStatus={setStatus}
@@ -522,7 +733,6 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
           <div className="flex items-center justify-between md:justify-end gap-2.5 w-full md:w-auto">
             {/* View Switcher - Premium Toggle */}
             <div className="inline-flex flex-1 md:flex-none rounded-sm border border-border/40 bg-muted/10 p-1 h-10 md:h-10 items-center shadow-inner-sm max-md:h-11">
-              {!isMobile && (
                 <Button
                   variant={viewMode === "kanban" ? "secondary" : "ghost"}
                   size="sm"
@@ -534,7 +744,6 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 >
                   <Kanban className="size-3.5" /> <span className={cn(isMobile && "hidden")}>Board</span>
                 </Button>
-              )}
 
               <Button
                 variant={viewMode === "list" ? "secondary" : "ghost"}
@@ -548,7 +757,6 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 <List className="size-3.5" /> <span className={cn(isMobile && "hidden")}>List</span>
               </Button>
 
-              {isMobile && (
                 <Button
                   variant={viewMode === "table" ? "secondary" : "ghost"}
                   size="sm"
@@ -560,7 +768,6 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 >
                   <TableIcon className="size-3.5" /> <span className={cn(isMobile && "hidden")}>Table</span>
                 </Button>
-              )}
             </div>
 
             {/* Export Menu */}
@@ -641,8 +848,17 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   variant="outline"
                   className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                 >
-                  {resolveAssigneeName(assigneeId)}
+                  Assigned: {resolveAssigneeName(assigneeId)}
                   <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setAssigneeId("ALL")} />
+                </Badge>
+              )}
+              {creatorId !== "ALL" && (
+                <Badge
+                  variant="outline"
+                  className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                >
+                  Created By: {resolveAssigneeName(creatorId)}
+                  <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setCreatorId("ALL")} />
                 </Badge>
               )}
               {tagIds.map(tid => {
@@ -765,120 +981,213 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                       </Table>
                     </div>
                   )}
-                  {viewMode === "list" && isMobile && (
-                    <div className="grid gap-3 p-3">
-                      {listRows.map((task) => {
-                        const taskId = getTaskId(task);
-                        const assignees = getAssignees(task);
+                  {viewMode === "list" && (
+                    <div className="flex flex-col gap-3 p-3">
+                      {Object.entries(groupedTasks).map(([statusName, tasks]) => {
+                        const status = dynamicStatuses.find(s => s.name.toUpperCase() === statusName);
+                        const displayName = status?.name || statusName;
+                        const statusColor = status?.color || "#94a3b8";
+                        
                         return (
-                          <div
-                            key={taskId}
-                            className="rounded-md border border-border/50 bg-card p-4 shadow-sm"
+                          <AccordionSection 
+                            key={statusName}
+                            title={displayName}
+                            color={statusColor}
+                            count={tasks.length}
+                            defaultOpen={tasks.length > 0}
                           >
-                            <div className="flex items-start justify-between gap-3 mb-3">
-                              <div className="min-w-0">
-                                <Link
-                                  href={`/tasks/${taskId}`}
-                                  className="font-bold text-[14px] hover:text-primary transition-colors block line-clamp-1"
-                                >
-                                  {task.title}
-                                </Link>
-                                <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-tighter">
-                                  #{taskId.slice(-8)}
-                                </span>
-                              </div>
-                              <Badge
-                                variant="secondary"
-                                className="h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight shrink-0"
-                              >
-                                {getStatusName(task.status)}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center justify-between mt-4 border-t border-border/30 pt-3">
-                              <div className="flex items-center gap-2">
-                                {assignees.length > 0 ? (
-                                  <div className="flex items-center -space-x-2">
-                                    {assignees.slice(0, 3).map((a) => (
-                                      <Avatar key={a.id} className="h-6 w-6 ring-2 ring-background border border-border/10 shadow-sm">
-                                        <AvatarImage src={a.avatarUrl} />
-                                        <AvatarFallback className="text-[8px] bg-primary/5 text-primary">
-                                          {a.name.charAt(0)}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                    ))}
-                                    {assignees.length > 3 && (
-                                      <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold border-2 border-background shadow-sm">
-                                        +{assignees.length - 3}
+                            <div className="grid gap-3 p-3 pt-2">
+                              {tasks.length === 0 ? (
+                                <p className="text-center py-8 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-widest">No tasks in this status</p>
+                              ) : (
+                                tasks.map((task) => {
+                                  const taskId = getTaskId(task);
+                                  const assignees = getAssignees(task);
+                                  return (
+                                    <div
+                                      key={taskId}
+                                      className="rounded-md border border-border/10 bg-card/40 p-4 shadow-sm"
+                                    >
+                                      <div className="flex items-start justify-between gap-3 mb-3">
+                                        <div className="min-w-0">
+                                          <button
+                                            onClick={() => {
+                                              const params = new URLSearchParams(searchParams.toString());
+                                              params.set("taskId", taskId);
+                                              router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+                                              openPanel(taskId);
+                                            }}
+                                            className="font-bold text-[14px] hover:text-primary transition-colors block line-clamp-1 text-left w-full"
+                                          >
+                                            {task.title}
+                                          </button>
+                                          <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-tighter">
+                                            {task.taskCode || `#${taskId.slice(-8)}`}
+                                          </span>
+                                        </div>
+                                        <Badge
+                                          variant="outline"
+                                          className="h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight shrink-0 border-none"
+                                          style={{ 
+                                            color: getStatusColor(task.status), 
+                                            backgroundColor: `${getStatusColor(task.status)}15` 
+                                          }}
+                                        >
+                                          {getStatusName(task.status)}
+                                        </Badge>
                                       </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 flex items-center justify-center">
-                                    <User className="size-3 text-muted-foreground/40" />
-                                  </div>
-                                )}
-                                <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[120px]">
-                                  {assignees.length === 0
-                                    ? "Unassigned"
-                                    : assignees.length === 1
-                                      ? assignees[0].name
-                                      : `${assignees.length} members`}
-                                </span>
-                              </div>
-                              <div className="flex flex-wrap gap-2 pt-1">
-                                <Button
-                                  asChild
-                                  variant="outline"
-                                  className="h-9 md:h-8 rounded-sm text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 flex-1 md:flex-none"
-                                >
-                                  <Link href={`/tasks/${taskId}`}>
-                                    <Eye className="size-3.5 md:size-3 mr-1" />
-                                    View
-                                  </Link>
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  className="h-9 md:h-8 rounded-sm text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 flex-1 md:flex-none"
-                                  onClick={() => setSelectedTask(task)}
-                                >
-                                  <Pencil className="size-3.5 md:size-3 mr-1" />
-                                  Edit
-                                </Button>
-                              </div>
+                                      <div className="flex items-center justify-between mt-4 border-t border-border/30 pt-3">
+                                        <div className="flex items-center gap-2">
+                                          {assignees.length > 0 ? (
+                                            <div className="flex items-center -space-x-2">
+                                              {assignees.slice(0, 3).map((a) => (
+                                                <Avatar key={a.id} className="h-6 w-6 ring-2 ring-background border border-border/10 shadow-sm">
+                                                  <AvatarImage src={a.avatarUrl} />
+                                                  <AvatarFallback className="text-[8px] bg-primary/5 text-primary">
+                                                    {a.name.charAt(0)}
+                                                  </AvatarFallback>
+                                                </Avatar>
+                                              ))}
+                                              {assignees.length > 3 && (
+                                                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold border-2 border-background shadow-sm">
+                                                  +{assignees.length - 3}
+                                                </div>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <div className="h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 flex items-center justify-center">
+                                              <User className="size-3 text-muted-foreground/40" />
+                                            </div>
+                                          )}
+                                          <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[120px]">
+                                            {assignees.length === 0
+                                              ? "Unassigned"
+                                              : assignees.length === 1
+                                                ? assignees[0].name
+                                                : `${assignees.length} members`}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                            onClick={() => setSelectedTask(task)}
+                                          >
+                                            <Pencil className="size-4" />
+                                          </Button>
+                                          {canMutate && (
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-8 w-8 rounded-full hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive transition-colors"
+                                              onClick={() => setDeleteId(taskId)}
+                                            >
+                                              <Trash2 className="size-4" />
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
                             </div>
-                          </div>
+                          </AccordionSection>
                         );
                       })}
                     </div>
                   )}
+
+
                   {viewMode === "table" && (
                     <div className="animate-in fade-in duration-500">
                       <Table className="min-w-[1200px] border-separate border-spacing-0">
                         <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur-md shadow-sm">
                           <TableRow className="hover:bg-transparent border-0">
-                            <TableHead className="py-4 pl-8 font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Task Title
+                            <TableHead 
+                              className="py-4 pl-8 font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors group"
+                              onClick={() => handleSortFieldChange("title")}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                Task Title
+                                {selectedSortField === "title" && (
+                                  <span className="text-primary font-black animate-in fade-in slide-in-from-bottom-1 duration-300">
+                                    {isAnyFetching ? <Loader2 className="size-3 animate-spin" /> : (selectedSortDirection === "asc" ? "↑" : "↓")}
+                                  </span>
+                                )}
+                              </div>
                             </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Assignee
+                            <TableHead 
+                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleSortFieldChange("assignee")}
+                            >
+                               <div className="flex items-center gap-1.5">
+                                Assignee
+                                {selectedSortField === "assignee" && (
+                                  <span className="text-primary font-black">
+                                    {isAnyFetching ? <Loader2 className="size-3 animate-spin" /> : (selectedSortDirection === "asc" ? "↑" : "↓")}
+                                  </span>
+                                )}
+                              </div>
                             </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Status
+                            <TableHead 
+                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleSortFieldChange("status")}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                Status
+                                {selectedSortField === "status" && (
+                                  <span className="text-primary font-black">
+                                    {isAnyFetching ? <Loader2 className="size-3 animate-spin" /> : (selectedSortDirection === "asc" ? "↑" : "↓")}
+                                  </span>
+                                )}
+                              </div>
                             </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Priority
+                            <TableHead 
+                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleSortFieldChange("priority")}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                Priority
+                                {selectedSortField === "priority" && (
+                                  <span className="text-primary font-black">
+                                    {selectedSortDirection === "asc" ? "↑" : "↓"}
+                                  </span>
+                                )}
+                              </div>
                             </TableHead>
                             <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
                               Created By
                             </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Created Time
+                            <TableHead 
+                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleSortFieldChange("createdAt")}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                Created Time
+                                 {selectedSortField === "createdAt" && (
+                                  <span className="text-primary font-black">
+                                    {isAnyFetching ? <Loader2 className="size-3 animate-spin" /> : (selectedSortDirection === "asc" ? "↑" : "↓")}
+                                  </span>
+                                )}
+                              </div>
                             </TableHead>
                             <TableHead className={cn("font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50", fixedProjectId && "hidden")}>
                               Project
                             </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Due Date
+                            <TableHead 
+                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleSortFieldChange("dueDate")}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                Due Date
+                                {selectedSortField === "dueDate" && (
+                                  <span className="text-primary font-black">
+                                    {isAnyFetching ? <Loader2 className="size-3 animate-spin" /> : (selectedSortDirection === "asc" ? "↑" : "↓")}
+                                  </span>
+                                )}
+                              </div>
                             </TableHead>
                             <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
                               Tags
@@ -1389,6 +1698,37 @@ function FilterContent({
           </PopoverClose>
         )}
       </div>
+    </div>
+  );
+}
+
+function AccordionSection({ title, color, count, children, defaultOpen = false }: any) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-md border border-border/10 overflow-hidden shadow-sm">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 bg-muted/5 backdrop-blur-sm active:bg-muted/10 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="size-2.5 rounded-full shadow-sm ring-2 ring-background" style={{ backgroundColor: color }} />
+          <span className="text-[11px] font-black uppercase tracking-widest text-foreground/70">{title}</span>
+          <Badge 
+            variant="secondary" 
+            className="h-[18px] min-w-[26px] flex items-center justify-center px-1.5 text-[10px] font-black bg-muted/20 text-muted-foreground/80 rounded-full border border-border/10 shadow-inner"
+          >
+            {count}
+          </Badge>
+        </div>
+        <div className="text-muted-foreground/40">
+          {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+        </div>
+      </button>
+      {isOpen && (
+        <div className="bg-muted/5 animate-in fade-in slide-in-from-top-1 duration-200">
+          {children}
+        </div>
+      )}
     </div>
   );
 }

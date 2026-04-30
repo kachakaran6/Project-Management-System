@@ -16,6 +16,7 @@ export function useCreateTagMutation() {
     mutationFn: tagsApi.createTag,
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tags"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
       toast.success("Tag created");
     },
     onError: () => toast.error("Failed to create tag")
@@ -28,6 +29,8 @@ export function useUpdateTagMutation() {
     mutationFn: ({ id, data }: { id: string; data: Partial<Tag> }) => tagsApi.updateTag(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tags"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["task"] });
       toast.success("Tag updated");
     },
     onError: () => toast.error("Failed to update tag")
@@ -40,6 +43,8 @@ export function useDeleteTagMutation() {
     mutationFn: tagsApi.deleteTag,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tags"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["task"] });
       toast.success("Tag deleted");
     },
     onError: () => toast.error("Failed to delete tag")

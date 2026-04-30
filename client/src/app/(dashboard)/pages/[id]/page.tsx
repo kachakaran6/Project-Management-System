@@ -54,7 +54,6 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -87,22 +86,15 @@ import {
   usePageQuery,
   useUpdatePageMutation,
 } from "@/features/pages/hooks/use-pages-query";
+import { PageVisibilityBadge } from "@/features/pages/components/page-visibility-badge";
+import { PublishPageDialog } from "@/features/pages/components/publish-page-dialog";
+import {
+  getPagePublicPath,
+  getPagePublicPreviewPath,
+  toAbsolutePublicUrl,
+} from "@/features/pages/utils/page-sharing";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
-import { PageVisibility } from "@/types/page.types";
-
-function visibilityBadge(visibility: PageVisibility) {
-  return visibility === "PUBLIC" ? (
-    <Badge variant="default" className="gap-1">
-      <Globe className="size-3" />
-      Public
-    </Badge>
-  ) : (
-    <Badge variant="outline" className="gap-1 text-muted-foreground">
-      <Lock className="size-3" />
-      Private
-    </Badge>
-  );
-}
+import { PageDoc, PageVisibility } from "@/types/page.types";
 
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
@@ -139,13 +131,15 @@ export default function PageEditorPage() {
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("<p></p>");
-  const [visibility, setVisibility] = useState<PageVisibility>("PRIVATE");
+  const [visibility, setVisibility] = useState<PageVisibility>("WORKSPACE");
   const [hasHydrated, setHasHydrated] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashPos, setSlashPos] = useState({ top: 0, left: 0 });
   const [shareOpen, setShareOpen] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [copiedPublicLink, setCopiedPublicLink] = useState(false);
 
   const membersQuery = useOrganizationMembersQuery(activeOrg?.id || "");
   const members = membersQuery.data?.data.members || [];
@@ -166,12 +160,11 @@ export default function PageEditorPage() {
   }, [page, user]);
 
   const canView = useMemo(() => {
-    if (!page) return true;
+    if (!page) return false;
     if (canAdminOverride) return true;
-    if (page.visibility === "PUBLIC") return true;
-    if (!user) return true;
+    if (page.visibility === "PUBLIC" || page.visibility === "WORKSPACE") return true;
     return isCreator || isAllowed;
-  }, [canAdminOverride, isCreator, isAllowed, page, user]);
+  }, [canAdminOverride, isCreator, isAllowed, page]);
 
   const canEdit = useMemo(() => {
     if (!page) return false;
@@ -191,6 +184,51 @@ export default function PageEditorPage() {
   );
   const lastSaved = useRef("");
   const hydratedPageId = useRef<string>("");
+
+  const commitLocalSnapshot = (
+    nextTitle: string,
+    nextContent: string,
+    nextVisibility: PageVisibility,
+  ) => {
+    lastSaved.current = JSON.stringify({
+      title: nextTitle,
+      content: nextContent,
+      visibility: nextVisibility,
+    });
+  };
+
+  const syncLocalPageState = (nextPage: PageDoc) => {
+    const nextTitle = nextPage.title || "Untitled";
+    const nextContent = nextPage.content || "<p></p>";
+    const nextVisibility = nextPage.visibility;
+
+    setTitle(nextTitle);
+    setContent(nextContent);
+    setVisibility(nextVisibility);
+    commitLocalSnapshot(nextTitle, nextContent, nextVisibility);
+
+    if (editor && editor.getHTML() !== nextContent) {
+      editor.commands.setContent(nextContent, { emitUpdate: false });
+    }
+  };
+
+  const publicPreviewPath =
+    toAbsolutePublicUrl(
+      getPagePublicPreviewPath({
+        title,
+        publicId: page?.publicId ?? null,
+        publicSlug: page?.publicSlug ?? null,
+        publicUrl: page?.publicUrl ?? null,
+      }),
+    ) ||
+    getPagePublicPreviewPath({
+      title,
+      publicId: page?.publicId ?? null,
+      publicSlug: page?.publicSlug ?? null,
+      publicUrl: page?.publicUrl ?? null,
+    });
+
+  const publicPageUrl = toAbsolutePublicUrl(getPagePublicPath(page || null));
 
   const editor = useEditor({
     extensions: [
@@ -319,13 +357,8 @@ export default function PageEditorPage() {
     setContent(page.content || "<p></p>");
     setVisibility(page.visibility);
     setHasHydrated(true);
-    
-    const snapshot = JSON.stringify({ 
-      title: page.title, 
-      content: page.content || "<p></p>", 
-      visibility: page.visibility 
-    });
-    lastSaved.current = snapshot;
+
+    commitLocalSnapshot(page.title, page.content || "<p></p>", page.visibility);
     hydratedPageId.current = page.id;
 
     if (editor && editor.getHTML() !== (page.content || "<p></p>")) {
@@ -354,6 +387,44 @@ export default function PageEditorPage() {
     }
   };
 
+  const copyPublicLink = async () => {
+    if (!publicPageUrl) {
+      toast.error("Publish the page first to generate its public link.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(publicPageUrl);
+      setCopiedPublicLink(true);
+      toast.success("Public link copied.");
+    } catch {
+      toast.error("Failed to copy public link.");
+    }
+  };
+
+  const updateVisibilityImmediately = async (nextVisibility: PageVisibility) => {
+    if (!page || !canEdit) return;
+
+    try {
+      const updated = await updatePage.mutateAsync({
+        id: pageId,
+        data: { visibility: nextVisibility },
+      });
+
+      syncLocalPageState(updated.data);
+      setSaveStatus("saved");
+      toast.success(
+        nextVisibility === "PUBLIC"
+          ? "Page published."
+          : nextVisibility === "WORKSPACE"
+            ? "Page moved to workspace visibility."
+            : "Page is now private.",
+      );
+    } catch {
+      toast.error("Failed to update visibility.");
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (autosaveTimer.current) {
@@ -361,6 +432,13 @@ export default function PageEditorPage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!copiedPublicLink) return;
+
+    const timer = window.setTimeout(() => setCopiedPublicLink(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [copiedPublicLink]);
 
   // Autosave Logic
   useEffect(() => {
@@ -617,11 +695,21 @@ export default function PageEditorPage() {
     );
   }
 
+  if (pageQuery.isError && !page) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <Alert variant="warning" className="max-w-md">
+          <AlertTitle>Page unavailable</AlertTitle>
+          <AlertDescription>
+            This page could not be loaded. It may have been deleted or you may not have permission to view it.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   if (!page || !canView) {
-    // Only show "Unavailable" if we're sure page reached and auth resolved
-    const isActuallyForbidden = page && !canView;
-    
-    if (isActuallyForbidden) {
+    if (page && !canView) {
       return (
         <div className="flex items-center justify-center h-[50vh]">
           <Alert variant="warning" className="max-w-md">
@@ -634,7 +722,6 @@ export default function PageEditorPage() {
       );
     }
 
-    // Fallback to loading if we're intermediate
     return (
       <div className="mx-auto w-full max-w-4xl animate-pulse">
         <div className="h-10 w-48 bg-muted/50 rounded-lg mb-8" />
@@ -815,10 +902,34 @@ export default function PageEditorPage() {
                       <Copy className="size-3.5" />
                       Duplicate Page
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => setShareOpen(true)}>
-                      <UserPlus className="size-3.5" />
-                      Manage Access
-                    </DropdownMenuItem>
+
+                    {visibility !== "PUBLIC" ? (
+                      <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => setPublishOpen(true)}>
+                        <Globe className="size-3.5" />
+                        Publish Page
+                      </DropdownMenuItem>
+                    ) : (
+                      <>
+                        <DropdownMenuItem className="text-xs py-2 gap-2" onClick={copyPublicLink}>
+                          <Copy className="size-3.5" />
+                          {copiedPublicLink ? "Copied" : "Copy Public Link"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-xs py-2 gap-2"
+                          onClick={() => void updateVisibilityImmediately("WORKSPACE")}
+                        >
+                          <Users className="size-3.5" />
+                          Unpublish
+                        </DropdownMenuItem>
+                      </>
+                    )}
+
+                    {visibility === "PRIVATE" ? (
+                      <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => setShareOpen(true)}>
+                        <UserPlus className="size-3.5" />
+                        Manage Access
+                      </DropdownMenuItem>
+                    ) : null}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-xs py-2 gap-2 text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
                       <Trash2 className="size-3.5" />
@@ -837,7 +948,13 @@ export default function PageEditorPage() {
           
           {/* Metadata/Status indicator */}
           <div className="absolute -left-12 top-10 flex flex-col items-center gap-3 opacity-0 group-hover/page:opacity-100 transition-opacity hidden lg:flex">
-             {visibility === "PUBLIC" ? <Globe className="size-4 text-muted-foreground/40 hover:text-primary transition-colors cursor-help" /> : <Lock className="size-4 text-muted-foreground/40 hover:text-primary transition-colors cursor-help" />}
+             {visibility === "PUBLIC" ? (
+               <Globe className="size-4 text-muted-foreground/40 hover:text-primary transition-colors cursor-help" />
+             ) : visibility === "WORKSPACE" ? (
+               <Users className="size-4 text-muted-foreground/40 hover:text-primary transition-colors cursor-help" />
+             ) : (
+               <Lock className="size-4 text-muted-foreground/40 hover:text-primary transition-colors cursor-help" />
+             )}
              <div className="h-8 w-px bg-border/40" />
              <span className="[writing-mode:vertical-lr] text-[10px] uppercase tracking-widest text-muted-foreground/30 font-medium rotate-180">
                {saveStatus === "saving" ? "Syncing..." : "Encrypted"}
@@ -848,6 +965,25 @@ export default function PageEditorPage() {
              <Smile className="size-4 group-hover:text-amber-400 transition-colors" />
              <span className="text-[13px] font-medium">Add icon</span>
           </button>
+
+          <div className="mb-5 flex flex-wrap items-center gap-2 text-sm">
+            <PageVisibilityBadge visibility={visibility} />
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-border/50 px-2.5 py-1 text-xs text-muted-foreground">
+              <CalendarDays className="size-3.5" />
+              <span>Updated {new Date(page.updatedAt).toLocaleDateString()}</span>
+            </div>
+            {visibility === "PUBLIC" && publicPageUrl ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-full px-3 text-xs"
+                onClick={copyPublicLink}
+              >
+                <Copy className="mr-1.5 size-3.5" />
+                {copiedPublicLink ? "Copied" : "Copy Public Link"}
+              </Button>
+            ) : null}
+          </div>
 
           <textarea
             value={title}
@@ -923,9 +1059,28 @@ export default function PageEditorPage() {
               </div>
               
               <div className="space-y-1">
-                <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => setVisibility(v => v === "PUBLIC" ? "PRIVATE" : "PUBLIC")}>
+                <DropdownMenuItem
+                  className="text-xs py-2 gap-2"
+                  onClick={() => void updateVisibilityImmediately("PRIVATE")}
+                  disabled={visibility === "PRIVATE"}
+                >
                   <Lock className="size-3.5" />
-                  <span>Toggle Visibility ({visibility})</span>
+                  <span>Private</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-xs py-2 gap-2"
+                  onClick={() => void updateVisibilityImmediately("WORKSPACE")}
+                  disabled={visibility === "WORKSPACE"}
+                >
+                  <Users className="size-3.5" />
+                  <span>Workspace</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-xs py-2 gap-2"
+                  onClick={() => (visibility === "PUBLIC" ? void updateVisibilityImmediately("WORKSPACE") : setPublishOpen(true))}
+                >
+                  <Globe className="size-3.5" />
+                  <span>{visibility === "PUBLIC" ? "Disable Public Link" : "Publish Public"}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-xs py-2 gap-2">
                   <PanelRight className="size-3.5" />
@@ -968,6 +1123,20 @@ export default function PageEditorPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PublishPageDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        pageTitle={title}
+        previewPath={publicPreviewPath}
+        publicUrl={publicPageUrl}
+        isPublished={visibility === "PUBLIC"}
+        isPublishing={updatePage.isPending}
+        copied={copiedPublicLink}
+        onPublish={() => updateVisibilityImmediately("PUBLIC")}
+        onCopy={copyPublicLink}
+      />
+
       {/* Share/Access Management */}
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
         <DialogContent className="sm:max-w-[425px]">

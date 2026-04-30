@@ -421,25 +421,25 @@ export function TaskForm({
           />
 
           {showSuggestionsPanel && (
-            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-md border border-[#E5E7EB] bg-background/98 shadow-lg backdrop-blur-sm overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/20">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Sparkles className="size-3.5 text-primary" />
-                  Similar existing tasks
+            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-md border border-border/40 bg-background/98 shadow-xl backdrop-blur-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/10 bg-muted/20">
+                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tight">
+                  <Sparkles className="size-3 text-primary/60" />
+                  Similar Tasks
                 </div>
                 <button
                   type="button"
-                  className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-[10px] font-bold text-muted-foreground/40 hover:text-foreground transition-colors uppercase"
                   onClick={() => setDismissedQuery(normalizedQuery)}
                 >
-                  Continue creating anyway
+                  Dismiss
                 </button>
               </div>
 
               {isLoadingSimilar && suggestions.length === 0 ? (
-                <div className="px-3 py-3 text-xs text-muted-foreground flex items-center gap-2">
-                  <Loader2 className="size-3.5 animate-spin" />
-                  Checking for duplicates...
+                <div className="px-4 py-3 text-[11px] text-muted-foreground/50 flex items-center gap-2 italic">
+                  <Loader2 className="size-3 animate-spin opacity-30" />
+                  Analyzing for duplicates...
                 </div>
               ) : (
                 <div className="max-h-64 overflow-y-auto">
@@ -714,19 +714,21 @@ export function TaskForm({
 
       {/* Footer Area */}
       <div className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shrink-0 bg-background border-t border-border/10">
-        <div className="flex items-center gap-2">
-          <Switch
-            id="create-more"
-            checked={createMore}
-            onCheckedChange={onCreateMoreChange}
-            className="data-[state=checked]:bg-primary"
-          />
-          <Label
-            htmlFor="create-more"
-            className="text-xs text-muted-foreground/50 cursor-pointer select-none hover:text-muted-foreground transition-colors">
-            Create more
-          </Label>
-        </div>
+        {!isEdit && (
+          <div className="flex items-center gap-2">
+            <Switch
+              id="create-more"
+              checked={createMore}
+              onCheckedChange={onCreateMoreChange}
+              className="data-[state=checked]:bg-primary"
+            />
+            <Label
+              htmlFor="create-more"
+              className="text-xs text-muted-foreground/50 cursor-pointer select-none hover:text-muted-foreground transition-colors">
+              Create more
+            </Label>
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           <Button
@@ -734,10 +736,23 @@ export function TaskForm({
             onClick={form.handleSubmit((values) =>
               onSubmit(values, createMore),
             )}
-            disabled={isSubmitting || isSavingDraft}
-            className="h-9 px-6 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-sm transition-all flex items-center gap-2 shadow-sm">
-            {isSubmitting ? "Saving..." : submitLabel}
-            {!isSubmitting && <ArrowRight className="h-4 w-4" />}
+            disabled={isSubmitting || !titleValue || !titleValue.trim()}
+            className={cn(
+              "h-9 px-6 text-xs font-bold rounded-sm transition-all flex items-center gap-2 shadow-sm",
+              isSubmitting ? "bg-primary/80" : "bg-primary hover:bg-primary/90"
+            )}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>{isEdit ? "Saving..." : "Creating..."}</span>
+              </>
+            ) : (
+              <>
+                <span>{submitLabel}</span>
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </Button>
         </div>
       </div>

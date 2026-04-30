@@ -5,8 +5,24 @@ const pageSchema = new mongoose.Schema({
   content: { type: String, default: '<p></p>' },
   visibility: {
     type: String,
-    enum: ['PUBLIC', 'PRIVATE'],
-    default: 'PUBLIC',
+    enum: ['PRIVATE', 'WORKSPACE', 'PUBLIC'],
+    default: 'WORKSPACE',
+    index: true,
+  },
+  publicId: {
+    type: String,
+    default: null,
+    unique: true,
+    sparse: true,
+    index: true,
+  },
+  publicSlug: {
+    type: String,
+    default: null,
+  },
+  isPublished: {
+    type: Boolean,
+    default: false,
     index: true,
   },
   allowedUsers: [{
@@ -37,6 +53,7 @@ const pageSchema = new mongoose.Schema({
 
 pageSchema.index({ organizationId: 1, createdAt: -1 });
 pageSchema.index({ creatorId: 1, createdAt: -1 });
+pageSchema.index({ isPublished: 1, publicId: 1 });
 pageSchema.index({ title: 'text', content: 'text' });
 
 export default pageSchema;

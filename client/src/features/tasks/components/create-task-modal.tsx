@@ -106,6 +106,7 @@ export function CreateTaskModal({
   const [draftId, setDraftId] = useState<string | null>(null);
   const [isCheckingDraft, setIsCheckingDraft] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isLocalSubmitting, setIsLocalSubmitting] = useState(false);
   const [createMore, setCreateMore] = useState(false);
 
   const draftStorageKeyRef = useRef<string | null>(null);
@@ -184,29 +185,46 @@ export function CreateTaskModal({
     }
   }, [open, settingsData, statusPreferenceData, user]);
 
+  const hasInitializedRef = useRef(false);
+
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      hasInitializedRef.current = false;
+      return;
+    }
     
-    const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
-    const resolvedDefaultStatus = statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
-    
-    const nextBaseValues = {
-      ...createBaseValues(defaultProjectId, defaultAssigneeIds, resolvedDefaultStatus),
-    };
+    if (!hasInitializedRef.current) {
+      const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
+      const resolvedDefaultStatus = statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
+      
+      const nextBaseValues = createBaseValues(defaultProjectId, defaultAssigneeIds, resolvedDefaultStatus);
 
+      setInitialValues(nextBaseValues);
+      setDraftValues(nextBaseValues);
+      setDraftId(null);
+      draftStorageKeyRef.current = null;
+      lastSavedFingerprintRef.current = "";
+      setResetKey((current) => current + 1);
+      setIsCheckingDraft(false);
+      setCreateMore(false);
+      
+      hasInitializedRef.current = true;
+    } 
+    else if (!draftValues.title && !draftValues.description) {
+      const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
+      const resolvedDefaultStatus = statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
+      
+      const updatedValues = {
+        ...draftValues,
+        assigneeIds: draftValues.assigneeIds.length === 0 ? defaultAssigneeIds : draftValues.assigneeIds,
+        status: (draftValues.status === "TODO" || !draftValues.status) ? resolvedDefaultStatus : draftValues.status,
+      };
+      
+      setInitialValues(updatedValues);
+      setDraftValues(updatedValues);
+    }
+  }, [defaultProjectId, open, settingsData, statusPreferenceData, defaultStatus, draftValues.title, draftValues.description]);
 
-
-    setInitialValues(nextBaseValues);
-    setDraftValues(nextBaseValues);
-    setDraftId(null);
-    draftStorageKeyRef.current = null;
-    lastSavedFingerprintRef.current = "";
-    setResetKey((current) => current + 1);
-    setIsCheckingDraft(false);
-    // Don't reset createMore here so it persists if they open it again? 
-    // Actually, usually it's better to reset it when modal opens first time.
-    setCreateMore(false);
-  }, [defaultProjectId, open, settingsData, statusPreferenceData, defaultStatus]);
 
   const syncDraftToServer = async (
     values: TaskFormValues,
@@ -349,25 +367,20 @@ export function CreateTaskModal({
     };
   };
 
+  const isSubmitting = createTask.isPending || publishTaskDraft.isPending;
+
   const handleSubmit = async (values: TaskFormValues, createMoreArg?: boolean) => {
+    if (isLocalSubmitting) return;
+    setIsLocalSubmitting(true);
     isSubmittingRef.current = true;
     try {
       const publishPayload = buildPublishPayload(values);
-      const savedDraftId = userId
-        ? await syncDraftToServer(values, {
-            force: true,
-            showErrors: true,
-          })
-        : null;
-
-      if (userId && !savedDraftId) {
-        isSubmittingRef.current = false;
-        return;
-      }
-
-      if (savedDraftId) {
+      
+      // Use existing draftId if we have one, otherwise create a fresh task.
+      // This avoids the double-hop of syncing draft then publishing.
+      if (userId && draftId) {
         await publishTaskDraft.mutateAsync({
-          id: savedDraftId,
+          id: draftId,
           data: publishPayload,
         });
       } else {
@@ -377,7 +390,8 @@ export function CreateTaskModal({
         });
       }
 
-      clearLocalDraft(values.projectId, savedDraftId || draftId);
+      const currentDraftId = draftId;
+      clearLocalDraft(values.projectId, currentDraftId);
       setDraftId(null);
       lastSavedFingerprintRef.current = "";
       toast.success(`Task "${values.title}" created!`);
@@ -399,11 +413,10 @@ export function CreateTaskModal({
         "Failed to create task. Please try again.";
       toast.error(message);
     } finally {
+      setIsLocalSubmitting(false);
       isSubmittingRef.current = false;
     }
   };
-
-  const isSubmitting = createTask.isPending || publishTaskDraft.isPending;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -435,7 +448,7 @@ export function CreateTaskModal({
             onSaveDraft={handleSilentSaveDraft}
             onValuesChange={handleValuesChange}
             onSubmit={(values, more) => handleSubmit(values, more)}
-            isSubmitting={isSubmitting}
+            isSubmitting={isSubmitting || isLocalSubmitting}
             isSavingDraft={isSavingDraft}
             submitLabel="Create Task"
             createMore={createMore}

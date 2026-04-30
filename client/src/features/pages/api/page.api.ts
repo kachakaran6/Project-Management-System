@@ -1,12 +1,20 @@
-import { api } from "@/lib/api/axios-instance";
+import axios from "axios";
+
+import { api, API_URL } from "@/lib/api/axios-instance";
 import { ApiResponse, PaginatedResult } from "@/types/api.types";
 import {
   CreatePageInput,
   PageDoc,
   PageFilters,
   PageVisibility,
+  PublicPageDoc,
   UpdatePageInput,
 } from "@/types/page.types";
+
+const publicPageClient = axios.create({
+  baseURL: API_URL,
+  withCredentials: false,
+});
 
 type RawAuthor = {
   id?: string;
@@ -14,6 +22,11 @@ type RawAuthor = {
   firstName?: string;
   lastName?: string;
   email?: string;
+  avatarUrl?: string;
+};
+
+type RawPublicAuthor = {
+  name?: string;
   avatarUrl?: string;
 };
 
@@ -27,12 +40,35 @@ type RawPage = {
   ownerId?: string;
   createdBy?: RawAuthor;
   creator?: RawAuthor;
+  allowedUsers?: string[];
+  publicId?: string | null;
+  publicSlug?: string | null;
+  publicUrl?: string | null;
+  isPublished?: boolean;
   updatedAt?: string;
   createdAt?: string;
 };
 
+type RawPublicPage = {
+  title?: string;
+  content?: string;
+  publicUrl?: string | null;
+  author?: RawPublicAuthor | null;
+  updatedAt?: string;
+};
+
 function asVisibility(value: unknown): PageVisibility {
-  return String(value).toUpperCase() === "PUBLIC" ? "PUBLIC" : "PRIVATE";
+  const normalized = String(value).toUpperCase();
+
+  if (normalized === "PUBLIC") {
+    return "PUBLIC";
+  }
+
+  if (normalized === "PRIVATE") {
+    return "PRIVATE";
+  }
+
+  return "WORKSPACE";
 }
 
 function mapAuthor(raw?: RawAuthor) {
@@ -60,8 +96,28 @@ function mapPage(raw: RawPage): PageDoc {
     visibility: asVisibility(raw.visibility),
     creatorId: raw.creatorId || raw.ownerId || author?.id || "",
     creator: author,
+    allowedUsers: Array.isArray(raw.allowedUsers) ? raw.allowedUsers : [],
+    publicId: raw.publicId ?? null,
+    publicSlug: raw.publicSlug ?? null,
+    publicUrl: raw.publicUrl ?? null,
+    isPublished: Boolean(raw.isPublished),
     updatedAt: raw.updatedAt || raw.createdAt || new Date().toISOString(),
     createdAt: raw.createdAt || raw.updatedAt || new Date().toISOString(),
+  };
+}
+
+function mapPublicPage(raw: RawPublicPage): PublicPageDoc {
+  return {
+    title: raw.title ?? "Untitled page",
+    content: raw.content ?? "",
+    publicUrl: raw.publicUrl ?? null,
+    author: raw.author?.name
+      ? {
+          name: raw.author.name,
+          avatarUrl: raw.author.avatarUrl,
+        }
+      : null,
+    updatedAt: raw.updatedAt || new Date().toISOString(),
   };
 }
 
@@ -113,6 +169,11 @@ function normalizeSinglePage(payload: unknown): PageDoc {
   return mapPage(raw.page ?? raw);
 }
 
+function normalizePublicSinglePage(payload: unknown): PublicPageDoc {
+  const raw = (payload ?? {}) as { page?: RawPublicPage } & RawPublicPage;
+  return mapPublicPage(raw.page ?? raw);
+}
+
 export const pageApi = {
   async getPages(
     filters: PageFilters = {},
@@ -132,6 +193,17 @@ export const pageApi = {
     return {
       ...response.data,
       data: normalizeSinglePage(response.data.data),
+    };
+  },
+
+  async getPublicPage(slug: string): Promise<ApiResponse<PublicPageDoc>> {
+    const response = await publicPageClient.get<ApiResponse<unknown>>(
+      `/public/pages/${slug}`,
+    );
+
+    return {
+      ...response.data,
+      data: normalizePublicSinglePage(response.data.data),
     };
   },
 
