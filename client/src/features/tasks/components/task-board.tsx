@@ -68,7 +68,6 @@ import {
   useUpdateTaskMutation,
 } from "@/features/tasks/hooks/use-tasks-query";
 import { EditTaskModal } from "@/features/tasks/components/edit-task-modal";
-import { useTaskDuplicateSuggestions } from "@/features/tasks/hooks/use-task-duplicate-suggestions";
 import { TagPill } from "@/features/tags/components/tag-pill";
 import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
 import { useAppSelector } from "@/hooks/useAppSelector";

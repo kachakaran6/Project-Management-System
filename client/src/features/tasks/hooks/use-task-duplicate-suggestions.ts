@@ -128,10 +128,10 @@ function computeSimilarity(task: Task, query: string, activeProjectId?: string) 
   return Math.min(1, score);
 }
 
-export function useTaskDuplicateSuggestions(query: string, projectId?: string) {
+export function useTaskDuplicateSuggestions(query: string, projectId?: string, enabled = true) {
   const debouncedQuery = useDebounce(query, 350);
   const normalizedQuery = useMemo(() => normalizeText(debouncedQuery), [debouncedQuery]);
-  const canSearch = normalizedQuery.length >= 4;
+  const canSearch = normalizedQuery.length >= 4 && enabled;
 
   const suggestionsQuery = useQuery({
     queryKey: ["tasks", "duplicate-suggestions", normalizedQuery, projectId || "ALL"],
@@ -174,8 +174,8 @@ export function useTaskDuplicateSuggestions(query: string, projectId?: string) {
   });
 
   return {
-    suggestions: suggestionsQuery.data ?? [],
-    isLoading: suggestionsQuery.isFetching,
+    suggestions: enabled ? (suggestionsQuery.data ?? []) : [],
+    isLoading: enabled ? suggestionsQuery.isFetching : false,
     normalizedQuery,
     canSearch,
   };

@@ -195,7 +195,7 @@ export function TaskForm({
     isLoading: isLoadingSimilar,
     normalizedQuery,
     canSearch,
-  } = useTaskDuplicateSuggestions(titleValue, projectIdValue || undefined);
+  } = useTaskDuplicateSuggestions(titleValue, projectIdValue || undefined, !isSubmitting && !isSuccess);
 
   const showSuggestionsPanel =
     !isEdit &&
