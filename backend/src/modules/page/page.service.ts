@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import mongoose from 'mongoose';
 import PDFDocument from 'pdfkit';
 import Page from '../../models/Page.js';
@@ -5,11 +6,23 @@ import User from '../../models/User.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import { createActivityLog } from '../../services/activityLogService.js';
 
+export type PageVisibility = 'PRIVATE' | 'WORKSPACE' | 'PUBLIC';
+
+const PAGE_VISIBILITY = {
+  PRIVATE: 'PRIVATE',
+  WORKSPACE: 'WORKSPACE',
+  PUBLIC: 'PUBLIC',
+} as const satisfies Record<PageVisibility, PageVisibility>;
+
 const parseOrganizationId = (value: unknown): string | null => {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
 
   const raw = Array.isArray(value) ? value[0] : value;
-  if (typeof raw !== 'string') return null;
+  if (typeof raw !== 'string') {
+    return null;
+  }
 
   const trimmed = raw.trim();
   if (!trimmed || !mongoose.Types.ObjectId.isValid(trimmed)) {
@@ -40,16 +53,158 @@ type PageFilter = {
   organizationId?: string | null;
 };
 
+type PublicRouteParts = {
+  publicSlug: string;
+  publicId: string;
+};
+
 const toBoolean = (value: unknown) => {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'string') return value.toLowerCase() === 'true';
   return false;
 };
 
+const safeObjectId = (id: unknown) => {
+  if (!id) return null;
+
+  try {
+    return mongoose.Types.ObjectId.isValid(String(id))
+      ? new mongoose.Types.ObjectId(String(id))
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+const normalizeStoredVisibility = (value: unknown): PageVisibility => {
+  const normalized = String(value || PAGE_VISIBILITY.WORKSPACE).trim().toUpperCase();
+
+  if (normalized === PAGE_VISIBILITY.PRIVATE) {
+    return PAGE_VISIBILITY.PRIVATE;
+  }
+
+  if (normalized === PAGE_VISIBILITY.PUBLIC) {
+    return PAGE_VISIBILITY.PUBLIC;
+  }
+
+  return PAGE_VISIBILITY.WORKSPACE;
+};
+
+const normalizeRequestedVisibility = (value: unknown): PageVisibility | null => {
+  if (!value) {
+    return null;
+  }
+
+  return normalizeStoredVisibility(value);
+};
+
+export const getEffectiveVisibility = (pageLike: {
+  visibility?: unknown;
+  isPublished?: unknown;
+}): PageVisibility => {
+  const normalizedVisibility = normalizeStoredVisibility(pageLike.visibility);
+
+  // Legacy rows previously used PUBLIC for workspace-visible pages.
+  if (normalizedVisibility === PAGE_VISIBILITY.PUBLIC && !toBoolean(pageLike.isPublished)) {
+    return PAGE_VISIBILITY.WORKSPACE;
+  }
+
+  return normalizedVisibility;
+};
+
+const slugifyTitle = (value: string) => {
+  const trimmed = value.trim().toLowerCase();
+  const slug = trimmed
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+
+  return slug || 'page';
+};
+
+const generatePublicId = () => randomBytes(5).toString('hex');
+
+const createUniquePublicId = async () => {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const candidate = generatePublicId();
+    const existing = await Page.exists({ publicId: candidate });
+
+    if (!existing) {
+      return candidate;
+    }
+  }
+
+  throw new AppError('Failed to generate a unique public link. Please try again.', 500);
+};
+
+const createPublicMetadata = async (title: string) => ({
+  publicId: await createUniquePublicId(),
+  publicSlug: slugifyTitle(title),
+  isPublished: true,
+});
+
+const ensurePublicMetadata = async (page: any) => {
+  if (!page.publicId) {
+    page.publicId = await createUniquePublicId();
+  }
+
+  if (!page.publicSlug) {
+    page.publicSlug = slugifyTitle(String(page.title || 'page'));
+  }
+
+  page.isPublished = true;
+};
+
+const parsePublicRouteSlug = (value: string): PublicRouteParts | null => {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) {
+    return null;
+  }
+
+  const delimiterIndex = trimmed.lastIndexOf('-');
+  if (delimiterIndex <= 0 || delimiterIndex >= trimmed.length - 1) {
+    return null;
+  }
+
+  const publicSlug = trimmed.slice(0, delimiterIndex);
+  const publicId = trimmed.slice(delimiterIndex + 1);
+
+  if (!publicSlug || !publicId) {
+    return null;
+  }
+
+  return { publicSlug, publicId };
+};
+
+const normalizeAllowedUsers = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => safeObjectId(item))
+    .filter((item): item is mongoose.Types.ObjectId => Boolean(item));
+};
+
+export const buildPublicPagePath = (pageLike: {
+  publicId?: unknown;
+  publicSlug?: unknown;
+}) => {
+  const publicId = typeof pageLike.publicId === 'string' ? pageLike.publicId.trim() : '';
+  const publicSlug = typeof pageLike.publicSlug === 'string' ? pageLike.publicSlug.trim() : '';
+
+  if (!publicId || !publicSlug) {
+    return null;
+  }
+
+  return `/p/${publicSlug}-${publicId}`;
+};
+
 export const createPage = async (data: {
   title: string;
   content?: string;
-  visibility?: 'PUBLIC' | 'PRIVATE';
+  visibility?: PageVisibility;
+  allowedUsers?: string[];
   creatorId: string;
   organizationId?: string | null;
 }) => {
@@ -58,11 +213,17 @@ export const createPage = async (data: {
     throw new AppError('Title is required.', 400);
   }
 
+  const visibility = normalizeStoredVisibility(data.visibility);
+  const publicMetadata =
+    visibility === PAGE_VISIBILITY.PUBLIC ? await createPublicMetadata(title) : {};
+
   const page = await Page.create({
     title,
     content: data.content?.trim() || '<p></p>',
-    visibility: data.visibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
-    allowedUsers: (data as any).allowedUsers || [],
+    visibility,
+    ...publicMetadata,
+    isPublished: visibility === PAGE_VISIBILITY.PUBLIC,
+    allowedUsers: normalizeAllowedUsers(data.allowedUsers),
     creatorId: data.creatorId,
     organizationId: data.organizationId || null,
   });
@@ -76,7 +237,8 @@ export const createPage = async (data: {
       entityId: String(page._id),
       entityName: page.title,
       metadata: {
-        visibility: page.visibility,
+        visibility: getEffectiveVisibility(page),
+        published: page.isPublished,
         contentLength: String(page.content || '').length,
       },
     });
@@ -92,42 +254,54 @@ export const getPages = async (
   const skip = (page - 1) * limit;
 
   const query: Record<string, unknown> = { isActive: true };
-  
-  const safeObjectId = (id: any) => {
-    if (!id) return null;
-    try {
-      return mongoose.Types.ObjectId.isValid(String(id))
-        ? new mongoose.Types.ObjectId(String(id))
-        : null;
-    } catch {
-      return null;
-    }
-  };
+  const andConditions: Record<string, unknown>[] = [];
 
   if (filter.organizationId) {
-    const orgId = safeObjectId(filter.organizationId);
-    query.organizationId = orgId;
+    query.organizationId = safeObjectId(filter.organizationId);
   } else {
     query.organizationId = null;
   }
 
   const viewerCanSeeAll = filter.role === 'SUPER_ADMIN' || filter.role === 'ADMIN';
+  const isWorkspaceScoped = Boolean(filter.organizationId);
 
   if (!viewerCanSeeAll) {
     const userId = safeObjectId(filter.currentUserId);
-    query.$or = [
-      { visibility: 'PUBLIC' },
-      { creatorId: userId },
-      { allowedUsers: userId }
-    ];
+    const accessConditions: Record<string, unknown>[] = [];
+
+    if (userId) {
+      accessConditions.push({ creatorId: userId });
+      accessConditions.push({ allowedUsers: userId });
+    }
+
+    if (isWorkspaceScoped) {
+      accessConditions.push({ visibility: PAGE_VISIBILITY.WORKSPACE });
+      accessConditions.push({ visibility: PAGE_VISIBILITY.PUBLIC });
+    }
+
+    query.$or = accessConditions;
   }
 
-  if (String(filter.visibility).toUpperCase() === 'PUBLIC') {
-    query.visibility = 'PUBLIC';
+  const requestedVisibility = normalizeRequestedVisibility(filter.visibility);
+  if (requestedVisibility === PAGE_VISIBILITY.PRIVATE) {
+    query.visibility = PAGE_VISIBILITY.PRIVATE;
   }
 
-  if (String(filter.visibility).toUpperCase() === 'PRIVATE') {
-    query.visibility = 'PRIVATE';
+  if (requestedVisibility === PAGE_VISIBILITY.PUBLIC) {
+    query.visibility = PAGE_VISIBILITY.PUBLIC;
+    query.isPublished = true;
+  }
+
+  if (requestedVisibility === PAGE_VISIBILITY.WORKSPACE) {
+    andConditions.push({
+      $or: [
+        { visibility: PAGE_VISIBILITY.WORKSPACE },
+        {
+          visibility: PAGE_VISIBILITY.PUBLIC,
+          isPublished: { $ne: true },
+        },
+      ],
+    });
   }
 
   if (toBoolean(filter.createdByMe)) {
@@ -142,6 +316,10 @@ export const getPages = async (
   const search = String(filter.search || '').trim();
   if (search) {
     query.$text = { $search: search };
+  }
+
+  if (andConditions.length > 0) {
+    query.$and = andConditions;
   }
 
   const [pages, totalCount] = await Promise.all([
@@ -185,14 +363,42 @@ export const getPageById = async (
   const isAllowed = allowedUsers.some((id: any) => String(id) === currentUserId);
 
   const canAdminOverride = role === 'SUPER_ADMIN' || role === 'ADMIN';
+  const effectiveVisibility = getEffectiveVisibility(page);
+  const isWorkspaceScoped = Boolean((page as any).organizationId);
+
   const canView =
-    canAdminOverride || 
-    page.visibility === 'PUBLIC' || 
+    canAdminOverride ||
     creatorId === currentUserId ||
-    isAllowed;
+    isAllowed ||
+    (isWorkspaceScoped &&
+      (effectiveVisibility === PAGE_VISIBILITY.WORKSPACE ||
+        effectiveVisibility === PAGE_VISIBILITY.PUBLIC));
 
   if (!canView) {
     throw new AppError('You do not have permission to view this page.', 403);
+  }
+
+  return page;
+};
+
+export const getPublicPageBySlug = async (routeSlug: string) => {
+  const parts = parsePublicRouteSlug(routeSlug);
+  if (!parts) {
+    throw new AppError('Page not found.', 404);
+  }
+
+  const page = await Page.findOne({
+    isActive: true,
+    visibility: PAGE_VISIBILITY.PUBLIC,
+    isPublished: true,
+    publicId: parts.publicId,
+    publicSlug: parts.publicSlug,
+  })
+    .populate('creatorId', 'firstName lastName avatarUrl')
+    .lean();
+
+  if (!page) {
+    throw new AppError('Page not found.', 404);
   }
 
   return page;
@@ -203,7 +409,8 @@ export const updatePage = async (
   updates: {
     title?: string;
     content?: string;
-    visibility?: 'PUBLIC' | 'PRIVATE';
+    visibility?: PageVisibility;
+    allowedUsers?: string[];
   },
   currentUserId: string,
   role?: string | null,
@@ -237,18 +444,29 @@ export const updatePage = async (
     page.content = updates.content;
   }
 
-  if (updates.visibility) {
-    page.visibility = updates.visibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC';
+  if (Array.isArray(updates.allowedUsers)) {
+    page.allowedUsers = normalizeAllowedUsers(updates.allowedUsers) as any;
   }
 
-  if (Array.isArray((updates as any).allowedUsers)) {
-    (page as any).allowedUsers = (updates as any).allowedUsers;
+  if (updates.visibility) {
+    const nextVisibility = normalizeStoredVisibility(updates.visibility);
+    page.visibility = nextVisibility;
+
+    if (nextVisibility === PAGE_VISIBILITY.PUBLIC) {
+      await ensurePublicMetadata(page);
+    } else {
+      page.isPublished = false;
+    }
+  } else if (page.visibility === PAGE_VISIBILITY.PUBLIC && page.isPublished) {
+    await ensurePublicMetadata(page);
   }
 
   const changeMetadata: Record<string, any> = {};
   if (typeof updates.title === 'string') changeMetadata.title = updates.title.trim();
   if (typeof updates.content === 'string') changeMetadata.contentLength = updates.content.length;
-  if (updates.visibility) changeMetadata.visibility = updates.visibility;
+  if (updates.visibility) changeMetadata.visibility = normalizeStoredVisibility(updates.visibility);
+  if (Array.isArray(updates.allowedUsers)) changeMetadata.allowedUsers = updates.allowedUsers.length;
+  changeMetadata.isPublished = page.isPublished;
 
   await page.save();
 
@@ -302,7 +520,10 @@ export const deletePage = async (
       entityType: 'PAGE',
       entityId: String(page._id),
       entityName: page.title,
-      metadata: { visibility: page.visibility },
+      metadata: {
+        visibility: getEffectiveVisibility(page),
+        published: page.isPublished,
+      },
     });
   }
 

@@ -82,7 +82,10 @@ export function TagSelect({ selectedTagIds = [], onChange, workspaceId }: TagSel
                 className="flex h-11 w-full bg-transparent py-3 text-[13px] text-foreground placeholder:text-muted-foreground/40 !outline-none !border-none !ring-0 focus:!ring-0 focus:!outline-none focus:!border-none ml-2.5" 
               />
             </div>
-            <CommandList className="max-h-[300px] custom-scrollbar p-1.5">
+            <CommandList 
+              className="max-h-[280px] overflow-y-auto custom-scrollbar p-1.5"
+              onWheel={(e) => e.stopPropagation()}
+            >
               <CommandEmpty className="py-14 text-center px-4">
                 <div className="flex flex-col items-center gap-3 opacity-20">
                   <div className="p-4 rounded-full bg-muted">

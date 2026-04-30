@@ -89,7 +89,7 @@ import { CreateTaskModal } from "@/features/tasks/components/create-task-modal";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { Task, TaskStatus, TaskPriority } from "@/types/task.types";
 import { cn } from "@/lib/utils";
-import { useSearchParams, useRouter } from "@/lib/next-navigation";
+import { useSearchParams, useRouter, usePathname } from "@/lib/next-navigation";
 import { TaskRow } from "@/features/tasks/components/task-row";
 import { taskApi } from "@/features/tasks/api/task.api";
 import {
@@ -111,10 +111,33 @@ import { resolveStatus, filterVisibleTasks, normalizeId } from "@/features/tasks
 import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
 
 // Pagination Constants
+import {
+  DEFAULT_TASK_SORT_DIRECTION,
+  DEFAULT_TASK_SORT_FIELD,
+  TASK_SORT_OPTIONS,
+  getDefaultTaskSortState,
+  getTaskSortLabel,
+  isTaskSortDirection,
+  isTaskSortField,
+  readTaskSortPreference,
+  writeTaskSortPreference,
+} from "@/features/tasks/utils/task-sort";
+import { TaskSortDirection, TaskSortField } from "@/types/task.types";
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const VIEW_STORAGE_KEY = "tasks:view-mode";
 type TaskViewMode = "list" | "kanban" | "table";
+
+const getInitialTaskSortState = (searchParams: { get: (key: string) => string | null }) => {
+  const stored = readTaskSortPreference() ?? getDefaultTaskSortState();
+  const urlField = searchParams.get("sortBy");
+  const urlDirection = searchParams.get("sortOrder");
+
+  return {
+    field: isTaskSortField(urlField) ? urlField : stored.field,
+    direction: isTaskSortDirection(urlDirection) ? urlDirection : stored.direction,
+  };
+};
 
 interface TaskDashboardProps {
   fixedProjectId?: string;
@@ -123,22 +146,20 @@ interface TaskDashboardProps {
 
 export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashboardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Initialize viewMode from URL or default to kanban
+  const initialView = (searchParams.get("view") as any) || "kanban";
+  const [viewMode, setViewMode] = useState<"kanban" | "list" | "table">(initialView);
+
+  // Sync isMounted
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const { openPanel } = useTaskPanelStore();
-
-  const [viewMode, setViewMode] = useState<TaskViewMode>(() => {
-    if (typeof window === "undefined") return "kanban";
-    const saved = window.localStorage.getItem(VIEW_STORAGE_KEY) as TaskViewMode;
-    const isMobileInitial = window.innerWidth < 768;
-
-    if (isMobileInitial) {
-      if (saved === "table" || saved === "list") return saved;
-      return "list"; // Default to list (which is accordion) on mobile
-    } else {
-      if (saved === "kanban" || saved === "list") return saved;
-      return "kanban"; // Table not allowed on desktop
-    }
-  });
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -148,14 +169,6 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
-
-  useEffect(() => {
-    if (isMobile && viewMode === "kanban") {
-      setViewMode("list");
-    } else if (!isMobile && viewMode === "table") {
-      setViewMode("list");
-    }
-  }, [isMobile, viewMode]);
 
   useEffect(() => {
     if (fixedProjectId) {
@@ -196,6 +209,9 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   const [tagIds, setTagIds] = useState<string[]>(
     searchParams.get("tagIds")?.split(",").filter(Boolean) || [],
   );
+  const initialSort = useMemo(() => getInitialTaskSortState(searchParams), [searchParams]);
+  const [selectedSortField, setSelectedSortField] = useState<TaskSortField>(initialSort.field);
+  const [selectedSortDirection, setSelectedSortDirection] = useState<TaskSortDirection>(initialSort.direction);
   const [isExporting, setIsExporting] = useState(false);
 
   const { activeOrg, activeOrgId } = useAuth();
@@ -210,10 +226,93 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     activeOrg?.role === "ADMIN" ||
     activeOrg?.role === "MANAGER";
 
+  // --- 4. URL & LOCALSTORAGE SYNC ---
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
   }, [viewMode]);
+
+  useEffect(() => {
+    writeTaskSortPreference({
+      field: selectedSortField,
+      direction: selectedSortDirection,
+    });
+  }, [selectedSortField, selectedSortDirection]);
+
+  // Sync state FROM URL (Initial and on back/forward)
+  useEffect(() => {
+    const urlField = searchParams.get("sortBy");
+    const urlDirection = searchParams.get("sortOrder");
+    const urlView = searchParams.get("view");
+
+    if (isTaskSortField(urlField) && urlField !== selectedSortField) {
+      setSelectedSortField(urlField);
+    }
+    if (isTaskSortDirection(urlDirection) && urlDirection !== selectedSortDirection) {
+      setSelectedSortDirection(urlDirection);
+    }
+    if (urlView && (urlView === "kanban" || urlView === "list" || urlView === "table") && urlView !== viewMode) {
+      setViewMode(urlView as TaskViewMode);
+    }
+  }, [searchParams]);
+
+  // Consolidated URL State Sync (State -> URL)
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    
+    // Core parameters
+    params.set("view", viewMode);
+    params.set("sortBy", selectedSortField);
+    params.set("sortOrder", selectedSortDirection);
+    
+    // Filters
+    if (status !== "ALL") params.set("status", status); else params.delete("status");
+    if (priority !== "ALL") params.set("priority", priority); else params.delete("priority");
+    if (search) params.set("q", search); else params.delete("q");
+    
+    if (!fixedProjectId) {
+      if (projectId !== "ALL") params.set("projectId", projectId); else params.delete("projectId");
+    }
+    
+    if (assigneeId !== "ALL") params.set("assigneeId", assigneeId); else params.delete("assigneeId");
+    if (creatorId !== "ALL") params.set("creatorId", creatorId); else params.delete("creatorId");
+    if (dueDate) params.set("dueDate", dueDate); else params.delete("dueDate");
+    if (tagIds.length > 0) params.set("tagIds", tagIds.join(",")); else params.delete("tagIds");
+
+    if (page > 1) params.set("page", page.toString()); else params.delete("page");
+    
+    // Limit is view-dependent
+    const targetLimit = viewMode === "kanban" ? 1000 : limit;
+    params.set("limit", targetLimit.toString());
+
+    const newQuery = params.toString();
+    const currentQuery = searchParams.toString();
+
+    if (newQuery !== currentQuery) {
+      router.replace(`${pathname}?${newQuery}`, { scroll: false });
+    }
+  }, [
+    isMounted,
+    viewMode,
+    selectedSortField,
+    selectedSortDirection,
+    status,
+    priority,
+    search,
+    projectId,
+    assigneeId,
+    creatorId,
+    dueDate,
+    tagIds,
+    page,
+    limit,
+    pathname,
+    router,
+    fixedProjectId,
+    searchParams
+  ]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -235,36 +334,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     }
   }, [dynamicStatuses, status]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (status !== "ALL") params.set("status", status);
-    else params.delete("status");
-    if (priority !== "ALL") params.set("priority", priority);
-    else params.delete("priority");
 
-    // Only update projectId param if it's NOT fixed
-    if (!fixedProjectId) {
-      if (projectId !== "ALL") params.set("projectId", projectId);
-      else params.delete("projectId");
-    }
-
-    if (assigneeId !== "ALL") params.set("assigneeId", assigneeId);
-    else params.delete("assigneeId");
-    if (creatorId !== "ALL") params.set("creatorId", creatorId);
-    else params.delete("creatorId");
-    if (dueDate) params.set("dueDate", dueDate);
-    else params.delete("dueDate");
-    if (tagIds.length > 0) params.set("tagIds", tagIds.join(","));
-    else params.delete("tagIds");
-
-    // Pagination params
-    if (page > 1) params.set("page", String(page));
-    else params.delete("page");
-    if (limit !== DEFAULT_PAGE_SIZE) params.set("limit", String(limit));
-    else params.delete("limit");
-
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, page, limit, router, fixedProjectId, searchParams]);
 
   const sharedFilters = useMemo(
     () => ({
@@ -279,8 +349,10 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
       creatorId: creatorId === "ALL" || !creatorId ? undefined : creatorId,
       dueDate: dueDate || undefined,
       tagIds: tagIds.length > 0 ? tagIds : undefined,
+      sortBy: selectedSortField,
+      sortOrder: selectedSortDirection,
     }),
-    [debouncedSearch, status, priority, projectId, assigneeId, creatorId, dueDate, tagIds],
+    [debouncedSearch, status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, selectedSortField, selectedSortDirection],
   );
 
   const listFilters = useMemo(
@@ -288,11 +360,37 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
       ...sharedFilters,
       page: (viewMode === "list" && isMobile) ? 1 : page,
       limit: (viewMode === "list" && isMobile) ? 500 : limit,
-      sortBy: "createdAt",
-      sortOrder: "desc" as const,
     }),
     [sharedFilters, page, limit, viewMode, isMobile],
   );
+    const selectedSortLabel = getTaskSortLabel(selectedSortField);
+    const isDefaultSort = selectedSortField === DEFAULT_TASK_SORT_FIELD && selectedSortDirection === DEFAULT_TASK_SORT_DIRECTION;
+
+    const handleSortFieldChange = (field: TaskSortField) => {
+      if (selectedSortField === field) {
+        setSelectedSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      } else {
+        setSelectedSortField(field);
+        // Default to desc for dates, asc for others
+        if (field === "createdAt" || field === "updatedAt" || field === "dueDate") {
+          setSelectedSortDirection("desc");
+        } else {
+          setSelectedSortDirection("asc");
+        }
+      }
+      setPage(1);
+    };
+
+    const toggleSortDirection = () => {
+      setSelectedSortDirection((current) => (current === "desc" ? "asc" : "desc"));
+      setPage(1);
+    };
+
+    const resetSort = () => {
+      setSelectedSortField(DEFAULT_TASK_SORT_FIELD);
+      setSelectedSortDirection(DEFAULT_TASK_SORT_DIRECTION);
+      setPage(1);
+    };
   const kanbanFilters = useMemo(
     () => ({ ...sharedFilters, page: 1, limit: 1000 }),
     [sharedFilters],
@@ -302,11 +400,13 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     enabled: viewMode === "list" || viewMode === "table",
   });
   const kanbanQuery = useTasksQuery(kanbanFilters, {
-    enabled: viewMode === "kanban" && !isMobile,
+    enabled: viewMode === "kanban",
   });
 
+  const isAnyFetching = listQuery.isFetching || kanbanQuery.isFetching;
+
   const totalPages = Math.max(1, listQuery.data?.data.meta?.totalPages ?? 1);
-  const listRows = useMemo(() => filterVisibleTasks(listQuery.data?.data.items ?? []), [listQuery.data]);
+  const listRows = useMemo(() => filterVisibleTasks(listQuery.data?.data.items ?? [], true), [listQuery.data]);
   
   const groupedTasks = useMemo(() => {
     if (viewMode !== "list" || !isMobile) return {};
@@ -334,7 +434,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     return groups;
   }, [listRows, dynamicStatuses, viewMode]);
 
-  const kanbanRows = useMemo(() => filterVisibleTasks(kanbanQuery.data?.data.items ?? []), [kanbanQuery.data]);
+  const kanbanRows = useMemo(() => filterVisibleTasks(kanbanQuery.data?.data.items ?? [], true), [kanbanQuery.data]);
 
   const getTaskId = (task: Task) => String(task.id || (task as any)._id || "");
   const getAssignees = (task: Task) => task.assigneeUsers ?? [];
@@ -430,6 +530,8 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     while (true) {
       const response = await taskApi.getTasks({
         ...sharedFilters,
+        sortBy: selectedSortField,
+        sortOrder: selectedSortDirection,
         page: currentPage,
         limit,
       });
@@ -540,6 +642,69 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               </Popover>
             )}
 
+            <div className="flex items-center gap-2 shrink-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "h-10 max-w-48 rounded-sm px-3.5 gap-2 border-border/40 bg-muted/10 text-[11px] font-bold transition-all hover:bg-muted/20 hover:border-border/60 active:scale-95",
+                        !isDefaultSort && "border-primary/40 bg-primary/5 text-primary",
+                      )}
+                    >
+                      <span className="truncate">Sort by: {selectedSortLabel}</span>
+                      <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 rounded-md border-border/40 p-1.5 shadow-2xl bg-card/95 backdrop-blur-xl">
+                    {TASK_SORT_OPTIONS.map((option) => {
+                      const isSelected = option.value === selectedSortField;
+                      return (
+                        <DropdownMenuItem
+                          key={option.value}
+                          onClick={() => handleSortFieldChange(option.value)}
+                          className={cn(
+                            "rounded-sm py-2.5 text-sm font-medium cursor-pointer",
+                            isSelected && "bg-primary/10 text-primary",
+                          )}
+                        >
+                          <div className="flex w-full items-center justify-between gap-3">
+                            <span>{option.label}</span>
+                            {isSelected && <span className="text-[10px] font-black uppercase tracking-[0.2em]">Active</span>}
+                          </div>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={resetSort}
+                      className="rounded-sm py-2.5 text-sm font-medium cursor-pointer"
+                      disabled={isDefaultSort}
+                    >
+                      Reset to Default
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleSortDirection}
+                  className={cn(
+                    "h-10 w-10 rounded-sm border-border/40 bg-muted/10 text-xs font-black transition-all hover:bg-muted/20 hover:border-border/60 active:scale-95",
+                    !isDefaultSort && "border-primary/40 bg-primary/5 text-primary",
+                  )}
+                  aria-label={`Sort ${selectedSortDirection === "desc" ? "descending" : "ascending"}`}
+                  title={selectedSortDirection === "desc" ? "Descending" : "Ascending"}
+                >
+                   {isAnyFetching ? (
+                    <Loader2 className="size-3.5 animate-spin opacity-70" />
+                  ) : (
+                    selectedSortDirection === "desc" ? "↓" : "↑"
+                  )}
+                </Button>
+              </div>
+
             {isMobile && (
               <FilterDrawer
                 status={status} setStatus={setStatus}
@@ -568,7 +733,6 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
           <div className="flex items-center justify-between md:justify-end gap-2.5 w-full md:w-auto">
             {/* View Switcher - Premium Toggle */}
             <div className="inline-flex flex-1 md:flex-none rounded-sm border border-border/40 bg-muted/10 p-1 h-10 md:h-10 items-center shadow-inner-sm max-md:h-11">
-              {!isMobile && (
                 <Button
                   variant={viewMode === "kanban" ? "secondary" : "ghost"}
                   size="sm"
@@ -580,7 +744,6 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 >
                   <Kanban className="size-3.5" /> <span className={cn(isMobile && "hidden")}>Board</span>
                 </Button>
-              )}
 
               <Button
                 variant={viewMode === "list" ? "secondary" : "ghost"}
@@ -594,7 +757,6 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 <List className="size-3.5" /> <span className={cn(isMobile && "hidden")}>List</span>
               </Button>
 
-              {isMobile && (
                 <Button
                   variant={viewMode === "table" ? "secondary" : "ghost"}
                   size="sm"
@@ -606,7 +768,6 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 >
                   <TableIcon className="size-3.5" /> <span className={cn(isMobile && "hidden")}>Table</span>
                 </Button>
-              )}
             </div>
 
             {/* Export Menu */}
@@ -944,29 +1105,89 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                       <Table className="min-w-[1200px] border-separate border-spacing-0">
                         <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur-md shadow-sm">
                           <TableRow className="hover:bg-transparent border-0">
-                            <TableHead className="py-4 pl-8 font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Task Title
+                            <TableHead 
+                              className="py-4 pl-8 font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors group"
+                              onClick={() => handleSortFieldChange("title")}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                Task Title
+                                {selectedSortField === "title" && (
+                                  <span className="text-primary font-black animate-in fade-in slide-in-from-bottom-1 duration-300">
+                                    {isAnyFetching ? <Loader2 className="size-3 animate-spin" /> : (selectedSortDirection === "asc" ? "↑" : "↓")}
+                                  </span>
+                                )}
+                              </div>
                             </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Assignee
+                            <TableHead 
+                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleSortFieldChange("assignee")}
+                            >
+                               <div className="flex items-center gap-1.5">
+                                Assignee
+                                {selectedSortField === "assignee" && (
+                                  <span className="text-primary font-black">
+                                    {isAnyFetching ? <Loader2 className="size-3 animate-spin" /> : (selectedSortDirection === "asc" ? "↑" : "↓")}
+                                  </span>
+                                )}
+                              </div>
                             </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Status
+                            <TableHead 
+                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleSortFieldChange("status")}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                Status
+                                {selectedSortField === "status" && (
+                                  <span className="text-primary font-black">
+                                    {isAnyFetching ? <Loader2 className="size-3 animate-spin" /> : (selectedSortDirection === "asc" ? "↑" : "↓")}
+                                  </span>
+                                )}
+                              </div>
                             </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Priority
+                            <TableHead 
+                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleSortFieldChange("priority")}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                Priority
+                                {selectedSortField === "priority" && (
+                                  <span className="text-primary font-black">
+                                    {selectedSortDirection === "asc" ? "↑" : "↓"}
+                                  </span>
+                                )}
+                              </div>
                             </TableHead>
                             <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
                               Created By
                             </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Created Time
+                            <TableHead 
+                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleSortFieldChange("createdAt")}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                Created Time
+                                 {selectedSortField === "createdAt" && (
+                                  <span className="text-primary font-black">
+                                    {isAnyFetching ? <Loader2 className="size-3 animate-spin" /> : (selectedSortDirection === "asc" ? "↑" : "↓")}
+                                  </span>
+                                )}
+                              </div>
                             </TableHead>
                             <TableHead className={cn("font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50", fixedProjectId && "hidden")}>
                               Project
                             </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Due Date
+                            <TableHead 
+                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleSortFieldChange("dueDate")}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                Due Date
+                                {selectedSortField === "dueDate" && (
+                                  <span className="text-primary font-black">
+                                    {isAnyFetching ? <Loader2 className="size-3 animate-spin" /> : (selectedSortDirection === "asc" ? "↑" : "↓")}
+                                  </span>
+                                )}
+                              </div>
                             </TableHead>
                             <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
                               Tags

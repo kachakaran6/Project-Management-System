@@ -106,6 +106,7 @@ export function CreateTaskModal({
   const [draftId, setDraftId] = useState<string | null>(null);
   const [isCheckingDraft, setIsCheckingDraft] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isLocalSubmitting, setIsLocalSubmitting] = useState(false);
   const [createMore, setCreateMore] = useState(false);
 
   const draftStorageKeyRef = useRef<string | null>(null);
@@ -366,25 +367,20 @@ export function CreateTaskModal({
     };
   };
 
+  const isSubmitting = createTask.isPending || publishTaskDraft.isPending;
+
   const handleSubmit = async (values: TaskFormValues, createMoreArg?: boolean) => {
+    if (isLocalSubmitting) return;
+    setIsLocalSubmitting(true);
     isSubmittingRef.current = true;
     try {
       const publishPayload = buildPublishPayload(values);
-      const savedDraftId = userId
-        ? await syncDraftToServer(values, {
-            force: true,
-            showErrors: true,
-          })
-        : null;
-
-      if (userId && !savedDraftId) {
-        isSubmittingRef.current = false;
-        return;
-      }
-
-      if (savedDraftId) {
+      
+      // Use existing draftId if we have one, otherwise create a fresh task.
+      // This avoids the double-hop of syncing draft then publishing.
+      if (userId && draftId) {
         await publishTaskDraft.mutateAsync({
-          id: savedDraftId,
+          id: draftId,
           data: publishPayload,
         });
       } else {
@@ -394,7 +390,8 @@ export function CreateTaskModal({
         });
       }
 
-      clearLocalDraft(values.projectId, savedDraftId || draftId);
+      const currentDraftId = draftId;
+      clearLocalDraft(values.projectId, currentDraftId);
       setDraftId(null);
       lastSavedFingerprintRef.current = "";
       toast.success(`Task "${values.title}" created!`);
@@ -416,11 +413,10 @@ export function CreateTaskModal({
         "Failed to create task. Please try again.";
       toast.error(message);
     } finally {
+      setIsLocalSubmitting(false);
       isSubmittingRef.current = false;
     }
   };
-
-  const isSubmitting = createTask.isPending || publishTaskDraft.isPending;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -452,7 +448,7 @@ export function CreateTaskModal({
             onSaveDraft={handleSilentSaveDraft}
             onValuesChange={handleValuesChange}
             onSubmit={(values, more) => handleSubmit(values, more)}
-            isSubmitting={isSubmitting}
+            isSubmitting={isSubmitting || isLocalSubmitting}
             isSavingDraft={isSavingDraft}
             submitLabel="Create Task"
             createMore={createMore}

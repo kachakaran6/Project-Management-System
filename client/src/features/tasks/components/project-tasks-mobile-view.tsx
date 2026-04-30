@@ -13,6 +13,10 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Task } from "@/types/task.types";
 import { resolveStatus, filterVisibleTasks } from "@/features/tasks/utils/resolve-status";
+import {
+  getDefaultTaskSortState,
+  readTaskSortPreference,
+} from "@/features/tasks/utils/task-sort";
 
 interface ProjectTasksMobileViewProps {
   projectId: string;
@@ -182,6 +186,7 @@ function StatusGroup({
 export function ProjectTasksMobileView({ projectId }: ProjectTasksMobileViewProps) {
   const [search, setSearch] = useState("");
   const { activeOrgId, activeOrg } = useAuth();
+  const [sortPreference] = useState(() => readTaskSortPreference() ?? getDefaultTaskSortState());
 
   const canMutate =
     activeOrg?.role === "OWNER" ||
@@ -191,7 +196,12 @@ export function ProjectTasksMobileView({ projectId }: ProjectTasksMobileViewProp
 
   // Fetch ALL tasks for this project (high limit for grouped accordion view)
   const tasksQuery = useTasksQuery(
-    { projectId, limit: 500 },
+    {
+      projectId,
+      limit: 500,
+      sortBy: sortPreference.field,
+      sortOrder: sortPreference.direction,
+    },
     { staleTime: 0 }
   );
 

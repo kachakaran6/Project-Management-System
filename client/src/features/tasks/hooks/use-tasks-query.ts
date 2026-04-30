@@ -115,6 +115,7 @@ export function useDeleteTaskDraftMutation() {
 
 export function useUpdateTaskStatusMutation() {
   const queryClient = useQueryClient();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
 
   return useMutation({
     mutationFn: ({ 
@@ -132,8 +133,60 @@ export function useUpdateTaskStatusMutation() {
       }
       return taskApi.changeStatus(id, status);
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all });
+    onMutate: async ({ id, status }) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
+      await queryClient.cancelQueries({ queryKey: tasksQueryKeys.detail(id, activeOrgId) });
+
+      // Snapshot the previous value
+      const previousTasks = queryClient.getQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) });
+      const previousDetail = queryClient.getQueryData(tasksQueryKeys.detail(id, activeOrgId));
+
+      // Optimistically update to the new value in all lists
+      queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
+        if (!old || !old.data || !Array.isArray(old.data.tasks)) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            tasks: old.data.tasks.map((t: any) =>
+              (t.id === id || t._id === id) ? { ...t, status } : t
+            )
+          }
+        };
+      });
+
+      // Optimistically update the detail view
+      if (previousDetail) {
+        queryClient.setQueryData(tasksQueryKeys.detail(id, activeOrgId), (old: any) => {
+          if (!old || !old.data) return old;
+          return {
+            ...old,
+            data: {
+              ...old.data,
+              status
+            }
+          };
+        });
+      }
+
+      return { previousTasks, previousDetail, id };
+    },
+    onError: (err, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousTasks) {
+        context.previousTasks.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      if (context?.previousDetail) {
+        queryClient.setQueryData(tasksQueryKeys.detail(context.id, activeOrgId), context.previousDetail);
+      }
+    },
+    onSettled: (data, error, variables) => {
+      // Always refetch after error or success to keep server and client in sync
+      queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
+      queryClient.invalidateQueries({ queryKey: tasksQueryKeys.detail(variables.id, activeOrgId) });
     },
   });
 }
@@ -152,18 +205,21 @@ export function useTaskQuery(id: string, enabled = true) {
 
 export function useUpdateTaskMutation() {
   const queryClient = useQueryClient();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateTaskInput }) =>
       taskApi.updateTask(id, data),
     onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: tasksQueryKeys.detail(id) });
-      await queryClient.cancelQueries({ queryKey: tasksQueryKeys.all });
+      await queryClient.cancelQueries({ queryKey: tasksQueryKeys.detail(id, activeOrgId) });
+      await queryClient.cancelQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
 
-      const previousTask = queryClient.getQueryData(tasksQueryKeys.detail(id));
+      const previousDetail = queryClient.getQueryData(tasksQueryKeys.detail(id, activeOrgId));
+      const previousTasks = queryClient.getQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) });
 
-      queryClient.setQueryData(tasksQueryKeys.detail(id), (old: any) => {
-        if (!old) return old;
+      // Update detail
+      queryClient.setQueryData(tasksQueryKeys.detail(id, activeOrgId), (old: any) => {
+        if (!old || !old.data) return old;
         return {
           ...old,
           data: {
@@ -173,20 +229,36 @@ export function useUpdateTaskMutation() {
         };
       });
 
-      return { previousTask, id };
+      // Update lists
+      queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
+        if (!old || !old.data || !Array.isArray(old.data.tasks)) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            tasks: old.data.tasks.map((t: any) =>
+              (t.id === id || t._id === id) ? { ...t, ...data } : t
+            )
+          }
+        };
+      });
+
+      return { previousDetail, previousTasks, id };
     },
     onError: (err, variables, context) => {
-      if (context?.previousTask) {
-        queryClient.setQueryData(
-          tasksQueryKeys.detail(context.id),
-          context.previousTask,
-        );
+      if (context?.previousDetail) {
+        queryClient.setQueryData(tasksQueryKeys.detail(context.id, activeOrgId), context.previousDetail);
+      }
+      if (context?.previousTasks) {
+        context.previousTasks.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
       }
     },
     onSettled: (data, error, variables) => {
-      queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
       queryClient.invalidateQueries({
-        queryKey: tasksQueryKeys.detail(variables.id),
+        queryKey: tasksQueryKeys.detail(variables.id, activeOrgId),
       });
     },
   });
@@ -205,12 +277,39 @@ export function useDeleteTaskMutation() {
 
 export function useBulkTaskStatusMutation() {
   const queryClient = useQueryClient();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
 
   return useMutation({
     mutationFn: ({ ids, status }: { ids: string[]; status: TaskStatus }) =>
       Promise.all(ids.map((id) => taskApi.changeStatus(id, status))),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all });
+    onMutate: async ({ ids, status }) => {
+      await queryClient.cancelQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
+      const previousTasks = queryClient.getQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) });
+
+      queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
+        if (!old || !old.data || !Array.isArray(old.data.tasks)) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            tasks: old.data.tasks.map((t: any) =>
+              ids.includes(t.id) || ids.includes(t._id) ? { ...t, status } : t
+            )
+          }
+        };
+      });
+
+      return { previousTasks };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousTasks) {
+        context.previousTasks.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
     },
   });
 }

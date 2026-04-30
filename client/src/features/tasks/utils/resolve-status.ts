@@ -16,6 +16,7 @@ export const normalizeId = (id: any): string | undefined => {
  */
 export const resolveStatus = (task: any, statuses: any[]) => {
   if (!task || !statuses || statuses.length === 0) return null;
+  if (task.isDraft) return null; // Force 'draft' column
 
   // 1. Try ID match (task.status could be an ID string, an ObjectId, or a populated object)
   const taskStatusId = normalizeId(task.status?._id) || normalizeId(task.status?.$oid) || normalizeId(task.status);
@@ -41,8 +42,9 @@ export const resolveStatus = (task: any, statuses: any[]) => {
 };
 
 /**
- * Filters out tasks that are marked as drafts.
+ * Filters out tasks that are marked as drafts unless includeDrafts is true.
  */
-export const filterVisibleTasks = (tasks: any[]) => {
+export const filterVisibleTasks = (tasks: any[], includeDrafts = false) => {
+  if (includeDrafts) return tasks || [];
   return (tasks || []).filter(task => !task.isDraft);
 };

@@ -142,7 +142,14 @@ export const TaskRow = ({
               openPanel(tid(task));
             }}
             className="font-semibold text-[14px] md:text-[15px] hover:text-primary transition-colors line-clamp-1 cursor-pointer text-left">
-            {task.title}
+            <div className="flex items-center gap-2">
+              {task.title}
+              {task.isDraft && (
+                <Badge variant="outline" className="h-4.5 px-1.5 text-[9px] font-black bg-amber-500/10 text-amber-600 border-amber-500/20 uppercase tracking-wider shrink-0">
+                  Draft
+                </Badge>
+              )}
+            </div>
           </button>
           <span className="text-[10px] font-mono text-indigo-500/70">
             {task.taskCode || (task as any).legacyId || `T-${tid(task).slice(-4).toUpperCase()}`}
@@ -182,42 +189,48 @@ export const TaskRow = ({
         </div>
       </TableCell>
       <TableCell>
-        <DropdownMenu>
-          <DropdownMenuTrigger disabled={!canMutate} asChild onClick={(e) => e.stopPropagation()}>
-            <Button
-              variant="ghost"
-              className={cn(
-                "h-7 rounded-xs border-0 px-3 py-0 text-[10px] font-bold tracking-tight uppercase shadow-sm whitespace-nowrap transition-all",
+        {task.isDraft ? (
+          <div className="h-7 rounded-xs px-3 flex items-center bg-slate-500/10 text-slate-500 text-[10px] font-bold tracking-tight uppercase border border-slate-500/20 w-fit">
+            Draft
+          </div>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger disabled={!canMutate} asChild onClick={(e) => e.stopPropagation()}>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "h-7 rounded-xs border-0 px-3 py-0 text-[10px] font-bold tracking-tight uppercase shadow-sm whitespace-nowrap transition-all",
+                )}
+                style={{ 
+                  backgroundColor: `${statusColor}15`, 
+                  color: statusColor,
+                }}>
+                {statusLabel}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="rounded-md border-border/50 shadow-xl p-1">
+              {dynamicStatuses.map((s: any) => (
+                <DropdownMenuItem 
+                  key={s.id || s._id} 
+                  onClick={() => handleInlineStatusChange(taskId, s.id || s._id)}
+                  className="rounded-sm py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+                    {s.name}
+                  </div>
+                </DropdownMenuItem>
+              ))}
+              {dynamicStatuses.length === 0 && (
+                <>
+                  <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "TODO")}>To Do</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "IN_PROGRESS")}>In Progress</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "DONE")}>Done</DropdownMenuItem>
+                </>
               )}
-              style={{ 
-                backgroundColor: `${statusColor}15`, 
-                color: statusColor,
-              }}>
-              {statusLabel}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="rounded-md border-border/50 shadow-xl p-1">
-            {dynamicStatuses.map((s: any) => (
-              <DropdownMenuItem 
-                key={s.id || s._id} 
-                onClick={() => handleInlineStatusChange(taskId, s.id || s._id)}
-                className="rounded-sm py-2"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
-                  {s.name}
-                </div>
-              </DropdownMenuItem>
-            ))}
-            {dynamicStatuses.length === 0 && (
-              <>
-                <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "TODO")}>To Do</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "IN_PROGRESS")}>In Progress</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleInlineStatusChange(taskId, "DONE")}>Done</DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </TableCell>
       <TableCell>
         <DropdownMenu>

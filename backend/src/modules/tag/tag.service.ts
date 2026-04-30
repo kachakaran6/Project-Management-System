@@ -60,7 +60,13 @@ export const updateTag = async (id: string, updateData: Record<string, any>, org
   const query: Record<string, any> = { _id: id, organizationId };
   const update: Record<string, any> = {};
   
-  if (label) update.label = label;
+  if (label) {
+    update.label = label;
+    // Auto-update name from label if name not explicitly provided
+    if (!name) {
+      update.name = String(label).trim().toLowerCase().replace(/\s+/g, '-');
+    }
+  }
   if (color) update.color = color;
   if (icon) update.icon = icon;
   if (name) update.name = String(name).trim().toLowerCase().replace(/\s+/g, '-');

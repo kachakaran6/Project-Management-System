@@ -1,6 +1,15 @@
 export type TaskStatus = string;
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 export type TaskVisibility = "PUBLIC" | "PRIVATE" | "DRAFT";
+export type TaskSortField =
+  | "createdAt"
+  | "updatedAt"
+  | "dueDate"
+  | "priority"
+  | "title"
+  | "status"
+  | "assignee";
+export type TaskSortDirection = "asc" | "desc";
 
 export interface Status {
   id: string;
@@ -139,8 +148,8 @@ export interface TaskFilters {
   userId?: string;
   tagIds?: string[];
   dueDate?: string;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
+  sortBy?: TaskSortField;
+  sortOrder?: TaskSortDirection;
 }
 
 export interface AssignTaskUsersInput {
