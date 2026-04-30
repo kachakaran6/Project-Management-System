@@ -13,7 +13,6 @@ export const handleWebhook = asyncHandler(async (req: Request, res: Response) =>
   const signature = req.headers['x-hub-signature-256'] as string;
   const event = req.headers['x-github-event'] as string;
   
-  // Body is a Buffer because of express.raw() in routes
   const rawBody = req.body;
   const bodyString = rawBody.toString('utf-8');
   const payload = JSON.parse(bodyString);
@@ -23,30 +22,34 @@ export const handleWebhook = asyncHandler(async (req: Request, res: Response) =>
     return res.status(200).send('No repository info in payload');
   }
 
-  // 1. Find linked repository in our new system
+  // 1. Find the target (Official link or Legacy project)
   const linkedRepo = await GithubRepository.findOne({ fullName: repoFullName });
-  
-  if (linkedRepo && linkedRepo.webhookSecret) {
-    if (!githubService.verifySignature(bodyString, signature, linkedRepo.webhookSecret)) {
+  const project = await Project.findOne({ 
+    $or: [
+      { 'githubSettings.repoUrl': { $regex: new RegExp(repoFullName, 'i') } },
+      { workspaceId: linkedRepo?.workspaceId },
+      { organizationId: linkedRepo?.workspaceId }
+    ],
+    isActive: true
+  });
+
+  if (!linkedRepo && !project) {
+    console.warn(`[GitHub Webhook] Received event for untracked repo: ${repoFullName}`);
+    return res.status(200).send('Repository not tracked');
+  }
+
+  // 2. Verify Signature (only if a secret is configured in either system)
+  const secret = linkedRepo?.webhookSecret || project?.githubSettings?.webhookSecret;
+  if (secret && signature) {
+    if (!githubService.verifySignature(bodyString, signature, secret)) {
+      console.error(`[GitHub Webhook] Invalid signature for ${repoFullName}`);
       return res.status(401).send('Invalid signature');
-    }
-  } else {
-    // Fallback for legacy project-level settings
-    const project = await Project.findOne({ 
-      'githubSettings.repoUrl': { $regex: new RegExp(repoFullName, 'i') },
-      'githubSettings.isEnabled': true
-    });
-    
-    if (project && project.githubSettings?.webhookSecret) {
-      if (!githubService.verifySignature(bodyString, signature, project.githubSettings.webhookSecret)) {
-        return res.status(401).send('Invalid signature');
-      }
-    } else {
-      return res.status(200).send('Repository not tracked');
     }
   }
 
-  // Process Events
+  console.log(`[GitHub Webhook] Processing ${event} event for ${repoFullName}`);
+
+  // 3. Process Events
   switch (event) {
     case 'push':
       await githubService.processPushEvent(payload);
@@ -57,6 +60,8 @@ export const handleWebhook = asyncHandler(async (req: Request, res: Response) =>
     case 'pull_request':
       await githubService.processPullRequestEvent(payload);
       break;
+    case 'ping':
+      return res.status(200).send('pong');
   }
 
   return res.status(200).send('OK');
