@@ -504,15 +504,26 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
 
 const getStatusFromMessage = async (message: string, organizationId: string) => {
   const lowerMsg = message.toLowerCase();
-  const doneKeywords = ['fix ', 'fixed ', 'fixes ', 'close ', 'closed ', 'closes ', 'resolve ', 'resolved ', 'resolves ', 'done ', 'finish ', 'finished ', 'completes ', 'implement ', 'implemented '];
-  if (doneKeywords.some(kw => lowerMsg.includes(kw))) {
+  
+  // Helper to check for words with boundaries (handles start/end of string and punctuation)
+  const hasWord = (words: string[]) => {
+    return words.some(word => {
+      const regex = new RegExp(`\\b${word.trim()}\\b`, 'i');
+      return regex.test(lowerMsg);
+    });
+  };
+
+  const doneKeywords = ['fix', 'fixed', 'fixes', 'close', 'closed', 'closes', 'resolve', 'resolved', 'resolves', 'done', 'finish', 'finished', 'completes', 'implement', 'implemented'];
+  if (hasWord(doneKeywords)) {
     const doneStatus = await Status.findOne({ organizationId, name: /done/i });
     return doneStatus?._id;
   }
-  const progressKeywords = ['progress ', 'start ', 'started ', 'working ', 'feat ', 'feature ', 'refactor ', 'chore '];
-  if (progressKeywords.some(kw => lowerMsg.includes(kw))) {
+
+  const progressKeywords = ['progress', 'start', 'started', 'working', 'feat', 'feature', 'refactor', 'chore'];
+  if (hasWord(progressKeywords)) {
     const inProgressStatus = await Status.findOne({ organizationId, name: /progress/i });
     return inProgressStatus?._id;
   }
+
   return null;
 };
