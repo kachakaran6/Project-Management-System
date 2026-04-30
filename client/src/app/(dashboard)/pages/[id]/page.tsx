@@ -154,7 +154,7 @@ export default function PageEditorPage() {
 
   const creatorId = useMemo(() => {
     if (!page?.creatorId) return null;
-    return typeof page.creatorId === "object" ? (page.creatorId as any)._id : page.creatorId;
+    return (page.creatorId && typeof page.creatorId === "object") ? (page.creatorId as any)._id : page.creatorId;
   }, [page]);
 
   const canAdminOverride = role === "SUPER_ADMIN" || role === "ADMIN";

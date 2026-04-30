@@ -191,7 +191,7 @@ export function AppHeader() {
                   >
                     <SunMedium
                       className={cn(
-                        "absolute size-4 transition-all duration-300",
+                        "absolute size-5 text-foreground/80 transition-all duration-300",
                         effectiveTheme === "dark"
                           ? "rotate-90 scale-0 opacity-0"
                           : "rotate-0 scale-100 opacity-100",
@@ -199,7 +199,7 @@ export function AppHeader() {
                     />
                     <MoonStar
                       className={cn(
-                        "absolute size-4 transition-all duration-300",
+                        "absolute size-5 text-foreground/80 transition-all duration-300",
                         effectiveTheme === "dark"
                           ? "rotate-0 scale-100 opacity-100"
                           : "-rotate-90 scale-0 opacity-0",

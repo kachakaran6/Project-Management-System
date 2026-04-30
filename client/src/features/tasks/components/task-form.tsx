@@ -158,9 +158,9 @@ export function TaskForm({
 
   const getStatusName = (statusId: any) => {
     if (!statusId) return "No Status";
-    const id = typeof statusId === 'object' ? (statusId.id || statusId._id) : statusId;
+    const id = (statusId && typeof statusId === 'object') ? (statusId.id || statusId._id) : statusId;
     const status = dynamicStatuses.find((s: any) => s.id === id || s._id === id || s.name === id);
-    return status?.name || (typeof statusId === 'object' ? statusId.name : String(statusId));
+    return status?.name || (statusId && typeof statusId === 'object' ? statusId.name : String(statusId || ""));
   };
   const isMemberOnlySelection = currentRole === "MEMBER";
 

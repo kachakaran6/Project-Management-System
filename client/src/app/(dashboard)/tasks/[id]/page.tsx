@@ -252,13 +252,13 @@ export default function TaskDetailsPage() {
           <p>
             <span className="text-muted-foreground">Status:</span>{" "}
             <Badge variant="outline">
-              {typeof task.status === 'object' ? (task.status as any).name : String(task.status).replace(/_/g, " ")}
+              {(task.status && typeof task.status === 'object') ? (task.status as any).name : String(task.status || "").replace(/_/g, " ")}
             </Badge>
           </p>
           <p>
             <span className="text-muted-foreground">Priority:</span>{" "}
             <Badge variant="outline">
-              {typeof task.priority === 'object' ? (task.priority as any).name || (task.priority as any).label : String(task.priority)}
+              {(task.priority && typeof task.priority === 'object') ? (task.priority as any).name || (task.priority as any).label : String(task.priority || "")}
             </Badge>
           </p>
           <div className="description-container">

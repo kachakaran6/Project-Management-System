@@ -121,7 +121,7 @@ export default function DashboardPage() {
 
   const getStatusName = (status: any) => {
     if (!status) return "Unknown";
-    if (typeof status === 'object') return status.name || "Unknown";
+    if (status && typeof status === 'object') return status.name || "Unknown";
     return String(status).replace("_", " ");
   };
   const { data: dynamicStatuses = [] } = useStatusesQuery();
@@ -356,9 +356,9 @@ export default function DashboardPage() {
                           variant="secondary"
                           className={cn(
                             "text-[10px] font-bold uppercase",
-                            typeof task.status === 'object' ? "" : TASK_STATUS_COLORS[task.status as string],
+                            (task.status && typeof task.status === 'object') ? "" : TASK_STATUS_COLORS[task.status as string],
                           )}
-                          style={typeof task.status === 'object' ? {
+                          style={(task.status && typeof task.status === 'object') ? {
                             backgroundColor: `${(task.status as any).color}15`,
                             color: (task.status as any).color
                           } : {}}

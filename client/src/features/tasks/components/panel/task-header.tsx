@@ -39,7 +39,7 @@ export function TaskHeader({ task }: TaskHeaderProps) {
         <span className="hover:text-foreground cursor-pointer transition-colors">Tasks</span>
         <ChevronRight className="size-3" />
         <span className="hover:text-foreground cursor-pointer transition-colors max-w-[150px] truncate">
-          {typeof task.projectId === "object" ? (task.projectId as any).name : "General"}
+          {(task.projectId && typeof task.projectId === "object") ? (task.projectId as any).name : "General"}
         </span>
       </div>
 

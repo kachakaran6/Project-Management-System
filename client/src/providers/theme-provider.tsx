@@ -8,7 +8,7 @@ function applyThemeToDocument(mode: "light" | "dark" | "system") {
   const html = document.documentElement;
 
   html.dataset.theme = resolvedMode;
-  html.classList.toggle("dark", resolvedMode === "dark");
+  // next-themes handles the .dark class automatically
 }
 
 /**

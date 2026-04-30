@@ -16,7 +16,7 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
         attribute="class"
         defaultTheme="system"
         enableSystem
-        disableTransitionOnChange={false}
+        disableTransitionOnChange={true}
         storageKey="pms-next-theme"
       >
         {/* Accent color applicator — sets data-accent on <html> */}

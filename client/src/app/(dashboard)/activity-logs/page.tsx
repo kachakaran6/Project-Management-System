@@ -124,7 +124,7 @@ function getDisplayValue(value: unknown) {
     return value.map(getDisplayValue).filter(Boolean).join(', ');
   }
 
-  if (typeof value === 'object') {
+  if (value && typeof value === 'object') {
     const obj = value as Record<string, any>;
     return obj.name || obj.title || obj.label || obj.value || '';
   }

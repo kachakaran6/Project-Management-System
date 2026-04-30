@@ -51,7 +51,7 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
 
   const getStatusId = (status: any) => {
     if (!status) return "";
-    const id = typeof status === 'object' ? (status.id || status._id) : String(status);
+    const id = (status && typeof status === 'object') ? (status.id || status._id) : String(status);
     
     // If the ID exists in our dynamic statuses, return it
     if (dynamicStatuses.some(s => s.value === id)) return id;
@@ -136,9 +136,9 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
           ? members.find((member) => String(member.id) === String(creatorData))
           : null;
         const creatorInfo = creatorData && typeof creatorData === 'object' ? {
-          name: creatorData.name || (creatorData.firstName ? `${creatorData.firstName} ${creatorData.lastName || ''}`.trim() : 'Unknown creator'),
-          email: creatorData.email || '',
-          avatarUrl: creatorData.avatarUrl
+          name: (creatorData as any).name || ((creatorData as any).firstName ? `${(creatorData as any).firstName} ${(creatorData as any).lastName || ''}`.trim() : 'Unknown creator'),
+          email: (creatorData as any).email || '',
+          avatarUrl: (creatorData as any).avatarUrl
         } : creatorMember ? {
           name: creatorMember.name,
           email: creatorMember.email,
