@@ -256,41 +256,77 @@ export const unlinkRepository = async (userId: string, repoId: string) => {
 /**
  * SECTION 3: Activity Tracking (Existing logic updated)
  */
+/**
+ * Helper to find projects/workspace for a repo name (supports legacy and official links)
+ */
+/**
+ * Helper to find all projects that might be related to a GitHub repository
+ */
+async function getRelatedProjects(repoFullName: string, payloadRepoId?: string) {
+  // 1. Find projects via official links
+  const linkedRepos = await GithubRepository.find({ 
+    $or: [
+      { fullName: repoFullName },
+      { repoId: payloadRepoId?.toString() }
+    ]
+  });
+  const linkedWorkspaceIds = linkedRepos.map(lr => lr.workspaceId);
+
+  // 2. Find projects via legacy settings
+  const legacyProjects = await Project.find({ 
+    'githubSettings.repoUrl': { $regex: new RegExp(repoFullName, 'i') },
+    isActive: true
+  });
+
+  // 3. Combine all potential project candidates
+  const projects = await Project.find({
+    $or: [
+      { _id: { $in: legacyProjects.map(p => p._id) } },
+      { workspaceId: { $in: linkedWorkspaceIds }, isActive: true },
+      { organizationId: { $in: linkedWorkspaceIds }, isActive: true }
+    ],
+    isActive: true
+  });
+
+  return projects;
+}
+
 export const processPushEvent = async (payload: any) => {
   const repoFullName = payload.repository.full_name;
-  const linkedRepo = await GithubRepository.findOne({ fullName: repoFullName });
-  if (!linkedRepo) return;
+  console.log(`[GitHub] Processing PUSH for ${repoFullName}`);
+  
+  const projects = await getRelatedProjects(repoFullName, payload.repository.id);
+  if (!projects.length) {
+    console.warn(`[GitHub] No projects found for ${repoFullName}`);
+    return;
+  }
 
   for (const commit of (payload.commits || [])) {
     const taskIds = extractTaskIds(commit.message);
+    if (!taskIds.length) continue;
+
+    console.log(`[GitHub] Found Task IDs in commit: ${taskIds.join(', ')}`);
+    await linkToTasks(taskIds, {
+      type: 'commit',
+      url: commit.url,
+      message: commit.message,
+      author: commit.author.name,
+      authorAvatar: payload.sender?.avatar_url,
+      hash: commit.id.substring(0, 7),
+      createdAt: new Date(commit.timestamp)
+    }, 'COMMIT', projects, { message: commit.message });
     
-    // Log Activity
+    // Also log activity to the first project's workspace as a general feed
     await GithubActivity.create({
-      workspaceId: linkedRepo.workspaceId,
+      workspaceId: projects[0].organizationId || projects[0].workspaceId,
       type: 'commit',
       githubRepoId: payload.repository.id.toString(),
       referenceId: commit.id.substring(0, 7),
-      author: {
-        username: commit.author.username || commit.author.name,
-        avatarUrl: payload.sender?.avatar_url
-      },
+      author: { username: commit.author.username || commit.author.name, avatarUrl: payload.sender?.avatar_url },
       message: commit.message,
       url: commit.url,
       createdAt: new Date(commit.timestamp)
-    });
-
-    if (taskIds.length) {
-      const projects = await Project.find({ workspaceId: linkedRepo.workspaceId, isActive: true });
-      await linkToTasks(taskIds, {
-        type: 'commit',
-        url: commit.url,
-        message: commit.message,
-        author: commit.author.name,
-        authorAvatar: payload.sender?.avatar_url,
-        hash: commit.id.substring(0, 7),
-        createdAt: new Date(commit.timestamp)
-      }, 'COMMIT', projects, { message: commit.message });
-    }
+    }).catch(err => console.error('[GitHub] Activity log failed:', err.message));
   }
 };
 
@@ -298,29 +334,15 @@ export const processCreateEvent = async (payload: any) => {
   if (payload.ref_type !== 'branch') return;
 
   const repoFullName = payload.repository.full_name;
-  const linkedRepo = await GithubRepository.findOne({ fullName: repoFullName });
-  if (!linkedRepo) return;
-
   const branchName = payload.ref;
-  
-  // Log Activity
-  await GithubActivity.create({
-    workspaceId: linkedRepo.workspaceId,
-    type: 'branch_created',
-    githubRepoId: payload.repository.id.toString(),
-    referenceId: branchName,
-    author: {
-      username: payload.sender?.login,
-      avatarUrl: payload.sender?.avatar_url
-    },
-    message: `Branch created: ${branchName}`,
-    url: `${payload.repository.html_url}/tree/${branchName}`,
-    createdAt: new Date()
-  });
+  console.log(`[GitHub] Processing BRANCH_CREATE: ${branchName} in ${repoFullName}`);
+
+  const projects = await getRelatedProjects(repoFullName, payload.repository.id);
+  if (!projects.length) return;
 
   const taskIds = extractTaskIds(branchName);
   if (taskIds.length) {
-    const projects = await Project.find({ workspaceId: linkedRepo.workspaceId, isActive: true });
+    console.log(`[GitHub] Found Task IDs in branch: ${taskIds.join(', ')}`);
     await linkToTasks(taskIds, {
       type: 'branch',
       url: `${payload.repository.html_url}/tree/${branchName}`,
@@ -335,33 +357,19 @@ export const processCreateEvent = async (payload: any) => {
 
 export const processPullRequestEvent = async (payload: any) => {
   const repoFullName = payload.repository.full_name;
-  const linkedRepo = await GithubRepository.findOne({ fullName: repoFullName });
-  if (!linkedRepo) return;
+  const projects = await getRelatedProjects(repoFullName, payload.repository.id);
+  if (!projects.length) return;
 
   const pr = payload.pull_request;
   const action = payload.action;
   const isMerged = action === 'closed' && pr.merged === true;
   const trigger = isMerged ? 'PR_MERGED' : (action === 'opened' || action === 'reopened' ? 'PR_OPENED' : 'PR_UPDATED');
 
-  // Log Activity
-  await GithubActivity.create({
-    workspaceId: linkedRepo.workspaceId,
-    type: isMerged ? 'pr_merged' : 'pr_opened',
-    githubRepoId: payload.repository.id.toString(),
-    referenceId: pr.number.toString(),
-    author: {
-      username: pr.user.login,
-      avatarUrl: pr.user.avatar_url
-    },
-    message: pr.title,
-    url: pr.html_url,
-    createdAt: new Date(pr.updated_at || pr.created_at)
-  });
+  console.log(`[GitHub] Processing PR #${pr.number} (${action}) in ${repoFullName}`);
 
   const combinedText = `${pr.title} ${pr.body || ''}`;
   const taskIds = extractTaskIds(combinedText);
   if (taskIds.length) {
-    const projects = await Project.find({ workspaceId: linkedRepo.workspaceId, isActive: true });
     await linkToTasks(taskIds, {
       type: 'pr',
       url: pr.html_url,
@@ -422,15 +430,22 @@ export const getWorkspaceActivity = async (workspaceId: string, limit = 50) => {
 
 const linkToTasks = async (taskIds: string[], link: any, trigger: string, projects: any[], options: { message?: string } = {}) => {
   const projectIds = projects.map(p => p._id);
+  console.log(`[GitHub] Attempting to link to ${taskIds.length} tasks in ${projectIds.length} projects`);
   
   for (const taskId of taskIds) {
+    // Case-insensitive search for task code
     const task = await Task.findOne({ 
-      taskCode: taskId, 
+      taskCode: { $regex: new RegExp(`^${taskId}$`, 'i') }, 
       projectId: { $in: projectIds },
       isActive: true
     }).populate('status');
     
-    if (!task) continue;
+    if (!task) {
+      console.warn(`[GitHub] Task ${taskId} not found in current project scope.`);
+      continue;
+    }
+
+    console.log(`[GitHub] Found Task: ${task.taskCode} (${task._id}). Current Status: ${(task.status as any)?.name}`);
 
     const alreadyLinked = ((task.githubLinks as any[]) || []).some((l: any) => l.url === link.url && l.type === link.type && l.hash === link.hash);
     
@@ -457,7 +472,7 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
           targetStatusName = 'IN_PROGRESS';
         }
       } else if (trigger === 'COMMIT' && options.message) {
-        const keywordStatusId = await getStatusFromMessage(options.message, String(project.organizationId));
+        const keywordStatusId = await getStatusFromMessage(options.message, String(project.organizationId || project.workspaceId));
         if (keywordStatusId) {
           const kwStatus = await Status.findById(keywordStatusId);
           const kwName = kwStatus?.name?.toUpperCase() || '';
@@ -472,16 +487,18 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
         // Create a fuzzy regex: replace underscores with spaces and allow both
         const fuzzyPattern = targetStatusName.replace(/_/g, '[\\s_]');
         const targetStatus = await Status.findOne({ 
-          organizationId: project.organizationId, 
+          organizationId: project.organizationId || project.workspaceId, 
           name: { $regex: new RegExp(`^${fuzzyPattern}$`, 'i') } 
         });
         if (targetStatus && String(targetStatus._id) !== String((task.status as any)?._id)) {
+          console.log(`[GitHub] Transitioning task to ${targetStatusName}`);
           task.status = targetStatus._id;
         }
       }
     }
 
     await task.save();
+    console.log(`[GitHub] Successfully updated task ${task.taskCode}`);
   }
 };
 
