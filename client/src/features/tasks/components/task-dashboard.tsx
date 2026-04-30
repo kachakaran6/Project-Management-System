@@ -18,6 +18,7 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
   SlidersHorizontal,
   User,
@@ -107,6 +108,7 @@ import { useTagsQuery } from "@/features/tags/hooks/use-tags";
 import { TaskListSkeleton, TaskBoardSkeleton, TaskTableSkeleton } from "@/features/tasks/components/task-skeleton";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { resolveStatus, filterVisibleTasks, normalizeId } from "@/features/tasks/utils/resolve-status";
+import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
 
 // Pagination Constants
 const DEFAULT_PAGE_SIZE = 10;
@@ -122,6 +124,7 @@ interface TaskDashboardProps {
 export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { openPanel } = useTaskPanelStore();
 
   const [viewMode, setViewMode] = useState<TaskViewMode>(() => {
     if (typeof window === "undefined") return "kanban";
@@ -130,7 +133,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
 
     if (isMobileInitial) {
       if (saved === "table" || saved === "list") return saved;
-      return "list"; // Kanban not allowed on mobile
+      return "list"; // Default to list (which is accordion) on mobile
     } else {
       if (saved === "kanban" || saved === "list") return saved;
       return "kanban"; // Table not allowed on desktop
@@ -281,8 +284,14 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   );
 
   const listFilters = useMemo(
-    () => ({ ...sharedFilters, page, limit, sortBy: "createdAt", sortOrder: "desc" as const }),
-    [sharedFilters, page, limit],
+    () => ({
+      ...sharedFilters,
+      page: (viewMode === "list" && isMobile) ? 1 : page,
+      limit: (viewMode === "list" && isMobile) ? 500 : limit,
+      sortBy: "createdAt",
+      sortOrder: "desc" as const,
+    }),
+    [sharedFilters, page, limit, viewMode, isMobile],
   );
   const kanbanFilters = useMemo(
     () => ({ ...sharedFilters, page: 1, limit: 1000 }),
@@ -298,6 +307,33 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
 
   const totalPages = Math.max(1, listQuery.data?.data.meta?.totalPages ?? 1);
   const listRows = useMemo(() => filterVisibleTasks(listQuery.data?.data.items ?? []), [listQuery.data]);
+  
+  const groupedTasks = useMemo(() => {
+    if (viewMode !== "list" || !isMobile) return {};
+    const groups: Record<string, Task[]> = {};
+    
+    // Initialize groups from dynamic statuses using NAMES
+    dynamicStatuses.forEach(s => {
+      groups[s.name.toUpperCase()] = [];
+    });
+    
+    // Fallback groups if none loaded
+    if (dynamicStatuses.length === 0) {
+      ["TODO", "IN PROGRESS", "DONE"].forEach(s => { groups[s] = []; });
+    }
+    
+    listRows.forEach(task => {
+      const resolved = resolveStatus(task, dynamicStatuses);
+      const statusName = resolved?.name || "TODO";
+      const normalizedName = statusName.toUpperCase();
+      
+      if (!groups[normalizedName]) groups[normalizedName] = [];
+      groups[normalizedName].push(task);
+    });
+    
+    return groups;
+  }, [listRows, dynamicStatuses, viewMode]);
+
   const kanbanRows = useMemo(() => filterVisibleTasks(kanbanQuery.data?.data.items ?? []), [kanbanQuery.data]);
 
   const getTaskId = (task: Task) => String(task.id || (task as any)._id || "");
@@ -305,8 +341,18 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
 
   const getStatusName = (status: any) => {
     if (!status) return "Unknown";
+    // Try to find in dynamic statuses first
+    const resolved = resolveStatus({ status }, dynamicStatuses);
+    if (resolved) return resolved.name;
+    
     if (typeof status === 'object') return status.name || "Unknown";
-    return String(status).replace("_", " ");
+    return String(status).replace(/_/g, " ");
+  };
+
+  const getStatusColor = (status: any) => {
+    if (!status) return "#94a3b8";
+    const resolved = resolveStatus({ status }, dynamicStatuses);
+    return resolved?.color || "#94a3b8";
   };
 
   const activeFilterCount = useMemo(() => {
@@ -641,8 +687,17 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   variant="outline"
                   className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                 >
-                  {resolveAssigneeName(assigneeId)}
+                  Assigned: {resolveAssigneeName(assigneeId)}
                   <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setAssigneeId("ALL")} />
+                </Badge>
+              )}
+              {creatorId !== "ALL" && (
+                <Badge
+                  variant="outline"
+                  className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                >
+                  Created By: {resolveAssigneeName(creatorId)}
+                  <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setCreatorId("ALL")} />
                 </Badge>
               )}
               {tagIds.map(tid => {
@@ -765,92 +820,125 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                       </Table>
                     </div>
                   )}
-                  {viewMode === "list" && isMobile && (
-                    <div className="grid gap-3 p-3">
-                      {listRows.map((task) => {
-                        const taskId = getTaskId(task);
-                        const assignees = getAssignees(task);
+                  {viewMode === "list" && (
+                    <div className="flex flex-col gap-3 p-3">
+                      {Object.entries(groupedTasks).map(([statusName, tasks]) => {
+                        const status = dynamicStatuses.find(s => s.name.toUpperCase() === statusName);
+                        const displayName = status?.name || statusName;
+                        const statusColor = status?.color || "#94a3b8";
+                        
                         return (
-                          <div
-                            key={taskId}
-                            className="rounded-md border border-border/50 bg-card p-4 shadow-sm"
+                          <AccordionSection 
+                            key={statusName}
+                            title={displayName}
+                            color={statusColor}
+                            count={tasks.length}
+                            defaultOpen={tasks.length > 0}
                           >
-                            <div className="flex items-start justify-between gap-3 mb-3">
-                              <div className="min-w-0">
-                                <Link
-                                  href={`/tasks/${taskId}`}
-                                  className="font-bold text-[14px] hover:text-primary transition-colors block line-clamp-1"
-                                >
-                                  {task.title}
-                                </Link>
-                                <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-tighter">
-                                  #{taskId.slice(-8)}
-                                </span>
-                              </div>
-                              <Badge
-                                variant="secondary"
-                                className="h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight shrink-0"
-                              >
-                                {getStatusName(task.status)}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center justify-between mt-4 border-t border-border/30 pt-3">
-                              <div className="flex items-center gap-2">
-                                {assignees.length > 0 ? (
-                                  <div className="flex items-center -space-x-2">
-                                    {assignees.slice(0, 3).map((a) => (
-                                      <Avatar key={a.id} className="h-6 w-6 ring-2 ring-background border border-border/10 shadow-sm">
-                                        <AvatarImage src={a.avatarUrl} />
-                                        <AvatarFallback className="text-[8px] bg-primary/5 text-primary">
-                                          {a.name.charAt(0)}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                    ))}
-                                    {assignees.length > 3 && (
-                                      <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold border-2 border-background shadow-sm">
-                                        +{assignees.length - 3}
+                            <div className="grid gap-3 p-3 pt-2">
+                              {tasks.length === 0 ? (
+                                <p className="text-center py-8 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-widest">No tasks in this status</p>
+                              ) : (
+                                tasks.map((task) => {
+                                  const taskId = getTaskId(task);
+                                  const assignees = getAssignees(task);
+                                  return (
+                                    <div
+                                      key={taskId}
+                                      className="rounded-md border border-border/10 bg-card/40 p-4 shadow-sm"
+                                    >
+                                      <div className="flex items-start justify-between gap-3 mb-3">
+                                        <div className="min-w-0">
+                                          <button
+                                            onClick={() => {
+                                              const params = new URLSearchParams(searchParams.toString());
+                                              params.set("taskId", taskId);
+                                              router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+                                              openPanel(taskId);
+                                            }}
+                                            className="font-bold text-[14px] hover:text-primary transition-colors block line-clamp-1 text-left w-full"
+                                          >
+                                            {task.title}
+                                          </button>
+                                          <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-tighter">
+                                            {task.taskCode || `#${taskId.slice(-8)}`}
+                                          </span>
+                                        </div>
+                                        <Badge
+                                          variant="outline"
+                                          className="h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight shrink-0 border-none"
+                                          style={{ 
+                                            color: getStatusColor(task.status), 
+                                            backgroundColor: `${getStatusColor(task.status)}15` 
+                                          }}
+                                        >
+                                          {getStatusName(task.status)}
+                                        </Badge>
                                       </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 flex items-center justify-center">
-                                    <User className="size-3 text-muted-foreground/40" />
-                                  </div>
-                                )}
-                                <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[120px]">
-                                  {assignees.length === 0
-                                    ? "Unassigned"
-                                    : assignees.length === 1
-                                      ? assignees[0].name
-                                      : `${assignees.length} members`}
-                                </span>
-                              </div>
-                              <div className="flex flex-wrap gap-2 pt-1">
-                                <Button
-                                  asChild
-                                  variant="outline"
-                                  className="h-9 md:h-8 rounded-sm text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 flex-1 md:flex-none"
-                                >
-                                  <Link href={`/tasks/${taskId}`}>
-                                    <Eye className="size-3.5 md:size-3 mr-1" />
-                                    View
-                                  </Link>
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  className="h-9 md:h-8 rounded-sm text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 flex-1 md:flex-none"
-                                  onClick={() => setSelectedTask(task)}
-                                >
-                                  <Pencil className="size-3.5 md:size-3 mr-1" />
-                                  Edit
-                                </Button>
-                              </div>
+                                      <div className="flex items-center justify-between mt-4 border-t border-border/30 pt-3">
+                                        <div className="flex items-center gap-2">
+                                          {assignees.length > 0 ? (
+                                            <div className="flex items-center -space-x-2">
+                                              {assignees.slice(0, 3).map((a) => (
+                                                <Avatar key={a.id} className="h-6 w-6 ring-2 ring-background border border-border/10 shadow-sm">
+                                                  <AvatarImage src={a.avatarUrl} />
+                                                  <AvatarFallback className="text-[8px] bg-primary/5 text-primary">
+                                                    {a.name.charAt(0)}
+                                                  </AvatarFallback>
+                                                </Avatar>
+                                              ))}
+                                              {assignees.length > 3 && (
+                                                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold border-2 border-background shadow-sm">
+                                                  +{assignees.length - 3}
+                                                </div>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <div className="h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 flex items-center justify-center">
+                                              <User className="size-3 text-muted-foreground/40" />
+                                            </div>
+                                          )}
+                                          <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[120px]">
+                                            {assignees.length === 0
+                                              ? "Unassigned"
+                                              : assignees.length === 1
+                                                ? assignees[0].name
+                                                : `${assignees.length} members`}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                            onClick={() => setSelectedTask(task)}
+                                          >
+                                            <Pencil className="size-4" />
+                                          </Button>
+                                          {canMutate && (
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-8 w-8 rounded-full hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive transition-colors"
+                                              onClick={() => setDeleteId(taskId)}
+                                            >
+                                              <Trash2 className="size-4" />
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
                             </div>
-                          </div>
+                          </AccordionSection>
                         );
                       })}
                     </div>
                   )}
+
+
                   {viewMode === "table" && (
                     <div className="animate-in fade-in duration-500">
                       <Table className="min-w-[1200px] border-separate border-spacing-0">
@@ -1389,6 +1477,37 @@ function FilterContent({
           </PopoverClose>
         )}
       </div>
+    </div>
+  );
+}
+
+function AccordionSection({ title, color, count, children, defaultOpen = false }: any) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-md border border-border/10 overflow-hidden shadow-sm">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 bg-muted/5 backdrop-blur-sm active:bg-muted/10 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="size-2.5 rounded-full shadow-sm ring-2 ring-background" style={{ backgroundColor: color }} />
+          <span className="text-[11px] font-black uppercase tracking-widest text-foreground/70">{title}</span>
+          <Badge 
+            variant="secondary" 
+            className="h-[18px] min-w-[26px] flex items-center justify-center px-1.5 text-[10px] font-black bg-muted/20 text-muted-foreground/80 rounded-full border border-border/10 shadow-inner"
+          >
+            {count}
+          </Badge>
+        </div>
+        <div className="text-muted-foreground/40">
+          {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+        </div>
+      </button>
+      {isOpen && (
+        <div className="bg-muted/5 animate-in fade-in slide-in-from-top-1 duration-200">
+          {children}
+        </div>
+      )}
     </div>
   );
 }

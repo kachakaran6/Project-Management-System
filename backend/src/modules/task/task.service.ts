@@ -854,6 +854,7 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
   }
   if (filter.priority) query.priority = filter.priority;
   if (filter.visibility) query.visibility = filter.visibility;
+  if (filter.creatorId) query.creatorId = toObjectId(filter.creatorId);
   if (filter.dueDate) query.dueDate = { $lte: new Date(filter.dueDate) };
   if (filter.search) {
     const term = String(filter.search).trim();
@@ -885,8 +886,13 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
     ];
   }
 
-  if (filter.tagIds && Array.isArray(filter.tagIds) && filter.tagIds.length > 0) {
-    const tagIds = filter.tagIds.map(toObjectId).filter(Boolean);
+  let normalizedTagIds = filter.tagIds;
+  if (typeof normalizedTagIds === 'string') {
+    normalizedTagIds = normalizedTagIds.split(',').filter(Boolean);
+  }
+
+  if (normalizedTagIds && Array.isArray(normalizedTagIds) && normalizedTagIds.length > 0) {
+    const tagIds = normalizedTagIds.map(toObjectId).filter(Boolean);
     const tasksWithTags = await TaskTag.aggregate([
       { $match: { tagId: { $in: tagIds }, organizationId: query.organizationId } },
       { $group: { _id: '$taskId', count: { $sum: 1 } } },

@@ -109,8 +109,9 @@ export const getAll = asyncHandler(async (req, res) => {
     priority: req.query.priority,
     visibility: req.query.visibility,
     assigneeId: req.query.assigneeId,
+    creatorId: req.query.creatorId,
     creatorOrAssigneeId: targetUserId,
-    tagId: req.query.tagId,
+    tagIds: req.query.tagIds,
     dueDate: req.query.dueDate,
     sortBy: req.query.sortBy,
     sortOrder: req.query.sortOrder

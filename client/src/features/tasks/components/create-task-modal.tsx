@@ -184,29 +184,46 @@ export function CreateTaskModal({
     }
   }, [open, settingsData, statusPreferenceData, user]);
 
+  const hasInitializedRef = useRef(false);
+
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      hasInitializedRef.current = false;
+      return;
+    }
     
-    const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
-    const resolvedDefaultStatus = statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
-    
-    const nextBaseValues = {
-      ...createBaseValues(defaultProjectId, defaultAssigneeIds, resolvedDefaultStatus),
-    };
+    if (!hasInitializedRef.current) {
+      const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
+      const resolvedDefaultStatus = statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
+      
+      const nextBaseValues = createBaseValues(defaultProjectId, defaultAssigneeIds, resolvedDefaultStatus);
 
+      setInitialValues(nextBaseValues);
+      setDraftValues(nextBaseValues);
+      setDraftId(null);
+      draftStorageKeyRef.current = null;
+      lastSavedFingerprintRef.current = "";
+      setResetKey((current) => current + 1);
+      setIsCheckingDraft(false);
+      setCreateMore(false);
+      
+      hasInitializedRef.current = true;
+    } 
+    else if (!draftValues.title && !draftValues.description) {
+      const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
+      const resolvedDefaultStatus = statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
+      
+      const updatedValues = {
+        ...draftValues,
+        assigneeIds: draftValues.assigneeIds.length === 0 ? defaultAssigneeIds : draftValues.assigneeIds,
+        status: (draftValues.status === "TODO" || !draftValues.status) ? resolvedDefaultStatus : draftValues.status,
+      };
+      
+      setInitialValues(updatedValues);
+      setDraftValues(updatedValues);
+    }
+  }, [defaultProjectId, open, settingsData, statusPreferenceData, defaultStatus, draftValues.title, draftValues.description]);
 
-
-    setInitialValues(nextBaseValues);
-    setDraftValues(nextBaseValues);
-    setDraftId(null);
-    draftStorageKeyRef.current = null;
-    lastSavedFingerprintRef.current = "";
-    setResetKey((current) => current + 1);
-    setIsCheckingDraft(false);
-    // Don't reset createMore here so it persists if they open it again? 
-    // Actually, usually it's better to reset it when modal opens first time.
-    setCreateMore(false);
-  }, [defaultProjectId, open, settingsData, statusPreferenceData, defaultStatus]);
 
   const syncDraftToServer = async (
     values: TaskFormValues,

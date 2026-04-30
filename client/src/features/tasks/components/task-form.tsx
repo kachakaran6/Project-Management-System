@@ -714,19 +714,21 @@ export function TaskForm({
 
       {/* Footer Area */}
       <div className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shrink-0 bg-background border-t border-border/10">
-        <div className="flex items-center gap-2">
-          <Switch
-            id="create-more"
-            checked={createMore}
-            onCheckedChange={onCreateMoreChange}
-            className="data-[state=checked]:bg-primary"
-          />
-          <Label
-            htmlFor="create-more"
-            className="text-xs text-muted-foreground/50 cursor-pointer select-none hover:text-muted-foreground transition-colors">
-            Create more
-          </Label>
-        </div>
+        {!isEdit && (
+          <div className="flex items-center gap-2">
+            <Switch
+              id="create-more"
+              checked={createMore}
+              onCheckedChange={onCreateMoreChange}
+              className="data-[state=checked]:bg-primary"
+            />
+            <Label
+              htmlFor="create-more"
+              className="text-xs text-muted-foreground/50 cursor-pointer select-none hover:text-muted-foreground transition-colors">
+              Create more
+            </Label>
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           <Button
