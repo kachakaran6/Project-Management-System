@@ -445,7 +445,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
             {/* Search and Filters Unified */}
             <div className="relative flex-1 group">
               <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
-                <Input
+              <Input
                 value={search}
                 onChange={(e) => {
                   setPage(1);

@@ -294,7 +294,7 @@ function getTaskAssigneeIds(task: Task) {
 
 function getTaskStatusLabel(status: any) {
   if (!status) return "Unknown";
-  if (typeof status === 'object') return status.name || "Unknown";
+  if (status && typeof status === 'object') return status.name || "Unknown";
   return FALLBACK_STATUS_LABELS[status as string] ?? String(status).replace(/_/g, " ");
 }
 
@@ -388,7 +388,7 @@ function TaskRow({ task, label }: { task: Task; label: string }) {
           </Badge>
         </div>
         <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{typeof task.priority === 'object' ? (task.priority as any).name || (task.priority as any).label : String(task.priority)}</span>
+          <span>{(task.priority && typeof task.priority === 'object') ? (task.priority as any).name || (task.priority as any).label : String(task.priority || "")}</span>
           <span>•</span>
           <span>{getTaskStatusLabel(task.status)}</span>
           {task.dueDate ? (

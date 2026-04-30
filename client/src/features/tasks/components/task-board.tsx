@@ -338,11 +338,11 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
     ];
   }, [dynamicStatuses]);
 
-  const currentStatusId = typeof task.status === 'object' ? (task.status as any).id || (task.status as any)._id : task.status;
-  const currentStatus = dynamicStatuses.find((s: any) => (s.id || s._id) === currentStatusId) || 
-                       dynamicStatuses.find((s: any) => s.name.toLowerCase() === String(currentStatusId).toLowerCase());
-  
-  const statusLabel = currentStatus?.name || (typeof task.status === 'object' ? (task.status as any).name : String(task.status).toLowerCase().replace("_", " "));
+  const currentStatusId = (task.status && typeof task.status === 'object') ? (task.status as any).id || (task.status as any)._id : task.status;
+  const currentStatus = dynamicStatuses.find((s: any) => (s.id || s._id) === currentStatusId) ||
+    dynamicStatuses.find((s: any) => s.name.toLowerCase() === String(currentStatusId || "").toLowerCase());
+
+  const statusLabel = currentStatus?.name || (task.status && typeof task.status === 'object' ? (task.status as any).name : String(task.status || "").toLowerCase().replace("_", " "));
   const statusColor = currentStatus?.color || ALL_STATUS_CONFIG.find((c) => c.id === task.status)?.dotColor || "#94a3b8";
 
   return (
@@ -435,7 +435,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                     onClick={(e) => e.stopPropagation()}
                     className={cn(
                       "inline-flex items-center gap-1.5 transition-all",
-                      isEmbedded 
+                      isEmbedded
                         ? "px-2.5 py-1.5 rounded-sm text-[9px] font-black border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
                         : "px-2 py-1 rounded-xs text-[10px] font-bold border border-border/40 bg-muted/50 text-muted-foreground hover:bg-muted/70"
                     )}
@@ -477,7 +477,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                     onClick={(e) => e.stopPropagation()}
                     className={cn(
                       "flex items-center justify-center transition-all",
-                      isEmbedded 
+                      isEmbedded
                         ? "p-2 rounded-sm border border-border/10 bg-muted/10 hover:bg-muted/20 active:scale-90"
                         : "p-1.5 rounded-xs border border-border/20 bg-muted/30 hover:bg-muted/50",
                       priority.color,
@@ -515,7 +515,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                     onClick={(e) => e.stopPropagation()}
                     className={cn(
                       "flex items-center gap-1.5 transition-all",
-                      isEmbedded 
+                      isEmbedded
                         ? "text-[9px] font-black px-2.5 py-1.5 rounded-sm border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
                         : "text-[10px] font-bold px-1.5 py-1 rounded-xs border border-border/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
                       isPastDue && (isEmbedded ? "text-rose-500 bg-rose-500/10 border-rose-500/20 shadow-[0_0_8px_rgba(244,63,94,0.1)]" : "text-rose-400 bg-rose-500/10"),
@@ -549,7 +549,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                     onClick={(e) => e.stopPropagation()}
                     className={cn(
                       "ml-auto flex items-center gap-1.5 transition-all active:scale-95",
-                      isEmbedded 
+                      isEmbedded
                         ? "rounded-sm border border-border/10 bg-muted/10 px-2.5 py-1.5 hover:bg-muted/20 shadow-sm"
                         : "rounded-sm border border-border/30 bg-muted/20 px-1.5 py-1 hover:bg-muted/40"
                     )}
@@ -816,14 +816,14 @@ export function TaskBoard({
     if (!dynamicStatuses || dynamicStatuses.length === 0) {
       return ALL_STATUS_CONFIG;
     }
-    
+
     // Sort by order
     const sorted = [...dynamicStatuses].sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
-    
+
     const cols = sorted.map((s: any) => {
       const id = normalizeId(s.id || s._id) || "";
       const normalizedName = s.name.toLowerCase().replace(/[\s_-]/g, "");
-      const configMatch = ALL_STATUS_CONFIG.find(c => 
+      const configMatch = ALL_STATUS_CONFIG.find(c =>
         c.label.toLowerCase().replace(/[\s_-]/g, "") === normalizedName
       );
       const isCore = ["backlog", "todo", "inprogress", "done"].includes(normalizedName);
@@ -862,7 +862,7 @@ export function TaskBoard({
   const groupedData = useMemo(() => {
     const tasks: Record<string, Task> = {};
     const columns: Record<string, string[]> = {};
-    
+
     // Initialize all columns from the current board config
     boardColumns.forEach((c) => {
       columns[c.id] = [];
@@ -871,7 +871,7 @@ export function TaskBoard({
     initialTasks.forEach((t) => {
       const id = normalizeId(t.id || (t as any)._id) || "";
       tasks[id] = t;
-      
+
       // IF DRAFT, PUT IN DRAFT COLUMN
       if (t.isDraft) {
         if (columns["DRAFT_COLUMN"]) {
@@ -887,8 +887,8 @@ export function TaskBoard({
         columns[statusId].push(id);
       } else if (statusId) {
         // Fallback for robust matching if strict ID comparison fails
-        const matchedCol = boardColumns.find(c => 
-          normalizeId(c.id) === statusId || 
+        const matchedCol = boardColumns.find(c =>
+          normalizeId(c.id) === statusId ||
           (c.id !== "DRAFT_COLUMN" && c.label.toLowerCase().replace(/[\s_-]/g, "") === String(statusId).toLowerCase().replace(/[\s_-]/g, ""))
         );
         if (matchedCol) {
@@ -921,13 +921,13 @@ export function TaskBoard({
       const colId = normalizeId(col.id);
       const tasksInColumn = data.columns[colId] || [];
       const hasTasks = tasksInColumn.length > 0;
-      
+
       // ALWAYS show if tasks exist
       if (hasTasks) return true;
-      
+
       // Hide only if explicitly allowed (isHiddenIfEmpty = true)
       if (col.isHiddenIfEmpty) return false;
-      
+
       return true;
     });
 
@@ -1056,7 +1056,7 @@ export function TaskBoard({
             position: destination.index
           }
         });
-      } 
+      }
       // IF MOVING INTO DRAFT_COLUMN, UNPUBLISH
       else if (sourceColId !== "DRAFT_COLUMN" && destColId === "DRAFT_COLUMN") {
         await updateTask.mutateAsync({
@@ -1211,13 +1211,13 @@ function KanbanColumn({
   return (
     <div className={cn(
       "group flex flex-col w-80 shrink-0 rounded-md border h-full overflow-hidden transition-all duration-300 shadow-sm",
-      isEmbedded 
-        ? "bg-muted/5 border-border/20 ring-1 ring-border/5" 
+      isEmbedded
+        ? "bg-muted/5 border-border/20 ring-1 ring-border/5"
         : "bg-muted/10 border-border/50"
     )}>
       {/* Sticky Column Header */}
       <div className={cn(
-        "flex items-center justify-between px-5 py-6 shrink-0 border-b border-border/20",
+        "flex items-center justify-between px-5 py-3 shrink-0 border-b border-border/20",
         isEmbedded ? "bg-muted/10 backdrop-blur-sm" : "bg-muted/20"
       )}>
         <div className="flex items-center gap-3.5 min-w-0">
@@ -1282,8 +1282,8 @@ function KanbanColumn({
 
       {/* Sticky "Add Task" area at bottom */}
       <div className={cn(
-        "shrink-0 p-3 bg-transparent",
-        isEmbedded && "px-4 pb-4"
+        "shrink-0 p-1 bg-transparent",
+        isEmbedded && "px-2 pb-2"
       )}>
         {isQuickAdd ? (
           <QuickAddInput
@@ -1294,9 +1294,16 @@ function KanbanColumn({
         ) : (
           <button
             onClick={() => setQuickAdd(true)}
-            className="group flex items-center justify-start gap-3 w-full h-11 px-4 rounded-sm text-muted-foreground/30 transition-all hover:bg-muted hover:text-foreground active:scale-[0.98]">
-            <Plus className="size-4 transition-transform group-hover:scale-110" />
-            <span className="text-[12px] font-black tracking-tight uppercase">
+            className={cn(
+              "group flex items-center justify-start gap-2.5 w-full h-10 px-4 rounded-lg transition-all duration-300",
+              "bg-primary/[0.03] border border-dashed border-primary/20 text-primary/60",
+              "hover:bg-primary/10 hover:text-primary hover:border-primary/40 hover:shadow-[0_0_15px_rgba(var(--primary),0.1)]",
+              "active:scale-[0.98]"
+            )}>
+            <div className="flex items-center justify-center size-5 rounded-full bg-primary/10 text-primary transition-transform group-hover:rotate-90">
+              <Plus className="size-3.5" />
+            </div>
+            <span className="text-[11px] font-bold tracking-wider uppercase">
               New work item
             </span>
           </button>

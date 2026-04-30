@@ -47,7 +47,7 @@ export function NotificationBell() {
           className="relative h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full md:border md:border-border/70 md:bg-card md:shadow-sm text-muted-foreground hover:text-foreground md:hover:bg-primary/5 transition-all"
           aria-label="Notifications"
         >
-          <Bell className="size-4" />
+          <Bell className="size-5 text-foreground/80" />
           {unreadCount > 0 ? (
             <Badge className="absolute -right-1 -top-1 h-5 min-w-5 rounded-full px-1 text-[10px]">
               {unreadCount > 99 ? "99+" : unreadCount}

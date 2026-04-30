@@ -714,13 +714,13 @@ export const TaskUniverse: React.FC<TaskUniverseProps> = ({ tasks }) => {
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <div className="size-1.5 rounded-full" style={{ backgroundColor: ZONES.find(z => z.id === (hoveredTask.status as any)?._id || hoveredTask.status)?.color, opacity: 0.8 }} />
+                  <div className="size-1.5 rounded-full" style={{ backgroundColor: ZONES.find(z => z.id === (hoveredTask.status && typeof hoveredTask.status === 'object' ? (hoveredTask.status as any)._id || (hoveredTask.status as any).id : hoveredTask.status))?.color, opacity: 0.8 }} />
                   <span className="text-[10px] font-medium text-muted-foreground">
-                    {(hoveredTask.status as any)?.name || String(hoveredTask.status)}
+                    {(hoveredTask.status && typeof hoveredTask.status === 'object') ? (hoveredTask.status as any).name : String(hoveredTask.status || "")}
                   </span>
                 </div>
                 <span className="text-[9px] font-bold text-primary uppercase">
-                  {typeof hoveredTask.priority === 'object' ? (hoveredTask.priority as any).name || (hoveredTask.priority as any).label : String(hoveredTask.priority)}
+                  {(hoveredTask.priority && typeof hoveredTask.priority === 'object') ? (hoveredTask.priority as any).name || (hoveredTask.priority as any).label : String(hoveredTask.priority || "")}
                 </span>
               </div>
             </div>
@@ -796,10 +796,10 @@ export const TaskUniverse: React.FC<TaskUniverseProps> = ({ tasks }) => {
                 <p className="text-sm font-semibold text-foreground/90 leading-snug">{selectedTask.title}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Badge variant="outline" className="bg-primary/5 border-primary/20 text-primary/70 text-[9px] font-bold rounded-xs px-1.5 py-0">
-                    {typeof selectedTask.priority === 'object' ? (selectedTask.priority as any).name || (selectedTask.priority as any).label : String(selectedTask.priority)}
+                    {(selectedTask.priority && typeof selectedTask.priority === 'object') ? (selectedTask.priority as any).name || (selectedTask.priority as any).label : String(selectedTask.priority || "")}
                   </Badge>
                   <Badge variant="outline" className="bg-muted/30 border-border text-muted-foreground text-[9px] font-bold rounded-xs px-1.5 py-0">
-                    {(selectedTask.status as any)?.name || String(selectedTask.status)}
+                    {(selectedTask.status && typeof selectedTask.status === 'object') ? (selectedTask.status as any).name : String(selectedTask.status || "")}
                   </Badge>
                 </div>
               </div>
