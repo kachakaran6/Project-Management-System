@@ -9,6 +9,9 @@ import { env } from '../../config/env.js';
 import { encrypt, decrypt } from '../../utils/encryption.js';
 import * as activityLog from '../../utils/systemTriggers.js';
 import { logStatusChange } from '../../utils/statusHistoryTriggers.js';
+import { emitToRoom } from '../../realtime/socket.server.js';
+import { SOCKET_EVENTS } from '../../realtime/socket.events.js';
+import { NOTIFICATION_TYPES } from '../../constants/index.js';
 
 export const verifySignature = (payload: string, signature: string, secret: string) => {
   const hmac = crypto.createHmac('sha256', secret);
@@ -507,16 +510,30 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
     await task.save();
     console.log(`[GitHub] Successfully updated task ${task.taskCode}`);
 
+    // Real-time update for the board
+    emitToRoom(String(task.organizationId || task.workspaceId), SOCKET_EVENTS.TASK_UPDATED, {
+      taskId: task._id,
+      taskCode: task.taskCode,
+      projectId: task.projectId,
+      status: task.status,
+      githubLinks: task.githubLinks
+    });
+
     // Post-save: Log status change and trigger notifications
     if (statusChanged) {
       const actorAccount = await GithubAccount.findOne({ username: link.author }).lean();
       const actorId = actorAccount?.userId || null;
       
+      const recipientIds = Array.from(new Set([
+        ...(task.assigneeIds || []).map((id: any) => String(id)),
+        String(task.creatorId)
+      ]));
+
       // 1. Log Status History
       await logStatusChange({
         taskId: task._id,
         userId: actorId,
-        userName: link.author, // Use GitHub username if internal user not found
+        userName: link.author, 
         fromStatus: oldStatusId,
         toStatus: task.status,
         organizationId: task.organizationId
@@ -524,7 +541,7 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
 
       // 2. Log Activity (Triggers Telegram Org-wide broadcast)
       await activityLog.logActivity({
-        userId: actorId || task.creatorId, // Fallback to creator if committer not in system
+        userId: actorId || task.creatorId,
         organizationId: task.organizationId,
         workspaceId: task.workspaceId,
         projectId: task.projectId,
@@ -540,6 +557,25 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
           actorName: link.author,
           changedFields: ['status'],
           timestamp: new Date()
+        }
+      });
+
+      // 3. Trigger In-App Notifications & Direct Telegram Messages
+      await activityLog.triggerNotification({
+        userIds: recipientIds,
+        organizationId: task.organizationId,
+        actorId: actorId || task.creatorId,
+        type: NOTIFICATION_TYPES.TASK_UPDATED,
+        message: `Task status updated to ${targetStatusName || 'DONE'} via GitHub by ${link.author}`,
+        resourceId: task._id,
+        resourceType: 'Task',
+        metadata: {
+          taskId: String(task._id),
+          taskTitle: task.title,
+          oldStatus: oldStatusId,
+          newStatus: task.status,
+          actorName: link.author,
+          changedFields: ['status']
         }
       });
     }
