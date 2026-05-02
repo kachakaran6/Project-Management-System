@@ -22,6 +22,7 @@ import {
   X,
   SlidersHorizontal,
   User,
+  Calendar,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -90,7 +91,7 @@ import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-o
 import { Task, TaskStatus, TaskPriority } from "@/types/task.types";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter, usePathname } from "@/lib/next-navigation";
-import { TaskRow } from "@/features/tasks/components/task-row";
+// import { TaskRow } from "@/features/tasks/components/task-row";
 import { taskApi } from "@/features/tasks/api/task.api";
 import {
   generateExcel,
@@ -126,7 +127,7 @@ import { TaskSortDirection, TaskSortField } from "@/types/task.types";
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const VIEW_STORAGE_KEY = "tasks:view-mode";
-type TaskViewMode = "list" | "kanban" | "table";
+type TaskViewMode = "kanban" | "list" | "table";
 
 const getInitialTaskSortState = (searchParams: { get: (key: string) => string | null }) => {
   const stored = readTaskSortPreference() ?? getDefaultTaskSortState();
@@ -152,7 +153,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
 
   // Initialize viewMode from URL or default to kanban
   const initialView = (searchParams.get("view") as any) || "kanban";
-  const [viewMode, setViewMode] = useState<"kanban" | "list" | "table">(initialView);
+  const [viewMode, setViewMode] = useState<TaskViewMode>(initialView);
 
   // Sync isMounted
   useEffect(() => {
@@ -358,10 +359,10 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   const listFilters = useMemo(
     () => ({
       ...sharedFilters,
-      page: (viewMode === "list" && isMobile) ? 1 : page,
-      limit: (viewMode === "list" && isMobile) ? 500 : limit,
+      page: viewMode === "list" ? 1 : page,
+      limit: viewMode === "list" ? 500 : limit,
     }),
-    [sharedFilters, page, limit, viewMode, isMobile],
+    [sharedFilters, page, limit, viewMode],
   );
     const selectedSortLabel = getTaskSortLabel(selectedSortField);
     const isDefaultSort = selectedSortField === DEFAULT_TASK_SORT_FIELD && selectedSortDirection === DEFAULT_TASK_SORT_DIRECTION;
@@ -409,7 +410,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   const listRows = useMemo(() => filterVisibleTasks(listQuery.data?.data.items ?? [], true), [listQuery.data]);
   
   const groupedTasks = useMemo(() => {
-    if (viewMode !== "list" || !isMobile) return {};
+    if (viewMode !== "list") return {};
     const groups: Record<string, Task[]> = {};
     
     // Initialize groups from dynamic statuses using NAMES
@@ -481,22 +482,40 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     router.push("?");
   };
 
-  const resolveProjectName = (id?: string) => {
-    if (!id || id === "ALL") return "ALL";
+  const resolveProjectName = (idOrObj?: any) => {
+    if (!idOrObj || idOrObj === "ALL") return "ALL";
+    
+    // If it's already an object with a name, return the name
+    if (typeof idOrObj === 'object' && idOrObj.name) return idOrObj.name;
+    
+    // Extract ID if it's an object without name or just an ID string
+    const id = typeof idOrObj === 'object' ? (idOrObj.id || idOrObj._id) : idOrObj;
+    if (!id) return "Unknown";
+
     const project = (projectsQuery.data?.data.items ?? []).find(
       (p: any) => String(p.id || p._id) === String(id),
     );
-    return project?.name || id;
+    return project?.name || String(id);
   };
 
-  const resolveAssigneeName = (id?: string) => {
-    if (!id || id === "ALL") return "ALL";
-    if (id === "UNASSIGNED") return "Unassigned";
+  const resolveAssigneeName = (idOrObj?: any) => {
+    if (!idOrObj || idOrObj === "ALL") return "ALL";
+    if (idOrObj === "UNASSIGNED") return "Unassigned";
+
+    // If it's already an object with user info, return the name
+    if (typeof idOrObj === 'object') {
+      const name = `${idOrObj.firstName || ""} ${idOrObj.lastName || ""}`.trim() || idOrObj.name || idOrObj.email;
+      if (name) return name;
+    }
+    
+    const id = typeof idOrObj === 'object' ? (idOrObj.id || idOrObj._id) : idOrObj;
+    if (!id) return "Unknown";
+
     const member = (membersQuery.data?.data.members ?? []).find(
       (m: any) => String(m.id || m._id) === String(id),
     );
-    if (!member) return id;
-    return `${member.firstName || ""} ${member.lastName || ""}`.trim() || member.email || id;
+    if (!member) return String(id);
+    return `${member.firstName || ""} ${member.lastName || ""}`.trim() || member.email || String(id);
   };
 
   const exportFilters: TaskExportFilters = useMemo(
@@ -738,7 +757,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   size="sm"
                   onClick={() => setViewMode("kanban")}
                   className={cn(
-                    "h-8 px-4 rounded-sm text-[11px] gap-1.5 font-black transition-all shrink-0",
+                    "h-8 px-4 rounded-sm text-[11px] gap-1.5 font-black transition-all shrink-0 flex-1 md:flex-none max-md:h-9",
                     viewMode === "kanban" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -757,17 +776,17 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 <List className="size-3.5" /> <span className={cn(isMobile && "hidden")}>List</span>
               </Button>
 
-                <Button
-                  variant={viewMode === "table" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("table")}
-                  className={cn(
-                    "h-8 px-4 rounded-sm text-[11px] gap-1.5 font-black transition-all shrink-0 flex-1 md:flex-none max-md:h-9",
-                    viewMode === "table" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <TableIcon className="size-3.5" /> <span className={cn(isMobile && "hidden")}>Table</span>
-                </Button>
+              <Button
+                variant={viewMode === "table" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                className={cn(
+                  "h-8 px-4 rounded-sm text-[11px] gap-1.5 font-black transition-all shrink-0 flex-1 md:flex-none max-md:h-9",
+                  viewMode === "table" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <TableIcon className="size-3.5" /> <span className={cn(isMobile && "hidden")}>Table</span>
+              </Button>
             </div>
 
             {/* Export Menu */}
@@ -889,12 +908,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
         )}
       </div>
 
-      <div
-        className={cn(
-          "flex-1 min-h-0 flex flex-col",
-          viewMode === "kanban" ? "mt-3" : "mt-0",
-        )}
-      >
+      <div className="flex-1 min-h-0 flex flex-col mt-4">
         {(viewMode === "list" || viewMode === "table") && (
           <>
             <div className="flex-1 overflow-auto custom-scrollbar pr-1 relative bg-card/20 rounded-md border border-border/40 shadow-inner-sm">
@@ -923,71 +937,15 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 </div>
               ) : (
                 <div className="min-w-full">
-                  {viewMode === "list" && !isMobile && (
-                    <div className="animate-in fade-in duration-500">
-                      <Table className="relative border-separate border-spacing-0">
-                        <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur-md shadow-sm">
-                          <TableRow className="hover:bg-transparent border-0">
-                            <TableHead className="py-4 pl-6 font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Task Title
-                            </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Assignee
-                            </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Status
-                            </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Priority
-                            </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Created By
-                            </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Created Time
-                            </TableHead>
-                            <TableHead className={cn("font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50", fixedProjectId && "hidden")}>
-                              Project
-                            </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Due Date
-                            </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
-                              Tags
-                            </TableHead>
-                            <TableHead className="w-16 border-b border-border/50"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {listRows.map((task, idx) => (
-                            <TaskRow
-                              key={getTaskId(task)}
-                              task={task}
-                              idx={idx}
-                              taskId={getTaskId(task)}
-                              assignees={getAssignees(task)}
-                              isOverdue={
-                                task.dueDate &&
-                                new Date(task.dueDate) < new Date() &&
-                                getStatusName(task.status).toUpperCase() !== "DONE"
-                              }
-                              canMutate={canMutate}
-                              setSelectedTask={setSelectedTask}
-                              setDeleteId={setDeleteId}
-                              hideProject={Boolean(fixedProjectId)}
-                            />
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
                   {viewMode === "list" && (
-                    <div className="flex flex-col gap-3 p-3">
+                    <div className="flex flex-col gap-2 p-1.5">
                       {Object.entries(groupedTasks).map(([statusName, tasks]) => {
                         const status = dynamicStatuses.find(s => s.name.toUpperCase() === statusName);
                         const displayName = status?.name || statusName;
                         const statusColor = status?.color || "#94a3b8";
                         
+                        if (tasks.length === 0) return null; // Only show non-empty groups in global view
+
                         return (
                           <AccordionSection 
                             key={statusName}
@@ -996,35 +954,42 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                             count={tasks.length}
                             defaultOpen={tasks.length > 0}
                           >
-                            <div className="grid gap-3 p-3 pt-2">
-                              {tasks.length === 0 ? (
-                                <p className="text-center py-8 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-widest">No tasks in this status</p>
-                              ) : (
-                                tasks.map((task) => {
-                                  const taskId = getTaskId(task);
-                                  const assignees = getAssignees(task);
-                                  return (
-                                    <div
-                                      key={taskId}
-                                      className="rounded-md border border-border/10 bg-card/40 p-4 shadow-sm"
-                                    >
-                                      <div className="flex items-start justify-between gap-3 mb-3">
-                                        <div className="min-w-0">
-                                          <button
-                                            onClick={() => {
-                                              const params = new URLSearchParams(searchParams.toString());
-                                              params.set("taskId", taskId);
-                                              router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
-                                              openPanel(taskId);
-                                            }}
-                                            className="font-bold text-[14px] hover:text-primary transition-colors block line-clamp-1 text-left w-full"
+                            <div className="grid gap-2 p-1.5 pt-1">
+                              {tasks.map((task) => {
+                                const taskId = getTaskId(task);
+                                const assignees = getAssignees(task);
+                                return (
+                                  <div
+                                    key={taskId}
+                                    className="rounded-md border border-border/10 bg-card/40 p-2.5 md:p-3 shadow-sm hover:border-primary/20 transition-all cursor-pointer"
+                                    onClick={() => {
+                                      const params = new URLSearchParams(searchParams.toString());
+                                      params.set("taskId", taskId);
+                                      router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+                                      openPanel(taskId);
+                                    }}
+                                  >
+                                    <div className="flex items-start justify-between gap-3 mb-1.5">
+                                      <div className="min-w-0">
+                                        <h4 className="font-bold text-[14px] hover:text-primary transition-colors block line-clamp-1 text-left w-full">
+                                          {task.title}
+                                        </h4>
+                                        <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-tighter">
+                                          {task.taskCode || `#${taskId.slice(-8)}`}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        {task.priority && (
+                                          <Badge 
+                                            variant="outline" 
+                                            className={cn(
+                                              "h-4 px-1.5 rounded-full text-[8px] font-bold uppercase",
+                                              task.priority === "HIGH" || task.priority === "URGENT" ? "text-rose-500 border-rose-500/20 bg-rose-500/5" : "text-muted-foreground"
+                                            )}
                                           >
-                                            {task.title}
-                                          </button>
-                                          <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-tighter">
-                                            {task.taskCode || `#${taskId.slice(-8)}`}
-                                          </span>
-                                        </div>
+                                            {String(task.priority)}
+                                          </Badge>
+                                        )}
                                         <Badge
                                           variant="outline"
                                           className="h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight shrink-0 border-none"
@@ -1036,62 +1001,73 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                           {getStatusName(task.status)}
                                         </Badge>
                                       </div>
-                                      <div className="flex items-center justify-between mt-4 border-t border-border/30 pt-3">
-                                        <div className="flex items-center gap-2">
-                                          {assignees.length > 0 ? (
-                                            <div className="flex items-center -space-x-2">
-                                              {assignees.slice(0, 3).map((a) => (
-                                                <Avatar key={a.id} className="h-6 w-6 ring-2 ring-background border border-border/10 shadow-sm">
-                                                  <AvatarImage src={a.avatarUrl} />
-                                                  <AvatarFallback className="text-[8px] bg-primary/5 text-primary">
-                                                    {a.name.charAt(0)}
-                                                  </AvatarFallback>
-                                                </Avatar>
-                                              ))}
-                                              {assignees.length > 3 && (
-                                                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold border-2 border-background shadow-sm">
-                                                  +{assignees.length - 3}
-                                                </div>
-                                              )}
-                                            </div>
-                                          ) : (
-                                            <div className="h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 flex items-center justify-center">
-                                              <User className="size-3 text-muted-foreground/40" />
-                                            </div>
-                                          )}
-                                          <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[120px]">
-                                            {assignees.length === 0
-                                              ? "Unassigned"
-                                              : assignees.length === 1
-                                                ? assignees[0].name
-                                                : `${assignees.length} members`}
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
+                                    </div>
+                                    <div className="flex items-center justify-between mt-2.5 border-t border-border/10 pt-2">
+                                      <div className="flex items-center gap-2">
+                                        {assignees.length > 0 ? (
+                                          <div className="flex items-center -space-x-2">
+                                            {assignees.slice(0, 3).map((a) => (
+                                              <Avatar key={a.id} className="h-6 w-6 ring-2 ring-background border border-border/10 shadow-sm">
+                                                <AvatarImage src={a.avatarUrl} />
+                                                <AvatarFallback className="text-[8px] bg-primary/10 text-primary uppercase flex items-center justify-center font-bold">
+                                                   {a.firstName?.[0] || a.name?.[0] || <User className="size-2.5" />}
+                                                </AvatarFallback>
+                                              </Avatar>
+                                            ))}
+                                            {assignees.length > 3 && (
+                                              <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold border-2 border-background shadow-sm">
+                                                +{assignees.length - 3}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 flex items-center justify-center">
+                                            <User className="size-3 text-muted-foreground/40" />
+                                          </div>
+                                        )}
+                                        <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[120px]">
+                                          {assignees.length === 0
+                                            ? "Unassigned"
+                                            : assignees.length === 1
+                                              ? assignees[0].name
+                                              : `${assignees.length} members`}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                         {!isEmbedded && !fixedProjectId && (
+                                            <span className="text-[10px] font-bold text-muted-foreground/30 bg-muted/20 px-2 py-0.5 rounded-sm uppercase mr-2">
+                                              {resolveProjectName(task.projectId)}
+                                            </span>
+                                         )}
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedTask(task);
+                                          }}
+                                        >
+                                          <Pencil className="size-4" />
+                                        </Button>
+                                        {canMutate && (
                                           <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                                            onClick={() => setSelectedTask(task)}
+                                            className="h-8 w-8 rounded-full hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive transition-colors"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setDeleteId(taskId);
+                                            }}
                                           >
-                                            <Pencil className="size-4" />
+                                            <Trash2 className="size-4" />
                                           </Button>
-                                          {canMutate && (
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-8 w-8 rounded-full hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive transition-colors"
-                                              onClick={() => setDeleteId(taskId)}
-                                            >
-                                              <Trash2 className="size-4" />
-                                            </Button>
-                                          )}
-                                        </div>
+                                        )}
                                       </div>
                                     </div>
-                                  );
-                                })
-                              )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </AccordionSection>
                         );
@@ -1223,43 +1199,48 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
             </div>
             <div className="shrink-0 py-3 flex items-center justify-between gap-2 border-t border-border/10 px-4 sm:px-0.5 bg-background sticky bottom-0 z-30 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-3">
               <div className="flex items-center gap-2">
-                <Select
-                  value={String(limit)}
-                  onValueChange={(val) => {
-                    setLimit(parseInt(val));
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-9 w-[105px] sm:w-28 rounded-sm bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
-                    <SelectValue placeholder="Limit" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-sm border-border/40">
-                    {PAGE_SIZE_OPTIONS.map(opt => (
-                      <SelectItem key={opt} value={String(opt)} className="text-xs font-medium">
-                        {opt} / page
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {viewMode === "table" && (
+                  <Select
+                    value={String(limit)}
+                    onValueChange={(val) => {
+                      setLimit(parseInt(val));
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-9 w-[105px] sm:w-28 rounded-sm bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
+                      <SelectValue placeholder="Limit" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-sm border-border/40">
+                      {PAGE_SIZE_OPTIONS.map(opt => (
+                        <SelectItem key={opt} value={String(opt)} className="text-xs font-medium">
+                          {opt} / page
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 <span className="hidden md:inline text-[11px] text-muted-foreground/60 font-bold uppercase tracking-tight">
                   Showing {listRows.length} tasks
                 </span>
               </div>
 
-              <div className="flex-1 sm:flex-none">
-                <PaginationMeta
-                  page={page}
-                  totalPages={totalPages}
-                  isFetching={listQuery.isFetching}
-                  onPageChange={setPage}
-                />
-              </div>
+              {viewMode === "table" && (
+                <div className="flex-1 sm:flex-none">
+                  <PaginationMeta
+                    page={page}
+                    totalPages={totalPages}
+                    isFetching={listQuery.isFetching}
+                    onPageChange={setPage}
+                  />
+                </div>
+              )}
             </div>
           </>
         )}
 
+
         {viewMode === "kanban" && (
-          <div className="h-full animate-in fade-in zoom-in-95 duration-500 overflow-hidden">
+          <div className="flex-1 h-full animate-in fade-in zoom-in-95 duration-500 overflow-hidden">
             {kanbanQuery.isLoading ? (
               <TaskBoardSkeleton />
             ) : kanbanRows.length === 0 ? (
@@ -1705,30 +1686,155 @@ function FilterContent({
 function AccordionSection({ title, color, count, children, defaultOpen = false }: any) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-md border border-border/10 overflow-hidden shadow-sm">
+    <div className="border border-border/10 rounded-lg overflow-hidden bg-card/20 shadow-sm">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 bg-muted/5 backdrop-blur-sm active:bg-muted/10 transition-colors"
+        className="w-full flex items-center justify-between p-2 md:p-2.5 hover:bg-muted/10 transition-colors group"
       >
         <div className="flex items-center gap-3">
-          <div className="size-2.5 rounded-full shadow-sm ring-2 ring-background" style={{ backgroundColor: color }} />
-          <span className="text-[11px] font-black uppercase tracking-widest text-foreground/70">{title}</span>
-          <Badge 
-            variant="secondary" 
-            className="h-[18px] min-w-[26px] flex items-center justify-center px-1.5 text-[10px] font-black bg-muted/20 text-muted-foreground/80 rounded-full border border-border/10 shadow-inner"
-          >
+          <div className="size-2 rounded-full" style={{ backgroundColor: color }} />
+          <h3 className="text-xs font-black uppercase tracking-widest text-foreground/80 group-hover:text-primary transition-colors">
+            {title}
+          </h3>
+          <span className="text-[10px] font-bold bg-muted/30 px-2 py-0.5 rounded-full text-muted-foreground">
             {count}
-          </Badge>
+          </span>
         </div>
-        <div className="text-muted-foreground/40">
-          {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-        </div>
+        <ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-300", isOpen && "rotate-90")} />
       </button>
       {isOpen && (
-        <div className="bg-muted/5 animate-in fade-in slide-in-from-top-1 duration-200">
+        <div className="border-t border-border/10 bg-muted/5 animate-in fade-in slide-in-from-top-1 duration-200">
           {children}
         </div>
       )}
     </div>
+  );
+}
+
+function TaskRow({ 
+  task, 
+  idx, 
+  taskId, 
+  assignees, 
+  isOverdue, 
+  canMutate, 
+  setSelectedTask, 
+  setDeleteId,
+  hideProject 
+}: any) {
+  return (
+    <TableRow
+      key={taskId}
+      className={cn(
+        "group cursor-pointer border-border/40 hover:bg-muted/5 transition-colors",
+        isOverdue && "bg-rose-500/[0.02]"
+      )}
+      onClick={() => setSelectedTask(task)}
+    >
+      <TableCell className="py-2.5 pl-8">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-mono text-muted-foreground/30 w-16 shrink-0 group-hover:text-primary transition-colors">
+            {task.taskCode || `#${taskId.slice(-8)}`}
+          </span>
+          <span className="text-[13px] font-medium text-foreground line-clamp-1">{task.title}</span>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center -space-x-2">
+          {assignees.slice(0, 3).map((a: any) => (
+            <Avatar key={a.id} className="h-6 w-6 ring-2 ring-background border border-border/10 shadow-sm">
+              <AvatarImage src={a.avatarUrl} />
+              <AvatarFallback className="text-[8px] bg-primary/10 text-primary uppercase flex items-center justify-center font-bold">
+                {a.firstName?.[0] || a.name?.[0] || <User className="size-2.5" />}
+              </AvatarFallback>
+            </Avatar>
+          ))}
+          {assignees.length > 3 && (
+            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold border-2 border-background shadow-sm">
+              +{assignees.length - 3}
+            </div>
+          )}
+          {assignees.length === 0 && (
+            <div className="h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 flex items-center justify-center">
+              <User className="size-3 text-muted-foreground/40" />
+            </div>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge
+          variant="outline"
+          className="h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight border-none"
+          style={{ 
+            color: task.statusColor || "#94a3b8", 
+            backgroundColor: `${task.statusColor || "#94a3b8"}15` 
+          }}
+        >
+          {String(task.status).replace(/_/g, " ")}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        {task.priority && (
+          <Badge 
+            variant="outline" 
+            className={cn(
+              "h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight",
+              task.priority === "HIGH" || task.priority === "URGENT" ? "text-rose-500 border-rose-500/20 bg-rose-500/5" : "text-muted-foreground"
+            )}
+          >
+            {String(task.priority)}
+          </Badge>
+        )}
+      </TableCell>
+      <TableCell>
+        <span className="text-[11px] text-muted-foreground font-medium">{task.creatorName || "Unknown"}</span>
+      </TableCell>
+      <TableCell>
+        <span className="text-[11px] text-muted-foreground font-medium">
+          {task.createdAt ? new Date(task.createdAt).toLocaleDateString() : "-"}
+        </span>
+      </TableCell>
+      <TableCell className={cn(hideProject && "hidden")}>
+        <Badge variant="outline" className="h-5 text-[9px] font-bold bg-muted/20 border-border/10 text-muted-foreground/60 uppercase">
+          {task.projectName || "PMS"}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Calendar className="size-3" />
+          <span className={cn("text-[11px] font-bold uppercase tracking-tighter", isOverdue && "text-rose-500")}>
+            {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No Date"}
+          </span>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedTask(task);
+            }}
+          >
+            <Pencil className="size-3.5" />
+          </Button>
+          {canMutate && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-full hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteId(taskId);
+              }}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }

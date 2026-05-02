@@ -17,7 +17,9 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const isTasksPage = pathname.startsWith("/tasks");
-  const isTasksBoardPage = pathname === "/tasks";
+  const isProjectDetailsPage = pathname.startsWith("/projects/") && pathname.split("/").length > 2;
+  const isCustomScrollPage = isTasksPage || isProjectDetailsPage;
+
   const { mobileSidebarOpen, setMobileSidebarOpen, setActiveRoute } =
     useUIStore();
 
@@ -58,11 +60,11 @@ export function AppLayout({ children }: AppLayoutProps) {
         <main
           className={cn(
             "min-h-0 flex-1",
-            isTasksBoardPage ? "p-0 overflow-hidden" : "p-3 md:p-5 overflow-y-auto",
+            isCustomScrollPage ? "p-0 overflow-hidden" : "p-3 md:p-5 overflow-y-auto",
             !isTasksPage && "overflow-x-hidden",
           )}
         >
-          <div className={cn("flex flex-col h-full w-full animate-in fade-in animate-duration-300", !isTasksPage && "mx-auto max-w-350")}>
+          <div className={cn("flex flex-col h-full w-full animate-in fade-in animate-duration-300", !isCustomScrollPage && "mx-auto max-w-350")}>
             {children}
           </div>
         </main>
@@ -70,4 +72,3 @@ export function AppLayout({ children }: AppLayoutProps) {
     </div>
   );
 }
-

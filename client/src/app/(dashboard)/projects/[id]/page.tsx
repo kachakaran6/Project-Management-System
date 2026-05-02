@@ -1,163 +1,139 @@
 
+"use client";
+
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { 
-  ArrowLeft, 
-  Settings, 
-  Plus, 
-  LayoutDashboard, 
-  CheckSquare, 
-  History,
-  ExternalLink,
-  Shield 
-} from "lucide-react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useProjectQuery } from "@/features/projects/hooks/use-projects-query";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ProjectOverview } from "@/features/projects/components/project-overview";
 import { ProjectVault } from "@/features/projects/components/vault/project-vault";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProjectActivityFeed } from "@/features/projects/components/project-activity-feed";
 import { EditProjectModal } from "@/features/projects/components/edit-project-modal";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import Link from "next/link";
-import { TaskDashboard } from "@/features/tasks/components/task-dashboard";
-import { ProjectTasksMobileView } from "@/features/tasks/components/project-tasks-mobile-view";
-import { ProjectActivityFeed } from "@/features/projects/components/project-activity-feed";
+import { ProjectHeader } from "@/features/projects/components/details/project-header";
+import { ProjectTabsList } from "@/features/projects/components/details/project-tabs";
+import { ProjectSidebarPanel } from "@/features/projects/components/details/project-sidebar-panel";
+import { ProjectTaskBoard } from "@/features/projects/components/details/task-board/project-task-board";
+import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
+import { useProjectLayout } from "@/features/projects/hooks/use-project-layout";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export default function ProjectDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("overview");
+  const searchParams = useSearchParams();
+  
+  const initialTab = searchParams.get("tab") || "overview";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isEditing, setIsEditing] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  
+  const { isFocusMode, toggleFocusMode } = useProjectLayout();
   const { activeOrg } = useAuth();
+  const { openPanel } = useTaskPanelStore();
 
   const canEdit = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN" || activeOrg?.role === "MANAGER";
 
   const { data: projectResult, isLoading, error } = useProjectQuery(id as string);
   const project = projectResult?.data;
 
-  // Track mobile breakpoint
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
+  // Sync tab state with URL
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", value);
+    router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+  };
 
+  // Sync state if URL changes externally
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   if (isLoading) return <ProjectDetailsSkeleton />;
   if (error || !project) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <h2 className="text-xl font-bold">Project not found</h2>
-        <Button onClick={() => router.push("/projects")}>Back to Projects</Button>
+        <button onClick={() => router.push("/projects")} className="text-primary hover:underline">Back to Projects</button>
       </div>
     );
   }
 
   return (
-    <div className={cn(
-      "mx-auto space-y-3 animate-in fade-in duration-500",
-      activeTab === "tasks" ? "max-w-[1400px]" : "max-w-[1280px]"
-    )}>
-      {/* TOP NAVIGATION & SETTINGS ROW */}
-      <div className="px-4 md:px-6 pt-3 flex items-center justify-between">
-        <Link href="/projects" className="group flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-all">
-          <div className="p-1 rounded-md bg-muted/20 group-hover:bg-primary/10 transition-colors">
-            <ArrowLeft className="size-3" />
-          </div>
-          <span className="text-[10px] font-black uppercase tracking-widest">Back to Projects</span>
-        </Link>
-
-        {canEdit && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="size-7 rounded-lg border border-border/10 bg-muted/5 hover:bg-primary/10 hover:text-primary transition-all"
-            onClick={() => setIsEditing(true)}
-          >
-            <Settings className="size-3.5" />
-          </Button>
-        )}
+    <div className="flex flex-col h-full bg-background animate-in fade-in duration-500 overflow-hidden">
+      <div className="shrink-0">
+        <ProjectHeader 
+          name={project.name} 
+          status={project.status} 
+          canEdit={canEdit} 
+          onEditClick={() => setIsEditing(true)}
+          isFocusMode={isFocusMode}
+          toggleFocusMode={toggleFocusMode}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
       </div>
 
-      {/* PROJECT HEADER — inline title + status */}
-      <div className="px-4 md:px-6 pb-1">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <h1 className="text-2xl font-black tracking-tight text-foreground line-clamp-1 max-md:text-xl leading-tight">
-            {project.name}
-          </h1>
-          <Badge variant="outline" className="h-5 rounded-full border-primary/20 bg-primary/5 text-primary text-[9px] uppercase font-black tracking-widest">
-            {project.status.replace(/_/g, ' ')}
-          </Badge>
-          {project.visibility === 'private' && (
-            <Badge variant="outline" className="h-5 rounded-full border-amber-500/20 bg-amber-500/5 text-amber-600 text-[9px] uppercase font-black tracking-widest">
-              Private
-            </Badge>
-          )}
-        </div>
-      </div>
-
-      {/* NAVIGATION TABS */}
-      <Tabs defaultValue="overview" onValueChange={setActiveTab} className="w-full">
-        <div className="border-b border-border/10 mb-4 sticky top-0 bg-background/80 backdrop-blur-md z-40 overflow-x-auto no-scrollbar">
-          <TabsList className="bg-transparent h-auto p-0 gap-6 md:gap-8 rounded-none border-none min-w-max px-4 md:px-6">
-            <TabsTrigger 
-              value="overview" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-primary/70"
-            >
-              <LayoutDashboard className="mr-1.5 size-3.5" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger 
-              value="tasks" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-primary/70"
-            >
-              <CheckSquare className="mr-1.5 size-3.5" />
-              Tasks
-            </TabsTrigger>
-            <TabsTrigger 
-              value="vault" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-primary/70"
-            >
-              <Shield className="mr-1.5 size-3.5" />
-              Vault
-            </TabsTrigger>
-            <TabsTrigger 
-              value="activity" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-2.5 text-[11px] font-black uppercase tracking-widest transition-all hover:text-primary/70"
-            >
-              <History className="mr-1.5 size-3.5" />
-              Activity
-            </TabsTrigger>
-          </TabsList>
+      <Tabs 
+        defaultValue={initialTab} 
+        value={activeTab} 
+        onValueChange={handleTabChange} 
+        className="flex-1 flex flex-col min-h-0 overflow-hidden"
+      >
+        <div className={cn(
+          "shrink-0 transition-all duration-300 ease-in-out overflow-hidden",
+          isFocusMode ? "h-0 opacity-0 pointer-events-none" : "h-auto opacity-100"
+        )}>
+          <ProjectTabsList />
         </div>
 
-        <TabsContent value="overview" className="mt-0 ring-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-300 px-4 md:px-6">
-          <ProjectOverview projectId={id as string} />
-        </TabsContent>
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <div className={cn(
+            "h-full mx-auto transition-all duration-300",
+            isFocusMode ? "max-w-none px-2" : "max-w-[1400px] px-4 md:px-6 py-6"
+          )}>
+            <div className="flex flex-col lg:flex-row gap-8 h-full">
+              {/* MAIN CONTENT */}
+              <div className="flex-1 min-w-0 h-full">
+                <TabsContent value="overview" className="mt-0 outline-none h-full overflow-y-auto no-scrollbar">
+                  <ProjectOverview projectId={id as string} />
+                </TabsContent>
 
-        <TabsContent value="vault" className="mt-0 ring-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-300 px-4 md:px-6">
-          <ProjectVault projectId={id as string} />
-        </TabsContent>
-        
-        <TabsContent value="tasks" className="mt-0 ring-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {/* Mobile: accordion grouped view | Desktop: full task dashboard */}
-          <div className="md:hidden px-4">
-            <ProjectTasksMobileView projectId={id as string} />
-          </div>
-          <div className="hidden md:block">
-            <TaskDashboard fixedProjectId={id as string} isEmbedded={true} />
-          </div>
-        </TabsContent>
+                <TabsContent value="tasks" className="mt-0 outline-none h-full overflow-hidden">
+                  <ProjectTaskBoard 
+                    projectId={id as string} 
+                    onTaskClick={(task) => openPanel(String(task.id || (task as any)._id))} 
+                  />
+                </TabsContent>
 
-        <TabsContent value="activity" className="mt-0 ring-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-300 px-4 md:px-6">
-          <ProjectActivityFeed projectId={id as string} />
-        </TabsContent>
+                <TabsContent value="vault" className="mt-0 outline-none h-full overflow-y-auto no-scrollbar">
+                  <ProjectVault projectId={id as string} />
+                </TabsContent>
+
+                <TabsContent value="activity" className="mt-0 outline-none h-full overflow-y-auto no-scrollbar">
+                  <ProjectActivityFeed projectId={id as string} />
+                </TabsContent>
+              </div>
+
+              {/* RIGHT SIDEBAR - CONTEXT PANEL */}
+              {activeTab === "overview" && !isFocusMode && (
+                <div className="shrink-0 w-80 h-full overflow-y-auto no-scrollbar pb-10">
+                  <ProjectSidebarPanel 
+                    startDate={project.startDate}
+                    endDate={project.endDate}
+                    createdAt={project.createdAt}
+                    progress={project.taskStats?.percent || 0}
+                    members={project.members || []}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </Tabs>
 
       {isEditing && project && (
@@ -173,24 +149,20 @@ export default function ProjectDetailsPage() {
 
 function ProjectDetailsSkeleton() {
   return (
-    <div className="max-w-[1280px] mx-auto space-y-3 px-4 md:px-6 pt-3">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <Skeleton className="h-5 w-28 rounded-lg" />
-        <Skeleton className="h-7 w-7 rounded-lg" />
+        <Skeleton className="h-8 w-64 rounded-lg" />
+        <Skeleton className="h-8 w-8 rounded-lg" />
       </div>
-      <div className="flex items-center gap-2.5">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-5 w-16 rounded-full" />
-      </div>
-      <div className="flex gap-6 border-b border-border/10 pb-2.5 pt-1">
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-4 w-12" />
-        <Skeleton className="h-4 w-12" />
-        <Skeleton className="h-4 w-16" />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2">
-        <Skeleton className="lg:col-span-2 h-[300px] rounded-2xl" />
-        <Skeleton className="h-[300px] rounded-2xl" />
+      <div className="h-10 w-full bg-muted/20 rounded-lg" />
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+        <div className="space-y-6">
+          <Skeleton className="h-32 w-full rounded-xl" />
+          <div className="grid grid-cols-4 gap-3">
+             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}
+          </div>
+        </div>
+        <Skeleton className="h-[400px] w-full rounded-xl" />
       </div>
     </div>
   );
