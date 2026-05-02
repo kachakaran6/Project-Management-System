@@ -7,6 +7,8 @@ import GithubRepository from '../../models/GithubRepository.js';
 import GithubActivity from '../../models/GithubActivity.js';
 import { env } from '../../config/env.js';
 import { encrypt, decrypt } from '../../utils/encryption.js';
+import * as activityLog from '../../utils/systemTriggers.js';
+import { logStatusChange } from '../../utils/statusHistoryTriggers.js';
 
 export const verifySignature = (payload: string, signature: string, secret: string) => {
   const hmac = crypto.createHmac('sha256', secret);
@@ -457,6 +459,9 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
     }
     
     const project = projects.find(p => String(p._id) === String(task.projectId));
+    const oldStatusId = task.status?._id || task.status;
+    let statusChanged = false;
+
     if (project?.githubSettings?.autoStatusUpdate) {
       const currentStatusName = (task.status as any)?.name?.toUpperCase() || '';
       let targetStatusName = '';
@@ -479,6 +484,7 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
           const statusPriority: Record<string, number> = { 'DONE': 3, 'IN_REVIEW': 2, 'IN_PROGRESS': 1, 'TODO': 0, 'BACKLOG': 0 };
           if ((statusPriority[kwName] || 0) > (statusPriority[currentStatusName] || 0)) {
             task.status = keywordStatusId;
+            statusChanged = true;
           }
         }
       }
@@ -490,15 +496,53 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
           organizationId: project.organizationId || project.workspaceId, 
           name: { $regex: new RegExp(`^${fuzzyPattern}$`, 'i') } 
         });
-        if (targetStatus && String(targetStatus._id) !== String((task.status as any)?._id)) {
+        if (targetStatus && String(targetStatus._id) !== String(oldStatusId)) {
           console.log(`[GitHub] Transitioning task to ${targetStatusName}`);
           task.status = targetStatus._id;
+          statusChanged = true;
         }
       }
     }
 
     await task.save();
     console.log(`[GitHub] Successfully updated task ${task.taskCode}`);
+
+    // Post-save: Log status change and trigger notifications
+    if (statusChanged) {
+      const actorAccount = await GithubAccount.findOne({ username: link.author }).lean();
+      const actorId = actorAccount?.userId || null;
+      
+      // 1. Log Status History
+      await logStatusChange({
+        taskId: task._id,
+        userId: actorId,
+        userName: link.author, // Use GitHub username if internal user not found
+        fromStatus: oldStatusId,
+        toStatus: task.status,
+        organizationId: task.organizationId
+      });
+
+      // 2. Log Activity (Triggers Telegram Org-wide broadcast)
+      await activityLog.logActivity({
+        userId: actorId || task.creatorId, // Fallback to creator if committer not in system
+        organizationId: task.organizationId,
+        workspaceId: task.workspaceId,
+        projectId: task.projectId,
+        resourceId: task._id,
+        resourceType: 'Task',
+        action: 'STATUS_CHANGE',
+        metadata: {
+          taskId: String(task._id),
+          taskTitle: task.title,
+          projectName: project?.name || 'General',
+          oldStatus: oldStatusId,
+          newStatus: task.status,
+          actorName: link.author,
+          changedFields: ['status'],
+          timestamp: new Date()
+        }
+      });
+    }
   }
 };
 
