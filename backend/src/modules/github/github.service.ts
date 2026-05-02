@@ -549,7 +549,7 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
 const getStatusFromMessage = async (message: string, organizationId: string) => {
   const lowerMsg = message.toLowerCase();
   
-  // Helper to check for words with boundaries (handles start/end of string and punctuation)
+  // Helper to check for words with boundaries
   const hasWord = (words: string[]) => {
     return words.some(word => {
       const regex = new RegExp(`\\b${word.trim()}\\b`, 'i');
@@ -559,13 +559,21 @@ const getStatusFromMessage = async (message: string, organizationId: string) => 
 
   const doneKeywords = ['fix', 'fixed', 'fixes', 'close', 'closed', 'closes', 'resolve', 'resolved', 'resolves', 'done', 'finish', 'finished', 'completes', 'implement', 'implemented'];
   if (hasWord(doneKeywords)) {
-    const doneStatus = await Status.findOne({ organizationId, name: /done/i });
+    // Try multiple common names for "Done"
+    const doneStatus = await Status.findOne({ 
+      organizationId, 
+      name: { $regex: /done|completed|finished|closed|resolved/i } 
+    });
     return doneStatus?._id;
   }
 
   const progressKeywords = ['progress', 'start', 'started', 'working', 'feat', 'feature', 'refactor', 'chore'];
   if (hasWord(progressKeywords)) {
-    const inProgressStatus = await Status.findOne({ organizationId, name: /progress/i });
+    // Try multiple common names for "In Progress"
+    const inProgressStatus = await Status.findOne({ 
+      organizationId, 
+      name: { $regex: /progress|started|active|working/i } 
+    });
     return inProgressStatus?._id;
   }
 
