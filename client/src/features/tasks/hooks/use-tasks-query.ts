@@ -144,12 +144,12 @@ export function useUpdateTaskStatusMutation() {
 
       // Optimistically update to the new value in all lists
       queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
-        if (!old || !old.data || !Array.isArray(old.data.tasks)) return old;
+        if (!old || !old.data || !Array.isArray(old.data.items)) return old;
         return {
           ...old,
           data: {
             ...old.data,
-            tasks: old.data.tasks.map((t: any) =>
+            items: old.data.items.map((t: any) =>
               (t.id === id || t._id === id) ? { ...t, status } : t
             )
           }
@@ -231,12 +231,12 @@ export function useUpdateTaskMutation() {
 
       // Update lists
       queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
-        if (!old || !old.data || !Array.isArray(old.data.tasks)) return old;
+        if (!old || !old.data || !Array.isArray(old.data.items)) return old;
         return {
           ...old,
           data: {
             ...old.data,
-            tasks: old.data.tasks.map((t: any) =>
+            items: old.data.items.map((t: any) =>
               (t.id === id || t._id === id) ? { ...t, ...data } : t
             )
           }
@@ -287,12 +287,12 @@ export function useBulkTaskStatusMutation() {
       const previousTasks = queryClient.getQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) });
 
       queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
-        if (!old || !old.data || !Array.isArray(old.data.tasks)) return old;
+        if (!old || !old.data || !Array.isArray(old.data.items)) return old;
         return {
           ...old,
           data: {
             ...old.data,
-            tasks: old.data.tasks.map((t: any) =>
+            items: old.data.items.map((t: any) =>
               ids.includes(t.id) || ids.includes(t._id) ? { ...t, status } : t
             )
           }
