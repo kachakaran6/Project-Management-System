@@ -9,6 +9,9 @@ import { env } from '../../config/env.js';
 import { encrypt, decrypt } from '../../utils/encryption.js';
 import * as activityLog from '../../utils/systemTriggers.js';
 import { logStatusChange } from '../../utils/statusHistoryTriggers.js';
+import { emitToRoom } from '../../realtime/socket.server.js';
+import { SOCKET_EVENTS } from '../../realtime/socket.events.js';
+import { NOTIFICATION_TYPES } from '../../constants/index.js';
 
 export const verifySignature = (payload: string, signature: string, secret: string) => {
   const hmac = crypto.createHmac('sha256', secret);
@@ -507,16 +510,30 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
     await task.save();
     console.log(`[GitHub] Successfully updated task ${task.taskCode}`);
 
+    // Real-time update for the board
+    emitToRoom(String(task.organizationId || task.workspaceId), SOCKET_EVENTS.TASK_UPDATED, {
+      taskId: task._id,
+      taskCode: task.taskCode,
+      projectId: task.projectId,
+      status: task.status,
+      githubLinks: task.githubLinks
+    });
+
     // Post-save: Log status change and trigger notifications
     if (statusChanged) {
       const actorAccount = await GithubAccount.findOne({ username: link.author }).lean();
       const actorId = actorAccount?.userId || null;
       
+      const recipientIds = Array.from(new Set([
+        ...(task.assigneeIds || []).map((id: any) => String(id)),
+        String(task.creatorId)
+      ]));
+
       // 1. Log Status History
       await logStatusChange({
         taskId: task._id,
         userId: actorId,
-        userName: link.author, // Use GitHub username if internal user not found
+        userName: link.author, 
         fromStatus: oldStatusId,
         toStatus: task.status,
         organizationId: task.organizationId
@@ -524,7 +541,7 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
 
       // 2. Log Activity (Triggers Telegram Org-wide broadcast)
       await activityLog.logActivity({
-        userId: actorId || task.creatorId, // Fallback to creator if committer not in system
+        userId: actorId || task.creatorId,
         organizationId: task.organizationId,
         workspaceId: task.workspaceId,
         projectId: task.projectId,
@@ -542,6 +559,25 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
           timestamp: new Date()
         }
       });
+
+      // 3. Trigger In-App Notifications & Direct Telegram Messages
+      await activityLog.triggerNotification({
+        userIds: recipientIds,
+        organizationId: task.organizationId,
+        actorId: actorId || task.creatorId,
+        type: NOTIFICATION_TYPES.TASK_UPDATED,
+        message: `Task status updated to ${targetStatusName || 'DONE'} via GitHub by ${link.author}`,
+        resourceId: task._id,
+        resourceType: 'Task',
+        metadata: {
+          taskId: String(task._id),
+          taskTitle: task.title,
+          oldStatus: oldStatusId,
+          newStatus: task.status,
+          actorName: link.author,
+          changedFields: ['status']
+        }
+      });
     }
   }
 };
@@ -549,7 +585,7 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
 const getStatusFromMessage = async (message: string, organizationId: string) => {
   const lowerMsg = message.toLowerCase();
   
-  // Helper to check for words with boundaries (handles start/end of string and punctuation)
+  // Helper to check for words with boundaries
   const hasWord = (words: string[]) => {
     return words.some(word => {
       const regex = new RegExp(`\\b${word.trim()}\\b`, 'i');
@@ -559,13 +595,21 @@ const getStatusFromMessage = async (message: string, organizationId: string) => 
 
   const doneKeywords = ['fix', 'fixed', 'fixes', 'close', 'closed', 'closes', 'resolve', 'resolved', 'resolves', 'done', 'finish', 'finished', 'completes', 'implement', 'implemented'];
   if (hasWord(doneKeywords)) {
-    const doneStatus = await Status.findOne({ organizationId, name: /done/i });
+    // Try multiple common names for "Done"
+    const doneStatus = await Status.findOne({ 
+      organizationId, 
+      name: { $regex: /done|completed|finished|closed|resolved/i } 
+    });
     return doneStatus?._id;
   }
 
   const progressKeywords = ['progress', 'start', 'started', 'working', 'feat', 'feature', 'refactor', 'chore'];
   if (hasWord(progressKeywords)) {
-    const inProgressStatus = await Status.findOne({ organizationId, name: /progress/i });
+    // Try multiple common names for "In Progress"
+    const inProgressStatus = await Status.findOne({ 
+      organizationId, 
+      name: { $regex: /progress|started|active|working/i } 
+    });
     return inProgressStatus?._id;
   }
 

@@ -403,7 +403,7 @@ export function CreateTaskModal({
       }
 
       const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
-      resetDraftState(createBaseValues(defaultProjectId, defaultAssigneeIds, defaultStatus));
+      resetDraftState(createBaseValues(values.projectId || defaultProjectId, defaultAssigneeIds, defaultStatus));
 
     } catch (error) {
       const apiError = error as AxiosError<{ message?: string; errors?: string[] }>;
