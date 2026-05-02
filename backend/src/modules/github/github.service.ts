@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import Project from '../../models/Project.js';
 import Task from '../../models/Task.js';
 import Status from '../../models/Status.js';
+import TaskAssignee from '../../models/TaskAssignee.js';
 import GithubAccount from '../../models/GithubAccount.js';
 import GithubRepository from '../../models/GithubRepository.js';
 import GithubActivity from '../../models/GithubActivity.js';
@@ -464,10 +465,10 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
     const project = projects.find(p => String(p._id) === String(task.projectId));
     const oldStatusId = task.status?._id || task.status;
     let statusChanged = false;
+    let targetStatusName = ''; // Scoped for entire function
 
     if (project?.githubSettings?.autoStatusUpdate) {
       const currentStatusName = (task.status as any)?.name?.toUpperCase() || '';
-      let targetStatusName = '';
       
       if (trigger === 'PR_MERGED') {
         targetStatusName = 'DONE';
@@ -483,18 +484,19 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
         const keywordStatusId = await getStatusFromMessage(options.message, String(project.organizationId || project.workspaceId));
         if (keywordStatusId) {
           const kwStatus = await Status.findById(keywordStatusId);
-          const kwName = kwStatus?.name?.toUpperCase() || '';
+          const kwName = kwStatus?.name || '';
           const statusPriority: Record<string, number> = { 'DONE': 3, 'IN_REVIEW': 2, 'IN_PROGRESS': 1, 'TODO': 0, 'BACKLOG': 0 };
-          if ((statusPriority[kwName] || 0) > (statusPriority[currentStatusName] || 0)) {
+          if ((statusPriority[kwName.toUpperCase()] || 0) > (statusPriority[currentStatusName] || 0)) {
             task.status = keywordStatusId;
             statusChanged = true;
+            targetStatusName = kwName;
           }
         }
       }
 
-      if (targetStatusName) {
+      if (targetStatusName && !statusChanged) {
         // Create a fuzzy regex: replace underscores with spaces and allow both
-        const fuzzyPattern = targetStatusName.replace(/_/g, '[\\s_]');
+        const fuzzyPattern = targetStatusName.toUpperCase().replace(/_/g, '[\\s_]');
         const targetStatus = await Status.findOne({ 
           organizationId: project.organizationId || project.workspaceId, 
           name: { $regex: new RegExp(`^${fuzzyPattern}$`, 'i') } 
@@ -503,6 +505,7 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
           console.log(`[GitHub] Transitioning task to ${targetStatusName}`);
           task.status = targetStatus._id;
           statusChanged = true;
+          targetStatusName = targetStatus.name;
         }
       }
     }
@@ -524,8 +527,10 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
       const actorAccount = await GithubAccount.findOne({ username: link.author }).lean();
       const actorId = actorAccount?.userId || null;
       
+      // Fetch assignees from TaskAssignee collection
+      const assignees = await TaskAssignee.find({ taskId: task._id }).lean();
       const recipientIds = Array.from(new Set([
-        ...(task.assigneeIds || []).map((id: any) => String(id)),
+        ...assignees.map((a: any) => String(a.userId)),
         String(task.creatorId)
       ]));
 
