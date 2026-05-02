@@ -1,9 +1,13 @@
+import mongoose from 'mongoose';
 import Organization from '../../models/Organization.js';
 import OrganizationMember from '../../models/OrganizationMember.js';
 import User from '../../models/User.js';
+import Task from '../../models/Task.js';
+import TaskAssignee from '../../models/TaskAssignee.js';
+import Status from '../../models/Status.js';
+import ActivityLog from '../../models/ActivityLog.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import { ROLES } from '../../constants/index.js';
-import mongoose from 'mongoose';
 import * as inviteService from '../invite/invite.service.js';
 import * as auditLogService from '../auditLog/auditLog.service.js';
 import { createActivityLog } from '../../services/activityLogService.js';
@@ -506,4 +510,57 @@ export const searchOrganizationMembers = async (organizationId: string, query: s
     avatarUrl: user.avatarUrl,
     role: roleMap.get(user._id.toString())
   }));
+};
+
+/**
+ * Get detailed stats and recent activity for an organization member
+ */
+export const getMemberStats = async (organizationId: string, userId: string) => {
+  const member = await OrganizationMember.findOne({
+    organizationId,
+    userId,
+    isActive: true
+  });
+
+  if (!member) throw new AppError('Member not found.', 404);
+
+  // 1. Get total tasks completed by this user in this organization
+  // Find "DONE" status for this organization
+  const doneStatus = await Status.findOne({ 
+    organizationId, 
+    name: { $regex: 'DONE|COMPLETED|FINISHED', $options: 'i' } 
+  });
+
+  let tasksDone = 0;
+  if (doneStatus) {
+    // Count tasks assigned to this user with this status
+    const taskIds = await TaskAssignee.find({ userId, organizationId }).distinct('taskId');
+    tasksDone = await Task.countDocuments({
+      _id: { $in: taskIds },
+      status: doneStatus._id,
+      isActive: true
+    });
+  }
+
+  // 2. Get recent activity for this user
+  const recentActivity = await ActivityLog.find({
+    userId,
+    organizationId,
+  })
+  .sort({ createdAt: -1 })
+  .limit(5)
+  .lean();
+
+  return {
+    tasksDone,
+    recentActivity: recentActivity.map(log => ({
+      id: log._id,
+      action: log.action,
+      entityType: log.entityType,
+      entityName: log.entityName,
+      createdAt: log.createdAt,
+      metadata: log.metadata
+    })),
+    joinedAt: member.joinedAt
+  };
 };

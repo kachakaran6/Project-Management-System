@@ -15,6 +15,8 @@ import {
   UserCog,
   ChevronRight,
   Loader2,
+  Clock3,
+  History,
 } from "lucide-react";
 
 import {
@@ -71,6 +73,7 @@ import {
   useRemoveMemberMutation,
   useBulkActionMutation,
   useInviteMemberMutation,
+  useMemberStatsQuery,
 } from "@/features/team/hooks/use-team-query";
 import { TeamMember, TeamRole } from "@/features/team/api/team.api";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -554,66 +557,7 @@ export default function TeamPage() {
       )}
 
       {/* ─── User Details Sheet ───────────────────────────────────────────── */}
-      <Sheet open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader className="text-left border-b pb-6">
-            <SheetTitle>User Details</SheetTitle>
-            <SheetDescription>
-              Detailed view of the team member activity and profile.
-            </SheetDescription>
-          </SheetHeader>
-          {selectedUser && (
-            <div className="py-6 space-y-8">
-              <div className="flex flex-col items-center gap-4 text-center">
-                <Avatar className="h-24 w-24 border-4 border-muted shadow-lg">
-                  <AvatarImage src={selectedUser.avatarUrl} />
-                  <AvatarFallback className="text-4xl">
-                    {selectedUser.firstName[0]}{selectedUser.lastName[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-2xl font-bold">{selectedUser.firstName} {selectedUser.lastName}</h3>
-                  <p className="text-muted-foreground flex items-center gap-1 justify-center">
-                    <Mail className="h-3 w-3" /> {selectedUser.email}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Badge variant="secondary">{selectedUser.role}</Badge>
-                  <Badge variant={selectedUser.status === "ACTIVE" ? "success" : "outline"}>{selectedUser.status}</Badge>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg bg-muted/50 p-4">
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Joined</p>
-                  <p className="text-lg font-semibold mt-1">Jan 20, 2024</p>
-                </div>
-                <div className="rounded-lg bg-muted/50 p-4">
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Tasks Done</p>
-                  <p className="text-lg font-semibold mt-1">128</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="font-semibold px-1">Recent Activity</h4>
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex gap-3 text-sm p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                        <ChevronRight className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">Updated project "PMS Orbit"</p>
-                        <p className="text-xs text-muted-foreground">2 hours ago</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
+      <UserDetailsSheet selectedUser={selectedUser} onClose={() => setSelectedUser(null)} />
 
       {/* ─── Delete Confirmation ─────────────────────────────────────────── */}
       <Dialog open={!!confirmDeleteId} onOpenChange={() => setConfirmDeleteId(null)}>
@@ -701,5 +645,177 @@ function InviteModal({ open, onOpenChange, onInvite }: { open: boolean; onOpenCh
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function UserDetailsSheet({ selectedUser, onClose }: { selectedUser: TeamMember | null; onClose: () => void }) {
+  const { data: statsData, isLoading } = useMemberStatsQuery(selectedUser?.id);
+  const stats = statsData?.data;
+  const { isAdmin } = useAuth();
+
+  const formatDate = (date?: string) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const getTimeAgo = (date: string) => {
+    const now = new Date();
+    const then = new Date(date);
+    const diff = now.getTime() - then.getTime();
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+    if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+    return "Just now";
+  };
+
+  const getActionIcon = (action: string) => {
+    if (action.includes("TASK")) return <CheckCircle2 className="h-4 w-4 text-blue-600" />;
+    if (action.includes("PROJECT")) return <ChevronRight className="h-4 w-4 text-emerald-600" />;
+    if (action.includes("MEMBER") || action.includes("INVITE")) return <UserPlus className="h-4 w-4 text-orange-600" />;
+    return <ChevronRight className="h-4 w-4 text-slate-600" />;
+  };
+
+  const getActionBg = (action: string) => {
+    if (action.includes("TASK")) return "bg-blue-100";
+    if (action.includes("PROJECT")) return "bg-emerald-100";
+    if (action.includes("MEMBER") || action.includes("INVITE")) return "bg-orange-100";
+    return "bg-slate-100";
+  };
+
+  return (
+    <Sheet open={!!selectedUser} onOpenChange={onClose}>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto p-0 flex flex-col border-l shadow-2xl">
+        <SheetHeader className="text-left border-b p-6 bg-muted/20">
+          <SheetTitle className="text-xl font-bold">User Details</SheetTitle>
+          <SheetDescription className="text-sm">
+            Detailed view of the team member activity and profile.
+          </SheetDescription>
+        </SheetHeader>
+
+        {selectedUser && (
+          <div className="flex-1 overflow-y-auto p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+            {/* Header / Profile */}
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Avatar className="h-28 w-28 border-4 border-background shadow-xl ring-1 ring-border/50 transition-transform hover:scale-105">
+                <AvatarImage src={selectedUser.avatarUrl} />
+                <AvatarFallback className="text-4xl bg-primary/5 text-primary font-bold">
+                  {selectedUser.firstName[0]}{selectedUser.lastName[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-1">
+                <h3 className="text-2xl font-bold tracking-tight text-foreground">
+                  {selectedUser.firstName} {selectedUser.lastName}
+                </h3>
+                <p className="text-sm text-muted-foreground flex items-center gap-1.5 justify-center">
+                  <Mail className="h-3.5 w-3.5" /> {selectedUser.email}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Badge variant="secondary" className="px-2.5 py-0.5 font-bold uppercase tracking-wider text-[10px]">
+                  {selectedUser.role}
+                </Badge>
+                <Badge 
+                  variant={selectedUser.status === "ACTIVE" ? "success" : "outline"}
+                  className={cn("px-2.5 py-0.5 font-bold uppercase tracking-wider text-[10px]", selectedUser.status === "DISABLED" && "text-slate-400 bg-slate-50")}
+                >
+                  {selectedUser.status}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm hover:shadow-md transition-all group hover:-translate-y-1">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Joined Organization</p>
+                {isLoading ? (
+                  <Skeleton className="h-6 w-24 mt-2" />
+                ) : (
+                  <p className="text-lg font-bold mt-1 text-foreground">
+                    {formatDate(stats?.joinedAt || selectedUser.joinedAt)}
+                  </p>
+                )}
+              </div>
+              <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm hover:shadow-md transition-all group hover:-translate-y-1">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Tasks Completed</p>
+                {isLoading ? (
+                  <Skeleton className="h-6 w-12 mt-2" />
+                ) : (
+                  <p className="text-2xl font-black mt-0.5 text-primary">
+                    {stats?.tasksDone || 0}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Activity Feed */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground/80">Recent Activity</h4>
+                <div className="h-px flex-1 bg-border/40 mx-4" />
+              </div>
+
+              <div className="space-y-3">
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex gap-4 p-4 rounded-xl border border-border/40">
+                      <Skeleton className="size-8 rounded-full shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-3 w-2/3" />
+                      </div>
+                    </div>
+                  ))
+                ) : !stats?.recentActivity || stats.recentActivity.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border/40 rounded-2xl bg-muted/5">
+                    <History className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                    <p className="text-xs font-medium text-muted-foreground">No recent activity</p>
+                  </div>
+                ) : (
+                  stats.recentActivity.map((log) => (
+                    <div 
+                      key={log.id} 
+                      className="group flex gap-4 text-sm p-4 rounded-xl border border-border/40 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all cursor-default"
+                    >
+                      <div className={cn("h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110", getActionBg(log.action))}>
+                        {getActionIcon(log.action)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground leading-snug">
+                          {log.action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+                          {log.entityName && (
+                            <span className="text-muted-foreground font-normal">
+                              {" "}{log.entityType.toLowerCase()} <span className="text-primary font-medium">"{log.entityName}"</span>
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground/70 mt-1 flex items-center gap-1 font-medium">
+                          <Clock3 className="size-2.5" />
+                          {getTimeAgo(log.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="p-6 border-t border-border/40 bg-muted/20">
+          <Button variant="outline" className="w-full h-11 rounded-xl font-bold text-xs uppercase tracking-widest border-border/60" onClick={onClose}>
+            Close Detail
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

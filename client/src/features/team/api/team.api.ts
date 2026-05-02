@@ -13,6 +13,7 @@ export interface TeamMember {
   status: "ACTIVE" | "DISABLED" | "PENDING";
   avatarUrl?: string;
   lastActive?: string;
+  joinedAt?: string;
 }
 
 export interface InvitePayload {
@@ -52,6 +53,7 @@ export const teamApi = {
       status: (row.status || "ACTIVE") as any,
       avatarUrl: row.avatarUrl || row.userId?.avatarUrl,
       lastActive: row.lastActive || row.userId?.lastLogin,
+      joinedAt: row.joinedAt,
     }));
 
     const mappedInvites = (data.invites ?? []).map((row) => ({
@@ -148,6 +150,22 @@ export const teamApi = {
     action?: "DELETE" | "REMOVE";
   }): Promise<ApiResponse<any>> {
     const response = await api.post<ApiResponse<any>>("/admin/users/bulk", payload);
+    return response.data;
+  },
+
+  async getMemberStats(memberId: string): Promise<ApiResponse<{
+    tasksDone: number;
+    recentActivity: Array<{
+      id: string;
+      action: string;
+      entityType: string;
+      entityName: string;
+      createdAt: string;
+      metadata?: any;
+    }>;
+    joinedAt: string;
+  }>> {
+    const response = await api.get<ApiResponse<any>>(`/organizations/0/members/${memberId}/stats`);
     return response.data;
   },
 };

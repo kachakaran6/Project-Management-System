@@ -25,6 +25,7 @@ router.delete('/:orgId/member/:userId', requirePermission(PERMISSIONS.MANAGE_MEM
 // Permission management endpoints
 router.get('/:orgId/members/:userId/permissions', requirePermission(PERMISSIONS.MANAGE_MEMBERS), organizationController.getMemberPermissions);
 router.patch('/:orgId/members/:userId/permissions', requirePermission(PERMISSIONS.MANAGE_MEMBERS), organizationController.updateMemberPermissions);
+router.get('/:orgId/members/:userId/stats', requirePermission(PERMISSIONS.VIEW_PROJECT), organizationController.getMemberStats);
 router.get('/:orgId/roles/:role/permissions', requirePermission(PERMISSIONS.MANAGE_MEMBERS), organizationController.getRolePermissions);
 
 // Invite management

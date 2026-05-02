@@ -602,8 +602,8 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
       {/* PROFESSIONAL TOOLBAR */}
       <div
         className={cn(
-          "shrink-0 py-3 flex flex-col gap-4 border-b border-border/10 sticky top-0 z-30",
-          !isEmbedded && "bg-background/50 backdrop-blur-md",
+          "shrink-0 py-2 flex flex-col gap-2.5 border-b border-border/10 sticky top-0 z-30 transition-all duration-300",
+          !isEmbedded && "bg-background/80 backdrop-blur-md",
           viewMode === "kanban" ? "px-4" : isEmbedded ? "px-0" : "px-1"
         )}
       >
@@ -832,13 +832,12 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
 
         {/* ACTIVE FILTERS CHIPS */}
         {activeFilterCount > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar animate-in slide-in-from-top-1 duration-300">
-            <span className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.2em] px-2 shrink-0">Active</span>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar animate-in slide-in-from-top-1 duration-300 -mt-0.5">
+            <div className="flex items-center gap-1.5 pr-2">
               {status !== "ALL" && (
                 <Badge
                   variant="outline"
-                  className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                  className="h-6 px-2 rounded-sm text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                 >
                   {dynamicStatuses.find((s: any) => (s.id || s._id) === status)?.name || status}
                   <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setStatus("ALL")} />
@@ -847,7 +846,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               {priority !== "ALL" && (
                 <Badge
                   variant="outline"
-                  className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                  className="h-6 px-2 rounded-sm text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                 >
                   {priority}
                   <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setPriority("ALL")} />
@@ -856,7 +855,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               {!fixedProjectId && projectId !== "ALL" && (
                 <Badge
                   variant="outline"
-                  className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                  className="h-6 px-2 rounded-sm text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                 >
                   {resolveProjectName(projectId)}
                   <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setProjectId("ALL")} />
@@ -865,7 +864,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               {assigneeId !== "ALL" && (
                 <Badge
                   variant="outline"
-                  className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                  className="h-6 px-2 rounded-sm text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                 >
                   Assigned: {resolveAssigneeName(assigneeId)}
                   <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setAssigneeId("ALL")} />
@@ -874,7 +873,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               {creatorId !== "ALL" && (
                 <Badge
                   variant="outline"
-                  className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                  className="h-6 px-2 rounded-sm text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                 >
                   Created By: {resolveAssigneeName(creatorId)}
                   <X className="size-3 opacity-50 hover:opacity-100 cursor-pointer" onClick={() => setCreatorId("ALL")} />
@@ -887,7 +886,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   <Badge
                     key={tag.id}
                     variant="outline"
-                    className="h-7 px-3 rounded-xs text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
+                    className="h-6 px-2 rounded-sm text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary whitespace-nowrap animate-in zoom-in-90"
                     style={{ borderColor: `${tag.color}40`, color: tag.color, backgroundColor: `${tag.color}10` }}
                   >
                     {tag.label}
@@ -899,7 +898,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="h-7 px-3 text-[10px] font-black text-muted-foreground/60 hover:text-foreground hover:bg-muted/20 rounded-xs"
+                className="h-6 px-2 text-[10px] font-black text-muted-foreground/60 hover:text-foreground hover:bg-muted/20 rounded-sm"
               >
                 Clear All
               </Button>
@@ -908,7 +907,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
         )}
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col mt-4">
+      <div className="flex-1 min-h-0 flex flex-col mt-2">
         {(viewMode === "list" || viewMode === "table") && (
           <>
             <div className="flex-1 overflow-auto custom-scrollbar pr-1 relative bg-card/20 rounded-md border border-border/40 shadow-inner-sm">

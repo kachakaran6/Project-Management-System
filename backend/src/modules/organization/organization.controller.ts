@@ -150,13 +150,21 @@ export const getRolePermissions = asyncHandler(async (req, res) => {
   return successResponse(res, { role: roleKey, permissions }, 'Role permissions retrieved successfully.');
 });
 
-/**
- * Search organization members
- */
 export const search = asyncHandler(async (req, res) => {
   const orgId = getTargetOrgId(req);
   const { q } = req.query;
 
   const results = await organizationService.searchOrganizationMembers(orgId, q as string || '');
   return successResponse(res, results, 'Search results retrieved.');
+});
+
+/**
+ * Controller: Get member stats and activity
+ */
+export const getMemberStats = asyncHandler(async (req, res) => {
+  const orgId = getTargetOrgId(req);
+  const { userId } = req.params;
+
+  const stats = await organizationService.getMemberStats(orgId, userId as string);
+  return successResponse(res, stats, 'Member stats retrieved successfully.');
 });

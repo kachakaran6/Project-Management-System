@@ -6,12 +6,22 @@ import { InvitePayload, TeamRole, teamApi } from "@/features/team/api/team.api";
 export const teamQueryKeys = {
   all: ["team"] as const,
   members: ["team", "members"] as const,
+  memberStats: (id: string) => ["team", "members", id, "stats"] as const,
 };
 
 export function useTeamMembersQuery() {
   return useQuery({
     queryKey: teamQueryKeys.members,
     queryFn: () => teamApi.getMembers(),
+  });
+}
+
+export function useMemberStatsQuery(memberId?: string) {
+  return useQuery({
+    queryKey: teamQueryKeys.memberStats(memberId || ""),
+    queryFn: () => teamApi.getMemberStats(memberId!),
+    enabled: !!memberId,
+    staleTime: 30_000, // 30 seconds
   });
 }
 
