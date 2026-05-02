@@ -47,7 +47,16 @@ import {
   Settings2,
   Tag,
   Workflow,
+  Menu,
 } from "lucide-react";
+
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 
 import { GithubIcon } from "@/components/icons/github-icon";
@@ -153,20 +162,22 @@ function SectionCard({
   title,
   description,
   children,
+  className,
 }: {
   title: string;
   description?: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="rounded-md border border-border bg-card shadow-sm">
-      <div className="border-b border-border px-6 py-4">
-        <h2 className="font-heading text-base font-semibold">{title}</h2>
+    <div className={cn("rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm transition-all", className)}>
+      <div className="border-b border-border/50 px-4 py-3">
+        <h3 className="text-[15px] font-semibold tracking-tight">{title}</h3>
         {description && (
-          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
         )}
       </div>
-      <div className="px-6 py-5">{children}</div>
+      <div className="p-4">{children}</div>
     </div>
   );
 }
@@ -181,16 +192,16 @@ function DangerCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-md border border-destructive/30 bg-destructive/5 shadow-sm">
-      <div className="border-b border-destructive/20 px-6 py-4">
-        <h2 className="font-heading text-base font-semibold text-destructive">
+    <div className="rounded-xl border border-destructive/20 bg-destructive/5 transition-all">
+      <div className="border-b border-destructive/10 px-4 py-3">
+        <h3 className="text-[15px] font-semibold text-destructive tracking-tight">
           {title}
-        </h2>
+        </h3>
         {description && (
-          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
         )}
       </div>
-      <div className="px-6 py-5">{children}</div>
+      <div className="p-4">{children}</div>
     </div>
   );
 }
@@ -225,20 +236,22 @@ function FormRow({
   label,
   description,
   children,
+  className,
 }: {
   label: string;
   description?: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-6 py-4 first:pt-0 last:pb-0 [&+&]:border-t [&+&]:border-border">
-      <div className="flex-1">
-        <p className="text-sm font-medium">{label}</p>
+    <div className={cn("flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0 [&+&]:border-t border-border/40", className)}>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13.5px] font-medium leading-tight">{label}</p>
         {description && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground leading-normal">{description}</p>
         )}
       </div>
-      <div className="shrink-0">{children}</div>
+      <div className="shrink-0 pt-0.5">{children}</div>
     </div>
   );
 }
@@ -250,19 +263,17 @@ function ProfileSection() {
   const dispatch = useDispatch<AppDispatch>();
   const queryClient = useQueryClient();
 
-  // ── Fetch fresh profile from API ──
   const profileQuery = useQuery({
     queryKey: ["auth", "me"],
     queryFn: async () => {
       const res = await authApi.me();
-      return res.data; // { user, role, organizationId }
+      return res.data;
     },
     staleTime: 30_000,
   });
 
   const profileUser = profileQuery.data?.user ?? storeUser;
 
-  // Local form state — sync when fresh data arrives
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [bio, setBio] = useState("");
@@ -271,159 +282,101 @@ function ProfileSection() {
     if (profileUser) {
       setFirstName(profileUser.firstName ?? "");
       setLastName(profileUser.lastName ?? "");
-      // bio is not in the user type yet — keep empty unless API returns it
       setBio((profileUser as any).bio ?? "");
     }
   }, [profileUser]);
 
-  // ── Update mutation ──
   const updateMutation = useMutation({
     mutationFn: (payload: { firstName: string; lastName: string; bio: string }) =>
       authApi.updateMe(payload),
-    onSuccess: (res) => {
+    onSuccess: () => {
       dispatch(fetchMe());
-      
-      // Refresh the query so the avatar / initials update too
       queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-      toast.success("Profile updated successfully!");
+      toast.success("Profile updated!");
     },
     onError: () => {
-      toast.error("Failed to update profile. Please try again.");
+      toast.error("Update failed.");
     },
   });
 
   const handleSave = () => {
-    if (!firstName.trim()) {
-      toast.error("First name is required.");
-      return;
-    }
-    updateMutation.mutate({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      bio,
-    });
+    if (!firstName.trim()) return toast.error("First name required");
+    updateMutation.mutate({ firstName: firstName.trim(), lastName: lastName.trim(), bio });
   };
 
-  const initials =
-    `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "U";
+  const initials = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "U";
   const isLoading = profileQuery.isLoading;
   const isSaving = updateMutation.isPending;
 
   return (
-    <div className="space-y-5">
-      <SectionCard
-        title="Personal Information"
-        description="Update your public profile details.">
-        {/* Avatar & name header */}
-        <div className="mb-6 flex items-center gap-4">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground shadow-md">
-            {profileUser?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profileUser.avatarUrl}
-                alt="avatar"
-                className="h-full w-full rounded-full object-cover"
+    <div className="space-y-4">
+      <SectionCard title="Personal Information" description="Update your public profile details.">
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center gap-4">
+            <div className="relative h-16 w-16 shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary ring-2 ring-background ring-offset-2 ring-offset-border/10 shadow-sm overflow-hidden">
+              {profileUser?.avatarUrl ? (
+                <img src={profileUser.avatarUrl} alt="avatar" className="h-full w-full object-cover" />
+              ) : isLoading ? (
+                <Skeleton className="h-full w-full rounded-full" />
+              ) : (
+                <span className="text-xl font-bold">{initials}</span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h4 className="text-sm font-semibold truncate">
+                {profileUser?.firstName} {profileUser?.lastName}
+              </h4>
+              <p className="text-xs text-muted-foreground truncate">{profileUser?.email}</p>
+              <Badge variant="secondary" className="mt-1 text-[10px] h-4.5">
+                {profileUser?.role?.toLowerCase() ?? "member"}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-medium" htmlFor="set-first-name">First Name</Label>
+              <Input
+                id="set-first-name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="h-9 text-sm"
               />
-            ) : isLoading ? (
-              <Skeleton className="h-full w-full rounded-full" />
-            ) : (
-              initials
-            )}
-          </div>
-          <div className="space-y-1">
-            {isLoading ? (
-              <>
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-44" />
-              </>
-            ) : (
-              <>
-                <p className="text-sm font-semibold">
-                  {profileUser?.firstName} {profileUser?.lastName}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {profileUser?.email}
-                </p>
-              </>
-            )}
-            <Badge variant="secondary" className="mt-1 capitalize text-[10px]">
-              {profileUser?.role?.toLowerCase() ??
-                storeUser?.role?.toLowerCase() ??
-                "member"}
-            </Badge>
-          </div>
-        </div>
-
-        {/* Form fields */}
-        {isLoading ? (
-          <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Skeleton className="h-10 rounded-lg" />
-              <Skeleton className="h-10 rounded-lg" />
             </div>
-            <Skeleton className="h-24 rounded-lg" />
-          </div>
-        ) : (
-          <>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="set-first-name">First Name</Label>
-                <Input
-                  id="set-first-name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="First name"
-                  className="h-10"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="set-last-name">Last Name</Label>
-                <Input
-                  id="set-last-name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Last name"
-                  className="h-10"
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-medium" htmlFor="set-last-name">Last Name</Label>
+              <Input
+                id="set-last-name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="h-9 text-sm"
+              />
             </div>
-
-            <div className="mt-4 space-y-1.5">
-              <Label htmlFor="set-bio">
-                Bio <span className="text-muted-foreground">(optional)</span>
-              </Label>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-[13px] font-medium" htmlFor="set-bio">Bio <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
               <Textarea
                 id="set-bio"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell your team a little about yourself…"
-                rows={3}
-                className="resize-none"
+                className="resize-none text-sm min-h-[80px]"
+                placeholder="Tell your team about yourself..."
               />
             </div>
+          </div>
 
-            <div className="mt-5 flex items-center gap-3">
-              <Button
-                size="md"
-                onClick={handleSave}
-                disabled={isSaving}
-                className="gap-2">
-                {isSaving ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Check className="size-4" />
-                )}
-                {isSaving ? "Saving…" : "Save Changes"}
-              </Button>
-              {updateMutation.isSuccess && (
-                <span className="flex items-center gap-1.5 text-xs text-emerald-600">
-                  <Check className="size-3.5" />
-                  Saved!
+          <div className="flex items-center justify-end border-t border-border/50 pt-4 gap-3">
+             {updateMutation.isSuccess && (
+                <span className="flex items-center gap-1.5 text-xs text-emerald-600 animate-in fade-in slide-in-from-right-1">
+                  <CheckCircle2 className="size-3.5" />
+                  Saved
                 </span>
               )}
-            </div>
-          </>
-        )}
+            <Button size="sm" onClick={handleSave} disabled={isSaving} className="min-w-[120px]">
+              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Check className="size-4 mr-2" />}
+              Save Changes
+            </Button>
+          </div>
+        </div>
       </SectionCard>
     </div>
   );
@@ -440,112 +393,81 @@ function AccountSection() {
   const [saving, setSaving] = useState(false);
 
   const handleChangePassword = async () => {
-    if (newPw !== confirmPw) {
-      toast.error("Passwords do not match.");
-      return;
-    }
-    if (newPw.length < 8) {
-      toast.error("Password must be at least 8 characters.");
-      return;
-    }
+    if (newPw !== confirmPw) return toast.error("Passwords don't match");
+    if (newPw.length < 8) return toast.error("Too short");
     setSaving(true);
     try {
-      await api.post("/auth/change-password", {
-        currentPassword: currentPw,
-        newPassword: newPw,
-      });
-      toast.success("Password changed successfully!");
-      setCurrentPw("");
-      setNewPw("");
-      setConfirmPw("");
+      await api.post("/auth/change-password", { currentPassword: currentPw, newPassword: newPw });
+      toast.success("Password changed!");
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
     } catch {
-      toast.error("Failed to change password. Check current password.");
-    } finally {
-      setSaving(false);
-    }
+      toast.error("Failed. Check current password.");
+    } finally { setSaving(false); }
   };
 
   return (
-    <div className="space-y-5">
-      <SectionCard
-        title="Account Information"
-        description="Your login credentials and email address.">
-        <div className="space-y-1.5">
-          <Label htmlFor="set-email">Email Address</Label>
-          <Input
-            id="set-email"
-            value={user?.email ?? ""}
-            readOnly
-            className="h-10 cursor-not-allowed bg-muted/40 text-muted-foreground"
-          />
-          <p className="text-xs text-muted-foreground">
-            Email cannot be changed directly. Contact support if needed.
-          </p>
+    <div className="space-y-4">
+      <SectionCard title="Account Information" description="Your login credentials and email address.">
+        <div className="space-y-2 max-w-md">
+          <Label className="text-[13px] font-medium" htmlFor="set-email">Email Address</Label>
+          <Input id="set-email" value={user?.email ?? ""} readOnly className="h-9 cursor-not-allowed bg-muted/50" />
+          <p className="text-[10px] text-muted-foreground">Email changes require support verification.</p>
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="Change Password"
-        description="Use a strong password you don't use anywhere else.">
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="set-curr-pw">Current Password</Label>
-            <div className="relative">
+      <SectionCard title="Change Password" description="Ensure your account is using a long, random password.">
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-medium" htmlFor="set-curr-pw">Current Password</Label>
+              <div className="relative">
+                <Input
+                  id="set-curr-pw"
+                  type={showPw ? "text" : "password"}
+                  value={currentPw}
+                  onChange={(e) => setCurrentPw(e.target.value)}
+                  className="h-9 pr-9"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPw(!showPw)}>
+                  {showPw ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                </button>
+              </div>
+            </div>
+            <div className="hidden md:block" />
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-medium" htmlFor="set-new-pw">New Password</Label>
               <Input
-                id="set-curr-pw"
+                id="set-new-pw"
                 type={showPw ? "text" : "password"}
-                value={currentPw}
-                onChange={(e) => setCurrentPw(e.target.value)}
-                className="h-10 pr-10"
-                placeholder="••••••••"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                className="h-9"
+                placeholder="Min. 8 chars"
               />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                onClick={() => setShowPw(!showPw)}>
-                {showPw ? (
-                  <EyeOff className="size-4" />
-                ) : (
-                  <Eye className="size-4" />
-                )}
-              </button>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-medium" htmlFor="set-confirm-pw">Confirm Password</Label>
+              <Input
+                id="set-confirm-pw"
+                type={showPw ? "text" : "password"}
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                className={cn("h-9", confirmPw && confirmPw !== newPw && "border-destructive")}
+                placeholder="Repeat new password"
+              />
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="set-new-pw">New Password</Label>
-            <Input
-              id="set-new-pw"
-              type={showPw ? "text" : "password"}
-              value={newPw}
-              onChange={(e) => setNewPw(e.target.value)}
-              className="h-10"
-              placeholder="Min 8 characters"
-            />
+
+          <div className="flex justify-end border-t border-border/50 pt-4">
+            <Button size="sm" onClick={handleChangePassword} disabled={saving} className="min-w-[140px]">
+              {saving ? <Loader2 className="size-4 animate-spin mr-2" /> : <KeyRound className="size-4 mr-2" />}
+              Update Password
+            </Button>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="set-confirm-pw">Confirm New Password</Label>
-            <Input
-              id="set-confirm-pw"
-              type={showPw ? "text" : "password"}
-              value={confirmPw}
-              onChange={(e) => setConfirmPw(e.target.value)}
-              className={`h-10 ${confirmPw && confirmPw !== newPw ? "border-destructive ring-destructive" : ""}`}
-              placeholder="Repeat new password"
-            />
-            {confirmPw && confirmPw !== newPw && (
-              <p className="text-xs text-destructive">
-                Passwords don&apos;t match.
-              </p>
-            )}
-          </div>
-          <Button
-            size="md"
-            onClick={handleChangePassword}
-            loading={saving}
-            className="gap-2 mt-1">
-            <KeyRound className="size-4" />
-            Update Password
-          </Button>
         </div>
       </SectionCard>
     </div>
@@ -557,273 +479,93 @@ function AccountSection() {
 function AppearanceSection() {
   const { mode, accent, radius, changeMode, changeAccent, changeRadius } = useApplyTheme();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted) return null;
 
   const modes = [
-    { id: "light" as const, label: "Light", icon: Sun, desc: "Clean & bright" },
-    { id: "dark" as const, label: "Dark", icon: Moon, desc: "Easy on eyes" },
-    { id: "system" as const, label: "System", icon: Monitor, desc: "Follows OS" },
+    { id: "light" as const, label: "Light", icon: Sun, color: "text-amber-500" },
+    { id: "dark" as const, label: "Dark", icon: Moon, color: "text-blue-500" },
+    { id: "system" as const, label: "System", icon: Monitor, color: "text-slate-500" },
   ];
 
   const radiusOptions = [
-    {
-      id: "compact" as const,
-      label: "Compact",
-      desc: "Clean & professional",
-      emoji: "🟦",
-    },
-    {
-      id: "standard" as const,
-      label: "Standard",
-      desc: "Balanced modern UI",
-      emoji: "🟩",
-    },
-    {
-      id: "comfortable" as const,
-      label: "Comfortable",
-      desc: "More breathing room",
-      emoji: "🟪",
-    },
-    {
-      id: "soft" as const,
-      label: "Soft",
-      desc: "Friendly & rounded",
-      emoji: "🟣",
-    },
+    { id: "compact" as const, label: "Compact", emoji: "🟦", desc: "Sharp & modern" },
+    { id: "standard" as const, label: "Standard", emoji: "🟩", desc: "Balanced feel" },
+    { id: "comfortable" as const, label: "Comfortable", emoji: "🟪", desc: "Soft & friendly" },
   ];
 
-  if (!mounted) {
-    return (
-      <div className="space-y-5">
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <Skeleton className="mb-1 h-5 w-32" />
-          <Skeleton className="mb-4 h-4 w-56" />
-          <div className="grid grid-cols-3 gap-3">
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-28 rounded-xl" />
-            ))}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <Skeleton className="mb-4 h-5 w-40" />
-          <div className="flex gap-4">
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
-              <Skeleton key={i} className="h-12 w-12 rounded-full" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-5">
-      {/* ── Theme Mode ── */}
-      <SectionCard
-        title="Theme Mode"
-        description="Switch between light, dark, or follow your OS preference.">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {modes.map(({ id, label, icon: Icon, desc }) => {
-            const active = mode === id;
+    <div className="space-y-4">
+      <SectionCard title="Interface Theme" description="Choose how Project Management System looks on your screen.">
+        <div className="grid grid-cols-3 gap-3">
+          {modes.map((m) => {
+            const active = mode === m.id;
             return (
               <button
-                key={id}
-                onClick={() => {
-                  changeMode(id);
-                  toast.success(`Theme set to ${label}`);
-                }}
-                className={`group relative flex flex-col items-center gap-3 rounded-md border-2 p-5 text-center transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm ${active
-                  ? "border-primary bg-primary/8 shadow-sm"
-                  : "border-border bg-muted/10 hover:border-primary/40 hover:bg-muted/30"
-                  }`}>
-                {/* Mode thumbnail preview */}
-                <div
-                  className={`relative flex h-14 w-full max-w-20 overflow-hidden rounded-lg border ${active ? "border-primary/40" : "border-border"
-                    }`}>
-                  <div
-                    className={`flex-1 ${id === "dark"
-                      ? "bg-slate-900"
-                      : id === "light"
-                        ? "bg-white"
-                        : "bg-linear-to-r from-white to-slate-900"
-                      }`}>
-                    <div
-                      className={`m-1.5 h-1.5 w-8 rounded-full opacity-60 ${id === "dark" ? "bg-slate-500" : "bg-slate-300"
-                        }`}
-                    />
-                    <div
-                      className={`m-1.5 mt-1 h-1.5 w-5 rounded-full opacity-40 ${id === "dark" ? "bg-slate-600" : "bg-slate-200"
-                        }`}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Icon
-                    className={`size-3.5 ${active ? "text-primary" : "text-muted-foreground"}`}
-                  />
-                  <p
-                    className={`text-sm font-semibold ${active ? "text-primary" : ""}`}>
-                    {label}
-                  </p>
-                </div>
-                <p className="text-[11px] text-muted-foreground">{desc}</p>
-                {active && (
-                  <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-                    <Check className="size-3" />
-                  </span>
+                key={m.id}
+                onClick={() => changeMode(m.id)}
+                className={cn(
+                  "flex flex-col items-center gap-2 rounded-xl border p-3 transition-all",
+                  active ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-sm" : "border-border hover:bg-muted/50"
                 )}
-              </button>
-            );
-          })}
-        </div>
-      </SectionCard>
-
-      {/* ── Accent Color ── */}
-      <SectionCard
-        title="Accent Color"
-        description="Choose a brand color that applies across all buttons, links, and highlights.">
-        <div className="flex flex-wrap gap-3">
-          {ACCENT_COLORS.map(({ id, label, primary, dark: darkColor }) => {
-            const active = accent === id;
-            // Use dark color if currently in dark mode
-            const currentMode =
-              mode === "system"
-                ? typeof window !== "undefined" &&
-                  window.matchMedia("(prefers-color-scheme: dark)").matches
-                  ? "dark"
-                  : "light"
-                : mode;
-            const swatchColor = currentMode === "dark" ? darkColor : primary;
-
-            return (
-              <button
-                key={id}
-                title={label}
-                onClick={() => {
-                  changeAccent(id);
-                  toast.success(`Accent color: ${label}`);
-                }}
-                className={`group relative flex h-14 w-14 items-center justify-center rounded-md border-2 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${active
-                  ? "border-foreground/30 scale-110 shadow-md"
-                  : "border-transparent hover:border-foreground/20"
-                  }`}
-                style={{ background: swatchColor }}>
-                {active && (
-                  <Check className="size-5 text-white drop-shadow-sm" />
-                )}
-                {/* Tooltip */}
-                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                  {label}
+              >
+                <div className={cn("p-2 rounded-lg bg-background border border-border/50 shadow-sm", active && "border-primary/20")}>
+                  <m.icon className={cn("size-4", active ? "text-primary" : m.color)} />
+                </div>
+                <span className={cn("text-xs font-semibold", active ? "text-primary" : "text-muted-foreground")}>
+                  {m.label}
                 </span>
               </button>
             );
           })}
         </div>
-
-        {/* Preview pill */}
-        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted/20 p-4">
-          <p className="text-xs text-muted-foreground">Live preview</p>
-          <button
-            className="rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:brightness-95"
-            style={{ background: "var(--primary)" }}>
-            Primary Button
-          </button>
-          <span
-            className="rounded-full px-3 py-1 text-xs font-medium"
-            style={{
-              background: "var(--accent)",
-              color: "var(--accent-foreground)",
-            }}>
-            Accent Badge
-          </span>
-          <span
-            className="inline-block h-3 w-3 rounded-full"
-            style={{ background: "var(--primary)" }}
-          />
-          <span className="text-xs" style={{ color: "var(--primary)" }}>
-            Link color
-          </span>
-          <input
-            type="text"
-            readOnly
-            value="Input field"
-            className="h-8 rounded-md border px-2 text-xs"
-            style={{
-              borderColor: "var(--primary)",
-              outline: "none",
-              boxShadow: `0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent)`,
-            }}
-          />
-        </div>
       </SectionCard>
 
-      {/* ── Interface Style (Radius) ── */}
-      <SectionCard
-        title="Interface Style"
-        description="Choose how rounded or sharp you want the UI elements to be.">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {radiusOptions.map(({ id, label, desc, emoji }) => {
-            const active = radius === id;
+      <SectionCard title="Accent Color" description="Personalize the brand color across the workspace.">
+        <div className="flex flex-wrap gap-2.5">
+          {ACCENT_COLORS.map(({ id, label, primary, dark: darkColor }) => {
+            const active = accent === id;
+            const swatchColor = mode === "dark" ? darkColor : primary;
             return (
               <button
                 key={id}
-                onClick={() => {
-                  changeRadius(id);
-                  toast.success(`Interface style: ${label}`);
-                }}
-                className={`flex flex-col items-center gap-3 rounded-xl border-2 p-5 text-center transition-all hover:-translate-y-0.5 ${active
-                  ? "border-primary bg-primary/5 shadow-sm"
-                  : "border-border hover:border-primary/40 hover:bg-muted/20"
-                  }`}>
-                <span className="text-2xl">{emoji}</span>
-                <div>
-                  <p
-                    className={`text-sm font-semibold ${active ? "text-primary" : ""}`}>
-                    {label}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">{desc}</p>
-                </div>
-                {active && (
-                  <div className="mt-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-                    <Check className="size-3" />
-                  </div>
+                title={label}
+                onClick={() => changeAccent(id)}
+                className={cn(
+                  "relative size-9 rounded-full transition-all hover:scale-110",
+                  active ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "ring-1 ring-border"
                 )}
+                style={{ backgroundColor: swatchColor }}
+              >
+                {active && <Check className="size-4 text-white absolute inset-0 m-auto drop-shadow-sm" />}
               </button>
             );
           })}
         </div>
+      </SectionCard>
 
-        {/* Dynamic Radius Preview */}
-        <div className="mt-6 space-y-4">
-          <p className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider px-1">Live Preview</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 rounded-xl border border-border bg-muted/20 p-6">
-            <div className="space-y-3">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Card Component</span>
-              <div className="h-24 bg-surface border border-border rounded-md shadow-sm p-3">
-                <div className="h-2 w-12 bg-muted rounded-full mb-2" />
-                <div className="h-2 w-20 bg-muted/60 rounded-full" />
-              </div>
-            </div>
-            <div className="space-y-3">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Interactive elements</span>
-              <div className="space-y-2">
-                <div className="h-10 bg-primary rounded-sm flex items-center justify-center text-primary-foreground text-xs font-bold">
-                  Button Style
+      <SectionCard title="Interface Rounding" description="Choose the border radius for components.">
+        <div className="grid grid-cols-3 gap-3">
+          {radiusOptions.map((opt) => {
+            const active = radius === opt.id;
+            return (
+              <button
+                key={opt.id}
+                onClick={() => changeRadius(opt.id)}
+                className={cn(
+                  "flex flex-col items-center gap-2 rounded-xl border p-3 transition-all",
+                  active ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-sm" : "border-border hover:bg-muted/50"
+                )}
+              >
+                <span className="text-xl">{opt.emoji}</span>
+                <div className="text-center">
+                   <p className={cn("text-[11px] font-bold", active ? "text-primary" : "text-foreground")}>{opt.label}</p>
+                   <p className="text-[9px] text-muted-foreground leading-tight hidden md:block">{opt.desc}</p>
                 </div>
-                <div className="h-10 bg-surface border border-border rounded-sm flex items-center px-3 text-[11px] text-muted-foreground">
-                  Input Field...
-                </div>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Modals & Popovers</span>
-              <div className="h-24 bg-surface border border-border rounded-md shadow-xl flex items-center justify-center">
-                <div className="size-12 rounded-md bg-muted/20 border border-dashed border-border" />
-              </div>
-            </div>
-          </div>
+              </button>
+            );
+          })}
         </div>
       </SectionCard>
     </div>
@@ -848,97 +590,56 @@ function NotificationsSection() {
   const [prefs, setPrefs] = useState<NotifPrefs>(() => {
     if (typeof window === "undefined") return DEFAULT_NOTIFS;
     try {
-      return (
-        JSON.parse(localStorage.getItem("notif-prefs") || "null") ??
-        DEFAULT_NOTIFS
-      );
-    } catch {
-      return DEFAULT_NOTIFS;
-    }
+      return JSON.parse(localStorage.getItem("notif-prefs") || "null") ?? DEFAULT_NOTIFS;
+    } catch { return DEFAULT_NOTIFS; }
   });
 
   const toggle = useCallback((key: string) => {
     setPrefs((prev) => {
       const next = { ...prev, [key]: !prev[key] };
-      if (typeof window !== "undefined")
-        localStorage.setItem("notif-prefs", JSON.stringify(next));
-      toast.success("Notification preference saved.");
+      if (typeof window !== "undefined") localStorage.setItem("notif-prefs", JSON.stringify(next));
+      toast.success("Preference saved");
       return next;
     });
   }, []);
 
   const emailNotifs = [
-    {
-      key: "emailTaskAssigned",
-      label: "Task Assigned",
-      desc: "When a task is assigned to you",
-    },
-    {
-      key: "emailTaskUpdated",
-      label: "Task Updated",
-      desc: "When tasks you follow are modified",
-    },
-    {
-      key: "emailComments",
-      label: "Comments & Mentions",
-      desc: "When someone mentions you in a comment",
-    },
-    {
-      key: "emailProjectUpdates",
-      label: "Project Updates",
-      desc: "Status changes on your projects",
-    },
+    { key: "emailTaskAssigned", label: "Task Assigned", desc: "When a task is assigned to you" },
+    { key: "emailTaskUpdated", label: "Task Updated", desc: "When tasks you follow are modified" },
+    { key: "emailComments", label: "Comments & Mentions", desc: "When someone mentions you in a comment" },
+    { key: "emailProjectUpdates", label: "Project Updates", desc: "Status changes on your projects" },
   ];
 
   const inAppNotifs = [
-    {
-      key: "inAppAll",
-      label: "All In-App Alerts",
-      desc: "Master toggle for all notifications",
-    },
-    {
-      key: "inAppRealtime",
-      label: "Real-time Updates",
-      desc: "Live feed updates without page reload",
-    },
+    { key: "inAppAll", label: "All In-App Alerts", desc: "Master toggle for all notifications" },
+    { key: "inAppRealtime", label: "Real-time Updates", desc: "Live feed updates without page reload" },
   ];
 
   return (
-    <div className="space-y-5">
-      <SectionCard
-        title="Email Notifications"
-        description="Control which events send you an email.">
-        <div className="divide-y divide-border">
+    <div className="space-y-4">
+      <SectionCard title="Email Notifications" description="Control which events send you an email.">
+        <div className="space-y-1">
           {emailNotifs.map(({ key, label, desc }) => (
             <FormRow key={key} label={label} description={desc}>
-              <Toggle checked={!!prefs[key]} onChange={() => toggle(key)} />
+              <Switch checked={!!prefs[key]} onCheckedChange={() => toggle(key)} />
             </FormRow>
           ))}
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="In-App Notifications"
-        description="Manage alerts within the application.">
-        <div className="divide-y divide-border">
+      <SectionCard title="In-App Notifications" description="Manage alerts within the application interface.">
+        <div className="space-y-1">
           {inAppNotifs.map(({ key, label, desc }) => (
             <FormRow key={key} label={label} description={desc}>
-              <Toggle checked={!!prefs[key]} onChange={() => toggle(key)} />
+              <Switch checked={!!prefs[key]} onCheckedChange={() => toggle(key)} />
             </FormRow>
           ))}
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="Sound Notifications"
-        description="Play sounds for important actions.">
-        <FormRow
-          label="Enable Sounds"
-          description="Audio cues for task updates and mentions">
-          <Toggle
-            checked={!!prefs.soundEnabled}
-            onChange={() => toggle("soundEnabled")}
-          />
+      <SectionCard title="System & Sound" description="Configure master settings for audio and system level alerts.">
+        <FormRow label="Enable Sounds" description="Audio cues for task updates and mentions">
+          <Switch checked={!!prefs.soundEnabled} onCheckedChange={() => toggle("soundEnabled")} />
         </FormRow>
       </SectionCard>
     </div>
@@ -956,61 +657,40 @@ function WorkspaceSection() {
     setSaving(true);
     try {
       await api.patch("/workspaces/current", { name, description: desc });
-      toast.success("Workspace updated!");
-    } catch {
-      toast.error("Failed to update workspace.");
-    } finally {
-      setSaving(false);
-    }
+      toast.success("Workspace updated");
+    } catch { toast.error("Failed"); } finally { setSaving(false); }
   };
 
   return (
-    <div className="space-y-5">
-      <SectionCard
-        title="Workspace Details"
-        description="Customize your workspace settings.">
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="ws-name">Workspace Name</Label>
-            <Input
-              id="ws-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="h-10"
-            />
+    <div className="space-y-4">
+      <SectionCard title="Workspace Details" description="Customize your workspace identity.">
+        <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
+          <div className="space-y-1.5 md:col-span-1">
+            <Label className="text-[13px] font-medium" htmlFor="ws-name">Workspace Name</Label>
+            <Input id="ws-name" value={name} onChange={(e) => setName(e.target.value)} className="h-9" />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="ws-desc">Description</Label>
-            <Textarea
-              id="ws-desc"
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-              rows={3}
-              className="resize-none"
-              placeholder="What is this workspace used for?"
-            />
+          <div className="space-y-1.5 md:col-span-2">
+            <Label className="text-[13px] font-medium" htmlFor="ws-desc">Description</Label>
+            <Textarea id="ws-desc" value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} className="resize-none" placeholder="What is this workspace used for?" />
           </div>
-          <Button size="md" onClick={handleSave} loading={saving}>
-            <Check className="mr-2 size-4" />
+        </div>
+        <div className="flex justify-end border-t border-border/50 mt-4 pt-4">
+          <Button size="sm" onClick={handleSave} disabled={saving} className="min-w-[120px]">
+            {saving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Check className="size-4 mr-2" />}
             Save Workspace
           </Button>
         </div>
       </SectionCard>
 
-      <DangerCard
-        title="Danger Zone"
-        description="Irreversible actions for your workspace.">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold">Delete Workspace</p>
-            <p className="text-xs text-muted-foreground">
-              Permanently delete this workspace and all its data. This cannot be
-              undone.
-            </p>
+      <DangerCard title="Danger Zone" description="Irreversible actions for your workspace.">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-center sm:text-left">
+            <p className="text-[13px] font-semibold text-destructive">Delete Workspace</p>
+            <p className="text-[11px] text-muted-foreground">Permanently delete this workspace and all its data. This cannot be undone.</p>
           </div>
-          <Button variant="destructive" size="sm" className="shrink-0">
-            <AlertTriangle className="mr-1.5 size-3.5" />
-            Delete
+          <Button variant="destructive" size="sm" className="w-full sm:w-auto h-9">
+            <AlertTriangle className="mr-2 size-3.5" />
+            Delete Workspace
           </Button>
         </div>
       </DangerCard>
@@ -1262,78 +942,55 @@ function OrganizationSection() {
 
 function BillingSection() {
   return (
-    <div className="space-y-5">
-      <SectionCard
-        title="Current Plan"
-        description="Your subscription details and usage.">
-        <div className="overflow-hidden rounded-xl border border-border bg-linear-to-br from-primary/5 to-transparent p-5">
-          <div className="flex items-start justify-between gap-4">
+    <div className="space-y-4">
+      <SectionCard title="Current Subscription" description="Manage your plan and billing cycles.">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2">
-                <Zap className="size-5 text-primary" />
-                <h3 className="font-heading text-lg font-bold">Free Plan</h3>
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Up to 3 projects &amp; 10 members
-              </p>
-              <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
-                {[
-                  "3 active projects",
-                  "10 team members",
-                  "2GB storage",
-                  "Community support",
-                ].map((f) => (
-                  <li key={f} className="flex items-center gap-1.5">
-                    <Check className="size-3 text-emerald-500" /> {f}
-                  </li>
-                ))}
-              </ul>
+               <div className="flex items-center gap-2 mb-1">
+                 <Zap className="size-4 text-primary" />
+                 <h3 className="text-sm font-bold">Free Plan</h3>
+               </div>
+               <p className="text-[11px] text-muted-foreground mb-3">Perfect for individuals and small teams.</p>
+               <ul className="space-y-1.5">
+                 {["3 active projects", "10 team members", "2GB cloud storage"].map(f => (
+                   <li key={f} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                     <Check className="size-3 text-emerald-500" /> {f}
+                   </li>
+                 ))}
+               </ul>
             </div>
-            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-              Active
-            </Badge>
+            <Badge className="mt-4 w-fit bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Active Now</Badge>
           </div>
-        </div>
 
-        <div className="mt-4 overflow-hidden rounded-xl border border-primary/30 bg-primary/5 p-5">
-          <div className="flex items-start justify-between gap-4">
+          <div className="rounded-xl border border-border bg-card p-4 flex flex-col justify-between hover:border-primary/50 transition-colors group">
             <div>
-              <div className="flex items-center gap-2">
-                <Sparkles className="size-5 text-primary" />
-                <h3 className="font-heading text-lg font-bold">Pro Plan</h3>
-                <Badge className="bg-primary text-primary-foreground">
-                  Recommended
-                </Badge>
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Unlimited projects, advanced analytics &amp; priority support
-              </p>
-              <p className="mt-2 text-2xl font-bold">
-                $12{" "}
-                <span className="text-sm font-normal text-muted-foreground">
-                  /month
-                </span>
-              </p>
+               <div className="flex items-center justify-between mb-1">
+                 <div className="flex items-center gap-2">
+                   <Sparkles className="size-4 text-primary" />
+                   <h3 className="text-sm font-bold">Pro Plan</h3>
+                 </div>
+                 <span className="text-sm font-bold">$12<span className="text-[10px] font-normal text-muted-foreground">/mo</span></span>
+               </div>
+               <p className="text-[11px] text-muted-foreground mb-3">Unlimited power for growing organizations.</p>
+               <ul className="space-y-1.5">
+                 {["Unlimited projects", "Advanced analytics", "Priority support"].map(f => (
+                   <li key={f} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                     <Check className="size-3 text-primary" /> {f}
+                   </li>
+                 ))}
+               </ul>
             </div>
+            <Button size="sm" className="mt-4 w-full h-8 text-[11px] font-bold">Upgrade Workspace</Button>
           </div>
-          <Button size="md" className="mt-4 w-full gap-2">
-            <Sparkles className="size-4" />
-            Upgrade to Pro
-          </Button>
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="Billing History"
-        description="Recent invoices and payment records.">
-        <div className="flex flex-col items-center gap-3 py-8 text-center">
-          <CreditCard className="size-10 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">
-            No billing history yet.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Invoices will appear here after upgrading.
-          </p>
+      <SectionCard title="Invoices" description="Your recent transaction history.">
+        <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-border rounded-xl">
+          <CreditCard className="size-8 text-muted-foreground/30 mb-2" />
+          <p className="text-xs font-medium text-muted-foreground">No invoices yet</p>
+          <p className="text-[10px] text-muted-foreground/60">Your billing history will appear here.</p>
         </div>
       </SectionCard>
     </div>
@@ -1356,140 +1013,59 @@ function SecuritySection() {
   const logoutSessionMutation = useMutation({
     mutationFn: (sessionId?: string) => authApi.logoutSession(sessionId),
     onSuccess: (_, sessionId) => {
-      toast.success(sessionId ? "Session logged out." : "Logged out from this device.");
+      toast.success(sessionId ? "Session terminated" : "Logged out");
       queryClient.invalidateQueries({ queryKey: ["auth", "sessions"] });
-    },
-    onError: () => {
-      toast.error("Failed to log out session.");
     },
   });
 
   const logoutAllMutation = useMutation({
     mutationFn: () => dispatch(logoutAllDevices()).unwrap(),
-    onSuccess: async () => {
-      toast.success("Successfully logged out from all devices.");
-      window.location.href = "/login";
-    },
-    onError: (error: any) => {
-      toast.error(error || "Failed to logout from all devices.");
-    },
+    onSuccess: () => { toast.success("Logged out from all devices"); window.location.href = "/login"; },
   });
 
   const sessions = sessionsQuery.data?.data?.sessions ?? [];
 
-  const getSessionIcon = (deviceType: string) => {
-    if (deviceType === "mobile") return Smartphone;
-    if (deviceType === "tablet") return Tablet;
-    return Monitor;
-  };
-
-  const handleLogoutAll = async () => {
-    logoutAllMutation.mutate();
-  };
-
-  const handleLogoutSession = async (sessionId?: string, isCurrent?: boolean) => {
-    logoutSessionMutation.mutate(sessionId);
-    if (isCurrent) {
-      await logout();
-    }
-  };
-
   return (
-    <div className="space-y-5">
-      <SectionCard
-        title="Two-Factor Authentication"
-        description="Add an extra layer of security to your account.">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted">
-              <Lock className="size-5 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Authenticator App</p>
-              <p className="text-xs text-muted-foreground">
-                Use an authenticator app like Google Authenticator for secure
-                login.
-              </p>
-            </div>
-          </div>
-          <Badge variant="secondary" className="shrink-0">
-            Coming Soon
-          </Badge>
-        </div>
+    <div className="space-y-4">
+      <SectionCard title="Security Auth" description="Enhanced protection for your workspace.">
+        <FormRow label="Two-Factor Authentication" description="Add an extra layer of security using an authenticator app.">
+          <Badge variant="outline" className="text-[10px]">Coming Soon</Badge>
+        </FormRow>
       </SectionCard>
 
-      <SectionCard
-        title="Active Sessions"
-        description="Devices currently signed in to your account.">
+      <SectionCard title="Active Sessions" description="Devices currently signed into your account.">
         {sessionsQuery.isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-16 w-full rounded-xl" />
-            <Skeleton className="h-16 w-full rounded-xl" />
-          </div>
-        ) : sessions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No active sessions found.</p>
+          <div className="space-y-2"><Skeleton className="h-12 w-full rounded-lg" /><Skeleton className="h-12 w-full rounded-lg" /></div>
         ) : (
-          <div className="space-y-3">
-            {sessions.map((session) => {
-              const Icon = getSessionIcon(session.deviceType);
-              return (
-                <div
-                  key={session.id}
-                  className="flex items-center justify-between rounded-xl border border-border bg-muted/20 p-3">
-                  <div className="flex items-center gap-3">
-                    <Icon className="size-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">{session.deviceName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Last active {new Date(session.lastActiveAt).toLocaleString()} · IP {session.ipAddress}
-                      </p>
-                    </div>
+          <div className="space-y-2">
+            {sessions.map((s) => (
+              <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
+                <div className="flex items-center gap-3">
+                  <div className="size-8 rounded-lg bg-background border border-border flex items-center justify-center">
+                    {s.deviceType === 'mobile' ? <Smartphone className="size-4" /> : <Monitor className="size-4" />}
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    {session.isCurrent && (
-                      <Badge className="bg-emerald-100 text-emerald-700 text-xs">
-                        This device
-                      </Badge>
-                    )}
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleLogoutSession(session.id, session.isCurrent)}
-                      disabled={logoutSessionMutation.isPending}
-                      className="h-8 px-2 text-xs">
-                      Log out this device
-                    </Button>
+                  <div>
+                    <p className="text-xs font-bold flex items-center gap-2">
+                      {s.deviceName} {s.isCurrent && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 uppercase tracking-tighter">Current</span>}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(s.lastActiveAt).toLocaleString()} • {s.ipAddress}</p>
                   </div>
                 </div>
-              );
-            })}
+                <Button variant="ghost" size="sm" onClick={() => logoutSessionMutation.mutate(s.id)} className="h-7 text-[10px] text-destructive hover:bg-destructive/10">Terminate</Button>
+              </div>
+            ))}
           </div>
         )}
       </SectionCard>
 
-      <DangerCard
-        title="Session Management"
-        description="Manage active sessions across devices.">
-        <div className="flex items-start justify-between gap-4">
+      <DangerCard title="Session Control" description="Force logout across all platforms.">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold">Log Out All Devices</p>
-            <p className="text-xs text-muted-foreground">
-              Sign out from all browsers and devices, including this one.
-            </p>
+            <p className="text-[13px] font-semibold text-destructive">Sign out of everything</p>
+            <p className="text-[11px] text-muted-foreground">This will invalidate all active sessions immediately.</p>
           </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="shrink-0"
-            onClick={handleLogoutAll}
-            disabled={logoutAllMutation.isPending}>
-            {logoutAllMutation.isPending ? (
-              <Loader2 className="mr-1.5 size-3.5 animate-spin" />
-            ) : (
-              <LogOut className="mr-1.5 size-3.5" />
-            )}
+          <Button variant="destructive" size="sm" onClick={() => logoutAllMutation.mutate()} disabled={logoutAllMutation.isPending} className="h-9 px-4">
+            {logoutAllMutation.isPending ? <Loader2 className="size-3.5 animate-spin mr-2" /> : <LogOut className="size-3.5 mr-2" />}
             Log Out All
           </Button>
         </div>
@@ -1533,27 +1109,18 @@ function IntegrationsSection() {
     try {
       const res = await api.get("/telegram/settings");
       setData(res.data.data);
-    } catch (error) {
-    } finally {
-      setLoading(false);
-    }
+    } catch { } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleConnect = async () => {
     setConnecting(true);
     try {
       const res = await api.post("/telegram/initiate");
       setConnectionData(res.data.data);
-      toast.info("Follow the instructions to connect!");
-    } catch (error) {
-      toast.error("Failed to initiate connection");
-    } finally {
-      setConnecting(false);
-    }
+      toast.info("Follow instructions to link Telegram");
+    } catch { toast.error("Init failed"); } finally { setConnecting(false); }
   };
 
   const handleVerify = async () => {
@@ -1561,179 +1128,76 @@ function IntegrationsSection() {
     try {
       const res = await api.post("/telegram/verify");
       if (res.data.success) {
-        toast.success("Telegram connected successfully!");
+        toast.success("Telegram linked!");
         setData({ ...data, connection: res.data.data });
         setConnectionData(null);
-      } else {
-        toast.error(res.data.message || "Still waiting for /start...");
-      }
-    } catch (error) {
-      toast.error("Verification failed");
-    } finally {
-      setVerifying(false);
-    }
+      } else { toast.error(res.data.message || "Still waiting..."); }
+    } catch { toast.error("Verification failed"); } finally { setVerifying(false); }
   };
 
-  const handleDisconnect = async () => {
-    if (!confirm("Are you sure you want to disconnect?")) return;
-    try {
-      await api.post("/telegram/disconnect");
-      setData({ ...data, connection: { isConnected: false } });
-      toast.success("Telegram disconnected");
-    } catch (error) {
-      toast.error("Failed to disconnect");
-    }
-  };
-
-  if (loading || !data) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-40 w-full rounded-2xl" />
-      </div>
-    );
-  }
+  if (loading || !data) return <div className="space-y-4"><Skeleton className="h-32 w-full rounded-xl" /></div>;
 
   const { connection } = data;
 
   return (
-    <div className="space-y-5">
-      <SectionCard
-        title="Telegram Connection"
-        description="Link your Telegram account to this organization to receive alerts.">
+    <div className="space-y-4">
+      <SectionCard title="Telegram Connection" description="Link your account for real-time alerts.">
         {!connection?.isConnected ? (
-          <div className="space-y-4">
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/5 py-8 text-center">
-              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-500">
-                <MessageSquare className="size-8" />
-              </div>
-              <h3 className="font-heading text-base font-bold">Connect your Telegram</h3>
-              <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
-                Stay updated with tasks and alerts for this organization directly on Telegram.
-              </p>
-
-              {!connectionData ? (
-                <Button
-                  onClick={handleConnect}
-                  disabled={connecting}
-                  className="mt-5 bg-sky-500 hover:bg-sky-600 text-white gap-2">
-                  {connecting ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />}
-                  Connect Telegram
-                </Button>
-              ) : (
-                <div className="mt-6 w-full max-w-md rounded-2xl border border-border bg-card p-6 text-left animate-in fade-in zoom-in-95 duration-500 shadow-sm">
-                  <h4 className="text-sm font-bold flex items-center gap-2 mb-4">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">!</div>
-                    Complete your Integration
-                  </h4>
-
-                  <div className="space-y-4">
-                    {/* Step 1 */}
-                    <div className="flex gap-3">
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">1</div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold">Open Telegram Bot</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          Click the link below to open our global notification assistant.
-                        </p>
-                        <a
-                          href={connectionData.connectionLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-sky-500/10 px-3 py-1.5 text-xs font-bold text-sky-600 transition-colors hover:bg-sky-500/20">
-                          <MessageSquare className="size-3.5" />
-                          @{import.meta.env.VITE_TELEGRAM_BOT_NAME || "PMS_Orbit_Bot"}
-                        </a>
-                      </div>
-                    </div>
-
-                    {/* Step 2 */}
-                    <div className="flex gap-3">
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">2</div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold">Press the Start Button</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          Once the bot opens, click the <span className="font-bold text-foreground">START</span> button at the bottom of the chat.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Step 3 */}
-                    <div className="flex gap-3">
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold">3</div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold">Verify Connection</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          Return here and click the verification button to finalize the link.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 pt-4 border-t border-border flex flex-col sm:flex-row gap-2">
-                    <Button
-                      onClick={handleVerify}
-                      disabled={verifying}
-                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white h-10 shadow-sm">
-                      {verifying ? <Loader2 className="size-4 animate-spin mr-2" /> : <Check className="size-4 mr-2" />}
-                      Verify &amp; Link Account
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setConnectionData(null)}
-                      className="h-10">
-                      Cancel
-                    </Button>
-                  </div>
-
-                  <p className="mt-4 text-[10px] text-center text-muted-foreground bg-muted/30 p-2 rounded-lg">
-                    <span className="font-bold">Pro Tip:</span> This connection is specific to <span className="font-bold text-foreground">{activeOrg?.name}</span>. Your unique verification token is automatically passed to the bot.
-                  </p>
-                </div>
-              )}
+          <div className="flex flex-col items-center justify-center p-6 border border-dashed border-border rounded-xl bg-muted/5 text-center">
+            <div className="size-12 rounded-2xl bg-sky-500/10 text-sky-600 flex items-center justify-center mb-3">
+              <MessageSquare className="size-6" />
             </div>
+            <h4 className="text-sm font-bold">Connect Telegram</h4>
+            <p className="text-[11px] text-muted-foreground max-w-[240px] mt-1 mb-4">Stay updated with tasks directly on your phone.</p>
+            {!connectionData ? (
+              <Button onClick={handleConnect} disabled={connecting} size="sm" className="bg-sky-500 hover:bg-sky-600 text-white h-9 px-6 font-bold text-[11px]">
+                {connecting ? <Loader2 className="size-3.5 animate-spin mr-2" /> : <Zap className="size-3.5 mr-2" />}
+                Initiate Link
+              </Button>
+            ) : (
+              <div className="w-full max-w-sm p-4 rounded-xl border border-border bg-card text-left animate-in fade-in zoom-in-95 shadow-sm">
+                <p className="text-xs font-bold mb-3 flex items-center gap-2"><div className="size-1.5 rounded-full bg-primary animate-ping" /> Connection Steps</p>
+                <div className="space-y-3">
+                   {[
+                     { step: 1, title: "Open Bot", desc: "Click the link to open @PMS_Orbit_Bot" },
+                     { step: 2, title: "Press Start", desc: "Click START in the chat window" },
+                     { step: 3, title: "Verify", desc: "Return here to finalize" }
+                   ].map(s => (
+                     <div key={s.step} className="flex gap-3">
+                       <div className="size-5 shrink-0 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">{s.step}</div>
+                       <div><p className="text-[11px] font-bold">{s.title}</p><p className="text-[10px] text-muted-foreground">{s.desc}</p></div>
+                     </div>
+                   ))}
+                </div>
+                <div className="mt-5 pt-4 border-t border-border flex gap-2">
+                   <Button onClick={handleVerify} disabled={verifying} size="sm" className="flex-1 h-8 text-[10px] bg-emerald-500 hover:bg-emerald-600">Verify Now</Button>
+                   <Button variant="ghost" onClick={() => setConnectionData(null)} size="sm" className="h-8 text-[10px]">Cancel</Button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
-                  <Check className="size-6" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-emerald-700">Account Linked</p>
-                  <p className="text-xs text-emerald-600/80">You are ready to receive organization alerts.</p>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" onClick={handleDisconnect} className="text-destructive hover:bg-destructive/10">
-                Disconnect
-              </Button>
+          <div className="flex items-center justify-between p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
+            <div className="flex items-center gap-3">
+              <div className="size-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm"><Check className="size-4" /></div>
+              <div><p className="text-xs font-bold text-emerald-700">Account Linked</p><p className="text-[10px] text-emerald-600/70">Receiving org alerts</p></div>
             </div>
-            <div className="rounded-xl bg-primary/5 p-4 flex gap-3">
-              <Sparkles className="size-5 text-primary shrink-0" />
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Notification delivery depends on organization-level settings managed by your administrator.
-              </p>
-            </div>
+            <Button variant="ghost" size="sm" onClick={() => {}} className="h-7 text-[10px] text-destructive hover:bg-destructive/10">Disconnect</Button>
           </div>
         )}
       </SectionCard>
 
-      <SectionCard
-        title="Other Integrations"
-        description="Connect your favorite tools to supercharge your workflow.">
-        <div className="space-y-3">
-          {INTEGRATIONS.map(({ name, icon: Icon, desc, color }) => (
-            <div key={name} className="flex items-center justify-between rounded-xl border border-border bg-muted/10 p-4 opacity-50">
+      <SectionCard title="Other Platforms" description="Tools we support or are coming soon.">
+        <div className="grid gap-2">
+          {INTEGRATIONS.map(i => (
+            <div key={i.name} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/10 opacity-60">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${color}20` }}>
-                  <Icon className="size-5" style={{ color }} />
+                <div className="size-8 rounded-lg flex items-center justify-center" style={{ background: `${i.color}15` }}>
+                  <i.icon className="size-4" style={{ color: i.color }} />
                 </div>
-                <div>
-                  <p className="text-sm font-semibold">{name}</p>
-                  <p className="text-xs text-muted-foreground">{desc}</p>
-                </div>
+                <div><p className="text-xs font-bold">{i.name}</p><p className="text-[10px] text-muted-foreground">{i.desc}</p></div>
               </div>
-              <Badge variant="outline" className="text-[10px]">Coming Soon</Badge>
+              <Badge variant="secondary" className="text-[9px] h-4">Soon</Badge>
             </div>
           ))}
         </div>
@@ -1754,192 +1218,60 @@ function TelegramOrgSection() {
     try {
       const res = await api.get("/telegram/settings");
       setData(res.data.data);
-    } catch (error) {
-    } finally {
-      setLoading(false);
-    }
+    } catch { } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const toggleEvent = async (key: string) => {
-    const updatedPrefs = {
-      ...data.orgSettings.preferences,
-      [key]: !data.orgSettings.preferences[key],
-    };
-    await updateSettings({ preferences: updatedPrefs });
-  };
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const updateSettings = async (updates: any) => {
     setSaving(true);
     try {
-      const res = await api.patch("/telegram/org-settings", {
-        ...data.orgSettings,
-        ...updates
-      });
+      const res = await api.patch("/telegram/org-settings", { ...data.orgSettings, ...updates });
       setData({ ...data, orgSettings: res.data.data });
-      toast.success("Settings updated");
-    } catch (error) {
-      toast.error("Failed to save settings");
-    } finally {
-      setSaving(false);
-    }
+      toast.success("Updated");
+    } catch { toast.error("Failed"); } finally { setSaving(false); }
   };
 
-  if (loading || !data) return <Skeleton className="h-64 w-full rounded-2xl" />;
+  if (loading || !data) return <Skeleton className="h-48 w-full rounded-xl" />;
 
   const { orgSettings } = data;
-  const isMasterAllEnabled = Boolean(orgSettings.preferences?.track_all);
 
   return (
-    <div className="space-y-5">
-      <SectionCard
-        title="Global Notifications Control"
-        description="Enable or disable automated Telegram alerts for high-level organization events.">
-        <div className="flex items-center justify-between p-1">
-          <div>
-            <p className="text-sm font-semibold">Enable Telegram Notifications</p>
-            <p className="text-xs text-muted-foreground">Turn off to silence all bot messages for this organization.</p>
-          </div>
-          <Switch
-            checked={orgSettings.isEnabled}
-            onCheckedChange={() => updateSettings({ isEnabled: !orgSettings.isEnabled })}
-          />
-        </div>
-
-        <div className="mt-4 rounded-xl bg-sky-500/5 border border-sky-500/10 p-4 flex gap-3">
-          <AlertTriangle className="size-5 text-sky-600 shrink-0" />
-          <div className="space-y-1">
-            <p className="text-xs font-bold text-sky-700">How Broadcaster Works</p>
-            <p className="text-[11px] text-sky-600/80 leading-relaxed">
-              When an event occurs, we check these settings and then look for members who have securely linked their Telegram account to <span className="font-bold underline">{activeOrg?.name}</span>. Only connected members will receive the alerts.
-            </p>
-          </div>
-        </div>
+    <div className="space-y-4">
+      <SectionCard title="Broadcast Engine" description="Manage automated Telegram notifications for the organization.">
+        <FormRow label="Global Broadcast" description="Master switch for all automated bot activity.">
+          <Switch checked={orgSettings.isEnabled} onCheckedChange={() => updateSettings({ isEnabled: !orgSettings.isEnabled })} />
+        </FormRow>
 
         {orgSettings.isEnabled && (
-          <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-top-2">
-            <div>
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 block px-1">Event Toggles</Label>
-              {isMasterAllEnabled && (
-                <p className="text-[11px] text-amber-600 mb-2 px-1">
-                  All Activity is enabled. Individual event toggles are temporarily overridden.
-                </p>
-              )}
-              <div className="divide-y divide-border rounded-xl border border-border bg-muted/5">
-                {[
-                  { key: "track_logins", label: "User Logins", desc: "Alert when a user logs in or out" },
-                  { key: "track_tasks", label: "Task Activity", desc: "Alert on task creation, updates, and deletes" },
-                  { key: "track_comments", label: "Comments & Mentions", desc: "Alert on new comments and mentions" },
-                  { key: "track_activity", label: "Page Activity", desc: "Alert when users open important pages" },
-                  { key: "track_all", label: "All Activity", desc: "Master toggle for all organization activity" },
-                ].map((item) => (
-                  <div key={item.key} className="flex items-center justify-between p-4 transition-colors hover:bg-muted/10">
-                    <div>
-                      <p className="text-sm font-medium">{item.label}</p>
-                      <p className="text-xs text-muted-foreground">{item.desc}</p>
-                    </div>
-                    <Switch
-                      checked={orgSettings.preferences?.[item.key]}
-                      onCheckedChange={() => toggleEvent(item.key)}
-                      disabled={isMasterAllEnabled && item.key !== "track_all"}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 block px-1">Target Audience</Label>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { id: 'ONLY_ADMINS', label: 'Admins Only', desc: 'Secure alerts' },
-                  { id: 'ALL_MEMBERS', label: 'All Members', desc: 'Broad updates' },
-                  { id: 'CUSTOM', label: 'Specific Users', desc: 'Filtered list' }
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => updateSettings({ audience: opt.id })}
-                    className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${orgSettings.audience === opt.id
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border bg-card hover:bg-muted/50'
-                      }`}>
-                    <span className="text-sm font-bold">{opt.label}</span>
-                    <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
-                  </button>
-                ))}
-              </div>
-
-              {orgSettings.audience === 'CUSTOM' && (
-                <div className="mt-4 p-4 rounded-xl border border-border bg-muted/5 space-y-3 animate-in fade-in slide-in-from-top-1">
-                  <p className="text-xs font-semibold">Select recipients:</p>
-                  <div className="max-h-40 overflow-y-auto space-y-1 pr-2">
-                    {data.activeConnections?.map((conn: any) => {
-                      const isSelected = orgSettings.customRecipientIds?.includes(conn.userId);
-                      return (
-                        <div
-                          key={conn.userId}
-                          onClick={() => {
-                            const newIds = isSelected
-                              ? orgSettings.customRecipientIds.filter((id: string) => id !== conn.userId)
-                              : [...(orgSettings.customRecipientIds || []), conn.userId];
-                            updateSettings({ customRecipientIds: newIds });
-                          }}
-                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-primary/10' : 'hover:bg-muted'}`}>
-                          <div className={`h-4 w-4 rounded border flex items-center justify-center ${isSelected ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
-                            {isSelected && <Check className="size-3 text-white" />}
-                          </div>
-                          <span className="text-sm">{conn.name}</span>
-                        </div>
-                      );
-                    })}
-                    {(!data.activeConnections || data.activeConnections.length === 0) && (
-                      <p className="text-xs text-muted-foreground text-center py-2">No connected users to select.</p>
-                    )}
-                  </div>
+          <div className="mt-4 pt-4 border-t border-border/40 space-y-3 animate-in fade-in slide-in-from-top-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Event Toggles</p>
+            <div className="grid gap-2">
+              {[
+                { key: "track_tasks", label: "Task Updates", desc: "Creation, status changes, and deletes" },
+                { key: "track_comments", label: "Comments", desc: "New discussions and mentions" },
+                { key: "track_logins", label: "Security", desc: "Login activity and access alerts" },
+              ].map(item => (
+                <div key={item.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors">
+                  <div><p className="text-xs font-bold">{item.label}</p><p className="text-[10px] text-muted-foreground">{item.desc}</p></div>
+                  <Switch checked={orgSettings.preferences?.[item.key]} onCheckedChange={() => {
+                    const next = { ...orgSettings.preferences, [item.key]: !orgSettings.preferences?.[item.key] };
+                    updateSettings({ preferences: next });
+                  }} />
                 </div>
-              )}
+              ))}
             </div>
           </div>
         )}
       </SectionCard>
 
-      <SectionCard
-        title="Connectivity Status"
-        description="View members who have linked their Telegram accounts.">
-        <div className="space-y-4">
-          {data.activeConnections && data.activeConnections.length > 0 ? (
-            <div className="divide-y divide-border rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-              {data.activeConnections.map((conn: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between p-4 hover:bg-muted/5 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 font-bold text-xs">
-                      {conn.name[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold">{conn.name}</p>
-                      <p className="text-[10px] text-muted-foreground font-mono">ID: {conn.chatId.substring(0, 4)}****</p>
-                    </div>
-                  </div>
-                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 uppercase tracking-tight">
-                    {conn.role}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-10 text-center border-2 border-dashed border-border rounded-2xl bg-muted/5">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/30 text-muted-foreground/40">
-                <MessageSquare className="size-8" />
-              </div>
-              <h4 className="text-sm font-bold text-foreground">No Connections Found</h4>
-              <p className="mt-1 px-10 text-center text-xs text-muted-foreground leading-relaxed">
-                Connect your own account in the <span className="font-bold underline">Integrations</span> tab to start receiving alerts for {activeOrg?.name}.
-              </p>
-            </div>
-          )}
+      <SectionCard title="Target Audience" description="Who should receive these automated broadcasts?">
+        <div className="grid grid-cols-3 gap-2">
+           {['ONLY_ADMINS', 'ALL_MEMBERS', 'CUSTOM'].map(id => (
+             <button key={id} onClick={() => updateSettings({ audience: id })} className={cn("p-3 rounded-xl border text-center transition-all", orgSettings.audience === id ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border hover:bg-muted/50")}>
+               <p className="text-[11px] font-bold">{id.replace('_', ' ')}</p>
+             </button>
+           ))}
         </div>
       </SectionCard>
     </div>
@@ -1948,266 +1280,50 @@ function TelegramOrgSection() {
 
 function GithubSection() {
   const { activeOrg } = useAuth();
-  
-  const doneKeywords = [
-    'fix', 'fixed', 'fixes', 'close', 'closed', 'closes', 
-    'resolve', 'resolved', 'resolves', 'done', 'finish', 
-    'finished', 'completes', 'implement', 'implemented'
-  ];
-
-  const progressKeywords = [
-    'progress', 'start', 'started', 'working', 
-    'feat', 'feature', 'refactor', 'chore'
-  ];
-
   const examples = [
-    {
-      label: "Fix & Close",
-      value: `git commit -m "fix ${activeOrg?.name ? 'PMS' : 'TASK'}-123 login redirect"`,
-      desc: "Moves the task to DONE automatically.",
-      icon: CheckCircle2,
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10"
-    },
-    {
-      label: "Start Progress",
-      value: `git commit -m "feat ${activeOrg?.name ? 'PMS' : 'TASK'}-123 adding auth"`,
-      desc: "Moves the task to IN PROGRESS automatically.",
-      icon: Clock3,
-      color: "text-blue-500",
-      bg: "bg-blue-500/10"
-    },
-    {
-      label: "Reference Only",
-      value: `git commit -m "${activeOrg?.name ? 'PMS' : 'TASK'}-123 updating docs"`,
-      desc: "Links activity without changing status.",
-      icon: Link,
-      color: "text-slate-500",
-      bg: "bg-slate-500/10"
-    },
-
+    { label: "Resolve Task", value: `fix PMS-123 resolved login loop`, icon: CheckCircle2, color: "text-emerald-500" },
+    { label: "Start Work", value: `feat PMS-123 adding auth layer`, icon: Clock3, color: "text-blue-500" },
   ];
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
-  };
+  const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("Copied"); };
 
   return (
-    <div className="space-y-6">
-      {/* 1. Status Automation Guide */}
-      <SectionCard
-        title="Status Automation"
-        description="Your task status updates automatically based on the keywords you use in GitHub.">
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Done Automation */}
-            <div className="flex flex-col gap-3 p-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 size-20 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all" />
-              <div className="flex items-center gap-2">
-                <div className="size-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                  <CheckCircle2 className="size-4" />
-                </div>
-                <h4 className="text-sm font-black uppercase tracking-widest text-emerald-700">Move to Done</h4>
+    <div className="space-y-4">
+      <SectionCard title="Commit Automation" description="Control task status directly from your code commits.">
+        <div className="grid gap-4 sm:grid-cols-2">
+           <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+              <p className="text-[10px] font-black uppercase text-emerald-700 mb-1">Move to Done</p>
+              <p className="text-[11px] text-emerald-600/80 mb-3 leading-tight">Use keywords like fix, close, or resolve.</p>
+              <div className="flex flex-wrap gap-1">
+                 {['fix', 'close', 'resolve', 'done'].map(k => <code key={k} className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-[9px] font-mono text-emerald-700">{k}</code>)}
               </div>
-              <p className="text-[11px] text-emerald-600/80 font-medium leading-relaxed">
-                Use any of these keywords to mark a task as completed when you push code or merge a PR.
-              </p>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {doneKeywords.map(kw => (
-                  <code key={kw} className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono text-emerald-700">
-                    {kw}
-                  </code>
-                ))}
+           </div>
+           <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
+              <p className="text-[10px] font-black uppercase text-blue-700 mb-1">In Progress</p>
+              <p className="text-[11px] text-blue-600/80 mb-3 leading-tight">Use keywords like start, feat, or working.</p>
+              <div className="flex flex-wrap gap-1">
+                 {['start', 'feat', 'work', 'chore'].map(k => <code key={k} className="px-1.5 py-0.5 rounded bg-blue-500/10 text-[9px] font-mono text-blue-700">{k}</code>)}
               </div>
-            </div>
-
-            {/* In Progress Automation */}
-            <div className="flex flex-col gap-3 p-5 rounded-2xl border border-blue-500/20 bg-blue-500/5 relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 size-20 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all" />
-              <div className="flex items-center gap-2">
-                <div className="size-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <Clock3 className="size-4" />
-                </div>
-
-                <h4 className="text-sm font-black uppercase tracking-widest text-blue-700">In Progress</h4>
-              </div>
-              <p className="text-[11px] text-blue-600/80 font-medium leading-relaxed">
-                Use these keywords to signal that you've started working on a task.
-              </p>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {progressKeywords.map(kw => (
-                  <code key={kw} className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-[10px] font-mono text-blue-700">
-                    {kw}
-                  </code>
-                ))}
-              </div>
-            </div>
-          </div>
+           </div>
         </div>
       </SectionCard>
 
-      {/* 2. Visual Effects on Tasks */}
-      <SectionCard
-        title="Visual Effects on Tasks"
-        description="How linked activity appears inside your project.">
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="space-y-4">
-             <div className="flex gap-4 p-4 rounded-2xl border border-border bg-muted/5">
-                <div className="shrink-0 size-10 rounded-xl bg-background border border-border/40 flex items-center justify-center text-primary shadow-sm">
-                  <LayoutPanelTop className="size-5" />
+      <SectionCard title="Usage Examples" description="Common commit message patterns.">
+        <div className="space-y-3">
+          {examples.map(ex => (
+            <div key={ex.label} className="p-3 rounded-lg border border-border bg-muted/10 group">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <ex.icon className={cn("size-3.5", ex.color)} />
+                  <span className="text-[11px] font-bold">{ex.label}</span>
                 </div>
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold">Activity Sidebar</h4>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    A new "GitHub Activity" section appears in the task sidebar, showing every commit and PR linked to it.
-                  </p>
-                </div>
-             </div>
-             <div className="flex gap-4 p-4 rounded-2xl border border-border bg-muted/5">
-                <div className="shrink-0 size-10 rounded-xl bg-background border border-border/40 flex items-center justify-center text-primary shadow-sm">
-                  <History className="size-5" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold">Audit History</h4>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    Status transitions triggered by GitHub are logged in the activity feed, mentioning "via GitHub".
-                  </p>
-                </div>
-             </div>
-             <div className="flex gap-4 p-4 rounded-2xl border border-border bg-muted/5">
-                <div className="shrink-0 size-10 rounded-xl bg-background border border-border/40 flex items-center justify-center text-primary shadow-sm">
-                  <ExternalLink className="size-5" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold">Direct Navigation</h4>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    Click any linked commit or PR to jump directly to GitHub and view the code changes.
-                  </p>
-                </div>
-             </div>
-          </div>
-
-          {/* Mock Preview Card */}
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-inner relative overflow-hidden group">
-            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4 flex items-center gap-2">
-              <GithubIcon className="size-3" /> Preview: Task Sidebar
-            </h4>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="size-6 rounded-md bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                  <GitCommit className="size-3" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-bold truncate">fix: resolved login redirect loop</p>
-                  <p className="text-[9px] text-muted-foreground font-medium">Author: @dev_hero • 2m ago</p>
-                </div>
-                <ExternalLink className="size-3 text-muted-foreground/40" />
+                <Button variant="ghost" size="sm" onClick={() => copy(ex.value)} className="h-6 text-[9px] uppercase font-black">Copy Message</Button>
               </div>
-              <div className="w-full h-px bg-border/40" />
-              <div className="flex items-center gap-2">
-                <div className="size-6 rounded-md bg-purple-500/10 text-purple-500 flex items-center justify-center">
-                  <GitPullRequest className="size-3" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-bold truncate">PMS-110 User Profile Redesign</p>
-                  <p className="text-[9px] text-muted-foreground font-medium">Author: @dev_hero • #42 Open</p>
-                </div>
-                <ExternalLink className="size-3 text-muted-foreground/40" />
-              </div>
-            </div>
-
-            <div className="mt-4 p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-center">
-               <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Status updated to DONE</span>
-            </div>
-          </div>
-        </div>
-      </SectionCard>
-
-      {/* 3. Actionable Examples */}
-      <SectionCard
-        title="Copy-Ready Templates"
-        description="Standard patterns for your daily development workflow.">
-        <div className="space-y-4">
-          {examples.map((example, idx) => (
-            <div key={idx} className="group flex flex-col gap-3 p-5 rounded-2xl border border-border bg-muted/5 hover:bg-muted/10 transition-all">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={cn("p-2 rounded-xl border border-border/40 text-foreground shadow-sm", example.bg)}>
-                    <example.icon className={cn("size-4", example.color)} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold">{example.label}</h4>
-                    <p className="text-[10px] text-muted-foreground font-medium">{example.desc}</p>
-                  </div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => copyToClipboard(example.value)}
-                  className="h-8 rounded-xl border-border/40 bg-background/50 hover:bg-primary hover:text-white transition-all px-4 gap-2 shadow-sm font-black text-[10px] tracking-widest uppercase"
-                >
-                  <Copy className="size-3" />
-                  Copy
-                </Button>
-              </div>
-              <div className="relative">
-                <code className="block px-4 py-3 rounded-xl bg-background border border-border/40 text-[11px] font-mono text-foreground/90 break-all leading-tight shadow-inner">
-                  {example.value}
-                </code>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                   <div className="size-2 rounded-full bg-primary animate-pulse" />
-                </div>
-              </div>
+              <code className="block p-2 rounded bg-background border border-border/50 text-[10px] font-mono">{ex.value}</code>
             </div>
           ))}
         </div>
       </SectionCard>
-
-      {/* 4. Tips & Best Practices */}
-      <SectionCard
-        title="Pro Tips"
-        description="Get the most out of your GitHub integration.">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="p-4 rounded-2xl border border-border bg-card space-y-2">
-            <h4 className="text-xs font-bold flex items-center gap-2">
-              <Zap className="size-4 text-amber-500" /> Multi-Linking
-            </h4>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              You can link multiple tasks in a single commit by listing their IDs. Status updates will apply to all tasks mentioned.
-            </p>
-            <code className="block p-2 rounded-lg bg-muted/30 text-[9px] font-mono">
-              git commit -m "fix PMS-101 and PMS-102"
-            </code>
-          </div>
-          <div className="p-4 rounded-2xl border border-border bg-card space-y-2">
-            <h4 className="text-xs font-bold flex items-center gap-2">
-              <ShieldCheck className="size-4 text-blue-500" /> Case Insensitive
-            </h4>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              Keywords and Task IDs are case insensitive. <code className="bg-muted px-1 rounded">pms-110</code> and <code className="bg-muted px-1 rounded">PMS-110</code> work exactly the same way.
-            </p>
-          </div>
-          <div className="p-4 rounded-2xl border border-border bg-card space-y-2">
-            <h4 className="text-xs font-bold flex items-center gap-2">
-              <MessagesSquare className="size-4 text-purple-500" /> PR Descriptions
-            </h4>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              Don't forget Task IDs in PR descriptions too! We scan titles first, but linking is comprehensive across the PR lifecycle.
-            </p>
-          </div>
-          <div className="p-4 rounded-2xl border border-border bg-card space-y-2">
-             <h4 className="text-xs font-bold flex items-center gap-2">
-              <Settings2 className="size-4 text-slate-500" /> Toggle Automation
-            </h4>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              Organization admins can enable/disable automatic status updates in the Project settings under "GitHub Integration".
-            </p>
-          </div>
-        </div>
-      </SectionCard>
-
     </div>
   );
 }
@@ -2270,9 +1386,6 @@ function DefaultAssigneesSection() {
       toast.success("Default assignees updated");
       queryClient.invalidateQueries({ queryKey: ["settings", "default-assignees"] });
     },
-    onError: () => {
-      toast.error("Failed to update default assignees");
-    },
   });
 
   useEffect(() => {
@@ -2282,58 +1395,29 @@ function DefaultAssigneesSection() {
     }
   }, [data, isInitialized]);
 
-  const handleSave = () => {
-    updateMutation.mutate(selectedIds);
-  };
-
-  const currentUsers = data?.data?.defaultAssignees || [];
-
   return (
-    <div className="space-y-5">
-      <SectionCard
-        title="Default Assignees"
-        description="Select team members who will be automatically assigned to new tasks you create.">
+    <div className="space-y-4">
+      <SectionCard title="Auto-Assign Rules" description="Team members automatically assigned to your new tasks.">
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Selected Assignees</Label>
-            <MultiUserSelect
-              value={selectedIds}
-              onChange={setSelectedIds}
-              prefilledUsers={currentUsers}
-              placeholder="Search and select default assignees..."
-              disabled={isLoading || updateMutation.isPending}
-            />
-            <p className="text-[10px] text-muted-foreground mt-1 px-1">
-              Note: You can still add or remove assignees manually during task creation.
-            </p>
+          <div className="space-y-1.5">
+            <Label className="text-[13px] font-medium">Primary Assignees</Label>
+            <MultiUserSelect value={selectedIds} onChange={setSelectedIds} prefilledUsers={data?.data?.defaultAssignees || []} placeholder="Search team members..." disabled={isLoading || updateMutation.isPending} />
+            <p className="text-[10px] text-muted-foreground px-1">Note: This only applies to tasks you create manually.</p>
           </div>
-
-          <div className="flex justify-end pt-2">
-            <Button
-              onClick={handleSave}
-              disabled={isLoading || updateMutation.isPending || !isInitialized}
-              className="gap-2 min-w-32"
-            >
-              {updateMutation.isPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Check className="size-4" />
-              )}
-              Save Changes
+          <div className="flex justify-end pt-2 border-t border-border/40">
+            <Button onClick={() => updateMutation.mutate(selectedIds)} disabled={isLoading || updateMutation.isPending || !isInitialized} size="sm" className="min-w-[120px] h-9">
+              {updateMutation.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : <Check className="size-4 mr-2" />}
+              Save Rules
             </Button>
           </div>
         </div>
       </SectionCard>
 
-      <div className="rounded-2xl border border-primary/10 bg-primary/5 p-4 flex gap-3">
-        <Sparkles className="size-5 text-primary shrink-0" />
-        <div className="space-y-1">
-          <p className="text-xs font-bold text-primary">Pro Tip</p>
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Setting default assignees is great for recurring tasks or if you usually work with the same team members.
-            These users will be pre-filled only when you start a fresh task creation.
-          </p>
-        </div>
+      <div className="p-3 rounded-xl border border-primary/10 bg-primary/5 flex gap-3">
+        <Sparkles className="size-4 text-primary shrink-0" />
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          <span className="font-bold text-primary">Pro Tip:</span> Setting default assignees is great for recurring tasks or small teams where everyone is involved in every task.
+        </p>
       </div>
     </div>
   );
@@ -2385,35 +1469,84 @@ export default function SettingsPage() {
   const activeItem = NAV_ITEMS.find((i) => i.id === activeSection) || NAV_ITEMS[0];
   const ActiveIcon = activeItem.icon;
 
-  return (
-    <div className="mx-auto min-h-0 w-full max-w-7xl space-y-4">
-      <div className="flex gap-4 lg:items-start max-lg:flex-col">
-        {/* ── Left Sidebar ── */}
-        <aside className="w-full lg:w-56 shrink-0 lg:sticky lg:top-2">
-          <nav
-            className="overflow-x-auto lg:overflow-visible rounded-2xl border border-border bg-card shadow-sm"
-            aria-label="Settings navigation">
-            <ul className="flex lg:flex-col gap-1 px-2 py-2 lg:px-0">
-              {visibleNav.map(({ id, label, icon: Icon }) => {
-                const active = activeSection === id;
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
-                return (
-                  <li key={id} className="shrink-0">
+  return (
+    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-background/50">
+      {/* Mobile Header with Breadcrumb-like title and Menu */}
+      <div className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-card">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+            <ActiveIcon className="size-4 text-primary" />
+          </div>
+          <h2 className="text-sm font-semibold">{activeItem.label}</h2>
+        </div>
+        <Sheet open={isMobileNavOpen} onOpenChange={setIsMobileNavOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Menu className="size-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-72">
+            <SheetHeader className="p-4 border-b border-border">
+              <SheetTitle className="text-left flex items-center gap-2">
+                <Settings2 className="size-5 text-primary" />
+                Settings
+              </SheetTitle>
+            </SheetHeader>
+            <nav className="p-2">
+              <ul className="space-y-1">
+                {visibleNav.map((item) => (
+                  <li key={item.id}>
                     <button
-                      onClick={() => handleTabChange(id)}
-                      className={`group flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all
-              ${active
+                      onClick={() => {
+                        handleTabChange(item.id);
+                        setIsMobileNavOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                        activeSection === item.id
                           ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                        }`}>
-                      <Icon
-                        className={`size-4 transition-transform group-hover:scale-110 ${active ? "text-primary" : ""
-                          }`}
-                      />
-                      <span>{label}</span>
-                      {active && (
-                        <ChevronRight className="size-3.5 text-primary hidden lg:block" />
                       )}
+                    >
+                      <item.icon className="size-4" />
+                      {item.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* ── Left Sidebar (Desktop) ── */}
+        <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card/30 backdrop-blur-sm">
+          <div className="p-4 border-b border-border/50">
+            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              General
+            </h2>
+          </div>
+          <nav className="flex-1 overflow-y-auto p-3" aria-label="Settings navigation">
+            <ul className="space-y-1">
+              {visibleNav.map(({ id, label, icon: Icon }) => {
+                const active = activeSection === id;
+                return (
+                  <li key={id}>
+                    <button
+                      onClick={() => handleTabChange(id)}
+                      className={cn(
+                        "w-full group flex items-center gap-3 px-3 py-2 text-[13px] font-medium rounded-lg transition-all",
+                        active
+                          ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      )}
+                    >
+                      <Icon className={cn("size-4 transition-transform group-hover:scale-110", active ? "text-primary" : "text-muted-foreground/70")} />
+                      <span className="flex-1 text-left">{label}</span>
+                      {active && <ChevronRight className="size-3 text-primary/60" />}
                     </button>
                   </li>
                 );
@@ -2421,19 +1554,19 @@ export default function SettingsPage() {
             </ul>
           </nav>
 
-          {/* User card (optional hide on mobile) */}
-          <div className="mt-4 hidden lg:block rounded-2xl border border-border bg-card p-4 shadow-sm">
+          {/* User card at bottom */}
+          <div className="p-4 border-t border-border/50 bg-muted/20">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-[10px] font-bold text-primary ring-1 ring-primary/30">
                 {user?.firstName?.[0]}
                 {user?.lastName?.[0]}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-xs font-semibold">
+                <p className="truncate text-xs font-semibold leading-none">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="truncate text-[10px] text-muted-foreground capitalize">
-                  {userRole?.toLowerCase()}
+                <p className="truncate text-[10px] text-muted-foreground mt-1 capitalize">
+                  {userRole?.toLowerCase().replace('_', ' ')}
                 </p>
               </div>
             </div>
@@ -2441,52 +1574,42 @@ export default function SettingsPage() {
         </aside>
 
         {/* ── Right Content ── */}
-        <main className="min-w-0 flex-1">
-          {/* Section header */}
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <ActiveIcon className="size-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-heading text-lg font-bold">
+        <main className="flex-1 overflow-y-auto bg-background/30 custom-scrollbar">
+          <div className="mx-auto max-w-4xl p-4 md:p-6 lg:p-8 space-y-6">
+            {/* Header Section */}
+            <div className="flex flex-col gap-1.5 pb-6 border-b border-border/50">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-1">
+                <Settings2 className="size-3" />
+                <ChevronRight className="size-3" />
+                <span className="text-foreground/70">{activeItem.label}</span>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 {activeItem.label}
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                {activeSection === "profile" &&
-                  "Manage your public profile information"}
-                {activeSection === "account" &&
-                  "Credentials, email, and password settings"}
-                {activeSection === "appearance" &&
-                  "Customize how the app looks and feels"}
-                {activeSection === "notifications" &&
-                  "Control what alerts you receive and how"}
-                {activeSection === "workspace" &&
-                  "Configure your workspace settings"}
-                {activeSection === "organization" &&
-                  "Manage your organization and members"}
-                {activeSection === "billing" &&
-                  "Subscription plan and payment details"}
-                {activeSection === "security" &&
-                  "Protect your account with security controls"}
-                {activeSection === "integrations" &&
-                  "Connect third-party tools to your workflow"}
-                {activeSection === "tags" &&
-                  "Define organization-wide labels for tasks"}
-                {activeSection === "workflow" &&
-                  "Manage task lifecycle and board columns"}
-                {activeSection === "default_assignees" &&
-                  "Automatically pre-select users for new tasks"}
-                {activeSection === "github" &&
-                  "Guidelines and examples for linking GitHub activity to tasks"}
+              </h1>
+              <p className="text-sm text-muted-foreground max-w-2xl">
+                {activeSection === "profile" && "Manage your personal profile information and how others see you."}
+                {activeSection === "account" && "Update your email, password, and manage active sessions."}
+                {activeSection === "appearance" && "Choose your preferred theme, colors, and layout style."}
+                {activeSection === "notifications" && "Configure how and when you receive task and activity alerts."}
+                {activeSection === "workspace" && "Manage shared settings, naming, and organizational structure."}
+                {activeSection === "organization" && "Manage your organization, teams, and member access."}
+                {activeSection === "billing" && "Manage your subscription, invoices, and payment methods."}
+                {activeSection === "security" && "Enhance your account safety with additional security layers."}
+                {activeSection === "integrations" && "Connect and manage third-party applications and API keys."}
+                {activeSection === "tags" && "Create and manage organization-wide labels for better organization."}
+                {activeSection === "workflow" && "Configure task lifecycles, statuses, and board automation."}
+                {activeSection === "default_assignees" && "Set up default users who are automatically assigned to new tasks."}
+                {activeSection === "github" && "Manage GitHub repository links and automation workflows."}
               </p>
             </div>
-          </div>
 
-          {/* Animated section content */}
-          <div
-            key={activeSection}
-            className="animate-in fade-in slide-in-from-right-2 duration-200">
-            {renderSection(activeSection)}
+            {/* Content Area */}
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {renderSection(activeSection)}
+            </div>
+            
+            {/* Footer / Spacing */}
+            <div className="h-20" />
           </div>
         </main>
       </div>
