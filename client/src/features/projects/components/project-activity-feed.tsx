@@ -2,16 +2,14 @@
 import { useRef, useCallback, useState } from "react";
 import Link from "next/link";
 import { formatDistanceToNow, isToday, isYesterday, format } from "date-fns";
-import { GitCommitHorizontal, GitPullRequest, GitMerge, GitBranch, ExternalLink, RefreshCw, Settings2 } from "lucide-react";
+import { GitCommitHorizontal, GitPullRequest, GitMerge, GitBranch, ExternalLink, RefreshCw } from "lucide-react";
 import { GithubIcon } from "@/components/icons/github-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { githubApi, GithubFullActivityItem } from "@/features/projects/api/github.api";
-import { useRouter } from "next/navigation";
 
 interface ProjectActivityFeedProps {
   projectId: string;
@@ -19,52 +17,27 @@ interface ProjectActivityFeedProps {
 
 type FilterType = "all" | "commit" | "pr";
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-
 function getTypeConfig(item: GithubFullActivityItem) {
   if (item.type === "pr") {
     const state = item.prState ?? "open";
     if (state === "merged") return {
-      icon: <GitMerge className="size-4" />,
+      icon: <GitMerge className="size-3" />,
       label: "Merged PR",
-      color: "text-purple-400",
+      color: "text-purple-500",
       bg: "bg-purple-500/10",
-      ring: "ring-purple-500/20",
-      badge: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    };
-    if (state === "closed") return {
-      icon: <GitPullRequest className="size-4" />,
-      label: "Closed PR",
-      color: "text-red-400",
-      bg: "bg-red-500/10",
-      ring: "ring-red-500/20",
-      badge: "bg-red-500/10 text-red-400 border-red-500/20",
     };
     return {
-      icon: <GitPullRequest className="size-4" />,
+      icon: <GitPullRequest className="size-3" />,
       label: "Pull Request",
-      color: "text-emerald-400",
+      color: "text-emerald-500",
       bg: "bg-emerald-500/10",
-      ring: "ring-emerald-500/20",
-      badge: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     };
   }
-  if (item.type === "branch") return {
-    icon: <GitBranch className="size-4" />,
-    label: "Branch",
-    color: "text-blue-400",
-    bg: "bg-blue-500/10",
-    ring: "ring-blue-500/20",
-    badge: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  };
-  // commit
   return {
-    icon: <GitCommitHorizontal className="size-4" />,
+    icon: <GitCommitHorizontal className="size-3" />,
     label: "Commit",
-    color: "text-violet-400",
+    color: "text-violet-500",
     bg: "bg-violet-500/10",
-    ring: "ring-violet-500/20",
-    badge: "bg-violet-500/10 text-violet-400 border-violet-500/20",
   };
 }
 
@@ -75,85 +48,59 @@ function getDateGroup(dateStr: string): string {
   return format(d, "MMMM d, yyyy");
 }
 
-// ─── ACTIVITY ITEM ─────────────────────────────────────────────────────────────
-
 function ActivityItem({ item }: { item: GithubFullActivityItem }) {
   const cfg = getTypeConfig(item);
   const initials = (item.author ?? "GH").slice(0, 2).toUpperCase();
 
   return (
-    <div className="group relative flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
-      {/* Timeline connector */}
-      <div className="flex flex-col items-center shrink-0">
-        <a href={item.authorProfile ?? "#"} target="_blank" rel="noopener noreferrer" title={item.author}>
-          <div className={cn(
-            "size-7 rounded-sm flex items-center justify-center ring-1 transition-all group-hover:scale-105 cursor-pointer",
-            cfg.bg, cfg.ring, cfg.color
-          )}>
-            {cfg.icon}
-          </div>
-        </a>
-        <div className="w-px flex-1 bg-border/8 mt-1.5" />
+    <div className="group relative flex gap-4 pb-6 last:pb-0">
+      {/* VERTICAL LINE */}
+      <div className="absolute left-3.5 top-7 bottom-0 w-px bg-border/10 group-last:hidden" />
+      
+      <div className={cn(
+        "size-7 rounded-full flex items-center justify-center shrink-0 z-10",
+        cfg.bg, cfg.color
+      )}>
+        {cfg.icon}
       </div>
 
-      {/* Content card */}
-      <div className="pb-3 flex-1 min-w-0">
-        <div className="bg-card/20 border border-border/8 rounded-md px-3 py-2.5 space-y-1.5 hover:border-primary/10 hover:bg-card/40 transition-all">
-          {/* Top row */}
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge className={cn("h-5 text-[9px] font-black uppercase tracking-widest border rounded-sm px-2", cfg.badge)}>
-                {cfg.label}
-              </Badge>
-              {item.prNumber && (
-                <span className="text-[10px] font-mono text-muted-foreground/40">#{item.prNumber}</span>
-              )}
-              {item.taskCode && (
-                <Link
-                  href={`/tasks/${item.taskId}`}
-                  className="inline-flex items-center gap-1 text-[10px] font-black text-primary/70 hover:text-primary uppercase tracking-widest transition-colors bg-primary/5 hover:bg-primary/10 rounded-xs px-1.5 py-0.5"
-                >
-                  🔗 {item.taskCode}
-                </Link>
-              )}
-            </div>
-            <span className="text-[10px] text-muted-foreground/40 font-medium shrink-0">
-              {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
-            </span>
-          </div>
-
-          {/* Title */}
-          <p className="text-sm font-semibold text-foreground/85 leading-relaxed line-clamp-2 break-words">
-            {item.title || "No message"}
-          </p>
-
-          {/* Footer: author + hash + link */}
-          <div className="flex items-center justify-between gap-2 pt-0.5">
-            <div className="flex items-center gap-2">
-              <Avatar className="size-5 ring-1 ring-border/20 rounded-full">
+      <div className="flex-1 min-w-0 space-y-1 mt-0.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+             <Avatar className="size-5 border border-border/10">
                 <AvatarImage src={item.authorAvatar} />
-                <AvatarFallback className="text-[8px] font-black bg-primary/10 text-primary rounded-full">{initials}</AvatarFallback>
-              </Avatar>
-              <span className="text-[10px] font-bold text-muted-foreground/50">{item.author}</span>
-              {item.hash && (
-                <span className="text-[9px] font-mono text-muted-foreground/25 bg-muted/10 px-1.5 py-0.5 rounded-xs">
-                  {item.hash}
-                </span>
-              )}
-            </div>
-            {item.url && (
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground/40 hover:text-primary transition-colors"
-              >
-                <ExternalLink className="size-3" />
-                View on GitHub
-              </a>
-            )}
+                <AvatarFallback className="text-[8px] font-bold">{initials}</AvatarFallback>
+             </Avatar>
+             <span className="text-xs font-semibold text-foreground/90">{item.author}</span>
+             <span className="text-[10px] text-muted-foreground/60">{cfg.label.toLowerCase()}</span>
           </div>
+          <span className="text-[10px] text-muted-foreground/40 font-medium">
+            {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
+          </span>
         </div>
+
+        <p className="text-sm text-foreground/75 leading-snug line-clamp-2">
+          {item.title}
+        </p>
+
+        {item.hash && (
+          <div className="flex items-center gap-2 pt-1">
+             <span className="text-[10px] font-mono text-muted-foreground/30 bg-muted/20 px-1.5 py-0.5 rounded-md">
+                {item.hash.slice(0, 7)}
+             </span>
+             {item.url && (
+               <a 
+                 href={item.url} 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 className="text-[10px] font-medium text-primary/60 hover:text-primary transition-colors flex items-center gap-1"
+               >
+                 <ExternalLink className="size-2.5" />
+                 View
+               </a>
+             )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -161,106 +108,12 @@ function ActivityItem({ item }: { item: GithubFullActivityItem }) {
 
 function DateGroupHeader({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2 py-1.5 mb-0.5">
-      <span className="text-[9px] font-black text-muted-foreground/35 uppercase tracking-[0.2em] shrink-0">{label}</span>
-      <div className="flex-1 h-px bg-border/8" />
+    <div className="flex items-center gap-3 py-4 first:pt-0">
+      <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest shrink-0">{label}</span>
+      <div className="flex-1 h-px bg-border/5" />
     </div>
   );
 }
-
-function ActivitySkeleton() {
-  return (
-    <div className="space-y-4">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="flex gap-4">
-          <Skeleton className="size-9 rounded-sm shrink-0" />
-          <div className="flex-1 space-y-2 py-1">
-            <div className="flex gap-2">
-              <Skeleton className="h-5 w-20 rounded-xs" />
-              <Skeleton className="h-5 w-16 rounded-xs" />
-            </div>
-            <Skeleton className="h-4 w-full rounded-sm" />
-            <Skeleton className="h-3 w-32 rounded-xs" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function NotConnectedState({ projectId }: { projectId: string }) {
-  const router = useRouter();
-  return (
-    <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
-      <div className="p-3.5 rounded-md bg-muted/10 ring-1 ring-border/10">
-        <GithubIcon className="size-7 text-muted-foreground/20" />
-      </div>
-      <div className="space-y-1.5 max-w-sm">
-        <p className="text-sm font-black text-foreground/50">GitHub Not Connected</p>
-        <p className="text-[11px] text-muted-foreground/35 leading-relaxed">
-          Connect a GitHub repository and add a Personal Access Token in Settings to see the full activity feed.
-        </p>
-        <Button
-          size="sm"
-          variant="outline"
-          className="mt-2 rounded-sm gap-1.5 text-xs font-bold h-7"
-          onClick={() => router.push(`/projects`)}
-        >
-          <Settings2 className="size-3" />
-          Open Project Settings → GitHub
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function EmptyActivity() {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
-      <div className="p-3.5 rounded-md bg-muted/10 ring-1 ring-border/10">
-        <GithubIcon className="size-7 text-muted-foreground/20" />
-      </div>
-      <div className="space-y-1 max-w-xs">
-        <p className="text-sm font-black text-foreground/50">No GitHub activity found</p>
-        <p className="text-[11px] text-muted-foreground/35 leading-relaxed">
-          Activity will appear here once commits or PRs are pushed to the connected repository.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ─── FILTER BAR ────────────────────────────────────────────────────────────────
-
-function FilterBar({ active, onChange }: { active: FilterType; onChange: (f: FilterType) => void }) {
-  const filters: { value: FilterType; label: string; icon: React.ReactNode }[] = [
-    { value: "all", label: "All", icon: <GithubIcon className="size-3.5" /> },
-    { value: "commit", label: "Commits", icon: <GitCommitHorizontal className="size-3.5" /> },
-    { value: "pr", label: "Pull Requests", icon: <GitPullRequest className="size-3.5" /> },
-  ];
-
-  return (
-    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-      {filters.map((f) => (
-        <button
-          key={f.value}
-          onClick={() => onChange(f.value)}
-          className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest shrink-0 transition-all border",
-            active === f.value
-              ? "bg-primary/10 text-primary border-primary/20"
-              : "bg-muted/5 text-muted-foreground/50 border-border/10 hover:bg-muted/15"
-          )}
-        >
-          {f.icon}
-          {f.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
 
 export function ProjectActivityFeed({ projectId }: ProjectActivityFeedProps) {
   const [typeFilter, setTypeFilter] = useState<FilterType>("all");
@@ -285,24 +138,8 @@ export function ProjectActivityFeed({ projectId }: ProjectActivityFeedProps) {
   });
 
   const allItems: GithubFullActivityItem[] = data?.pages.flatMap((p) => p.data.items) ?? [];
-  const isConnected = data?.pages[0]?.data.connected ?? true; // assume true until loaded
-  const repoInfo = data?.pages[0]?.data.repoInfo;
+  const isConnected = data?.pages[0]?.data.connected ?? true;
 
-  // Infinite scroll sentinel
-  const observer = useRef<IntersectionObserver | null>(null);
-  const sentinelRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (isFetchingNextPage) return;
-      if (observer.current) observer.current.disconnect();
-      observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasNextPage) fetchNextPage();
-      });
-      if (node) observer.current.observe(node);
-    },
-    [isFetchingNextPage, hasNextPage, fetchNextPage]
-  );
-
-  // Group by date
   const grouped = allItems.reduce<Record<string, GithubFullActivityItem[]>>((acc, item) => {
     const group = getDateGroup(item.createdAt);
     if (!acc[group]) acc[group] = [];
@@ -310,93 +147,56 @@ export function ProjectActivityFeed({ projectId }: ProjectActivityFeedProps) {
     return acc;
   }, {});
 
-  if (isLoading) return <ActivitySkeleton />;
+  if (isLoading) return <div className="space-y-6">
+    {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+  </div>;
 
-  if (!isConnected && !isLoading) return <NotConnectedState projectId={projectId} />;
+  if (!isConnected) return (
+    <div className="py-12 text-center">
+       <p className="text-xs text-muted-foreground/40 font-medium uppercase tracking-widest">GitHub not connected</p>
+    </div>
+  );
 
   return (
-    <div className="max-w-2xl space-y-3 animate-in fade-in duration-500">
-      {/* Header row */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+    <div className="max-w-xl space-y-4 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <GithubIcon className="size-4 text-muted-foreground/50" />
-          <span className="text-[11px] font-black text-muted-foreground/50 uppercase tracking-widest">
-            {repoInfo ? `${repoInfo.owner}/${repoInfo.repo}` : "GitHub Activity"}
-          </span>
-          {repoInfo && (
-            <a
-              href={`https://github.com/${repoInfo.owner}/${repoInfo.repo}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground/30 hover:text-primary transition-colors"
-            >
-              <ExternalLink className="size-3" />
-            </a>
-          )}
+           <GithubIcon className="size-3.5 text-muted-foreground/50" />
+           <h3 className="text-xs font-bold text-muted-foreground/50 uppercase tracking-widest">Recent Activity</h3>
         </div>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-1.5 text-[10px] font-black text-muted-foreground/40 hover:text-primary transition-colors uppercase tracking-widest"
-        >
+        <button onClick={() => refetch()} className="text-[10px] font-bold text-primary/60 hover:text-primary gap-1.5 flex items-center transition-colors">
           <RefreshCw className="size-3" />
-          Refresh
+          REFRESH
         </button>
       </div>
 
-      {/* GitHub Linking Tip Banner */}
-      <div className="flex items-center gap-3 p-3 rounded-2xl border border-primary/20 bg-primary/5 group hover:bg-primary/10 transition-all">
-        <div className="shrink-0 p-2 rounded-xl bg-background border border-border/40 shadow-sm text-primary group-hover:scale-110 transition-transform">
-          <GithubIcon className="size-4" />
-        </div>
-        <p className="text-[11px] font-medium text-foreground/80 leading-relaxed">
-          <span className="font-black text-primary uppercase mr-1">💡 Pro Tip:</span>
-          Include Task IDs (e.g. <code className="bg-muted/20 px-1 rounded font-mono text-primary font-black uppercase">PMS-110</code>) in your commit messages or PR titles to track specific activity here.
-        </p>
-      </div>
-
-      {/* Filter bar */}
-      <FilterBar active={typeFilter} onChange={(f) => setTypeFilter(f)} />
-
-
-      {isError && (
-        <div className="text-center py-6 text-[11px] text-destructive/60 font-medium bg-destructive/5 rounded-2xl border border-destructive/10">
-          Failed to load activity. Check your GitHub connection and try refreshing.
-        </div>
-      )}
-
-      {/* Timeline */}
-      {allItems.length === 0 && !isLoading && !isError ? (
-        <EmptyActivity />
-      ) : (
-        <div className="space-y-1">
-          {Object.entries(grouped).map(([dateLabel, items]) => (
-            <div key={dateLabel}>
-              <DateGroupHeader label={dateLabel} />
+      <div className="space-y-2">
+        {Object.entries(grouped).map(([dateLabel, items]) => (
+          <div key={dateLabel}>
+            <DateGroupHeader label={dateLabel} />
+            <div className="pl-1">
               {items.map((item, idx) => (
-                <ActivityItem
-                  key={`${item.id}-${idx}`}
-                  item={item}
-                />
+                <ActivityItem key={`${item.id}-${idx}`} item={item} />
               ))}
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Infinite scroll sentinel */}
-      <div ref={sentinelRef} className="py-2 flex justify-center">
-        {isFetchingNextPage && (
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/35">
-            <div className="size-2.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-            Loading more...
+          </div>
+        ))}
+        {allItems.length === 0 && (
+          <div className="py-12 text-center border border-dashed border-border/10 rounded-xl">
+             <p className="text-xs text-muted-foreground/30 font-medium uppercase tracking-widest">No activity found</p>
           </div>
         )}
-        {!hasNextPage && allItems.length > 5 && !isFetchingNextPage && (
-          <p className="text-[9px] text-muted-foreground/20 font-black uppercase tracking-widest">
-            All activity loaded
-          </p>
-        )}
       </div>
+
+      {hasNextPage && (
+        <button 
+          onClick={() => fetchNextPage()} 
+          disabled={isFetchingNextPage}
+          className="w-full py-2 text-[10px] font-bold text-muted-foreground/40 hover:text-primary transition-colors uppercase tracking-widest"
+        >
+          {isFetchingNextPage ? "Loading..." : "Load More"}
+        </button>
+      )}
     </div>
   );
 }

@@ -49,24 +49,10 @@ export function getTaskDraftStorageKey(projectId: string | undefined, userId: st
 export function hasTaskDraftContent(values: Partial<TaskFormValues>) {
   const title = String(values.title || "").trim();
   const description = String(values.description || "").trim();
-  const projectId = String(values.projectId || "").trim();
-  const dueDate = String(values.dueDate || "").trim();
-  const tags = Array.isArray(values.tags) ? values.tags : [];
-  const assigneeIds = Array.isArray(values.assigneeIds) ? values.assigneeIds : [];
-  const visibleToUsers = Array.isArray(values.visibleToUsers) ? values.visibleToUsers : [];
 
-  return Boolean(
-    title ||
-      description ||
-      projectId ||
-      dueDate ||
-      tags.length > 0 ||
-      assigneeIds.length > 0 ||
-      visibleToUsers.length > 0 ||
-      (values.visibility && values.visibility !== "PUBLIC") ||
-      (values.status && values.status !== "TODO") ||
-      (values.priority && values.priority !== "MEDIUM"),
-  );
+  // A draft is only meaningful if it has at least a title or description.
+  // Just having a projectId or default priority/status shouldn't trigger an auto-save.
+  return Boolean(title || description);
 }
 
 export function createDraftSnapshot(params: {

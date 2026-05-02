@@ -15,7 +15,7 @@ import {
   Loader2
 } from "lucide-react";
 import { ProjectResource } from "../../api/project-resources.api";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,14 +67,6 @@ export function ResourceCard({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const getTypeIcon = () => {
-    switch (resource.type) {
-      case "link": return <Globe className="size-4 text-blue-500" />;
-      case "credential": return <Lock className="size-4 text-amber-500" />;
-      case "note": return <FileText className="size-4 text-emerald-500" />;
-    }
-  };
-
   const getTypeColor = () => {
     switch (resource.type) {
       case "link": return "border-blue-500/20 bg-blue-500/5 text-blue-600";
@@ -84,66 +76,65 @@ export function ResourceCard({
   };
 
   return (
-    <Card className="group relative overflow-hidden rounded-md border-border/40 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
-      <CardHeader className="p-5 pb-3 flex flex-row items-start justify-between space-y-0">
-        <div className="space-y-1.5 flex-1 min-w-0 pr-4">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className={cn("h-5 px-1.5 rounded-xs text-[10px] uppercase font-bold tracking-wider", getTypeColor())}>
-              {resource.type}
-            </Badge>
-            <h3 className="font-bold text-base tracking-tight truncate">{resource.title}</h3>
+    <Card className="group relative overflow-hidden rounded-xl border border-border/10 bg-card/30 hover:bg-card/50 hover:border-primary/20 transition-all duration-300">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1 min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className={cn("h-4 px-1.5 rounded-full text-[9px] uppercase font-medium tracking-wider", getTypeColor())}>
+                {resource.type}
+              </Badge>
+              <h3 className="font-semibold text-sm tracking-tight truncate text-foreground/90">{resource.title}</h3>
+            </div>
+            {resource.description && (
+              <p className="text-xs text-muted-foreground line-clamp-1">
+                {resource.description}
+              </p>
+            )}
           </div>
-          {resource.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-              {resource.description}
-            </p>
-          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-7 rounded-lg text-muted-foreground hover:bg-primary/10 transition-all">
+                <MoreVertical className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl">
+              <DropdownMenuItem onClick={() => onEdit(resource)} className="gap-2 text-xs">
+                <Edit2 className="size-3" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => onDelete(resource.id)} 
+                className="gap-2 text-xs text-destructive focus:text-destructive"
+                disabled={!canManage}
+              >
+                <Trash2 className="size-3" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity">
-              <MoreVertical className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="rounded-sm">
-            <DropdownMenuItem onClick={() => onEdit(resource)} className="gap-2 text-sm">
-              <Edit2 className="size-3.5" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => onDelete(resource.id)} 
-              className="gap-2 text-sm text-destructive focus:text-destructive"
-              disabled={!canManage}
-            >
-              <Trash2 className="size-3.5" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </CardHeader>
-
-      <CardContent className="p-5 pt-0 space-y-4">
-        {/* Content Section */}
-        <div className="space-y-2.5">
+        <div className="space-y-1.5">
           {resource.url && (
-            <div className="flex items-center justify-between gap-2 p-2 rounded-sm bg-muted/30 border border-border/10 group/item">
+            <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/20 border border-border/5 group/item">
               <div className="flex items-center gap-2 min-w-0">
-                <Globe className="size-3.5 text-muted-foreground shrink-0" />
-                <span className="text-xs font-medium truncate text-muted-foreground/80">{resource.url}</span>
+                <Globe className="size-3 text-muted-foreground shrink-0" />
+                <span className="text-[11px] font-medium truncate text-muted-foreground">{resource.url}</span>
               </div>
               <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity">
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-9 w-9 rounded-sm hover:bg-muted/50 active:scale-90 transition-all" 
+                  className="size-6 rounded-md hover:bg-muted/50" 
                   onClick={() => copyToClipboard(resource.url!, "URL")}
                 >
-                  {copiedField === "URL" ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4" />}
+                  {copiedField === "URL" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
                 </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-sm hover:bg-muted/50 active:scale-90 transition-all" asChild>
+                <Button variant="ghost" size="icon" className="size-6 rounded-md hover:bg-muted/50" asChild>
                   <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="size-4" />
+                    <ExternalLink className="size-3" />
                   </a>
                 </Button>
               </div>
@@ -151,52 +142,52 @@ export function ResourceCard({
           )}
 
           {resource.type === "credential" && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {resource.username && (
-                <div className="flex items-center justify-between gap-2 p-2 rounded-sm bg-muted/30 border border-border/10 group/item">
+                <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/20 border border-border/5 group/item">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest shrink-0">User</span>
-                    <span className="text-xs font-bold truncate">{resource.username}</span>
+                    <span className="text-[9px] font-medium text-muted-foreground/40 uppercase tracking-wider shrink-0">User</span>
+                    <span className="text-[11px] font-medium truncate">{resource.username}</span>
                   </div>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-9 w-9 rounded-sm shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-muted/50 active:scale-90" 
+                    className="size-6 rounded-md shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-muted/50" 
                     onClick={() => copyToClipboard(resource.username!, "Username")}
                   >
-                    {copiedField === "Username" ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4" />}
+                    {copiedField === "Username" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
                   </Button>
                 </div>
               )}
 
-              <div className="flex items-center justify-between gap-2 p-2 rounded-sm bg-muted/30 border border-border/10 group/item">
+              <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/20 border border-border/5 group/item">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest shrink-0">Pass</span>
+                  <span className="text-[9px] font-medium text-muted-foreground/40 uppercase tracking-wider shrink-0">Pass</span>
                   <span className={cn(
-                    "text-xs font-bold tracking-widest",
+                    "text-[11px] font-medium tracking-widest",
                     !isRevealed && "blur-[2px] opacity-40 select-none"
                   )}>
-                    {isRevealed ? (isLoading ? "Decrypting..." : decryptedPassword || "********") : "••••••••"}
+                    {isRevealed ? (isLoading ? "..." : decryptedPassword || "********") : "••••••••"}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-9 w-9 rounded-sm hover:bg-muted/50 active:scale-90 transition-all" 
+                    className="size-6 rounded-md hover:bg-muted/50" 
                     onClick={handleReveal}
                     disabled={isLoading}
                   >
-                    {isLoading ? <Loader2 className="size-4 animate-spin" /> : (isRevealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />)}
+                    {isLoading ? <Loader2 className="size-3 animate-spin" /> : (isRevealed ? <EyeOff className="size-3" /> : <Eye className="size-3" />)}
                   </Button>
                   {isRevealed && decryptedPassword && (
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-9 w-9 rounded-sm hover:bg-muted/50 active:scale-90 transition-all" 
+                      className="size-6 rounded-md hover:bg-muted/50" 
                       onClick={() => copyToClipboard(decryptedPassword, "Password")}
                     >
-                      {copiedField === "Password" ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4" />}
+                      {copiedField === "Password" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
                     </Button>
                   )}
                 </div>
@@ -204,17 +195,6 @@ export function ResourceCard({
             </div>
           )}
         </div>
-
-        {/* Tags */}
-        {resource.tags && resource.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {resource.tags.map(tag => (
-              <span key={tag} className="text-[10px] font-bold text-muted-foreground/60 bg-muted px-2 py-0.5 rounded-xs border border-border/10">
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
       </CardContent>
     </Card>
   );
