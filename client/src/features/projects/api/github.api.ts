@@ -25,12 +25,7 @@ export interface GithubFullActivityItem {
   taskId: string | null;
 }
 
-export interface GithubFullActivityResponse {
-  items: GithubFullActivityItem[];
-  meta: { total: number; page: number; perPage: number; hasMore: boolean };
-  connected: boolean;
-  repoInfo?: { owner: string; repo: string };
-}
+export type GithubFullActivityResponse = GithubFullActivityItem[];
 
 export interface GitHubActivityItem {
   taskId: string;

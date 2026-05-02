@@ -184,7 +184,8 @@ export function TaskDescriptionEditor({
     editorProps: {
       attributes: {
         class: cn(
-          "ProseMirror min-h-[140px] w-full bg-transparent text-[15px] leading-relaxed text-foreground outline-none transition-all duration-200",
+          "ProseMirror w-full bg-transparent text-[15px] leading-relaxed text-foreground outline-none transition-all duration-200",
+          !value && !isFocused ? "min-h-[12px]" : "min-h-[140px]",
           "md:max-h-[500px] max-h-[220px] overflow-y-auto",
           alwaysEditing && "py-0"
         ),
@@ -259,7 +260,8 @@ export function TaskDescriptionEditor({
         type="button"
         onClick={() => setIsEditing(true)}
         className={cn(
-          "group relative min-h-[100px] w-full rounded-md border border-transparent p-4 text-left transition-all duration-200",
+          "group relative w-full rounded-md border border-transparent transition-all duration-200 text-left",
+          !displayHtml ? "py-0 px-1 min-h-0" : "p-4 min-h-[100px]",
           "hover:border-border/60 hover:bg-muted/30",
           className
         )}
@@ -270,10 +272,10 @@ export function TaskDescriptionEditor({
             dangerouslySetInnerHTML={{ __html: displayHtml }}
           />
         ) : (
-          <p className="text-[15px] italic text-muted-foreground">{placeholder}</p>
+          <p className="text-[13px] italic text-muted-foreground/50">{placeholder}</p>
         )}
-        <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
-           <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded border">EDIT</span>
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+           <span className="text-[9px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border tracking-tighter">EDIT</span>
         </div>
       </button>
     );
@@ -283,20 +285,24 @@ export function TaskDescriptionEditor({
     <div 
       ref={containerRef} 
       className={cn(
-        "relative flex flex-col rounded-md border bg-background transition-all duration-300",
-        isFocused ? "border-primary/40 ring-2 ring-primary/5" : "border-border",
+        "relative flex flex-col rounded-sm border bg-background transition-all duration-300",
+        isFocused ? "border-primary/40 ring-4 ring-primary/5 bg-background" : "border-border/40 bg-muted/5",
+        !value && !isFocused && alwaysEditing && "border-dashed",
         className
       )}
     >
-      {/* Notion-style minimal toolbar */}
-      <div className="flex items-center gap-0.5 border-b bg-muted/5 p-1.5">
+      {/* Notion-style minimal toolbar - only show when focused or has content or not in alwaysEditing mode */}
+      <div className={cn(
+        "flex items-center gap-0.5 border-b bg-muted/5 p-1 transition-all duration-200",
+        alwaysEditing && !isFocused && !value && "h-0 p-0 border-none opacity-0 overflow-hidden"
+      )}>
         <ToolbarButton
           ariaLabel="Bold"
           active={Boolean(editor?.isActive("bold"))}
           disabled={!editor}
           onClick={() => editor?.chain().focus().toggleBold().run()}
         >
-          <Bold className="h-4 w-4" />
+          <Bold className="h-3.5 w-3.5" />
         </ToolbarButton>
         <ToolbarButton
           ariaLabel="Italic"
@@ -304,7 +310,7 @@ export function TaskDescriptionEditor({
           disabled={!editor}
           onClick={() => editor?.chain().focus().toggleItalic().run()}
         >
-          <Italic className="h-4 w-4" />
+          <Italic className="h-3.5 w-3.5" />
         </ToolbarButton>
         <ToolbarButton
           ariaLabel="Underline"
@@ -312,26 +318,29 @@ export function TaskDescriptionEditor({
           disabled={!editor}
           onClick={() => editor?.chain().focus().toggleUnderline().run()}
         >
-          <UnderlineIcon className="h-4 w-4" />
+          <UnderlineIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <div className="mx-1 h-4 w-px bg-border/60" />
+        <div className="mx-1 h-3.5 w-px bg-border/60" />
         <ToolbarButton
           ariaLabel="Link"
           active={Boolean(editor?.isActive("link"))}
           disabled={!editor}
           onClick={toggleLink}
         >
-          <Link2 className="h-4 w-4" />
+          <Link2 className="h-3.5 w-3.5" />
         </ToolbarButton>
         
         {isSaving && (
           <div className="ml-auto pr-2">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary/60" />
+            <Loader2 className="h-3 w-3 animate-spin text-primary/60" />
           </div>
         )}
       </div>
 
-      <div className="p-4">
+      <div className={cn(
+        "transition-all duration-200",
+        !value && !isFocused ? "p-1.5" : "p-4"
+      )}>
         <EditorContent editor={editor} />
       </div>
 

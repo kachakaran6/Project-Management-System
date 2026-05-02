@@ -122,11 +122,9 @@ export function TaskGithubActivity({ links }: TaskGithubActivityProps) {
             );
           })
         ) : (
-          <div className="ml-[-14px] flex flex-col items-center justify-center p-6 rounded-2xl border border-dashed border-border/40 bg-muted/5 gap-2 group hover:bg-muted/10 transition-all">
-            <div className="p-2 rounded-full bg-muted/20 group-hover:scale-110 transition-transform">
-              <Github className="size-4 text-muted-foreground/40" />
-            </div>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">No GitHub activity</p>
+          <div className="flex items-center gap-2 py-3 px-1.5 opacity-40 italic">
+            <Github className="size-3" />
+            <p className="text-[10px] font-medium tracking-tight">No GitHub activity linked yet</p>
           </div>
         )}
       </div>

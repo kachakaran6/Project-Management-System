@@ -60,14 +60,9 @@ export const TaskStatusHistory: React.FC<TaskStatusHistoryProps> = ({ taskId }) 
 
   if (history.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-border/60 rounded-md bg-muted/5">
-        <div className="size-14 rounded-full bg-muted flex items-center justify-center text-muted-foreground mb-4">
-          <History className="size-6" />
-        </div>
-        <h3 className="text-sm font-bold text-foreground/80">No status changes yet</h3>
-        <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
-          Status updates will appear here as the task progresses.
-        </p>
+      <div className="flex items-center gap-2 py-3 px-1.5 opacity-40 italic">
+        <History className="size-3" />
+        <p className="text-[10px] font-medium tracking-tight">No status changes recorded</p>
       </div>
     );
   }

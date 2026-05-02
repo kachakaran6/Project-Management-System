@@ -24,7 +24,6 @@ export function TaskDescription({ task }: TaskDescriptionProps) {
           }
         }}
         placeholder="Write a description..."
-        className="min-h-37.5"
         isSaving={updateTaskMutation.isPending}
       />
     </div>

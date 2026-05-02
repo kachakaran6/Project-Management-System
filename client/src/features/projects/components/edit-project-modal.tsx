@@ -15,6 +15,7 @@ import { Project } from "@/types/project.types";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectGithubSettings } from "@/features/projects/components/project-github-settings";
+import { useSearchParams } from "next/navigation";
 import { Settings2 } from "lucide-react";
 import { GithubIcon as Github } from "@/components/icons/github-icon";
 
@@ -30,7 +31,10 @@ export function EditProjectModal({
   onOpenChange,
 }: EditProjectModalProps) {
   const updateProject = useUpdateProjectMutation();
+  const searchParams = useSearchParams();
   const projectId = (project as any).id || (project as any)._id;
+  
+  const defaultTab = searchParams.get("tab") || "general";
 
   const handleSubmit = async (values: ProjectFormValues) => {
     try {
@@ -68,7 +72,7 @@ export function EditProjectModal({
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs defaultValue="general" className="flex-1 flex flex-col min-h-0">
+          <Tabs defaultValue={defaultTab} className="flex-1 flex flex-col min-h-0">
             <div className="px-6 md:px-8 border-b border-border/10">
               <TabsList className="bg-transparent h-auto p-0 gap-6 rounded-none border-none">
                 <TabsTrigger 

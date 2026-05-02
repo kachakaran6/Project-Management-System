@@ -51,6 +51,11 @@ export default function ProjectDetailsPage() {
     if (tab && tab !== activeTab) {
       setActiveTab(tab);
     }
+    
+    // Auto-open edit modal if requested
+    if (searchParams.get("edit") === "true") {
+      setIsEditing(true);
+    }
   }, [searchParams]);
 
   if (isLoading) return <ProjectDetailsSkeleton />;

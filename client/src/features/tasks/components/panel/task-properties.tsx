@@ -80,14 +80,14 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
   const isSaving = updateTaskMutation.isPending;
 
   return (
-    <div className="py-6 space-y-3">
+    <div className="py-4 md:py-6 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 md:gap-y-6">
       {/* Status */}
-      <div className="grid grid-cols-3 items-center group min-h-10">
-        <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
-          <CircleDot className="size-4 opacity-70" />
+      <div className="grid grid-cols-[110px_1fr] items-center group min-h-9">
+        <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest">
+          <CircleDot className="size-3.5 opacity-70" />
           <span>Status</span>
         </div>
-        <div className="col-span-2">
+        <div className="flex justify-start">
           <EditableSelect
             value={getStatusId(task.status)}
             options={dynamicStatuses}
@@ -98,12 +98,12 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
       </div>
 
       {/* Priority */}
-      <div className="grid grid-cols-3 items-center group min-h-10">
-        <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
-          <Flag className="size-4 opacity-70" />
+      <div className="grid grid-cols-[110px_1fr] items-center group min-h-9">
+        <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest">
+          <Flag className="size-3.5 opacity-70" />
           <span>Priority</span>
         </div>
-        <div className="col-span-2">
+        <div className="flex justify-start">
           <EditableSelect
             value={task.priority}
             options={PRIORITIES}
@@ -113,13 +113,28 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
         </div>
       </div>
 
+      {/* Due Date */}
+      <div className="grid grid-cols-[110px_1fr] items-center group min-h-9">
+        <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest">
+          <Calendar className="size-3.5 opacity-70" />
+          <span>Due Date</span>
+        </div>
+        <div className="flex justify-start">
+          <EditableDate
+            value={task.dueDate}
+            onChange={(date) => handleUpdate({ dueDate: date })}
+            isSaving={isSaving}
+          />
+        </div>
+      </div>
+
       {/* Assignees */}
-      <div className="grid grid-cols-3 items-center group min-h-10">
-        <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
-          <User className="size-4 opacity-70" />
+      <div className="grid grid-cols-[110px_1fr] items-center group min-h-9">
+        <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest">
+          <User className="size-3.5 opacity-70" />
           <span>Assignees</span>
         </div>
-        <div className="col-span-2">
+        <div className="flex justify-start">
           <EditableMultiUserSelect
             value={currentAssignees}
             options={members}
@@ -150,25 +165,25 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
         };
 
         return (
-          <div className="grid grid-cols-3 items-center group min-h-10">
-            <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
-              <User className="size-4 opacity-70" />
-              <span>Created by</span>
+          <div className="grid grid-cols-[110px_1fr] items-center group min-h-9">
+            <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest">
+              <User className="size-3.5 opacity-70" />
+              <span>Created By</span>
             </div>
-            <div className="col-span-2">
-              <div className="flex items-center gap-2.5 rounded-sm border border-white/5 bg-white/3 px-3 py-2 transition-colors hover:bg-muted/20 cursor-default">
-                <Avatar className="h-8 w-8 ring-1 ring-border/10 shadow-sm">
+            <div>
+              <div className="flex items-center gap-2 rounded-sm border border-border/10 bg-muted/5 px-2 py-1 transition-colors cursor-default max-w-fit">
+                <Avatar className="h-5.5 w-5.5 ring-1 ring-border/10">
                   <AvatarImage src={creatorInfo.avatarUrl} alt={creatorInfo.name} />
-                  <AvatarFallback className="text-[11px] bg-muted/50 text-muted-foreground font-extrabold uppercase">
+                  <AvatarFallback className="text-[9px] bg-muted/50 text-muted-foreground font-bold uppercase">
                     {creatorInfo.name.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col ml-0.5">
-                  <span className="text-sm font-semibold text-foreground/90 leading-tight">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-foreground/90 leading-tight">
                     {creatorInfo.name}
                   </span>
                   {creatorInfo.email ? (
-                    <span className="text-xs text-muted-foreground truncate">
+                    <span className="text-[8px] text-muted-foreground/60 truncate max-w-[110px] leading-none">
                       {creatorInfo.email}
                     </span>
                   ) : null}
@@ -179,30 +194,13 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
         );
       })()}
 
-      {/* Due Date */}
-      <div className="grid grid-cols-3 items-center group min-h-10">
-        <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium">
-          <Calendar className="size-4 opacity-70" />
-          <span>Due date</span>
-        </div>
-        <div className="col-span-2">
-          <EditableDate
-            value={task.dueDate}
-            onChange={(date) => handleUpdate({ dueDate: date })}
-            isSaving={isSaving}
-          />
-        </div>
-      </div>
-
-      <Separator className="my-2 opacity-50" />
-
       {/* Tags */}
-      <div className="grid grid-cols-3 items-start group min-h-10">
-        <div className="flex items-center gap-2.5 text-muted-foreground text-sm font-medium mt-1.5">
-          <TagIcon className="size-4 opacity-70" />
+      <div className="grid grid-cols-[110px_1fr] items-center group min-h-9">
+        <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest h-9">
+          <TagIcon className="size-3.5 opacity-70" />
           <span>Tags</span>
         </div>
-        <div className="col-span-2">
+        <div>
           <TagSelect
             selectedTagIds={(task.tags || []).map((t: any) => typeof t === 'string' ? t : t.id)}
             onChange={(tagIds) => handleUpdate({ tags: tagIds })}

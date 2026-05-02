@@ -35,6 +35,11 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   members?: any[]; // Populated members
+  githubSettings?: {
+    repoUrl?: string;
+    isEnabled?: boolean;
+    autoStatusUpdate?: boolean;
+  };
 }
 
 export interface CreateProjectInput {

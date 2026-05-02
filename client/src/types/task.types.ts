@@ -74,6 +74,10 @@ export interface Task {
   taskCode?: string;
   sequence?: number;
   legacyId?: string;
+  githubSettings?: {
+    repoUrl?: string;
+    isEnabled?: boolean;
+  };
   createdAt: string;
   updatedAt: string;
 }
