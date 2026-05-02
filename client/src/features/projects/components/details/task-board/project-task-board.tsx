@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { Search, Filter, ChevronDown, Kanban, List, Plus, X, Calendar, User, EyeOff, Eye, ChevronRight, LayoutGrid } from "lucide-react";
+import { Search, Filter, ChevronDown, Kanban, List, Table as TableIcon, Plus, X, Calendar, User, EyeOff, Eye, ChevronRight, LayoutGrid, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,7 +53,7 @@ interface ProjectTaskBoardProps {
 
 export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardProps) {
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"board" | "list">("board");
+  const [viewMode, setViewMode] = useState<"board" | "list" | "table">("board");
   const [hideEmptyColumns, setHideEmptyColumns] = useState(true);
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
   
@@ -377,6 +377,14 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
             >
               <List className="size-3.5" />
             </Button>
+            <Button
+              variant={viewMode === "table" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-6 w-8 p-0 rounded-md"
+              onClick={() => setViewMode("table")}
+            >
+              <TableIcon className="size-3.5" />
+            </Button>
           </div>
         </div>
       </div>
@@ -468,94 +476,211 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
             </div>
           </DragDropContext>
         )
-      ) : (
+      ) : viewMode === "list" ? (
         <div className="flex-1 overflow-y-auto no-scrollbar pb-10 pr-1 md:pr-2">
-          <div className="flex flex-col gap-2 md:gap-4">
-            {(statuses.length > 0 ? statuses : [{ name: "TODO", id: "TODO" }, { name: "IN_PROGRESS", id: "IN_PROGRESS" }, { name: "DONE", id: "DONE" }]).map((status: any) => {
+          <div className="flex flex-col gap-2">
+            {groupedTasks.sortedStatuses.map((status: any) => {
               const statusId = status.id || status._id;
               const groupTasks = groupedTasks.groups[statusId] || [];
-              const isCollapsed = collapsedGroups.includes(statusId);
+              const statusColor = status.color || "#94a3b8";
 
               if (hideEmptyColumns && groupTasks.length === 0) return null;
 
               return (
-                <div key={statusId} className="flex flex-col gap-2">
-                  <button
-                    onClick={() => toggleGroup(statusId)}
-                    className="flex items-center gap-2 px-2 py-1 group w-fit hover:bg-muted/30 rounded-lg transition-colors"
-                  >
-                    <ChevronRight className={cn("size-3.5 text-muted-foreground/40 transition-transform duration-200", !isCollapsed && "rotate-90")} />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 group-hover:text-foreground transition-colors">
-                      {status.name.replace(/_/g, ' ')}
-                    </span>
-                    <Badge variant="outline" className="h-4 px-1.5 text-[9px] font-bold border-border/10 bg-muted/20 text-muted-foreground/50">
-                      {groupTasks.length}
-                    </Badge>
-                  </button>
-
-                  {!isCollapsed && (
-                    <div className="flex flex-col gap-1.5 pl-3 md:pl-5">
-                      {groupTasks.map(task => (
-                        <div
-                          key={task.id}
-                          onClick={() => onTaskClick(task)}
-                          className="flex items-center justify-between p-2 md:p-2.5 rounded-xl border border-border/10 bg-card hover:border-primary/20 transition-all cursor-pointer group/item"
-                        >
-                          <div className="flex items-center gap-2 md:gap-3">
-                            <span className="text-[9px] md:text-[10px] font-mono text-muted-foreground/30 w-12 md:w-16 group-hover/item:text-primary transition-colors">
-                              {task.taskCode || (task as any).code || `T-${String(task.id).slice(-4).toUpperCase()}`}
+                <AccordionSection
+                  key={statusId}
+                  title={status.name.replace(/_/g, ' ')}
+                  color={statusColor}
+                  count={groupTasks.length}
+                  defaultOpen={!collapsedGroups.includes(statusId)}
+                >
+                  <div className="grid gap-2 p-1.5 pt-1">
+                    {groupTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="rounded-md border border-border/10 bg-card/40 p-2.5 md:p-3 shadow-sm hover:border-primary/20 transition-all cursor-pointer group/card"
+                        onClick={() => onTaskClick(task)}
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-1.5">
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-[14px] hover:text-primary transition-colors block line-clamp-1 text-left w-full">
+                              {task.title}
+                            </h4>
+                            <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-tighter">
+                              {task.taskCode || (task as any).code || `#${String(task.id).slice(-8)}`}
                             </span>
-                            <h4 className="text-xs md:text-sm font-medium text-foreground line-clamp-1">{task.title}</h4>
                           </div>
-                          <div className="flex items-center gap-2 md:gap-4">
-                            <div className="flex items-center gap-1 md:gap-2">
-                              {task.priority && (
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "h-4 px-1 md:px-1.5 rounded-full text-[7px] md:text-[8px] font-bold uppercase tracking-tight",
-                                    task.priority === "HIGH" ? "border-rose-500/20 text-rose-500 bg-rose-500/5" : "border-border/10 text-muted-foreground"
-                                  )}
-                                >
-                                  {task.priority}
-                                </Badge>
-                              )}
-                              {task.dueDate && (
-                                <div className="hidden xs:flex items-center gap-1 md:gap-1.5 px-1.5 md:px-2 py-0.5 rounded-md bg-muted/30 text-[9px] md:text-[10px] font-medium text-muted-foreground">
-                                  <Calendar className="size-2.5 md:size-3" />
-                                  {new Date(task.dueDate).toLocaleDateString()}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex items-center -space-x-1.5">
-                              {task.assigneeUsers?.slice(0, 2).map((a, i) => (
-                                <Avatar key={a.id || i} className="size-4 md:size-5 border border-background ring-1 ring-border/5">
-                                  <AvatarImage src={a.avatarUrl} />
-                                  <AvatarFallback className="text-[6px] md:text-[7px] font-bold bg-primary/10 text-primary uppercase flex items-center justify-center">
-                                    {a.firstName?.[0] || a.name?.[0] || <User className="size-2" />}
-                                  </AvatarFallback>
-                                </Avatar>
-                              ))}
-                              {task.assigneeUsers && task.assigneeUsers.length > 2 && (
-                                <div className="size-4 md:size-5 rounded-full bg-muted border border-background flex items-center justify-center text-[6px] md:text-[7px] font-bold text-muted-foreground">
-                                  +{task.assigneeUsers.length - 2}
-                                </div>
-                              )}
-                            </div>
+                          <div className="flex items-center gap-2">
+                            {task.priority && (
+                              <Badge 
+                                variant="outline" 
+                                className={cn(
+                                  "h-4 px-1.5 rounded-full text-[8px] font-bold uppercase",
+                                  task.priority === "HIGH" || task.priority === "URGENT" ? "text-rose-500 border-rose-500/20 bg-rose-500/5" : "text-muted-foreground"
+                                )}
+                              >
+                                {String(task.priority)}
+                              </Badge>
+                            )}
+                            <Badge
+                              variant="outline"
+                              className="h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight shrink-0 border-none"
+                              style={{ 
+                                color: statusColor, 
+                                backgroundColor: `${statusColor}15` 
+                              }}
+                            >
+                              {status.name.replace(/_/g, ' ')}
+                            </Badge>
                           </div>
                         </div>
-                      ))}
-                      {groupTasks.length === 0 && (
-                        <div className="py-4 text-center border border-dashed border-border/5 rounded-xl">
-                          <p className="text-[9px] text-muted-foreground/20 font-bold uppercase">No tasks in this stage</p>
+                        <div className="flex items-center justify-between mt-2.5 border-t border-border/10 pt-2">
+                          <div className="flex items-center gap-2">
+                            {task.assigneeUsers && task.assigneeUsers.length > 0 ? (
+                              <div className="flex items-center -space-x-2">
+                                {task.assigneeUsers.slice(0, 3).map((a) => (
+                                  <Avatar key={a.id} className="h-6 w-6 ring-2 ring-background border border-border/10 shadow-sm">
+                                    <AvatarImage src={a.avatarUrl} />
+                                    <AvatarFallback className="text-[8px] bg-primary/10 text-primary uppercase flex items-center justify-center font-bold">
+                                       {a.firstName?.[0] || a.name?.[0] || <User className="size-2.5" />}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                ))}
+                                {task.assigneeUsers.length > 3 && (
+                                  <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold border-2 border-background shadow-sm">
+                                    +{task.assigneeUsers.length - 3}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 flex items-center justify-center">
+                                <User className="size-3 text-muted-foreground/40" />
+                              </div>
+                            )}
+                            <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[120px]">
+                              {(!task.assigneeUsers || task.assigneeUsers.length === 0)
+                                ? "Unassigned"
+                                : task.assigneeUsers.length === 1
+                                  ? task.assigneeUsers[0].name || `${task.assigneeUsers[0].firstName} ${task.assigneeUsers[0].lastName}`
+                                  : `${task.assigneeUsers.length} members`}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onTaskClick(task);
+                              }}
+                            >
+                              <Pencil className="size-3.5" />
+                            </Button>
+                            {canEdit && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-full hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // This would trigger delete logic if available
+                                }}
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    ))}
+                    {groupTasks.length === 0 && (
+                      <div className="py-4 text-center border border-dashed border-border/5 rounded-xl bg-muted/5">
+                        <p className="text-[9px] text-muted-foreground/20 font-bold uppercase">No tasks in this stage</p>
+                      </div>
+                    )}
+                  </div>
+                </AccordionSection>
               );
             })}
           </div>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-auto bg-card/20 rounded-xl border border-border/10 shadow-inner-sm custom-scrollbar">
+          <table className="w-full border-separate border-spacing-0 min-w-[800px]">
+             <thead className="sticky top-0 z-20 bg-background/95 backdrop-blur-md">
+                <tr>
+                   <th className="py-3 pl-6 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 border-b border-border/10">Task</th>
+                   <th className="py-3 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 border-b border-border/10">Assignee</th>
+                   <th className="py-3 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 border-b border-border/10">Status</th>
+                   <th className="py-3 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 border-b border-border/10">Priority</th>
+                   <th className="py-3 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 border-b border-border/10">Due Date</th>
+                   <th className="py-3 pr-6 text-right border-b border-border/10"></th>
+                </tr>
+             </thead>
+             <tbody>
+                {tasks.map((task) => {
+                  const statusObj = resolveStatus(task, statuses);
+                  const statusColor = statusObj?.color || "#94a3b8";
+                  return (
+                    <tr 
+                      key={task.id} 
+                      className="group hover:bg-muted/5 cursor-pointer transition-colors"
+                      onClick={() => onTaskClick(task)}
+                    >
+                      <td className="py-3 pl-6 border-b border-border/5">
+                         <div className="flex flex-col">
+                            <span className="text-sm font-medium text-foreground">{task.title}</span>
+                            <span className="text-[9px] font-mono text-muted-foreground/40">{task.taskCode || (task as any).code || `#${String(task.id).slice(-8)}`}</span>
+                         </div>
+                      </td>
+                      <td className="py-3 border-b border-border/5">
+                        <div className="flex items-center gap-2">
+                           {task.assigneeUsers?.[0] ? (
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={task.assigneeUsers[0].avatarUrl} />
+                                <AvatarFallback className="text-[8px] font-bold bg-primary/10 text-primary">
+                                  {task.assigneeUsers[0].name?.[0] || <User className="size-2.5" />}
+                                </AvatarFallback>
+                              </Avatar>
+                           ) : (
+                              <div className="size-6 rounded-full border border-dashed border-border/10 flex items-center justify-center">
+                                 <User className="size-3 text-muted-foreground/20" />
+                              </div>
+                           )}
+                           <span className="text-xs text-muted-foreground font-medium">
+                              {task.assigneeUsers?.[0]?.name || "Unassigned"}
+                           </span>
+                        </div>
+                      </td>
+                      <td className="py-3 border-b border-border/5">
+                        <Badge variant="outline" className="h-5 px-2 text-[9px] font-bold border-none" style={{ color: statusColor, backgroundColor: `${statusColor}15` }}>
+                          {statusObj?.name || "Unknown"}
+                        </Badge>
+                      </td>
+                      <td className="py-3 border-b border-border/5">
+                         {task.priority && (
+                            <Badge variant="outline" className={cn("h-5 px-2 text-[9px] font-bold", task.priority === "HIGH" ? "text-rose-500 border-rose-500/20 bg-rose-500/5" : "text-muted-foreground")}>
+                               {task.priority}
+                            </Badge>
+                         )}
+                      </td>
+                      <td className="py-3 border-b border-border/5">
+                        <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+                           <Calendar className="size-3" />
+                           {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No Date"}
+                        </div>
+                      </td>
+                      <td className="py-3 pr-6 text-right border-b border-border/5">
+                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full"><Pencil className="size-3.5" /></Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+             </tbody>
+          </table>
         </div>
       )}
     </div>
@@ -578,6 +703,34 @@ function FilterSelect({ label, value, onChange, options }: { label: string, valu
           ))}
         </SelectContent>
       </Select>
+    </div>
+  );
+}
+
+function AccordionSection({ title, color, count, children, defaultOpen = false }: any) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-border/10 rounded-lg overflow-hidden bg-card/20 shadow-sm">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-2 md:p-2.5 hover:bg-muted/10 transition-colors group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="size-2 rounded-full" style={{ backgroundColor: color }} />
+          <h3 className="text-xs font-black uppercase tracking-widest text-foreground/80 group-hover:text-primary transition-colors">
+            {title}
+          </h3>
+          <span className="text-[10px] font-bold bg-muted/30 px-2 py-0.5 rounded-full text-muted-foreground">
+            {count}
+          </span>
+        </div>
+        <ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-300", isOpen && "rotate-90")} />
+      </button>
+      {isOpen && (
+        <div className="border-t border-border/10 bg-muted/5 animate-in fade-in slide-in-from-top-1 duration-200">
+          {children}
+        </div>
+      )}
     </div>
   );
 }

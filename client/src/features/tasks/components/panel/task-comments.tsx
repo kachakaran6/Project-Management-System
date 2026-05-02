@@ -71,7 +71,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
             </div>
           </div>
         ) : comments.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground/50 italic text-sm border-2 border-dashed rounded-md border-muted">
+          <div className="py-4 px-1.5 opacity-30 italic text-[11px] font-medium border-t border-dashed border-muted mt-2">
             No discussion yet. Be the first to chime in!
           </div>
         ) : (

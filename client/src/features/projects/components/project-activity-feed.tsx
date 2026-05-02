@@ -50,7 +50,11 @@ function getDateGroup(dateStr: string): string {
 
 function ActivityItem({ item }: { item: GithubFullActivityItem }) {
   const cfg = getTypeConfig(item);
-  const initials = (item.author ?? "GH").slice(0, 2).toUpperCase();
+  const authorName = typeof item.author === 'string' 
+    ? item.author 
+    : (item.author as any)?.username || (item.author as any)?.name || "GH";
+  const initials = authorName.slice(0, 2).toUpperCase();
+  const authorAvatar = item.authorAvatar || (item.author as any)?.avatarUrl;
 
   return (
     <div className="group relative flex gap-4 pb-6 last:pb-0">
@@ -67,21 +71,21 @@ function ActivityItem({ item }: { item: GithubFullActivityItem }) {
       <div className="flex-1 min-w-0 space-y-1 mt-0.5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-             <Avatar className="size-5 border border-border/10">
-                <AvatarImage src={item.authorAvatar} />
+              <Avatar className="size-5 border border-border/10">
+                <AvatarImage src={authorAvatar} />
                 <AvatarFallback className="text-[8px] font-bold">{initials}</AvatarFallback>
              </Avatar>
-             <span className="text-xs font-semibold text-foreground/90">{item.author}</span>
-             <span className="text-[10px] text-muted-foreground/60">{cfg.label.toLowerCase()}</span>
+             <span className="text-xs font-semibold text-foreground/90 line-clamp-1 flex-1">
+               {item.title || (item as any).message || "No message"}
+             </span>
+             <span className="text-[10px] text-muted-foreground/60 shrink-0">{cfg.label.toLowerCase()}</span>
           </div>
-          <span className="text-[10px] text-muted-foreground/40 font-medium">
+          <span className="text-[10px] text-muted-foreground/40 font-medium shrink-0">
             {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
           </span>
         </div>
 
-        <p className="text-sm text-foreground/75 leading-snug line-clamp-2">
-          {item.title}
-        </p>
+        {/* Removed redundant body text since it's now in the header */}
 
         {item.hash && (
           <div className="flex items-center gap-2 pt-1">
@@ -130,15 +134,22 @@ export function ProjectActivityFeed({ projectId }: ProjectActivityFeedProps) {
     queryKey: ["github-full-activity", projectId, typeFilter],
     queryFn: ({ pageParam = 1 }) =>
       githubApi.getFullActivity(projectId, { page: pageParam as number, per_page: 30, type: typeFilter }),
-    getNextPageParam: (lastPage) =>
-      lastPage.data.meta.hasMore ? lastPage.data.meta.page + 1 : undefined,
+    getNextPageParam: (lastPage) => {
+      // If we got fewer items than requested, we've reached the end
+      if (Array.isArray(lastPage.data) && lastPage.data.length < 30) return undefined;
+      // For now, if it's an array, we just return undefined to stop infinite scroll 
+      // unless we want to implement offset-based pagination in backend
+      return undefined;
+    },
     initialPageParam: 1,
     enabled: !!projectId,
     staleTime: 60_000,
   });
 
-  const allItems: GithubFullActivityItem[] = data?.pages.flatMap((p) => p.data.items) ?? [];
-  const isConnected = data?.pages[0]?.data.connected ?? true;
+  const allItems: GithubFullActivityItem[] = data?.pages.flatMap((p) => 
+    Array.isArray(p.data) ? p.data : (p.data as any).items ?? []
+  ) ?? [];
+  const isConnected = true; // Default to true if we got data
 
   const grouped = allItems.reduce<Record<string, GithubFullActivityItem[]>>((acc, item) => {
     const group = getDateGroup(item.createdAt);

@@ -326,16 +326,22 @@ export default function PagesListPage() {
 
       <div className="flex-1 overflow-y-auto no-scrollbar pb-10">
         {pagesQuery.isLoading ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="rounded-2xl border border-white/5 bg-white/3 p-3.5">
+              <div key={index} className="rounded-2xl border border-white/5 bg-white/3 p-4">
                 <div className="space-y-3">
-                  <Skeleton className="h-5 w-2/3" />
+                  <div className="flex items-center gap-2">
+                     <Skeleton className="h-4 w-4 rounded-md" />
+                     <Skeleton className="h-5 w-2/3" />
+                  </div>
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-4/5" />
-                  <div className="flex items-center gap-2 pt-2">
-                    <Skeleton className="h-6 w-16 rounded-full" />
-                    <Skeleton className="h-6 w-20 rounded-full" />
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                    <div className="flex items-center gap-2">
+                       <Skeleton className="size-5 rounded-full" />
+                       <Skeleton className="h-3 w-16" />
+                    </div>
+                    <Skeleton className="h-3 w-12" />
                   </div>
                 </div>
               </div>
@@ -344,7 +350,7 @@ export default function PagesListPage() {
         ) : null}
 
         {!pagesQuery.isLoading && visibleRows.length === 0 ? (
-          <div className="rounded-2xl border border-white/5 bg-white/3 p-6">
+          <div className="rounded-2xl border border-white/5 bg-white/3 p-8 text-center">
             <EmptyState
               icon={NotebookPen}
               title="No pages found"
@@ -356,9 +362,9 @@ export default function PagesListPage() {
         ) : null}
 
         {!pagesQuery.isLoading && visibleRows.length > 0 ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {visibleRows.map((page) => {
-              const excerpt = stripHtml(page.content || "").slice(0, 120) || "No content yet";
+              const excerpt = stripHtml(page.content || "").slice(0, 100) || "No content yet";
               const ownerName =
                 `${page.creator?.firstName || ""} ${page.creator?.lastName || ""}`.trim() ||
                 "Unknown";
@@ -367,18 +373,27 @@ export default function PagesListPage() {
                 <Link
                   key={page.id}
                   href={`/pages/${page.id}`}
-                  className="group flex h-full flex-col rounded-2xl border border-white/5 bg-white/3 p-3 lg:p-4 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/5"
+                  className="group flex h-full flex-col rounded-2xl border border-white/5 bg-white/3 p-4 transition-all duration-300 hover:-translate-y-1 hover:bg-white/5 hover:border-white/10 hover:shadow-2xl hover:shadow-primary/5"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex items-start gap-2">
-                      <FileText className="mt-0.5 size-4 shrink-0 text-muted-foreground/60" />
-                      <h3 className="truncate text-sm lg:text-[15px] font-bold text-foreground/90 group-hover:text-primary transition-colors">
-                        {page.title || "Untitled"}
-                      </h3>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="min-w-0 flex items-start gap-2.5">
+                      <div className="mt-0.5 size-7 rounded-lg bg-muted/30 flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
+                        <FileText className="size-4 text-muted-foreground/60 group-hover:text-primary transition-colors" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-[15px] font-bold text-foreground/90 group-hover:text-primary transition-colors leading-none pt-0.5">
+                          {page.title || "Untitled"}
+                        </h3>
+                        <div className="flex items-center gap-1.5 mt-1 lg:hidden">
+                           <PageVisibilityBadge visibility={page.visibility} />
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-1 shrink-0 scale-90 origin-right lg:scale-100">
-                      <PageVisibilityBadge visibility={page.visibility} />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <div className="hidden lg:block">
+                        <PageVisibilityBadge visibility={page.visibility} />
+                      </div>
                       {canManage(page) ? (
                         <DropdownMenu>
                           <DropdownMenuTrigger
@@ -391,62 +406,66 @@ export default function PagesListPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 rounded-lg hover:bg-muted/50"
+                              className="h-8 w-8 rounded-lg hover:bg-white/5"
                             >
-                              <MoreVertical className="size-3.5 text-muted-foreground/50" />
+                              <MoreVertical className="size-4 text-muted-foreground/40" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/40 shadow-xl">
+                          <DropdownMenuContent align="end" className="w-52 rounded-xl border-border/40 shadow-2xl bg-popover/95 backdrop-blur-xl">
                             <DropdownMenuItem
+                              className="rounded-lg gap-2.5"
                               onClick={(event) => {
                                 event.preventDefault();
                                 event.stopPropagation();
                                 router.push(`/pages/${page.id}`);
                               }}
                             >
-                              <Pencil className="mr-2 size-3.5" />
-                              Edit Page
+                              <Pencil className="size-3.5 opacity-60" />
+                              <span className="font-medium">Edit Page</span>
                             </DropdownMenuItem>
 
                             {page.visibility !== "PUBLIC" ? (
                               <DropdownMenuItem
+                                className="rounded-lg gap-2.5"
                                 onClick={(event) => {
                                   event.preventDefault();
                                   event.stopPropagation();
                                   setPublishTarget(page);
                                 }}
                               >
-                                <Globe className="mr-2 size-3.5" />
-                                Publish Page
+                                <Globe className="size-3.5 opacity-60" />
+                                <span className="font-medium">Publish Page</span>
                               </DropdownMenuItem>
                             ) : (
                               <>
                                 <DropdownMenuItem
+                                  className="rounded-lg gap-2.5"
                                   onClick={(event) => {
                                     event.preventDefault();
                                     event.stopPropagation();
                                     void copyPublicLink(page);
                                   }}
                                 >
-                                  <Copy className="mr-2 size-3.5" />
-                                  {copiedPageId === page.id ? "Copied" : "Copy Public Link"}
+                                  <Copy className="size-3.5 opacity-60" />
+                                  <span className="font-medium">{copiedPageId === page.id ? "Copied" : "Copy Link"}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                  className="rounded-lg gap-2.5"
                                   onClick={(event) => {
                                     event.preventDefault();
                                     event.stopPropagation();
                                     void handleUnpublish(page);
                                   }}
                                 >
-                                  <Users className="mr-2 size-3.5" />
-                                  Unpublish
+                                  <Users className="size-3.5 opacity-60" />
+                                  <span className="font-medium">Unpublish</span>
                                 </DropdownMenuItem>
                               </>
                             )}
 
                             <DropdownMenuSeparator className="bg-border/10" />
                             <DropdownMenuItem
-                              className="text-rose-500 hover:text-rose-600 hover:bg-rose-500/5 focus:bg-rose-500/5 focus:text-rose-600"
+                              className="rounded-lg gap-2.5 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 focus:bg-rose-500/10 focus:text-rose-600"
                               onClick={(event) => {
                                 event.preventDefault();
                                 event.stopPropagation();
@@ -454,8 +473,8 @@ export default function PagesListPage() {
                                 setDeleteOpen(true);
                               }}
                             >
-                              <Trash2 className="mr-2 size-3.5" />
-                              Delete
+                              <Trash2 className="size-3.5" />
+                              <span className="font-medium">Delete Page</span>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -463,35 +482,30 @@ export default function PagesListPage() {
                     </div>
                   </div>
 
-                  <p className="mt-1.5 line-clamp-2 text-xs lg:text-sm leading-relaxed text-muted-foreground/70">
+                  <p className="line-clamp-2 text-xs lg:text-[13px] leading-relaxed text-muted-foreground/50 mb-4 group-hover:text-muted-foreground/70 transition-colors">
                     {excerpt}
                   </p>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-white/5 pt-3">
+                  <div className="mt-auto flex items-center justify-between gap-3 border-t border-white/5 pt-3">
                     <div className="flex items-center gap-2 min-w-0">
-                      <Avatar className="h-5 w-5 lg:h-6 lg:w-6 ring-1 ring-white/10">
+                      <Avatar className="size-6 ring-2 ring-background border border-white/5">
                         <AvatarImage src={page.creator?.avatarUrl} alt={ownerName} />
-                        <AvatarFallback className="text-[8px] lg:text-[9px] font-bold bg-muted">
+                        <AvatarFallback className="text-[8px] font-bold bg-muted/50">
                           {toInitials(page.creator?.firstName, page.creator?.lastName)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="truncate text-[10px] lg:text-xs font-medium text-muted-foreground/80">
+                      <span className="truncate text-[11px] font-semibold text-foreground/60 group-hover:text-foreground/80 transition-colors">
                         {ownerName}
                       </span>
                     </div>
 
-                    <span className="text-[10px] text-muted-foreground/30 px-1">|</span>
-
-                    <div className="inline-flex items-center gap-1.5 shrink-0 text-[10px] lg:text-xs text-muted-foreground/60">
-                      <CalendarDays className="size-3 lg:size-3.5" />
-                      <span>{new Date(page.updatedAt).toLocaleDateString()}</span>
-                    </div>
-
-                    <div className="ml-auto hidden lg:flex items-center gap-1.5">
-                      {page.visibility === "PUBLIC" ? (
-                        <span className="text-[10px] font-semibold text-emerald-500">Published</span>
-                      ) : null}
-                      <span className="rounded-full border border-border/50 px-1.5 py-0.5 text-[9px] uppercase font-bold tracking-tight text-muted-foreground">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground/40">
+                        <CalendarDays className="size-3" />
+                        <span>{new Date(page.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                      </div>
+                      <div className="size-1 rounded-full bg-border/20" />
+                      <span className="text-[9px] uppercase font-black tracking-tighter text-muted-foreground/30">
                         {page.creatorId === currentUserId ? "Owned" : "Shared"}
                       </span>
                     </div>

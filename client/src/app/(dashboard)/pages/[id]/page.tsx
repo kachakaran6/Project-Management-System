@@ -62,6 +62,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription as DialogDesc,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -168,13 +169,11 @@ export default function PageEditorPage() {
 
   const canEdit = useMemo(() => {
     if (!page) return false;
-    // Strict Owner rule: Only creator can edit
     return isCreator;
   }, [isCreator, page]);
 
   const canDelete = useMemo(() => {
     if (!page) return false;
-    // Strict Owner rule: Only creator can delete
     return isCreator;
   }, [isCreator, page]);
 
@@ -257,7 +256,7 @@ export default function PageEditorPage() {
     editorProps: {
       attributes: {
         class:
-          "min-h-[600px] w-full max-w-none bg-transparent px-0 py-4 text-[16px] md:text-[18px] leading-relaxed outline-none prose prose-slate dark:prose-invert",
+          "min-h-[600px] w-full max-w-none bg-transparent px-4 md:px-0 py-4 text-[16px] md:text-[18px] leading-relaxed outline-none prose prose-slate dark:prose-invert",
       },
       handleKeyDown: (view, event) => {
         if (event.key === "/") {
@@ -344,12 +343,10 @@ export default function PageEditorPage() {
     [wordCount],
   );
 
-  // Reset hydration when page ID changes
   useEffect(() => {
     setHasHydrated(false);
   }, [pageId]);
 
-  // Stable hydration effect: Sync server data to local state ONCE per page load
   useEffect(() => {
     if (!page || hasHydrated) return;
 
@@ -440,7 +437,6 @@ export default function PageEditorPage() {
     return () => window.clearTimeout(timer);
   }, [copiedPublicLink]);
 
-  // Autosave Logic
   useEffect(() => {
     if (!hasHydrated || !canEdit) return;
 
@@ -519,44 +515,38 @@ export default function PageEditorPage() {
     const toastId = toast.loading("Preparing professional PDF...");
 
     try {
-      // 1. Ensure absolute font readiness
       await document.fonts.ready;
       
-      // 2. Setup a completely isolated render container
       const renderRoot = document.createElement("div");
       renderRoot.id = "pdf-render-root";
       Object.assign(renderRoot.style, {
         position: "fixed",
         top: "-20000px",
         left: "-20000px",
-        width: "794px", // Fixed A4 width
+        width: "794px",
         backgroundColor: "#ffffff",
         zIndex: "-10000",
         visibility: "visible",
       });
       document.body.appendChild(renderRoot);
 
-      // 3. Clone and sanitize with AGGRESSIVE theme stripping
       const clone = editorRef.current.cloneNode(true) as HTMLElement;
       
-      // Remove ALL theme and dark-mode related classes from the entire cloned tree
       const themeClasses = ["dark", "theme-dark", "bg-card", "bg-background", "text-foreground", "shadow-sm"];
       const allClonedElements = [clone, ...Array.from(clone.querySelectorAll("*"))];
       allClonedElements.forEach(el => {
         if (el instanceof HTMLElement) {
           themeClasses.forEach(tc => el.classList.remove(tc));
-          // Reset background and force high-contrast text color
           el.style.backgroundColor = "transparent";
           el.style.color = "#1a1a1a";
         }
       });
 
-      // 4. Apply Document-Grade Typography & Layout (Notion/Linear style)
       Object.assign(clone.style, {
         width: "794px",
         height: "auto",
         margin: "0",
-        padding: "50px 60px", // Professional margins
+        padding: "50px 60px",
         backgroundColor: "#ffffff",
         color: "#1a1a1a",
         fontSize: "15px",
@@ -566,7 +556,6 @@ export default function PageEditorPage() {
         boxShadow: "none",
       });
 
-      // 4a. Format Headings
       clone.querySelectorAll("h1").forEach(h1 => {
         Object.assign(h1.style, {
           fontSize: "32px",
@@ -587,7 +576,6 @@ export default function PageEditorPage() {
         });
       });
 
-      // 4b. Format Paragraphs & Lists
       clone.querySelectorAll("p").forEach(p => {
         (p as HTMLElement).style.marginBottom = "14px";
       });
@@ -599,8 +587,7 @@ export default function PageEditorPage() {
         });
       });
 
-      // 4c. Special handling for Title (Input)
-      const titleInput = clone.querySelector("input");
+      const titleInput = clone.querySelector("textarea");
       if (titleInput) {
         const titleH1 = document.createElement("h1");
         titleH1.textContent = title || "Untitled Document";
@@ -615,7 +602,6 @@ export default function PageEditorPage() {
         titleInput.replaceWith(titleH1);
       }
 
-      // 4d. Scrub all UI artifacts
       const scrubbedSelectors = [
         "button", 
         "nav", 
@@ -631,9 +617,8 @@ export default function PageEditorPage() {
 
       renderRoot.appendChild(clone);
 
-      // 5. Capture with precise configuration
       const canvas = await html2canvas(renderRoot, {
-        scale: 2.5, // Optimized density to keep file size reasonable but crisp
+        scale: 2.5,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
@@ -642,11 +627,9 @@ export default function PageEditorPage() {
         imageTimeout: 15000,
       });
 
-      // Cleanup immediately
       document.body.removeChild(renderRoot);
 
-      // 6. Generate the Final PDF
-      const imgData = canvas.toDataURL("image/jpeg", 0.95); // JPEG for better compression in large docs
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
       const pdf = new jsPDF({
         orientation: "p",
         unit: "mm",
@@ -662,11 +645,9 @@ export default function PageEditorPage() {
       let heightLeft = imgHeight;
       let position = 0;
 
-      // Page 1
       pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, 'MEDIUM');
       heightLeft -= pdfHeight;
 
-      // Subsequent pages if it overflows
       while (heightLeft > 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
@@ -683,7 +664,7 @@ export default function PageEditorPage() {
 
   if (pageQuery.isLoading) {
     return (
-      <div className="mx-auto w-full max-w-4xl animate-pulse">
+      <div className="mx-auto w-full max-w-4xl animate-pulse px-4 md:px-0">
         <div className="h-10 w-48 bg-muted/50 rounded-lg mb-8" />
         <div className="h-16 w-3/4 bg-muted/50 rounded-xl mb-12" />
         <div className="space-y-4">
@@ -697,7 +678,7 @@ export default function PageEditorPage() {
 
   if (pageQuery.isError && !page) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
+      <div className="flex items-center justify-center h-[50vh] px-4">
         <Alert variant="warning" className="max-w-md">
           <AlertTitle>Page unavailable</AlertTitle>
           <AlertDescription>
@@ -711,7 +692,7 @@ export default function PageEditorPage() {
   if (!page || !canView) {
     if (page && !canView) {
       return (
-        <div className="flex items-center justify-center h-[50vh]">
+        <div className="flex items-center justify-center h-[50vh] px-4">
           <Alert variant="warning" className="max-w-md">
             <AlertTitle>Page unavailable</AlertTitle>
             <AlertDescription>
@@ -723,7 +704,7 @@ export default function PageEditorPage() {
     }
 
     return (
-      <div className="mx-auto w-full max-w-4xl animate-pulse">
+      <div className="mx-auto w-full max-w-4xl animate-pulse px-4 md:px-0">
         <div className="h-10 w-48 bg-muted/50 rounded-lg mb-8" />
         <div className="h-16 w-3/4 bg-muted/50 rounded-xl mb-12" />
       </div>
@@ -770,8 +751,8 @@ export default function PageEditorPage() {
   return (
     <div className="relative min-h-screen bg-background text-foreground selection:bg-primary/20">
       {/* 1. Floating Toolbar */}
-      <div className="sticky top-6 z-40 flex justify-center pointer-events-none mb-12">
-        <div className="flex items-center gap-0.5 p-1 bg-background/60 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl pointer-events-auto transition-all animate-in fade-in slide-in-from-top-4 duration-500">
+      <div className="sticky top-2 md:top-6 z-40 flex justify-center pointer-events-none mb-6 md:mb-12 px-2">
+        <div className="flex items-center gap-0.5 p-1 bg-background/80 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl pointer-events-auto transition-all animate-in fade-in slide-in-from-top-4 duration-500 max-w-full overflow-x-auto no-scrollbar">
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -943,7 +924,7 @@ export default function PageEditorPage() {
       </div>
 
       {/* 2. Main Content Workspace */}
-      <div className="mx-auto w-full max-w-4xl pb-32">
+      <div className="mx-auto w-full max-w-4xl pb-32 px-4 md:px-0">
         <div className="group/page relative flex flex-col pt-8">
           
           {/* Metadata/Status indicator */}
@@ -989,7 +970,7 @@ export default function PageEditorPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             rows={1}
-            className="w-full resize-none border-0 bg-transparent px-0 text-4xl md:text-5xl font-bold tracking-tight text-foreground placeholder:text-muted-foreground/20 focus:outline-none focus:ring-0 leading-tight mb-8"
+            className="w-full resize-none border-0 bg-transparent px-0 text-3xl md:text-5xl font-bold tracking-tight text-foreground placeholder:text-muted-foreground/20 focus:outline-none focus:ring-0 leading-tight mb-8"
             placeholder="Untitled"
             disabled={!canEdit}
             onInput={(e) => {
@@ -1104,9 +1085,9 @@ export default function PageEditorPage() {
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle>Delete documentation?</DialogTitle>
-            <DialogDescription className="text-sm">
+            <DialogDesc className="text-sm">
               This action is permanent and cannot be reversed. All version history for this page will be lost.
-            </DialogDescription>
+            </DialogDesc>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0 mt-4">
             <Button variant="ghost" className="text-xs" onClick={() => setDeleteOpen(false)}>
@@ -1145,9 +1126,9 @@ export default function PageEditorPage() {
               <Users className="size-4" />
               Manage Access
             </DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogDesc className="text-xs">
               Invite team members to view or collaborate on this private page.
-            </DialogDescription>
+            </DialogDesc>
           </DialogHeader>
 
           <div className="py-4">
@@ -1197,4 +1178,3 @@ export default function PageEditorPage() {
     </div>
   );
 }
-

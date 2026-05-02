@@ -2342,8 +2342,34 @@ function DefaultAssigneesSection() {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
 
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+
 export default function SettingsPage() {
-  const [activeSection, setActiveSection] = useState<SectionId>("profile");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Initialize from URL or default to "profile"
+  const currentTab = searchParams.get("tab") as SectionId || "profile";
+  
+  // Local state to keep UI snappy, but we sync it with URL
+  const [activeSection, setActiveSection] = useState<SectionId>(currentTab);
+
+  // Sync state if URL changes (e.g. back button)
+  useEffect(() => {
+    const tab = searchParams.get("tab") as SectionId;
+    if (tab && tab !== activeSection) {
+      setActiveSection(tab);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (id: SectionId) => {
+    setActiveSection(id);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", id);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
   const { user, activeOrg } = useAuth();
   const userRole = activeOrg?.role || user?.role;
 
@@ -2356,21 +2382,11 @@ export default function SettingsPage() {
     return true;
   });
 
-  const activeItem = NAV_ITEMS.find((i) => i.id === activeSection)!;
+  const activeItem = NAV_ITEMS.find((i) => i.id === activeSection) || NAV_ITEMS[0];
   const ActiveIcon = activeItem.icon;
 
   return (
     <div className="mx-auto min-h-0 w-full max-w-7xl space-y-4">
-      {/* Page Header */}
-      {/* <div className="space-y-1">
-        <h1 className="font-heading text-3xl font-bold tracking-tight">
-          Settings
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Manage your account, preferences, and workspace configuration.
-        </p>
-      </div> */}
-
       <div className="flex gap-4 lg:items-start max-lg:flex-col">
         {/* ── Left Sidebar ── */}
         <aside className="w-full lg:w-56 shrink-0 lg:sticky lg:top-2">
@@ -2384,7 +2400,7 @@ export default function SettingsPage() {
                 return (
                   <li key={id} className="shrink-0">
                     <button
-                      onClick={() => setActiveSection(id)}
+                      onClick={() => handleTabChange(id)}
                       className={`group flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all
               ${active
                           ? "bg-primary/10 text-primary"
@@ -2462,10 +2478,7 @@ export default function SettingsPage() {
                   "Automatically pre-select users for new tasks"}
                 {activeSection === "github" &&
                   "Guidelines and examples for linking GitHub activity to tasks"}
-
               </p>
-
-
             </div>
           </div>
 

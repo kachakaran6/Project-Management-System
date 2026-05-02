@@ -122,7 +122,8 @@ export function TaskSidePanel() {
                 <TaskProperties task={task} />
                 <GithubLinkingGuidance 
                   taskCode={task.taskCode} 
-                  isProjectConnected={!!(task.projectId as any)?.githubConfig || !!(task as any).project?.githubConfig} 
+                  projectId={typeof task.projectId === 'string' ? task.projectId : (task.projectId as any)?.id || (task.projectId as any)?._id}
+                  isProjectConnected={!!(task.projectId as any)?.githubSettings?.repoUrl || !!(task as any).project?.githubSettings?.repoUrl} 
                 />
                 <TaskDescription task={task} />
 

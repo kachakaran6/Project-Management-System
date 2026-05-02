@@ -338,7 +338,7 @@ export function TaskForm({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden rounded-md border border-border shadow-2xl">
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden rounded-sm border border-border shadow-2xl">
       {/* Header Area */}
       <div className="pt-6 pb-2 px-6 shrink-0 space-y-3">
         <div className="flex items-center justify-between">
@@ -380,7 +380,7 @@ export function TaskForm({
                 <span>{currentProject?.name || "Select Project"}</span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-md border-border/50 w-80">
+            <SelectContent className="rounded-sm border-border/50 w-80">
               {projects.map((p) => (
                 <SelectItem key={p.id} value={p.id} className="w-80 rounded-sm">
                   {p.name}
@@ -421,7 +421,7 @@ export function TaskForm({
           />
 
           {showSuggestionsPanel && (
-            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-md border border-border/40 bg-background/98 shadow-xl backdrop-blur-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-sm border border-border/40 bg-background/98 shadow-xl backdrop-blur-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/10 bg-muted/20">
                 <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tight">
                   <Sparkles className="size-3 text-primary/60" />
@@ -499,8 +499,8 @@ export function TaskForm({
       </div>
 
       {/* Metadata Action Bar */}
-      <div className="px-4 md:px-6 py-4 shrink-0 overflow-x-auto no-scrollbar border-t border-border/20 bg-muted/5">
-        <div className="flex items-center gap-2 flex-nowrap md:flex-wrap">
+      <div className="px-4 md:px-6 py-4 shrink-0 border-t border-border/20 bg-muted/5">
+        <div className="flex items-center gap-x-2 gap-y-2 flex-wrap">
           {/* Status Select */}
           <Select
             value={statusValue}
@@ -518,7 +518,7 @@ export function TaskForm({
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-md border-border/30">
+            <SelectContent className="rounded-sm border-border/30">
               {dynamicStatuses.map((s: any) => (
                 <SelectItem
                   key={s.id || s._id}
@@ -558,7 +558,7 @@ export function TaskForm({
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-md border-border/30">
+            <SelectContent className="rounded-sm border-border/30">
               {["LOW", "MEDIUM", "HIGH", "URGENT"].map((p) => (
                 <SelectItem
                   key={p}
@@ -592,7 +592,7 @@ export function TaskForm({
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-md border-border/30 w-56">
+            <SelectContent className="rounded-sm border-border/30 w-56">
               {Object.entries(visibilityConfig).map(([key, config]) => (
                 <SelectItem
                   key={key}

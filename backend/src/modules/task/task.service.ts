@@ -537,7 +537,7 @@ export const getDrafts = async (
       .sort({ updatedAt: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('projectId', 'name')
+      .populate('projectId', 'name githubSettings')
       .populate('workspaceId', 'name')
       .populate('creatorId', 'firstName lastName email avatarUrl')
       .populate('status')
@@ -1338,7 +1338,7 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
 
 export const getTaskById = async (taskId: any, userId?: string, userRole?: string | null) => {
   const task = await Task.findOne({ _id: taskId, isActive: true })
-    .populate('projectId', 'name')
+    .populate('projectId', 'name githubSettings')
     .populate('workspaceId', 'name')
     .populate('creatorId', 'firstName lastName email avatarUrl')
     .populate('status')

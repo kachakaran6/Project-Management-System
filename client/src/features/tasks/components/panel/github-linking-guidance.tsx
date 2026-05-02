@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { GithubIcon as Github } from "@/components/icons/github-icon";
 import { Info, Copy, ExternalLink, GitCommit } from "lucide-react";
 import { toast } from "sonner";
@@ -9,11 +10,13 @@ import { cn } from "@/lib/utils";
 
 interface GithubLinkingGuidanceProps {
   taskCode?: string;
+  projectId?: string;
   isProjectConnected?: boolean;
 }
 
-export function GithubLinkingGuidance({ taskCode, isProjectConnected = true }: GithubLinkingGuidanceProps) {
+export function GithubLinkingGuidance({ taskCode, projectId, isProjectConnected = true }: GithubLinkingGuidanceProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const router = useRouter();
 
   if (!taskCode) return null;
 
@@ -57,12 +60,21 @@ export function GithubLinkingGuidance({ taskCode, isProjectConnected = true }: G
       </div>
 
       {!isProjectConnected ? (
-        <div className="p-3 rounded-md bg-amber-500/5 border border-amber-500/10 flex flex-col gap-2">
-           <p className="text-[10px] text-amber-600 font-medium leading-relaxed">
-            GitHub is not connected to this project. Connect it in project settings to enable activity tracking.
+        <div className="p-2 rounded-sm bg-amber-500/5 border border-amber-500/10 flex items-center justify-between gap-3">
+           <p className="text-[9px] text-amber-600 font-medium leading-tight max-w-[200px]">
+            GitHub not connected. Activity tracking disabled.
           </p>
-          <Button variant="ghost" size="sm" className="h-7 w-fit text-[9px] font-black uppercase tracking-widest text-amber-600 hover:bg-amber-500/10 p-0 hover:no-underline">
-            Connect GitHub <ExternalLink className="ml-1 size-2.5" />
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => {
+              if (projectId) {
+                router.push(`/projects/${projectId}?edit=true&tab=github`);
+              }
+            }}
+            className="h-6 w-fit text-[8px] font-black uppercase tracking-widest text-amber-600 hover:bg-amber-500/10 p-0 px-1 hover:no-underline border border-amber-500/20"
+          >
+            Link <ExternalLink className="ml-1 size-2" />
           </Button>
         </div>
       ) : (

@@ -69,7 +69,7 @@ export function EditableMultiUserSelect({
           )}
         >
           {value.length > 0 ? (
-            <div className="flex items-center gap-1.5 overflow-hidden flex-wrap">
+            <div className="flex items-center gap-1.5 overflow-hidden flex-nowrap">
               <div className="flex items-center -space-x-1.5 mr-1">
                 {value.slice(0, 3).map((user) => (
                   <Avatar key={user.id} className="size-6 border border-background ring-1 ring-border/10 shrink-0">
