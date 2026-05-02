@@ -175,7 +175,7 @@ export const logActivity = async (params: ActivityParams) => {
           Organization.findById(params.organizationId).lean()
         ]);
         
-        const userName = getDisplayName(user);
+        const userName = metadata?.actorName || getDisplayName(user);
         const orgName = org?.name || 'Unknown Organization';
 
         const taskActions = new Set([
