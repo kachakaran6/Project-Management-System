@@ -48,7 +48,7 @@ export function useCreateTaskMutation() {
   return useMutation({
     mutationFn: (payload: CreateTaskInput) => taskApi.createTask(payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all });
+      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 }
@@ -81,7 +81,7 @@ export function useUpsertTaskDraftMutation() {
       return taskApi.createDraft(data);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: tasksQueryKeys.draftsAll });
+      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 }
@@ -94,9 +94,8 @@ export function usePublishTaskDraftMutation() {
       taskApi.publishDraft(id, data),
     onSuccess: async (_, variables) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all }),
-        queryClient.invalidateQueries({ queryKey: tasksQueryKeys.detail(variables.id) }),
-        queryClient.invalidateQueries({ queryKey: tasksQueryKeys.draftsAll }),
+        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+        queryClient.invalidateQueries({ queryKey: ["tasks", "drafts"] }),
       ]);
     },
   });
@@ -108,7 +107,7 @@ export function useDeleteTaskDraftMutation() {
   return useMutation({
     mutationFn: (id: string) => taskApi.deleteDraft(id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: tasksQueryKeys.draftsAll });
+      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 }
@@ -270,7 +269,7 @@ export function useDeleteTaskMutation() {
   return useMutation({
     mutationFn: (id: string) => taskApi.deleteTask(id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all });
+      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 }

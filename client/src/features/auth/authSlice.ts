@@ -16,7 +16,7 @@ const initialState: AuthState = {
   user: null,
   token: localStorage.getItem("token"),
   organizations: [],
-  activeOrgId: null,
+  activeOrgId: localStorage.getItem("activeOrgId"),
   isAuthenticated: false,
   loading: !!localStorage.getItem("token"),
   error: null,
