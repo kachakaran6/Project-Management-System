@@ -20,12 +20,12 @@ const userSchema = new mongoose.Schema({
   providerId: { type: String, index: true },
   role: { 
     type: String, 
-    enum: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'MEMBER', 'USER'], 
+    enum: ['SUPER_ADMIN', 'OWNER', 'ADMIN', 'MANAGER', 'MEMBER', 'USER', 'VIEWER'], 
     default: 'USER' 
   },
   requestedRole: {
     type: String,
-    enum: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'MEMBER', 'USER'],
+    enum: ['SUPER_ADMIN', 'OWNER', 'ADMIN', 'MANAGER', 'MEMBER', 'USER', 'VIEWER'],
     default: null,
   },
   status: { 
@@ -58,7 +58,34 @@ const userSchema = new mongoose.Schema({
     theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
     notifications: {
       email: { type: Boolean, default: true },
-      push: { type: Boolean, default: true }
+      push: { type: Boolean, default: true },
+      telegram: { type: Boolean, default: true },
+      
+      // Granular Personal Preferences
+      notifyOnAssignment: { type: Boolean, default: true },
+      notifyOnMention: { type: Boolean, default: true },
+      notifyOnComment: { type: Boolean, default: true },
+      notifyOnTaskUpdate: { type: Boolean, default: false }
+    },
+    telegramSettings: {
+      enabled: { type: Boolean, default: true },
+      taskNotifications: {
+        all: { type: Boolean, default: false },       // ADMIN only
+        assigned: { type: Boolean, default: true },   // MEMBER default
+        created: { type: Boolean, default: true }
+      },
+      projectNotifications: {
+        all: { type: Boolean, default: false },       // ADMIN only
+        created: { type: Boolean, default: true }
+      },
+      activityNotifications: {
+        all: { type: Boolean, default: false },       // ADMIN only
+        own: { type: Boolean, default: true }
+      },
+      loginNotifications: {
+        all: { type: Boolean, default: false },       // ADMIN only
+        own: { type: Boolean, default: true }
+      }
     },
     defaultAssignees: [{
       type: mongoose.Schema.Types.ObjectId,

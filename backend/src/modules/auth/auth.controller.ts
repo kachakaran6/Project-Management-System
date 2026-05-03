@@ -1,4 +1,6 @@
 import * as authService from './auth.service.js';
+import * as telegramService from '../notification/telegram.service.js';
+import User from '../../models/User.js';
 import { asyncHandler } from '../../middlewares/asyncHandler.js';
 import { logInfo } from '../../services/logService.js';
 import type { CookieOptions } from 'express';
@@ -198,13 +200,45 @@ export const updateMe = asyncHandler(async (req, res) => {
     return res.status(401).json({ success: false, message: 'Not authenticated.' });
   }
 
-  const { firstName, lastName, bio } = req.body;
+  const oldUser = await User.findById(req.user.id).lean();
+  const { firstName, lastName, bio, settings } = req.body;
   
   const user = await authService.updateProfile(req.user.id, {
     firstName,
     lastName,
-    bio
+    bio,
+    settings
   });
+
+  // Send Telegram confirmation if settings changed
+  if (settings?.telegramSettings && oldUser?.settings?.telegramSettings) {
+    const oldTg = oldUser.settings.telegramSettings as any;
+    const newTg = settings.telegramSettings as any;
+    
+    // Check nested objects (taskNotifications, etc)
+    const sections = ['taskNotifications', 'projectNotifications', 'activityNotifications', 'loginNotifications'];
+    for (const section of sections) {
+      if (newTg[section] && oldTg[section]) {
+        const changedKey = Object.keys(newTg[section]).find(key => newTg[section][key] !== oldTg[section][key]);
+        if (changedKey) {
+          const label = `${section.replace('Notifications', '')}: ${changedKey.toUpperCase()}`;
+          // Get orgId from context or first org if available
+          const orgId = req.organizationId || (oldUser as any).organizationId;
+          if (orgId) {
+            await telegramService.sendConfirmation(req.user.id, orgId, label, newTg[section][changedKey]);
+          }
+          break;
+        }
+      }
+    }
+
+    if (newTg.enabled !== oldTg.enabled) {
+      const orgId = req.organizationId || (oldUser as any).organizationId;
+      if (orgId) {
+        await telegramService.sendConfirmation(req.user.id, orgId, 'Telegram Alerts', newTg.enabled);
+      }
+    }
+  }
 
   return res.status(200).json({
     success: true,

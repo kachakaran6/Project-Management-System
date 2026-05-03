@@ -1285,8 +1285,9 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   await deleteTask.mutateAsync(deleteId);
                   setDeleteId(null);
                   toast.success("Task deleted");
-                } catch {
-                  toast.error("Task deletion failed");
+                } catch (err: any) {
+                  const errorMsg = err.response?.data?.message || "Task deletion failed";
+                  toast.error(errorMsg);
                 }
               }}
             >

@@ -104,6 +104,9 @@ const authSlice = createSlice({
     setCookieBlocked: (state, action: PayloadAction<boolean>) => {
       state.isCookieBlocked = action.payload;
     },
+    updateUser: (state, action: PayloadAction<any>) => {
+      state.user = { ...state.user, ...action.payload };
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -193,5 +196,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setToken, logout, oauthLogin, setActiveOrgId, setCookieBlocked } = authSlice.actions;
+export const { setToken, logout, oauthLogin, setActiveOrgId, setCookieBlocked, updateUser } = authSlice.actions;
 export default authSlice.reducer;

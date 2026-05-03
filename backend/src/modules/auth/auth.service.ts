@@ -652,7 +652,7 @@ export const getUserById = async (id: string) => {
 
 // ─── 11. UPDATE PROFILE ─────────────────────────────────────────────────────
 
-export const updateProfile = async (id: string, updateData: { firstName?: string; lastName?: string; bio?: string }) => {
+export const updateProfile = async (id: string, updateData: { firstName?: string; lastName?: string; bio?: string; settings?: any }) => {
   const user = await User.findByIdAndUpdate(
     id,
     { $set: updateData },

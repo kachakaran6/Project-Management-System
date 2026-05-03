@@ -16,21 +16,21 @@ router.get('/:id', workspaceController.getById);
 // Create/Update/Delete requires elevated role (ADMIN or MANAGER) or MANAGE_WORKSPACE permission
 router.post(
   '/',
-  requireRole([ROLES.ADMIN, ROLES.MANAGER]),
+  requireRole([ROLES.OWNER, ROLES.ADMIN, ROLES.MANAGER]),
   requirePermission(PERMISSIONS.MANAGE_WORKSPACE),
   workspaceController.create
 );
 
 router.patch(
   '/:id',
-  requireRole([ROLES.ADMIN, ROLES.MANAGER]),
+  requireRole([ROLES.OWNER, ROLES.ADMIN, ROLES.MANAGER]),
   requirePermission(PERMISSIONS.MANAGE_WORKSPACE),
   workspaceController.update
 );
 
 router.delete(
   '/:id',
-  requireRole([ROLES.ADMIN, ROLES.MANAGER]),
+  requireRole([ROLES.OWNER, ROLES.ADMIN, ROLES.MANAGER]),
   requirePermission(PERMISSIONS.MANAGE_WORKSPACE),
   workspaceController.remove
 );

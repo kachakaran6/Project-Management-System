@@ -985,8 +985,9 @@ export function TaskBoard({
       await deleteTask.mutateAsync(deleteId);
       toast.success("Task deleted");
       setDeleteId(null);
-    } catch {
-      toast.error("Failed to delete task");
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || "Failed to delete task";
+      toast.error(errorMsg);
     }
   };
 

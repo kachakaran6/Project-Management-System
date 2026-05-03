@@ -5,7 +5,7 @@ import { requireAuth, requireSuperAdmin, requireRole } from '../../middlewares/a
 const router = express.Router();
 
 // Both Super Admin and Admin can access, but service handles fine-grained RBAC
-router.use(requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']));
+router.use(requireAuth, requireRole(['OWNER', 'SUPER_ADMIN', 'ADMIN']));
 
 // Dashboard
 router.get('/dashboard', adminController.getDashboard);

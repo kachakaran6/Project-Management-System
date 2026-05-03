@@ -106,6 +106,13 @@ export const disconnectAccount = asyncHandler(async (req: Request, res: Response
  */
 export const getRepositories = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).user.id;
+  
+  // Check connection status first
+  const account = await githubService.getAccount(userId);
+  if (!account || !account.accessToken) {
+    return res.status(200).json({ success: true, data: [] });
+  }
+
   const repos = await githubService.listUserRepositories(userId);
   return res.status(200).json({ success: true, data: repos });
 });

@@ -24,6 +24,7 @@ export default function EditTaskPage() {
   const updateTask = useUpdateTaskMutation();
 
   const canMutate =
+    activeOrg?.role === "OWNER" ||
     activeOrg?.role === "SUPER_ADMIN" ||
     activeOrg?.role === "ADMIN" ||
     activeOrg?.role === "MANAGER";

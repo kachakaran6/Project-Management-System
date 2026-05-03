@@ -552,7 +552,7 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
         projectId: task.projectId,
         resourceId: task._id,
         resourceType: 'Task',
-        action: 'STATUS_CHANGE',
+        action: 'TASK_STATUS_UPDATED',
         metadata: {
           taskId: String(task._id),
           taskTitle: task.title,
