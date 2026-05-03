@@ -143,6 +143,7 @@ export default function ProjectsPage() {
 
   const { activeOrg } = useAuth();
   const canMutate =
+    activeOrg?.role === "OWNER" ||
     activeOrg?.role === "SUPER_ADMIN" ||
     activeOrg?.role === "ADMIN" ||
     activeOrg?.role === "MANAGER";

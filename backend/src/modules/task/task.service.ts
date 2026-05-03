@@ -1485,6 +1485,22 @@ export const assignUsers = async (taskId: any, userIds: any[], actorId: any, rol
         timestamp: new Date(),
       }
     });
+
+    activityLog.logActivity({
+      userId: actorId,
+      organizationId: task.organizationId,
+      resourceId: taskId,
+      resourceType: 'TASK',
+      action: 'ASSIGN',
+      metadata: {
+        taskId: String(taskId),
+        taskTitle: task.title,
+        title: task.title,
+        projectName,
+        assignedTo: userIds.length === 1 ? 'New User' : `${userIds.length} users`,
+        timestamp: new Date(),
+      }
+    });
   }
 
   return { success: true };

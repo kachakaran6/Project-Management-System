@@ -67,8 +67,9 @@ export function EditTaskModal({
       await updateTask.mutateAsync({ id: taskId, data });
       toast.success("Task updated successfully!");
       handleOpenChange(false);
-    } catch {
-      toast.error("Failed to update task.");
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || "Failed to update task.";
+      toast.error(errorMsg);
     }
   };
 

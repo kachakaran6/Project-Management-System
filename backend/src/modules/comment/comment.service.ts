@@ -96,7 +96,14 @@ export const addComment = async (
     resourceId: taskId,
     resourceType: 'Task',
     action: 'COMMENT',
-    metadata: { commentId: comment._id }
+    metadata: { 
+      commentId: comment._id,
+      taskId: String(taskId),
+      taskTitle: task.title,
+      projectName,
+      comment: String(content).trim().slice(0, 150),
+      timestamp: new Date(),
+    }
   });
 
   // Trigger notification for mentions

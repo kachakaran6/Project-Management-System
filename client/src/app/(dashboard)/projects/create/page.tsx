@@ -16,6 +16,7 @@ export default function CreateProjectPage() {
   const createProject = useCreateProjectMutation();
 
   const canMutate =
+    activeOrg?.role === "OWNER" ||
     activeOrg?.role === "SUPER_ADMIN" ||
     activeOrg?.role === "ADMIN" ||
     activeOrg?.role === "MANAGER";

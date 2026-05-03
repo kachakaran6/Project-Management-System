@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
+import { useAppDispatch } from "@/hooks/useAppDispatch";
 import { AppDispatch } from "@/app/store";
 import { logoutAllDevices } from "@/features/auth/authSlice";
 import {
@@ -36,7 +37,7 @@ import {
   Tablet,
   CheckCircle2,
   Clock3,
-  Link,
+  Link as LinkIcon,
   LayoutPanelTop,
   History,
   ExternalLink,
@@ -48,7 +49,10 @@ import {
   Tag,
   Workflow,
   Menu,
+  Send,
+  X,
 } from "lucide-react";
+import Link from "next/link";
 
 import {
   Sheet,
@@ -78,11 +82,10 @@ import {
 } from "@/components/ui/select";
 
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { fetchMe } from "@/features/auth/authSlice";
+import { fetchMe, updateUser } from "@/features/auth/authSlice";
 import { cn } from "@/lib/utils";
-
-import { api } from "@/lib/api/axios-instance";
 import { authApi } from "@/features/auth/api/auth.api";
+import { api } from "@/lib/api/axios-instance";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApplyTheme } from "@/providers/theme-provider";
 import { ACCENT_COLORS } from "@/store/theme-store";
@@ -109,7 +112,6 @@ type SectionId =
   | "integrations"
   | "tags"
   | "workflow"
-  | "org_notifications"
   | "default_assignees"
   | "github";
 
@@ -142,12 +144,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: "integrations", label: "Integrations", icon: Puzzle },
   { id: "tags", label: "Tags", icon: Tag, managerPlus: true },
   { id: "workflow", label: "Workflow", icon: Workflow, managerPlus: true },
-  {
-    id: "org_notifications",
-    label: "Org Notifications",
-    icon: BellRing,
-    adminOnly: true,
-  },
   { id: "default_assignees", label: "Default Assignees", icon: UserPlus },
   { id: "github", label: "GitHub Workflow", icon: GitBranch },
 
@@ -587,61 +583,413 @@ const DEFAULT_NOTIFS: NotifPrefs = {
 };
 
 function NotificationsSection() {
-  const [prefs, setPrefs] = useState<NotifPrefs>(() => {
-    if (typeof window === "undefined") return DEFAULT_NOTIFS;
+  const { user, activeOrg } = useAuth();
+  const dispatch = useAppDispatch();
+  const isAdmin = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+
+  // Personal Settings (Sync with Backend)
+  const [personalSaving, setPersonalSaving] = useState(false);
+  const personalNotifs = user?.settings?.notifications || {
+    email: true,
+    push: true,
+    telegram: true,
+    notifyOnAssignment: true,
+    notifyOnMention: true,
+    notifyOnComment: true,
+    notifyOnTaskUpdate: false
+  };
+
+  const updatePersonalSettings = async (updates: any) => {
+    setPersonalSaving(true);
     try {
-      return JSON.parse(localStorage.getItem("notif-prefs") || "null") ?? DEFAULT_NOTIFS;
-    } catch { return DEFAULT_NOTIFS; }
-  });
+      const nextSettings = { 
+        ...user?.settings, 
+        notifications: { ...personalNotifs, ...updates } 
+      };
+      const res = await authApi.updateMe({ settings: nextSettings });
+      dispatch(updateUser(res.data.user));
+      toast.success("Personal preferences updated");
+    } catch {
+      toast.error("Failed to save preferences");
+    } finally {
+      setPersonalSaving(false);
+    }
+  };
 
-  const toggle = useCallback((key: string) => {
-    setPrefs((prev) => {
-      const next = { ...prev, [key]: !prev[key] };
-      if (typeof window !== "undefined") localStorage.setItem("notif-prefs", JSON.stringify(next));
-      toast.success("Preference saved");
-      return next;
-    });
-  }, []);
+  // Telegram Role-Based Settings
+  const telegramSettings = user?.settings?.telegramSettings || {
+    enabled: true,
+    taskNotifications: { all: false, assigned: true, created: true },
+    projectNotifications: { all: false, created: true },
+    activityNotifications: { all: true, own: true },
+    loginNotifications: { all: true, own: true }
+  };
 
-  const emailNotifs = [
-    { key: "emailTaskAssigned", label: "Task Assigned", desc: "When a task is assigned to you" },
-    { key: "emailTaskUpdated", label: "Task Updated", desc: "When tasks you follow are modified" },
-    { key: "emailComments", label: "Comments & Mentions", desc: "When someone mentions you in a comment" },
-    { key: "emailProjectUpdates", label: "Project Updates", desc: "Status changes on your projects" },
+  const updateTelegramPref = async (path: string, val: boolean) => {
+    setPersonalSaving(true);
+    try {
+      const nextTelegram = JSON.parse(JSON.stringify(telegramSettings));
+      const keys = path.split(".");
+      let current = nextTelegram;
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (!current[keys[i]]) current[keys[i]] = {};
+        current = current[keys[i]];
+      }
+      current[keys[keys.length - 1]] = val;
+
+      const nextSettings = { 
+        ...user?.settings, 
+        telegramSettings: nextTelegram 
+      };
+      const res = await authApi.updateMe({ settings: nextSettings });
+      dispatch(updateUser(res.data.user));
+      toast.success("Telegram preferences updated");
+    } catch {
+      toast.error("Failed to save Telegram preferences");
+    } finally {
+      setPersonalSaving(false);
+    }
+  };
+
+  // Telegram Org Settings (Admin Only)
+  const [tgData, setTgData] = useState<any>(null);
+  const [tgLoading, setTgLoading] = useState(false);
+  const [tgSaving, setTgSaving] = useState(false);
+
+  const fetchTgData = useCallback(async () => {
+    if (!isAdmin) return;
+    setTgLoading(true);
+    try {
+      const res = await api.get("/telegram/settings");
+      setTgData(res.data.data);
+    } catch { } finally { setTgLoading(false); }
+  }, [isAdmin]);
+
+  useEffect(() => { fetchTgData(); }, [fetchTgData]);
+
+  const updateTgSettings = async (updates: any) => {
+    setTgSaving(true);
+    try {
+      const res = await api.patch("/telegram/org-settings", { ...tgData.orgSettings, ...updates });
+      setTgData({ ...tgData, orgSettings: res.data.data });
+      toast.success("Organization Telegram settings updated");
+    } catch { toast.error("Failed to update organization settings"); } finally { setTgSaving(false); }
+  };
+
+  const personalEvents = [
+    { section: "Direct Alerts", items: [
+      { key: "notifyOnAssignment", label: "Task Assignments", desc: "When someone assigns a task to you" },
+      { key: "notifyOnMention", label: "Mentions", desc: "When you are @mentioned in a comment" },
+      { key: "notifyOnComment", label: "Task Activity", desc: "New comments on your tasks" },
+      { key: "notifyOnTaskUpdate", label: "Property Changes", desc: "When tasks you follow are modified" },
+    ]}
   ];
 
-  const inAppNotifs = [
-    { key: "inAppAll", label: "All In-App Alerts", desc: "Master toggle for all notifications" },
-    { key: "inAppRealtime", label: "Real-time Updates", desc: "Live feed updates without page reload" },
+  const tgEvents = [
+    { section: "Tasks", items: [
+      { key: "notify_task_created", label: "Task Created", desc: "Alert when a new task is added" },
+      { key: "notify_task_updated", label: "Task Properties", desc: "Title, description or priority changes" },
+      { key: "notify_task_status_updated", label: "Status Changes", desc: "When a task moves between columns" },
+      { key: "notify_task_assigned", label: "Task Assignments", desc: "When users are assigned to tasks" },
+      { key: "notify_task_deleted", label: "Task Deletions", desc: "Alert when a task is permanently removed" },
+    ]},
+    { section: "Projects", items: [
+      { key: "notify_project_created", label: "Project Created", desc: "When a new project is launched" },
+      { key: "notify_project_updated", label: "Project Updates", desc: "Changes to project metadata" },
+      { key: "notify_project_deleted", label: "Project Deleted", desc: "When a project is archived/deleted" },
+    ]},
+    { section: "Collaboration", items: [
+      { key: "notify_comment_created", label: "New Comments", desc: "Every new comment in the organization" },
+      { key: "notify_mentions", label: "Mentions", desc: "Direct alerts for @user mentions" },
+    ]},
+    { section: "Security", items: [
+      { key: "notify_user_login", label: "User Logins", desc: "Successful session starts" },
+      { key: "notify_failed_login", label: "Security Alerts", desc: "Failed login attempts and threats" },
+    ]},
+    { section: "Activity Tracking", items: [
+      { key: "notify_page_opened", label: "Page Navigation", desc: "Track which pages users are visiting" },
+      { key: "notify_action_performed", label: "System Actions", desc: "Miscellaneous button clicks and triggers" },
+    ]}
   ];
 
   return (
-    <div className="space-y-4">
-      <SectionCard title="Email Notifications" description="Control which events send you an email.">
-        <div className="space-y-1">
-          {emailNotifs.map(({ key, label, desc }) => (
-            <FormRow key={key} label={label} description={desc}>
-              <Switch checked={!!prefs[key]} onCheckedChange={() => toggle(key)} />
-            </FormRow>
-          ))}
-        </div>
-      </SectionCard>
+    <div className="space-y-6">
+      <div className="grid gap-6 md:grid-cols-2">
+        <SectionCard title="Personal Notification Channels" description="Configure where you want to receive direct alerts.">
+           <FormRow label="Email Notifications" description="Receive direct alerts in your inbox.">
+              <Switch checked={personalNotifs.email} onCheckedChange={(val) => updatePersonalSettings({ email: val })} disabled={personalSaving} />
+           </FormRow>
+           <FormRow label="In-App Alerts" description="Enable push notifications and badge alerts.">
+              <Switch checked={personalNotifs.push} onCheckedChange={(val) => updatePersonalSettings({ push: val })} disabled={personalSaving} />
+           </FormRow>
+           <FormRow label="Telegram DM" description="Receive direct messages from our bot.">
+              <Switch checked={personalNotifs.telegram} onCheckedChange={(val) => updatePersonalSettings({ telegram: val })} disabled={personalSaving} />
+           </FormRow>
+        </SectionCard>
 
-      <SectionCard title="In-App Notifications" description="Manage alerts within the application interface.">
-        <div className="space-y-1">
-          {inAppNotifs.map(({ key, label, desc }) => (
-            <FormRow key={key} label={label} description={desc}>
-              <Switch checked={!!prefs[key]} onCheckedChange={() => toggle(key)} />
-            </FormRow>
-          ))}
-        </div>
-      </SectionCard>
+        {personalNotifs.telegram && (
+          <div className="space-y-6">
+            <SectionCard title="Individual Preferences" description="Control which automated alerts reach your individual Telegram inbox.">
+               <div className="space-y-4">
+                 <FormRow label="Enable Telegram Alerts" description="Master switch for all your personal bot notifications.">
+                    <Switch checked={telegramSettings.enabled} onCheckedChange={(val) => updateTelegramPref("enabled", val)} disabled={personalSaving} />
+                 </FormRow>
 
-      <SectionCard title="System & Sound" description="Configure master settings for audio and system level alerts.">
-        <FormRow label="Enable Sounds" description="Audio cues for task updates and mentions">
-          <Switch checked={!!prefs.soundEnabled} onCheckedChange={() => toggle("soundEnabled")} />
+                 {telegramSettings.enabled && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-top-1">
+                       {/* Task Notifications */}
+                       <div className="space-y-3">
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-primary/80">Task Notifications</p>
+                          <div className="grid gap-2">
+                             {isAdmin ? (
+                                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                   <div>
+                                      <p className="text-[13px] font-bold">Receive ALL Task Updates</p>
+                                      <p className="text-[10px] text-muted-foreground">Get notified for every creation, update, and deletion in the org.</p>
+                                   </div>
+                                   <Switch 
+                                      checked={telegramSettings.taskNotifications?.all} 
+                                      onCheckedChange={(val) => updateTelegramPref("taskNotifications.all", val)} 
+                                      disabled={personalSaving}
+                                   />
+                                </div>
+                             ) : (
+                                <>
+                                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                      <div>
+                                         <p className="text-[13px] font-bold">Tasks Assigned to Me</p>
+                                         <p className="text-[10px] text-muted-foreground">Receive alerts when you are set as an assignee.</p>
+                                      </div>
+                                      <Switch 
+                                         checked={telegramSettings.taskNotifications?.assigned} 
+                                         onCheckedChange={(val) => updateTelegramPref("taskNotifications.assigned", val)} 
+                                         disabled={personalSaving}
+                                      />
+                                   </div>
+                                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                      <div>
+                                         <p className="text-[13px] font-bold">Tasks Created by Me</p>
+                                         <p className="text-[10px] text-muted-foreground">Follow updates on tasks you initiated.</p>
+                                      </div>
+                                      <Switch 
+                                         checked={telegramSettings.taskNotifications?.created} 
+                                         onCheckedChange={(val) => updateTelegramPref("taskNotifications.created", val)} 
+                                         disabled={personalSaving}
+                                      />
+                                   </div>
+                                </>
+                             )}
+                          </div>
+                       </div>
+
+                       {/* Project Notifications */}
+                       <div className="space-y-3">
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-primary/80">Project Notifications</p>
+                          <div className="grid gap-2">
+                             {isAdmin ? (
+                                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                   <div>
+                                      <p className="text-[13px] font-bold">Receive ALL Project Updates</p>
+                                      <p className="text-[10px] text-muted-foreground">Monitor every new project and modification.</p>
+                                   </div>
+                                   <Switch 
+                                      checked={telegramSettings.projectNotifications?.all} 
+                                      onCheckedChange={(val) => updateTelegramPref("projectNotifications.all", val)} 
+                                      disabled={personalSaving}
+                                   />
+                                </div>
+                             ) : (
+                                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                   <div>
+                                      <p className="text-[13px] font-bold">Projects Created by Me</p>
+                                      <p className="text-[10px] text-muted-foreground">Updates for projects where you are the owner.</p>
+                                   </div>
+                                   <Switch 
+                                      checked={telegramSettings.projectNotifications?.created} 
+                                      onCheckedChange={(val) => updateTelegramPref("projectNotifications.created", val)} 
+                                      disabled={personalSaving}
+                                   />
+                                </div>
+                             )}
+                          </div>
+                       </div>
+                       {/* Activity Notifications */}
+                       <div className="space-y-3">
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-primary/80">Activity & Security</p>
+                          <div className="grid gap-2">
+                             {isAdmin ? (
+                                <>
+                                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                      <div>
+                                         <p className="text-[13px] font-bold">Track All User Activity</p>
+                                         <p className="text-[10px] text-muted-foreground">Get alerts for page views and actions across the org.</p>
+                                      </div>
+                                      <Switch 
+                                         checked={telegramSettings.activityNotifications?.all ?? true} 
+                                         onCheckedChange={(val) => updateTelegramPref("activityNotifications.all", val)} 
+                                         disabled={personalSaving}
+                                      />
+                                   </div>
+                                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                      <div>
+                                         <p className="text-[13px] font-bold">Track All Login Events</p>
+                                         <p className="text-[10px] text-muted-foreground">Monitor every login attempt in the organization.</p>
+                                      </div>
+                                      <Switch 
+                                         checked={telegramSettings.loginNotifications?.all ?? true} 
+                                         onCheckedChange={(val) => updateTelegramPref("loginNotifications.all", val)} 
+                                         disabled={personalSaving}
+                                      />
+                                   </div>
+                                </>
+                             ) : (
+                                <>
+                                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                      <div>
+                                         <p className="text-[13px] font-bold">My Personal Activity</p>
+                                         <p className="text-[10px] text-muted-foreground">Alerts for your own interactions and navigation.</p>
+                                      </div>
+                                      <Switch 
+                                         checked={telegramSettings.activityNotifications?.own ?? true} 
+                                         onCheckedChange={(val) => updateTelegramPref("activityNotifications.own", val)} 
+                                         disabled={personalSaving}
+                                      />
+                                   </div>
+                                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                      <div>
+                                         <p className="text-[13px] font-bold">My Login Events</p>
+                                         <p className="text-[10px] text-muted-foreground">Security alerts for your account logins.</p>
+                                      </div>
+                                      <Switch 
+                                         checked={telegramSettings.loginNotifications?.own ?? true} 
+                                         onCheckedChange={(val) => updateTelegramPref("loginNotifications.own", val)} 
+                                         disabled={personalSaving}
+                                      />
+                                   </div>
+                                </>
+                             )}
+                          </div>
+                       </div>
+                    </div>
+                 )}
+               </div>
+            </SectionCard>
+
+            <SectionCard title="Legacy Alerts (Personal)" description="Old-style direct alerts for your personal actions (deprecated).">
+               <div className="space-y-3">
+                 {personalEvents[0].items.map(item => (
+                   <div key={item.key} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/20 border border-border/40 opacity-70">
+                      <div>
+                        <p className="text-[12px] font-bold">{item.label}</p>
+                        <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+                      </div>
+                      <Switch 
+                        checked={personalNotifs[item.key] ?? true} 
+                        onCheckedChange={(val) => updatePersonalSettings({ [item.key]: val })} 
+                        disabled={personalSaving}
+                      />
+                   </div>
+                 ))}
+               </div>
+            </SectionCard>
+          </div>
+        )}
+      </div>
+
+      <SectionCard title="System Feedback" description="Configure audio cues for task updates and mentions.">
+        <FormRow label="Enable Sounds" description="High-fidelity audio alerts for dashboard activities.">
+          <Switch checked={!!user?.settings?.soundEnabled} onCheckedChange={(val) => {
+             authApi.updateMe({ settings: { ...user?.settings, soundEnabled: val } }).then(res => dispatch(updateUser(res.data.user)));
+          }} />
         </FormRow>
       </SectionCard>
+
+      {isAdmin && (
+        <div className="space-y-6 pt-6 border-t border-border/50">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-bold tracking-tight">Team-Wide Broadcasts (Admins Only)</h2>
+            <p className="text-sm text-muted-foreground">Manage automated Telegram notifications that are sent to the entire team.</p>
+          </div>
+
+          {tgLoading ? (
+            <Skeleton className="h-48 w-full rounded-xl" />
+          ) : tgData ? (
+            <div className="space-y-6">
+              <SectionCard title="Telegram Broadcast Engine" description="Master controls for the organization-wide Telegram bot.">
+                <FormRow label="Global Broadcast" description="Master switch for all automated bot activity.">
+                  <Switch 
+                    disabled={tgSaving}
+                    checked={tgData.orgSettings.isEnabled} 
+                    onCheckedChange={() => updateTgSettings({ isEnabled: !tgData.orgSettings.isEnabled })} 
+                  />
+                </FormRow>
+
+                {tgData.orgSettings.isEnabled && (
+                  <div className="mt-6 space-y-8 animate-in fade-in slide-in-from-top-2">
+                    {tgEvents.map((group) => (
+                      <div key={group.section} className="space-y-3">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-primary px-1">{group.section}</p>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {group.items.map(item => (
+                            <div key={item.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-all group">
+                              <div className="min-w-0 pr-2">
+                                <p className="text-[13px] font-bold truncate group-hover:text-primary transition-colors">{item.label}</p>
+                                <p className="text-[10px] text-muted-foreground line-clamp-1">{item.desc}</p>
+                              </div>
+                              <Switch 
+                                disabled={tgSaving}
+                                checked={tgData.orgSettings.preferences?.[item.key] ?? true} 
+                                onCheckedChange={() => {
+                                  const currentVal = tgData.orgSettings.preferences?.[item.key] ?? true;
+                                  const next = { ...tgData.orgSettings.preferences, [item.key]: !currentVal };
+                                  updateTgSettings({ preferences: next });
+                                }} 
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </SectionCard>
+
+              {tgData.orgSettings.isEnabled && (
+                <SectionCard title="Target Audience" description="Who should receive these automated broadcasts?">
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { id: 'ONLY_ADMINS', label: 'Admins Only', desc: 'Secure alerts' },
+                      { id: 'ALL_MEMBERS', label: 'All Members', desc: 'Team-wide' },
+                      { id: 'CUSTOM', label: 'Custom List', desc: 'Specific users' }
+                    ].map(opt => (
+                      <button 
+                        key={opt.id} 
+                        disabled={tgSaving}
+                        onClick={() => updateTgSettings({ audience: opt.id })} 
+                        className={cn(
+                          "flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all", 
+                          tgData.orgSettings.audience === opt.id 
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-sm" 
+                            : "border-border hover:bg-muted/50 hover:border-border/80"
+                        )}
+                      >
+                        <p className={cn("text-[11px] font-bold", tgData.orgSettings.audience === opt.id ? "text-primary" : "text-foreground")}>{opt.label}</p>
+                        <p className="text-[9px] text-muted-foreground leading-tight">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
+            </div>
+          ) : (
+             <div className="p-8 rounded-xl border border-dashed border-border flex flex-col items-center justify-center text-center bg-muted/5">
+                <BellRing className="size-8 text-muted-foreground/30 mb-3" />
+                <p className="text-sm font-bold">Telegram Not Configured</p>
+                <p className="text-xs text-muted-foreground max-w-xs mt-1">Connect your organization to Telegram in the Integrations tab first.</p>
+             </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1129,10 +1477,24 @@ function IntegrationsSection() {
       const res = await api.post("/telegram/verify");
       if (res.data.success) {
         toast.success("Telegram linked!");
-        setData({ ...data, connection: res.data.data });
+        setData({ ...data, ...res.data.data });
         setConnectionData(null);
       } else { toast.error(res.data.message || "Still waiting..."); }
     } catch { toast.error("Verification failed"); } finally { setVerifying(false); }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await api.delete("/telegram/disconnect");
+      toast.success("Telegram disconnected");
+      setData({ 
+        ...data, 
+        connection: { isConnected: false },
+        telegram: { connected: false } 
+      });
+    } catch {
+      toast.error("Failed to disconnect");
+    }
   };
 
   if (loading || !data) return <div className="space-y-4"><Skeleton className="h-32 w-full rounded-xl" /></div>;
@@ -1155,34 +1517,93 @@ function IntegrationsSection() {
                 Initiate Link
               </Button>
             ) : (
-              <div className="w-full max-w-sm p-4 rounded-xl border border-border bg-card text-left animate-in fade-in zoom-in-95 shadow-sm">
-                <p className="text-xs font-bold mb-3 flex items-center gap-2"><div className="size-1.5 rounded-full bg-primary animate-ping" /> Connection Steps</p>
-                <div className="space-y-3">
-                   {[
-                     { step: 1, title: "Open Bot", desc: "Click the link to open @PMS_Orbit_Bot" },
-                     { step: 2, title: "Press Start", desc: "Click START in the chat window" },
-                     { step: 3, title: "Verify", desc: "Return here to finalize" }
-                   ].map(s => (
-                     <div key={s.step} className="flex gap-3">
-                       <div className="size-5 shrink-0 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">{s.step}</div>
-                       <div><p className="text-[11px] font-bold">{s.title}</p><p className="text-[10px] text-muted-foreground">{s.desc}</p></div>
-                     </div>
-                   ))}
+              <div className="w-full max-w-md p-6 rounded-2xl border border-border bg-card text-left animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold flex items-center gap-2 text-foreground">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+                      </span>
+                      Finalize Connection
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground font-medium">Follow these 3 simple steps to link your account.</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setConnectionData(null)} className="h-8 w-8 rounded-full hover:bg-muted">
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-                <div className="mt-5 pt-4 border-t border-border flex gap-2">
-                   <Button onClick={handleVerify} disabled={verifying} size="sm" className="flex-1 h-8 text-[10px] bg-emerald-500 hover:bg-emerald-600">Verify Now</Button>
-                   <Button variant="ghost" onClick={() => setConnectionData(null)} size="sm" className="h-8 text-[10px]">Cancel</Button>
+
+                <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-px before:bg-border/60">
+                  <div className="flex gap-4 relative">
+                    <div className="z-10 size-6 shrink-0 rounded-full bg-sky-500 text-white flex items-center justify-center text-[11px] font-bold shadow-sm shadow-sky-500/20">1</div>
+                    <div className="space-y-3 flex-1">
+                      <div>
+                        <p className="text-[11px] font-bold text-foreground">Launch Telegram Bot</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed font-medium">Open the bot and it will automatically recognize your session using your secure token.</p>
+                      </div>
+                      <Button asChild className="w-full h-10 bg-[#0088cc] hover:bg-[#0077b5] text-white font-bold rounded-xl shadow-lg shadow-sky-500/10 transition-all active:scale-95 group">
+                        <a href={connectionData?.connectionLink || "https://t.me/PMS_Orbit_Bot"} target="_blank" rel="noopener noreferrer">
+                          <Send className="mr-2 size-3.5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+                          Launch Telegram Bot
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 relative">
+                    <div className="z-10 size-6 shrink-0 rounded-full bg-muted border border-border flex items-center justify-center text-[11px] font-bold">2</div>
+                    <div className="flex-1">
+                      <p className="text-[11px] font-bold text-foreground">Press Start</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed font-medium">Once the chat opens, simply tap the <span className="font-bold text-sky-500 underline decoration-sky-500/30">START</span> button at the bottom.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 relative">
+                    <div className="z-10 size-6 shrink-0 rounded-full bg-muted border border-border flex items-center justify-center text-[11px] font-bold">3</div>
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <p className="text-[11px] font-bold text-foreground">Verify & Finalize</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed font-medium">Return here and click the button below to confirm the link.</p>
+                      </div>
+                      <Button 
+                        onClick={handleVerify} 
+                        disabled={verifying} 
+                        className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/10 transition-all active:scale-95"
+                      >
+                        {verifying ? <Loader2 className="mr-2 size-3.5 animate-spin" /> : <ShieldCheck className="mr-2 size-3.5" />}
+                        {verifying ? "Verifying Session..." : "Verify Connection"}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         ) : (
-          <div className="flex items-center justify-between p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
+          <div className="flex items-center justify-between p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 transition-all">
             <div className="flex items-center gap-3">
-              <div className="size-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm"><Check className="size-4" /></div>
-              <div><p className="text-xs font-bold text-emerald-700">Account Linked</p><p className="text-[10px] text-emerald-600/70">Receiving org alerts</p></div>
+              <div className="size-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm">
+                <Check className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-emerald-900 leading-tight">
+                  Connected as {data.telegram.firstName || ''} {data.telegram.lastName || ''} 
+                  {data.telegram.username ? ` (@${data.telegram.username})` : (!data.telegram.firstName && !data.telegram.lastName) ? ` (ID: ${data.telegram.telegramId || data.telegram.chatId})` : ''}
+                </p>
+                <p className="text-xs text-emerald-600/80 font-medium mt-0.5">
+                  Receiving org alerts
+                </p>
+              </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => {}} className="h-7 text-[10px] text-destructive hover:bg-destructive/10">Disconnect</Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleDisconnect} 
+              className="h-8 text-xs text-destructive hover:bg-destructive/10 font-bold px-4"
+            >
+              Disconnect
+            </Button>
           </div>
         )}
       </SectionCard>
@@ -1208,75 +1629,7 @@ function IntegrationsSection() {
 
 // ─── 10. ORGANIZATION NOTIFICATIONS SECTION ───────────────────────────────────
 
-function TelegramOrgSection() {
-  const { activeOrg } = useAuth();
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const res = await api.get("/telegram/settings");
-      setData(res.data.data);
-    } catch { } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const updateSettings = async (updates: any) => {
-    setSaving(true);
-    try {
-      const res = await api.patch("/telegram/org-settings", { ...data.orgSettings, ...updates });
-      setData({ ...data, orgSettings: res.data.data });
-      toast.success("Updated");
-    } catch { toast.error("Failed"); } finally { setSaving(false); }
-  };
-
-  if (loading || !data) return <Skeleton className="h-48 w-full rounded-xl" />;
-
-  const { orgSettings } = data;
-
-  return (
-    <div className="space-y-4">
-      <SectionCard title="Broadcast Engine" description="Manage automated Telegram notifications for the organization.">
-        <FormRow label="Global Broadcast" description="Master switch for all automated bot activity.">
-          <Switch checked={orgSettings.isEnabled} onCheckedChange={() => updateSettings({ isEnabled: !orgSettings.isEnabled })} />
-        </FormRow>
-
-        {orgSettings.isEnabled && (
-          <div className="mt-4 pt-4 border-t border-border/40 space-y-3 animate-in fade-in slide-in-from-top-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">Event Toggles</p>
-            <div className="grid gap-2">
-              {[
-                { key: "track_tasks", label: "Task Updates", desc: "Creation, status changes, and deletes" },
-                { key: "track_comments", label: "Comments", desc: "New discussions and mentions" },
-                { key: "track_logins", label: "Security", desc: "Login activity and access alerts" },
-              ].map(item => (
-                <div key={item.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors">
-                  <div><p className="text-xs font-bold">{item.label}</p><p className="text-[10px] text-muted-foreground">{item.desc}</p></div>
-                  <Switch checked={orgSettings.preferences?.[item.key]} onCheckedChange={() => {
-                    const next = { ...orgSettings.preferences, [item.key]: !orgSettings.preferences?.[item.key] };
-                    updateSettings({ preferences: next });
-                  }} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </SectionCard>
-
-      <SectionCard title="Target Audience" description="Who should receive these automated broadcasts?">
-        <div className="grid grid-cols-3 gap-2">
-           {['ONLY_ADMINS', 'ALL_MEMBERS', 'CUSTOM'].map(id => (
-             <button key={id} onClick={() => updateSettings({ audience: id })} className={cn("p-3 rounded-xl border text-center transition-all", orgSettings.audience === id ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border hover:bg-muted/50")}>
-               <p className="text-[11px] font-bold">{id.replace('_', ' ')}</p>
-             </button>
-           ))}
-        </div>
-      </SectionCard>
-    </div>
-  );
-}
 
 function GithubSection() {
   const { activeOrg } = useAuth();
@@ -1352,8 +1705,6 @@ function renderSection(id: SectionId) {
       return <SecuritySection />;
     case "integrations":
       return <IntegrationsSection />;
-    case "org_notifications":
-      return <TelegramOrgSection />;
     case "tags":
       return <TagManagement />;
     case "workflow":

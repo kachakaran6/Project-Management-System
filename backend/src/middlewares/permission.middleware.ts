@@ -91,12 +91,18 @@ export const requirePermission = (permission: string) => {
           return next();
         }
 
-        console.warn(
-          `[PermissionGuard] Forbidden: Role '${role}' lacks '${permission}' for org '${organizationId || 'GLOBAL'}' at ${req.originalUrl}. Effective permissions count: ${effectivePermissions.length}`
-        );
+        const readablePermission = permission.toLowerCase().replace('_', ' ');
+        let errorMessage = `Forbidden: You don't have permission to ${readablePermission}.`;
+
+        if (role === 'MANAGER' && permission === 'DELETE_TASK') {
+          errorMessage = "Managers are not permitted to delete tasks. Please contact an Admin if this task needs to be removed.";
+        } else if (permission === 'DELETE_TASK') {
+          errorMessage = "You don't have permission to delete tasks. This action is restricted to administrators.";
+        }
+
         return res.status(403).json({
           success: false,
-          message: `Forbidden: Lack of permission '${permission}' for this role.`,
+          message: errorMessage,
         });
       } catch (dbError) {
         // Fall back to static defaults if DB check fails

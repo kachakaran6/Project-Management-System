@@ -21,6 +21,7 @@ export default function EditProjectPage() {
   const updateProject = useUpdateProjectMutation();
 
   const canMutate =
+    activeOrg?.role === "OWNER" ||
     activeOrg?.role === "SUPER_ADMIN" ||
     activeOrg?.role === "ADMIN" ||
     activeOrg?.role === "MANAGER";

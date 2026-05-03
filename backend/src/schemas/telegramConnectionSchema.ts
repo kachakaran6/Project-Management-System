@@ -29,6 +29,22 @@ const telegramConnectionSchema = new mongoose.Schema({
   verificationToken: {
     type: String,
     select: false
+  },
+  telegramId: {
+    type: String,
+    default: null
+  },
+  username: {
+    type: String,
+    default: null
+  },
+  firstName: {
+    type: String,
+    default: null
+  },
+  lastName: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true

@@ -1,17 +1,21 @@
 type RoleMap = {
   SUPER_ADMIN: string;
+  OWNER: string;
   ADMIN: string;
   MANAGER: string;
   MEMBER: string;
   USER: string;
+  VIEWER: string;
 };
 
 export const ROLES: RoleMap = {
   SUPER_ADMIN: 'SUPER_ADMIN',
+  OWNER: 'OWNER',
   ADMIN: 'ADMIN',
   MANAGER: 'MANAGER',
   MEMBER: 'MEMBER',
   USER: 'USER',
+  VIEWER: 'VIEWER',
 };
 
 export const USER_STATUS = {

@@ -1,9 +1,21 @@
 import TelegramConnection from '../../models/TelegramConnection.js';
 import TelegramOrgSettings from '../../models/TelegramOrgSettings.js';
 import User from '../../models/User.js';
+import OrganizationMember from '../../models/OrganizationMember.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 
-const getBotToken = () => process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_DEBUG = false;
+
+const getBotToken = () => {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (TELEGRAM_DEBUG && !token) {
+    console.error("[TELEGRAM DEBUG ERROR]", {
+      step: "MISSING_BOT_TOKEN",
+      timestamp: new Date().toISOString()
+    });
+  }
+  return token;
+};
 
 type TelegramTaskEventType =
   | 'TASK_CREATED'
@@ -52,6 +64,65 @@ const formatTime = (timestamp?: string | Date) => {
     minute: '2-digit',
     hour12: true,
   });
+};
+
+export const shouldSendTelegram = (user: any, event: { type: 'TASK' | 'PROJECT'; action: string; assignedTo?: string; createdBy?: string }) => {
+  // Use existing settings path
+  const settings = user?.settings?.telegramSettings;
+  
+  // Default to true for existing users without these settings yet
+  if (!settings) return true; 
+  if (settings.enabled === false) return false;
+
+  const userRole = (user.role || 'MEMBER').toUpperCase();
+  const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'OWNER'].includes(userRole);
+
+  // TASK EVENTS
+  if (event.type === 'TASK') {
+    if (isAdmin && settings.taskNotifications?.all) return true;
+
+    const isAssigned = event.assignedTo && String(event.assignedTo) === String(user._id);
+    const isCreator = event.createdBy && String(event.createdBy) === String(user._id);
+    
+    if (settings.taskNotifications?.assigned && isAssigned) return true;
+    if (settings.taskNotifications?.created && isCreator) return true;
+    
+    return false;
+  }
+
+  // PROJECT EVENTS
+  if (event.type === 'PROJECT') {
+    if (isAdmin && settings.projectNotifications?.all) return true;
+
+    const isCreator = event.createdBy && String(event.createdBy) === String(user._id);
+    if (settings.projectNotifications?.created && isCreator) return true;
+    
+    return false;
+  }
+
+  // ACTIVITY EVENTS (Page Opened, Actions)
+  if (event.type === 'ACTIVITY') {
+    if (isAdmin && (settings.activityNotifications?.all ?? true)) return true;
+    
+    const isActor = event.createdBy && String(event.createdBy) === String(user._id);
+    const pref = settings.activityNotifications?.own ?? true; // Default to true if field missing
+    if (pref && isActor) return true;
+    
+    return false;
+  }
+
+  // LOGIN EVENTS
+  if (event.type === 'LOGIN') {
+    if (isAdmin && (settings.loginNotifications?.all ?? true)) return true;
+    
+    const isActor = event.createdBy && String(event.createdBy) === String(user._id);
+    const pref = settings.loginNotifications?.own ?? true; // Default to true if field missing
+    if (pref && isActor) return true;
+    
+    return false;
+  }
+
+  return false;
 };
 
 const withBase = (title: string, emoji: string, lines: string[]) => {
@@ -154,18 +225,30 @@ export const buildTelegramMessage = (
 export const broadcastToOrg = async ({
   organizationId,
   eventType,
+  action,
   message,
   excludeUserId,
-  onlyToUserIds
+  onlyToUserIds,
+  eventContext
 }: {
   organizationId: string;
   eventType: 'LOGINS' | 'TASKS' | 'COMMENTS' | 'ACTIVITY' | 'ALL';
+  action?: string;
   message: string;
   excludeUserId?: string;
   onlyToUserIds?: string[];
+  eventContext?: { type: 'TASK' | 'PROJECT'; assignedTo?: string; createdBy?: string }
 }) => {
   try {
-    const orgSettings = await TelegramOrgSettings.findOne({ organizationId });
+    const orgSettings = await TelegramOrgSettings.findOne({ organizationId }).lean();
+    if (TELEGRAM_DEBUG) {
+      console.log("[TELEGRAM DEBUG]", {
+        step: "ORG_SETTINGS_CHECK",
+        exists: !!orgSettings,
+        isEnabled: orgSettings?.isEnabled,
+        timestamp: new Date().toISOString()
+      });
+    }
     if (!orgSettings || !orgSettings.isEnabled) return;
 
     // Check specific preference for the event
@@ -173,6 +256,22 @@ export const broadcastToOrg = async ({
     if (preferences?.track_all) {
       // Allow all
     } else {
+      // 1. Check granular action-based preference if action is provided
+      if (action) {
+        const actionPrefKey = `notify_${action.toLowerCase()}`;
+        if (preferences[actionPrefKey] === false) {
+          if (TELEGRAM_DEBUG) {
+            console.log("[TELEGRAM DEBUG]", {
+              step: "PREFERENCE_REJECTED",
+              key: actionPrefKey,
+              timestamp: new Date().toISOString()
+            });
+          }
+          return;
+        }
+      }
+
+      // 2. Fallback to broad eventType check
       const prefMap: Record<string, string> = {
         'LOGINS': 'track_logins',
         'TASKS': 'track_tasks',
@@ -180,13 +279,42 @@ export const broadcastToOrg = async ({
         'ACTIVITY': 'track_activity'
       };
       const prefKey = prefMap[eventType];
-      if (!prefKey || preferences[prefKey] === false) {
+      if (prefKey && preferences[prefKey] === false) {
+        if (TELEGRAM_DEBUG) {
+          console.log("[TELEGRAM DEBUG]", {
+            step: "PREFERENCE_REJECTED",
+            key: prefKey,
+            timestamp: new Date().toISOString()
+          });
+        }
         return;
       }
     }
 
     const token = getBotToken();
-    if (!token) return;
+    if (!token) {
+      if (TELEGRAM_DEBUG) {
+        console.log("[TELEGRAM DEBUG]", {
+          step: "MISSING_TOKEN",
+          timestamp: new Date().toISOString()
+        });
+      }
+      return;
+    }
+
+    const connections = await TelegramConnection.find({ 
+      organizationId, 
+      isConnected: true 
+    }).select('userId role');
+
+    if (TELEGRAM_DEBUG) {
+      console.log("[TELEGRAM DEBUG]", {
+        step: "CONNECTIONS_FOUND",
+        count: connections.length,
+        roles: connections.map(c => c.role),
+        timestamp: new Date().toISOString()
+      });
+    }
 
     // Determine Recipients
     let targetUserIds: string[] = [];
@@ -194,11 +322,6 @@ export const broadcastToOrg = async ({
     if (onlyToUserIds && onlyToUserIds.length > 0) {
       targetUserIds = onlyToUserIds;
     } else {
-      const connections = await TelegramConnection.find({ 
-        organizationId, 
-        isConnected: true 
-      }).select('userId role');
-
       if (orgSettings.audience === 'ONLY_ADMINS') {
         targetUserIds = (connections as any[])
           .filter(c => c.role === 'ADMIN')
@@ -217,24 +340,124 @@ export const broadcastToOrg = async ({
       }
     }
 
+    if (TELEGRAM_DEBUG) {
+      console.log("[TELEGRAM DEBUG]", {
+        step: "TARGET_USERS",
+        count: targetUserIds.length,
+        audience: orgSettings.audience,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     // Filter excluded user (usually the actor)
+    // IMPORTANT: We do NOT exclude ADMINS/OWNERS because they want to track every single event
     if (excludeUserId) {
-      targetUserIds = targetUserIds.filter(id => id !== excludeUserId);
+      // Get the real role of the actor (Check both Global Role and Org Role)
+      const [actorUser, actorMember] = await Promise.all([
+        User.findById(excludeUserId).select('role').lean(),
+        OrganizationMember.findOne({ organizationId, userId: excludeUserId }).select('role').lean()
+      ]);
+
+      const actorRole = (actorMember?.role || actorUser?.role || 'MEMBER').toUpperCase();
+      const isExcludedAdmin = ['ADMIN', 'OWNER', 'SUPER_ADMIN'].includes(actorRole);
+
+      if (TELEGRAM_DEBUG) {
+        console.log("[TELEGRAM DEBUG]", {
+          step: "EXCLUSION_CHECK",
+          excludeUserId,
+          actorUserRole: actorUser?.role,
+          actorMemberRole: actorMember?.role,
+          isExcludedAdmin,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      if (!isExcludedAdmin) {
+        targetUserIds = targetUserIds.filter(id => id !== excludeUserId);
+      }
+    }
+
+    if (TELEGRAM_DEBUG) {
+      console.log("[TELEGRAM DEBUG]", {
+        step: "FINAL_TARGET_USERS",
+        count: targetUserIds.length,
+        timestamp: new Date().toISOString()
+      });
     }
 
     if (targetUserIds.length === 0) return;
 
-    // Get Chat IDs
     const finalConnections = await TelegramConnection.find({
       organizationId,
       userId: { $in: targetUserIds },
       isConnected: true
-    }).select('chatId');
+    }).populate('userId');
 
-    const chatIds = (finalConnections as any[]).map(c => c.chatId).filter(Boolean);
+    if (TELEGRAM_DEBUG) {
+      console.log("[TELEGRAM DEBUG]", {
+        step: "FINAL_CONNECTIONS_COUNT",
+        count: finalConnections.length,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const chatIds: string[] = [];
+
+    for (const conn of (finalConnections as any[])) {
+      const user = conn.userId;
+      if (!user) {
+        if (TELEGRAM_DEBUG) console.log("[TELEGRAM DEBUG] SKIP: User not found for connection", conn._id);
+        continue;
+      }
+      if (!conn.chatId) {
+        if (TELEGRAM_DEBUG) console.log("[TELEGRAM DEBUG] SKIP: ChatId missing for user", user._id);
+        continue;
+      }
+
+      if (eventContext) {
+        const shouldSend = shouldSendTelegram(user, {
+          ...eventContext,
+          action: action || 'UPDATED'
+        });
+
+        if (TELEGRAM_DEBUG) {
+          console.log("[TELEGRAM DEBUG]", {
+            step: "NOTIFICATION_DECISION",
+            userId: user._id,
+            role: user.role,
+            eventType: eventContext.type,
+            decision: shouldSend,
+            timestamp: new Date().toISOString()
+          });
+        }
+
+        if (!shouldSend) continue;
+      }
+
+      if (conn.chatId) {
+        chatIds.push(conn.chatId);
+      }
+    }
 
     // Send messages in parallel (Fire and forget)
-    chatIds.forEach((chatId: string) => 
+    if (TELEGRAM_DEBUG) {
+      console.log("[TELEGRAM DEBUG]", {
+        step: "FINAL_SUMMARY_PRE_SEND",
+        totalRecipients: chatIds.length,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    chatIds.forEach((chatId: string) => {
+      if (TELEGRAM_DEBUG) {
+        console.log("[TELEGRAM DEBUG]", {
+          step: "API_REQUEST",
+          url: `https://api.telegram.org/bot${token}/sendMessage`,
+          payload: { chat_id: chatId, text: message.slice(0, 50) + "..." },
+          timestamp: new Date().toISOString()
+        });
+      }
+
       fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -243,22 +466,104 @@ export const broadcastToOrg = async ({
           text: message,
           parse_mode: 'Markdown'
         })
-      }).catch(err => console.error(`Telegram message failed for chatId ${chatId}:`, err))
-    );
-  } catch (error) {
+      })
+      .then(async (res) => {
+        if (TELEGRAM_DEBUG) {
+          const data = await res.json();
+          if (res.ok) {
+            console.log("[TELEGRAM DEBUG]", {
+              step: "MESSAGE_SENT_SUCCESS",
+              telegramId: chatId,
+              response: data,
+              timestamp: new Date().toISOString()
+            });
+          } else {
+            console.error("[TELEGRAM DEBUG ERROR]", {
+              step: "MESSAGE_FAILED",
+              telegramId: chatId,
+              error: data.description || "Unknown Telegram API error",
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+      })
+      .catch(err => {
+        if (TELEGRAM_DEBUG) {
+          console.error("[TELEGRAM DEBUG ERROR]", {
+            step: "API_TIMEOUT_OR_NETWORK_ERROR",
+            telegramId: chatId,
+            error: err.message,
+            stack: err.stack,
+            timestamp: new Date().toISOString()
+          });
+        }
+        console.error(`Telegram message failed for chatId ${chatId}:`, err);
+      });
+    });
+  } catch (error: any) {
+    if (TELEGRAM_DEBUG) {
+      console.error("[TELEGRAM DEBUG ERROR]", {
+        step: "BROADCAST_PROCESS_FAILED",
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
   }
 };
 
 /**
  * Sends a direct Telegram message to a specific user for a specific organization context
  */
-export const sendDirectNotification = async (userId: string, organizationId: string, message: string) => {
+export const sendDirectNotification = async (
+  userId: string, 
+  organizationId: string, 
+  message: string,
+  eventContext?: { type: 'TASK' | 'PROJECT'; assignedTo?: string; createdBy?: string; action?: string }
+) => {
   try {
-    const connection = await TelegramConnection.findOne({ userId, organizationId, isConnected: true });
-    if (!connection || !connection.chatId) return;
+    const [connection, user] = await Promise.all([
+      TelegramConnection.findOne({ userId, organizationId, isConnected: true }).lean(),
+      User.findById(userId).lean()
+    ]);
+
+    if (!connection || !connection.chatId || !user) return;
+
+    if (eventContext) {
+      const shouldSend = shouldSendTelegram(user, {
+        type: eventContext.type,
+        action: eventContext.action || 'UPDATED',
+        assignedTo: eventContext.assignedTo,
+        createdBy: eventContext.createdBy
+      });
+
+      if (TELEGRAM_DEBUG) {
+        console.log("[TELEGRAM DEBUG]", {
+          step: "NOTIFICATION_DECISION",
+          type: "DIRECT",
+          userId,
+          role: user.role,
+          eventType: eventContext.type,
+          decision: shouldSend,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      if (!shouldSend) return;
+    }
 
     const token = getBotToken();
     if (!token) return;
+
+    if (TELEGRAM_DEBUG) {
+      console.log("[TELEGRAM DEBUG]", {
+        step: "API_REQUEST",
+        type: "DIRECT_NOTIFICATION",
+        userId,
+        telegramId: connection.chatId,
+        messagePreview: message.slice(0, 50),
+        timestamp: new Date().toISOString()
+      });
+    }
 
     fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
@@ -268,8 +573,51 @@ export const sendDirectNotification = async (userId: string, organizationId: str
         text: message,
         parse_mode: 'Markdown'
       })
-    }).catch(err => console.error('Telegram direct message failed:', err));
-  } catch (error) {
+    })
+    .then(async (res) => {
+      if (TELEGRAM_DEBUG) {
+        const data = await res.json();
+        if (res.ok) {
+          console.log("[TELEGRAM DEBUG]", {
+            step: "MESSAGE_SENT_SUCCESS",
+            userId,
+            telegramId: connection.chatId,
+            response: data,
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          console.error("[TELEGRAM DEBUG ERROR]", {
+            step: "MESSAGE_FAILED",
+            userId,
+            telegramId: connection.chatId,
+            error: data.description || "Unknown Telegram API error",
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    })
+    .catch(err => {
+      if (TELEGRAM_DEBUG) {
+        console.error("[TELEGRAM DEBUG ERROR]", {
+          step: "API_TIMEOUT_OR_NETWORK_ERROR",
+          userId,
+          telegramId: connection.chatId,
+          error: err.message,
+          stack: err.stack,
+          timestamp: new Date().toISOString()
+        });
+      }
+      console.error('Telegram direct message failed:', err);
+    });
+  } catch (error: any) {
+    if (TELEGRAM_DEBUG) {
+      console.error("[TELEGRAM DEBUG ERROR]", {
+        step: "DIRECT_SEND_PROCESS_FAILED",
+        userId,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
   }
 };
 
@@ -316,7 +664,12 @@ export const syncTelegramConnection = async (userId: string, organizationId: str
     });
 
     if (matchingUpdate) {
+      const from = matchingUpdate.message.from;
       connection.chatId = matchingUpdate.message.chat.id.toString();
+      (connection as any).telegramId = from.id.toString();
+      (connection as any).username = from.username;
+      (connection as any).firstName = from.first_name;
+      (connection as any).lastName = from.last_name;
       connection.isConnected = true;
       (connection as any).verificationToken = undefined;
       await (connection as any).save();
@@ -331,4 +684,13 @@ export const syncTelegramConnection = async (userId: string, organizationId: str
   } catch (error) {
     throw new AppError('Failed to sync with Telegram', 500);
   }
+};
+
+/**
+ * Sends a quick confirmation message when a setting is toggled
+ */
+export const sendConfirmation = async (userId: string, organizationId: string, label: string, isEnabled: boolean) => {
+  const status = isEnabled ? '✅ ENABLED' : '❌ DISABLED';
+  const message = `⚙️ *Settings Updated*\n━━━━━━━━━━━━━━━\n*Feature:* ${label}\n*Status:* ${status}\n\n_The system will now reflect this change immediately._`;
+  await sendDirectNotification(userId, organizationId, message);
 };

@@ -23,6 +23,14 @@ export const getSettings = async (req: Request, res: Response) => {
   res.json({
     success: true,
     data: {
+      telegram: {
+        connected: !!connection?.isConnected,
+        username: connection?.username || null,
+        firstName: connection?.firstName || null,
+        lastName: connection?.lastName || null,
+        telegramId: connection?.telegramId || null,
+        chatId: connection?.chatId || null
+      },
       connection: connection || { isConnected: false, userId, organizationId: orgId },
       orgSettings: orgSettings || { 
         isEnabled: false, 
@@ -38,7 +46,8 @@ export const getSettings = async (req: Request, res: Response) => {
       activeConnections: activeConnections.map((c: any) => ({
         name: `${c.userId?.firstName || 'Unknown'} ${c.userId?.lastName || ''}`,
         role: c.role,
-        chatId: c.chatId
+        chatId: c.chatId,
+        telegramUser: c.username ? `@${c.username}` : (c.firstName ? `${c.firstName} ${c.lastName || ''}` : `ID: ${c.telegramId || c.chatId}`)
       })),
       role: req.role
     }
@@ -61,7 +70,7 @@ export const initiateConnection = async (req: Request, res: Response) => {
     { 
       verificationToken, 
       isConnected: false,
-      role: req.role === 'ADMIN' ? 'ADMIN' : 'MEMBER'
+      role: (req.role === 'ADMIN' || req.role === 'OWNER') ? 'ADMIN' : 'MEMBER'
     },
     { upsert: true, new: true }
   );
@@ -92,7 +101,17 @@ export const verifyConnection = async (req: Request, res: Response) => {
     res.json({
       success: true,
       message: 'Connected successfully',
-      data: connection
+      data: {
+        connection,
+        telegram: {
+          connected: true,
+          username: (connection as any).username,
+          firstName: (connection as any).firstName,
+          lastName: (connection as any).lastName,
+          telegramId: (connection as any).telegramId,
+          chatId: (connection as any).chatId
+        }
+      }
     });
   } else {
     res.json({
@@ -106,10 +125,12 @@ export const updateOrgSettings = async (req: Request, res: Response) => {
   const orgId = req.organizationId;
   const { isEnabled, preferences, audience, customRecipientIds } = req.body;
 
-  if (req.role !== 'ADMIN' && req.role !== 'SUPER_ADMIN') {
+  if (req.role !== 'OWNER' && req.role !== 'ADMIN' && req.role !== 'SUPER_ADMIN') {
     throw new AppError('Only organization admins can update these settings', 403);
   }
 
+  const oldSettings = await TelegramOrgSettings.findOne({ organizationId: orgId }).lean();
+  
   const settings = await TelegramOrgSettings.findOneAndUpdate(
     { organizationId: orgId },
     { 
@@ -122,6 +143,20 @@ export const updateOrgSettings = async (req: Request, res: Response) => {
     },
     { new: true, upsert: true }
   );
+
+  // Send confirmation if a preference changed
+  if (preferences && oldSettings?.preferences) {
+    const oldPrefs = oldSettings.preferences as any;
+    const newPrefs = preferences as any;
+    const changedKey = Object.keys(newPrefs).find(key => newPrefs[key] !== oldPrefs[key]);
+    
+    if (changedKey) {
+      const label = changedKey.replace('notify_', '').replace(/_/g, ' ').toUpperCase();
+      await telegramService.sendConfirmation(req.user.id, orgId!, `Org: ${label}`, newPrefs[changedKey]);
+    }
+  } else if (isEnabled !== oldSettings?.isEnabled) {
+    await telegramService.sendConfirmation(req.user.id, orgId!, 'Org: Global Broadcast', isEnabled);
+  }
 
   res.json({
     success: true,

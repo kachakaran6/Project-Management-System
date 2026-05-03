@@ -81,6 +81,7 @@ export const authApi = {
     lastName?: string;
     bio?: string;
     avatarUrl?: string;
+    settings?: any;
   }): Promise<ApiResponse<{ user: import("@/types/user.types").UserWithRole }>> => {
     const response = await api.patch<ApiResponse<{ user: import("@/types/user.types").UserWithRole }>>(
       "/auth/me",
