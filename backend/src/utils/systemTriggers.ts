@@ -359,6 +359,7 @@ export const triggerNotification = async ({
     const titleMap: Record<string, string> = {
       [NOTIFICATION_TYPES.TASK_ASSIGNED]: 'Task assigned',
       [NOTIFICATION_TYPES.TASK_UPDATED]: 'Task updated',
+      [NOTIFICATION_TYPES.TASK_STATUS_UPDATED]: 'Task status updated',
       [NOTIFICATION_TYPES.COMMENT_ADDED]: 'New comment',
       [NOTIFICATION_TYPES.MENTION]: 'You were mentioned',
       [NOTIFICATION_TYPES.PROJECT_INVITE]: 'Project invitation',
@@ -396,6 +397,7 @@ export const triggerNotification = async ({
       [NOTIFICATION_TYPES.MENTION]: 'MENTION',
       [NOTIFICATION_TYPES.TASK_ASSIGNED]: 'TASK_ASSIGNED',
       [NOTIFICATION_TYPES.TASK_UPDATED]: 'TASK_UPDATED',
+      [NOTIFICATION_TYPES.TASK_STATUS_UPDATED]: 'TASK_STATUS_UPDATED',
       [NOTIFICATION_TYPES.COMMENT_ADDED]: 'COMMENT_CREATED',
       [NOTIFICATION_TYPES.PROJECT_INVITE]: null,
       [NOTIFICATION_TYPES.NEW_MEMBER_JOINED]: null,

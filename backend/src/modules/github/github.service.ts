@@ -570,7 +570,7 @@ const linkToTasks = async (taskIds: string[], link: any, trigger: string, projec
         userIds: recipientIds,
         organizationId: task.organizationId,
         actorId: actorId || task.creatorId,
-        type: NOTIFICATION_TYPES.TASK_UPDATED,
+        type: NOTIFICATION_TYPES.TASK_STATUS_UPDATED,
         message: `Task status updated to ${targetStatusName || 'DONE'} via GitHub by ${link.author}`,
         resourceId: task._id,
         resourceType: 'Task',
