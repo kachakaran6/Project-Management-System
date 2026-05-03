@@ -928,11 +928,17 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
   const skip = (page - 1) * limit;
   const query: Record<string, any> = {
     isActive: true,
-    $or: [
-      { isDraft: { $ne: true } }, // All non-draft tasks (includes legacy data)
-      { isDraft: true, creatorId: toObjectId(userId) } // Only the creator can see their own drafts
-    ]
   };
+
+  // We use an array of AND conditions to avoid overwriting $or
+  const andConditions: any[] = [
+    {
+      $or: [
+        { isDraft: { $ne: true } }, // All non-draft tasks (includes legacy data)
+        { isDraft: true, creatorId: toObjectId(userId) } // Only the creator can see their own drafts
+      ]
+    }
+  ];
 
   const orgId = toObjectId(filter.organizationId);
   if (orgId) query.organizationId = orgId;
@@ -973,12 +979,14 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
   if (filter.search) {
     const term = String(filter.search).trim();
     const regex = new RegExp(term, 'i');
-    query.$or = [
-      { title: regex }, 
-      { description: regex },
-      { taskCode: regex },
-      { legacyId: term }
-    ];
+    andConditions.push({
+      $or: [
+        { title: regex }, 
+        { description: regex },
+        { taskCode: regex },
+        { legacyId: term }
+      ]
+    });
   }
 
   if (filter.assigneeId === "UNASSIGNED") {
@@ -994,10 +1002,16 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
   if (filter.creatorOrAssigneeId) {
     const userId = toObjectId(filter.creatorOrAssigneeId);
     const assignedTIds = await TaskAssignee.find({ userId }).distinct("taskId");
-    query.$or = [
-      { creatorId: userId },
-      { _id: { $in: assignedTIds } }
-    ];
+    andConditions.push({
+      $or: [
+        { creatorId: userId },
+        { _id: { $in: assignedTIds } }
+      ]
+    });
+  }
+
+  if (andConditions.length > 0) {
+    query.$and = andConditions;
   }
 
   let normalizedTagIds = filter.tagIds;
@@ -1410,6 +1424,12 @@ export const deleteTask = async (taskId: any, userId: any) => {
       timestamp: new Date(),
     }
   });
+
+  emitToRoom(
+    SOCKET_ROOMS.WORKSPACE(task.workspaceId),
+    SOCKET_EVENTS.TASK_DELETED,
+    { taskId: task._id }
+  );
 };
 
 export const changeStatus = async (taskId: any, newStatus: any, userId: any) => {

@@ -14,7 +14,7 @@ import Organization from '../models/Organization.js';
 import Status from '../models/Status.js';
 import mongoose from 'mongoose';
 
-const TELEGRAM_DEBUG = true;
+const TELEGRAM_DEBUG = false;
 
 const getDisplayName = (user: any) => {
   if (!user) return 'System';
@@ -106,14 +106,14 @@ interface ActivityParams {
  * Log a system activity (New Observability Wrapper)
  */
 export const logActivity = async (params: ActivityParams) => {
-  const { 
-    userId, 
-    action, 
-    resourceType, 
-    resourceId, 
+  const {
+    userId,
+    action,
+    resourceType,
+    resourceId,
     message,
     status = 'SUCCESS',
-    metadata = {} 
+    metadata = {}
   } = params;
 
   // Build human readable message if not provided
@@ -201,7 +201,7 @@ export const logActivity = async (params: ActivityParams) => {
           resolveStatusName(metadata?.oldStatus),
           resolveStatusName(metadata?.newStatus || metadata?.status)
         ]);
-        
+
         const userName = metadata?.actorName || getDisplayName(user);
         const orgName = org?.name || 'Unknown Organization';
 
@@ -242,7 +242,7 @@ export const logActivity = async (params: ActivityParams) => {
           const details: Record<string, any> = {
             'User': userName
           };
-        
+
           if (eventConfig.type === 'TASKS') {
             details['Title'] = metadata?.title || metadata?.name || logMessage;
             if (metadata?.status) details['Status'] = metadata.status;
@@ -340,10 +340,10 @@ export const triggerNotification = async ({
     const uniqueUserIds = [...new Set(userIds.map((userId) => String(userId)))];
     const validUserIds = organizationId
       ? await OrganizationMember.find({
-          organizationId,
-          userId: { $in: uniqueUserIds },
-          isActive: true
-        }).distinct('userId')
+        organizationId,
+        userId: { $in: uniqueUserIds },
+        isActive: true
+      }).distinct('userId')
       : uniqueUserIds;
 
     if (TELEGRAM_DEBUG) {
@@ -393,7 +393,7 @@ export const triggerNotification = async ({
     emitToUsers(validUserIds, SOCKET_EVENTS.NOTIFICATION_NEW, createdNotifications);
 
     // Telegram Notifications for affected users (Direct mapped via connection)
-    const typeMap: Record<string, 'TASK_ASSIGNED' | 'TASK_UPDATED' | 'MENTION' | 'COMMENT_CREATED' | null> = {
+    const typeMap: Record<string, 'TASK_ASSIGNED' | 'TASK_UPDATED' | 'TASK_STATUS_UPDATED' | 'MENTION' | 'COMMENT_CREATED' | null> = {
       [NOTIFICATION_TYPES.MENTION]: 'MENTION',
       [NOTIFICATION_TYPES.TASK_ASSIGNED]: 'TASK_ASSIGNED',
       [NOTIFICATION_TYPES.TASK_UPDATED]: 'TASK_UPDATED',
@@ -425,10 +425,10 @@ export const triggerNotification = async ({
 
       for (const recipientId of validUserIds) {
         const recipientUser = recipientsById.get(String(recipientId));
-        
+
         // 1. Check Personal Notification Settings
         const personalPrefs = recipientUser?.settings?.notifications;
-        
+
         if (TELEGRAM_DEBUG) {
           console.log("[TELEGRAM DEBUG]", {
             step: "VALIDATE_PREFERENCES",
@@ -476,8 +476,8 @@ export const triggerNotification = async ({
         );
 
         await telegramService.sendDirectNotification(
-          String(recipientId), 
-          String(organizationId), 
+          String(recipientId),
+          String(organizationId),
           tgMessage,
           {
             type: resourceType.toUpperCase().includes('PROJECT') ? 'PROJECT' : 'TASK',

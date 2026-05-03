@@ -16,8 +16,13 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
+    const activeOrgId = localStorage.getItem("activeOrgId");
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (activeOrgId) {
+      config.headers["x-organization-id"] = activeOrgId;
     }
     return config;
   },
