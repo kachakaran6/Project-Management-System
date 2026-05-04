@@ -107,9 +107,9 @@ export const disconnectAccount = asyncHandler(async (req: Request, res: Response
 export const getRepositories = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).user.id;
   
-  // Check connection status first
-  const account = await githubService.getAccount(userId);
-  if (!account || !account.accessToken) {
+  // Check if account exists first without using the 'safe' getter that strips the token
+  const account = await githubService.getInternalAccount(userId);
+  if (!account) {
     return res.status(200).json({ success: true, data: [] });
   }
 

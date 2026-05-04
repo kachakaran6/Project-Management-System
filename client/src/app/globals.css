@@ -447,12 +447,12 @@ body {
 
   --sidebar: #ffffff;
   /* bg-white */
-  --sidebar-foreground: #334155;
-  /* slate-700 */
-  --sidebar-accent: #f1f5f9;
-  /* slate-100 */
-  --sidebar-border: #e5e9f0;
-  /* light-gray border */
+  --sidebar-foreground: #1e293b;
+  /* slate-800 */
+  --sidebar-accent: #f8fafc;
+  /* slate-50 */
+  --sidebar-border: #e2e8f0;
+  /* slate-200 border */
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

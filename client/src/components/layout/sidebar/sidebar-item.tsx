@@ -37,7 +37,7 @@ export function SidebarItem({ item, isActive, collapsed }: SidebarItemProps) {
         "h-11 px-3",
         isActive
           ? "bg-sidebar-accent text-primary shadow-sm ring-1 ring-sidebar-border/50"
-          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-primary",
+          : "text-sidebar-foreground/90 hover:bg-sidebar-accent hover:text-primary",
         collapsed && "justify-center px-0 w-10 mx-auto",
       )}
       aria-current={isActive ? "page" : undefined}

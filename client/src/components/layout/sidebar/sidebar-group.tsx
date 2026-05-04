@@ -21,7 +21,7 @@ export function SidebarGroup({
   return (
     <div className="space-y-1">
       {!collapsed ? (
-        <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/55">
+        <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/75">
           {label}
         </p>
       ) : null}

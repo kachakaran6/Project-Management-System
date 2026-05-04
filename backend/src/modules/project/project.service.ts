@@ -34,7 +34,8 @@ export const createProject = async (projectData: Record<string, any>) => {
   // Ensure uniqueness (basic check before transaction, schema will also enforce)
   const existingProject = await Project.findOne({ 
     organizationId, 
-    code: projectCode.toUpperCase() 
+    code: projectCode.toUpperCase(),
+    isActive: true
   });
   
   if (existingProject && !code) {
@@ -75,7 +76,7 @@ export const createProject = async (projectData: Record<string, any>) => {
     // 2. Add other members if provided
     if (Array.isArray(members) && members.length > 0) {
       const memberDocs = members
-        .filter(mId => mId !== ownerId) // Avoid duplicate for owner
+        .filter(mId => String(mId) !== String(ownerId)) // Avoid duplicate for owner
         .map(mId => ({
           projectId: project._id,
           userId: mId,
