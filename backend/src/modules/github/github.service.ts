@@ -103,6 +103,10 @@ export const getAccount = async (userId: string) => {
   return safeAccount;
 };
 
+export const getInternalAccount = async (userId: string) => {
+  return await GithubAccount.findOne({ userId });
+};
+
 export const disconnectAccount = async (userId: string) => {
   return await GithubAccount.deleteOne({ userId });
 };

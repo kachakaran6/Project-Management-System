@@ -42,7 +42,7 @@ export function SidebarNav({
               "group flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
               isActive
                 ? "bg-sidebar-accent text-primary shadow-sm"
-                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-primary",
+                : "text-sidebar-foreground/90 hover:bg-sidebar-accent hover:text-primary",
               collapsed && "justify-center px-2",
             )}
           >

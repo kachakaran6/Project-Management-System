@@ -16,7 +16,6 @@ const projectSchema = new mongoose.Schema({
   ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   code: { 
     type: String, 
-    unique: true, 
     sparse: true, 
     trim: true, 
     uppercase: true,
@@ -46,6 +45,12 @@ const projectSchema = new mongoose.Schema({
 // Virtual to map _id to id for API responses
 projectSchema.virtual('id').get(function() {
   return this._id;
+});
+
+// Compound index for organization-scoped project codes
+projectSchema.index({ organizationId: 1, code: 1 }, { 
+  unique: true, 
+  partialFilterExpression: { code: { $exists: true }, isActive: true } 
 });
 
 // Index for workspace-level project listing

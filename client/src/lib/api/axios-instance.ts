@@ -67,29 +67,44 @@ if (authChannel) {
  */
 async function refreshAccessToken(): Promise<string | null> {
   try {
-    const response = await api.post<ApiResponse<RefreshResponse>>("/auth/refresh", {}, { withCredentials: true });
-    const token = response.data.data.accessToken;
+    const refreshToken = localStorage.getItem("refreshToken");
+    const response = await api.post<ApiResponse<RefreshResponse>>(
+      "/auth/refresh",
+      { refreshToken },
+      { withCredentials: true }
+    );
+    
+    const { accessToken, refreshToken: newRefreshToken } = response.data.data;
     
     // Update local storage
-    localStorage.setItem("token", token);
+    localStorage.setItem("token", accessToken);
+    if (newRefreshToken) {
+      localStorage.setItem("refreshToken", newRefreshToken);
+    }
     
     // Dispatch event for components to react
-    window.dispatchEvent(new CustomEvent("auth-token-refreshed", { detail: token }));
+    window.dispatchEvent(new CustomEvent("auth-token-refreshed", { detail: accessToken }));
 
     // Notify other tabs via BroadcastChannel
-    authChannel?.postMessage({ type: "REFRESH_SUCCESS", accessToken: token });
+    authChannel?.postMessage({ type: "REFRESH_SUCCESS", accessToken });
 
-    return token;
+    return accessToken;
   } catch (error: any) {
-    if (error.response?.status === 401) {
+    // Handle SESSION_REVOKED specifically
+    if (error.response?.data?.code === "SESSION_REVOKED") {
+      toast.error("Your session has been revoked from another device. Please log in again.");
+    } else if (error.response?.status === 401) {
       const hasToken = !!localStorage.getItem("token");
       if (hasToken) {
         toast.error("Session expired. Please sign in again.");
       }
-      localStorage.removeItem("token");
-      localStorage.removeItem("activeOrgId");
-      window.dispatchEvent(new CustomEvent("auth-logout"));
     }
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("activeOrgId");
+    window.dispatchEvent(new CustomEvent("auth-logout"));
+    
     return null;
   }
 }
@@ -107,9 +122,6 @@ api.interceptors.request.use(
 
     if (activeOrgId && !isAuthRoute) {
       config.headers.set("x-organization-id", activeOrgId);
-    }
-
-    if (import.meta.env.DEV) {
     }
 
     logApiRequest(config.method ?? "GET", config.url ?? "", config.data);
@@ -216,3 +228,5 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+export default api;

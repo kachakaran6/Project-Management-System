@@ -233,7 +233,7 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
             <p className="font-heading text-lg font-bold text-foreground truncate">
               {role === "SUPER_ADMIN" ? "Platform Control" : "PMS Orbit"}
             </p>
-            <p className="text-[10px] uppercase tracking-wider text-sidebar-foreground/50 truncate">
+            <p className="text-[10px] uppercase tracking-wider text-sidebar-foreground/75 truncate">
               {role === "SUPER_ADMIN" ? "Super Admin Console" : activeOrg?.name ?? "Personal Workspace"}
             </p>
           </div>
@@ -243,7 +243,7 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-primary transition-all"
+            className="text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-primary transition-all"
             onClick={handleToggle}
             aria-label={
               sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
@@ -377,7 +377,7 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
           ) : (
             <div className="flex flex-col gap-1.5 animate-in fade-in duration-500">
               <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-sidebar-foreground/30">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-sidebar-foreground/60">
                   Account Role
                 </span>
                 <div className={cn(
