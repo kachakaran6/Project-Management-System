@@ -1,5 +1,4 @@
-
-import { ComponentType, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "@/lib/next-navigation";
 import {
   AtSign,
@@ -7,53 +6,53 @@ import {
   CalendarDays,
   CheckSquare,
   ChevronDown,
-  Code2,
   Copy,
-  Download,
-  FileText,
+  FileCode2,
+  FileImage,
   Globe,
   GripVertical,
-  Highlighter,
   Heading1,
   Heading2,
-  Image as ImageIcon,
+  ImagePlus,
   Italic,
   Link2,
   List,
+  ListChecks,
   ListOrdered,
   Lock,
-  Minus,
-  MoreHorizontal,
-  PanelRight,
-  Pilcrow,
-  Quote,
-  Settings2,
-  Smile,
-  Strikethrough,
+  MoveDown,
+  MoveUp,
+  Plus,
   Table as TableIcon,
   Trash2,
   Type,
   Underline as UnderlineIcon,
-  UserPlus,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+
 import { EditorContent, useEditor } from "@tiptap/react";
+import type { JSONContent } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
-import Highlight from "@tiptap/extension-highlight";
 import Placeholder from "@tiptap/extension-placeholder";
-import TaskItem from "@tiptap/extension-task-item";
-import TaskList from "@tiptap/extension-task-list";
-import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
-import TextAlign from "@tiptap/extension-text-align";
+import Link from "@tiptap/extension-link";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
 import Mention from "@tiptap/extension-mention";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import TextAlign from "@tiptap/extension-text-align";
+import Image from "@tiptap/extension-image";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { TableCell } from "@tiptap/extension-table-cell";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import CharacterCount from "@tiptap/extension-character-count";
+import { all, createLowlight } from "lowlight";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -62,154 +61,120 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription as DialogDesc,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { PageVisibilityBadge } from "@/features/pages/components/page-visibility-badge";
+import { PublishPageDialog } from "@/features/pages/components/publish-page-dialog";
 import {
   useCreatePageMutation,
   useDeletePageMutation,
-  useExportPagePdfMutation,
   usePageQuery,
   useUpdatePageMutation,
 } from "@/features/pages/hooks/use-pages-query";
-import { PageVisibilityBadge } from "@/features/pages/components/page-visibility-badge";
-import { PublishPageDialog } from "@/features/pages/components/publish-page-dialog";
+import {
+  createSerializedPageContent,
+  extractPagePlainText,
+  getTemplateDocument,
+  PAGE_TEMPLATES,
+  parsePageContent,
+  type PageBlock,
+  type PageTemplateId,
+} from "@/features/pages/utils/page-content";
 import {
   getPagePublicPath,
   getPagePublicPreviewPath,
   toAbsolutePublicUrl,
 } from "@/features/pages/utils/page-sharing";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
+import { useTasksQuery } from "@/features/tasks/hooks/use-tasks-query";
 import { PageDoc, PageVisibility } from "@/types/page.types";
 
-type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
+const lowlight = createLowlight(all);
+
+type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
 type SlashCommand = {
   id: string;
-  label: string;
-  icon: ComponentType<{ className?: string }>;
+  title: string;
+  hint: string;
+  icon: typeof Type;
   run: () => void;
 };
 
-function toPlainText(value: string) {
-  return value
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+function toInitials(firstName?: string, lastName?: string) {
+  return (
+    `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.trim().toUpperCase() || "U"
+  );
+}
+
+function canViewPage(page: PageDoc, userId: string, role?: string) {
+  if (role === "SUPER_ADMIN" || role === "ADMIN") return true;
+  if (page.visibility === "WORKSPACE" || page.visibility === "PUBLIC") return true;
+  const isOwner = page.creatorId === userId;
+  const isAllowed = (page.allowedUsers || []).some((id) => String(id) === userId);
+  return isOwner || isAllowed;
+}
+
+function safePrompt(message: string) {
+  const value = window.prompt(message);
+  return value ? value.trim() : "";
 }
 
 export default function PageEditorPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const pageId = params?.id ?? "";
 
+  const pageId = params?.id ?? "";
   const { user, activeOrg } = useAuth();
-  const role = activeOrg?.role ?? user?.role;
+  const currentRole = activeOrg?.role ?? user?.role;
+  const currentUserId = user?.id ?? "";
 
   const pageQuery = usePageQuery(pageId, Boolean(pageId));
   const updatePage = useUpdatePageMutation();
   const createPage = useCreatePageMutation();
   const deletePage = useDeletePageMutation();
-  const exportPdf = useExportPagePdfMutation();
-  const editorRef = useRef<HTMLDivElement>(null);
-
-  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("<p></p>");
-  const [visibility, setVisibility] = useState<PageVisibility>("WORKSPACE");
-  const [hasHydrated, setHasHydrated] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [slashOpen, setSlashOpen] = useState(false);
-  const [slashPos, setSlashPos] = useState({ top: 0, left: 0 });
-  const [shareOpen, setShareOpen] = useState(false);
-  const [publishOpen, setPublishOpen] = useState(false);
-  const [copiedPublicLink, setCopiedPublicLink] = useState(false);
 
   const membersQuery = useOrganizationMembersQuery(activeOrg?.id || "");
   const members = membersQuery.data?.data.members || [];
+  const tasksQuery = useTasksQuery({ page: 1, limit: 100 }, { staleTime: 20_000 });
+  const tasks = tasksQuery.data?.data.items || [];
+
+  const [title, setTitle] = useState("Untitled");
+  const [visibility, setVisibility] = useState<PageVisibility>("WORKSPACE");
+  const [icon, setIcon] = useState("P");
+  const [coverUrl, setCoverUrl] = useState("");
+  const [templateId, setTemplateId] = useState<PageTemplateId>("empty");
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [slashOpen, setSlashOpen] = useState(false);
+  const [slashPos, setSlashPos] = useState({ top: 0, left: 0 });
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [copiedPublicLink, setCopiedPublicLink] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedSnapshot = useRef("");
+  const hydratedPageId = useRef("");
 
   const page = pageQuery.data?.data;
-
-  const creatorId = useMemo(() => {
-    if (!page?.creatorId) return null;
-    return (page.creatorId && typeof page.creatorId === "object") ? (page.creatorId as any)._id : page.creatorId;
-  }, [page]);
-
-  const canAdminOverride = role === "SUPER_ADMIN" || role === "ADMIN";
-  const isCreator = String(creatorId) === String(user?.id);
-
-  const isAllowed = useMemo(() => {
-    if (!page || !user) return false;
-    return (page.allowedUsers || []).some((id: string) => String(id) === user.id);
-  }, [page, user]);
-
-  const canView = useMemo(() => {
-    if (!page) return false;
-    if (canAdminOverride) return true;
-    if (page.visibility === "PUBLIC" || page.visibility === "WORKSPACE") return true;
-    return isCreator || isAllowed;
-  }, [canAdminOverride, isCreator, isAllowed, page]);
-
-  const canEdit = useMemo(() => {
-    if (!page) return false;
-    return isCreator;
-  }, [isCreator, page]);
-
-  const canDelete = useMemo(() => {
-    if (!page) return false;
-    return isCreator;
-  }, [isCreator, page]);
-
-  const baseline = useMemo(
-    () => JSON.stringify({ title, content, visibility }),
-    [content, title, visibility],
-  );
-  const lastSaved = useRef("");
-  const hydratedPageId = useRef<string>("");
-
-  const commitLocalSnapshot = (
-    nextTitle: string,
-    nextContent: string,
-    nextVisibility: PageVisibility,
-  ) => {
-    lastSaved.current = JSON.stringify({
-      title: nextTitle,
-      content: nextContent,
-      visibility: nextVisibility,
-    });
-  };
-
-  const syncLocalPageState = (nextPage: PageDoc) => {
-    const nextTitle = nextPage.title || "Untitled";
-    const nextContent = nextPage.content || "<p></p>";
-    const nextVisibility = nextPage.visibility;
-
-    setTitle(nextTitle);
-    setContent(nextContent);
-    setVisibility(nextVisibility);
-    commitLocalSnapshot(nextTitle, nextContent, nextVisibility);
-
-    if (editor && editor.getHTML() !== nextContent) {
-      editor.commands.setContent(nextContent, { emitUpdate: false });
-    }
-  };
+  const canView = page ? canViewPage(page, currentUserId, currentRole) : false;
+  const canEdit = Boolean(page && page.creatorId === currentUserId);
 
   const publicPreviewPath =
     toAbsolutePublicUrl(
@@ -230,35 +195,51 @@ export default function PageEditorPage() {
   const publicPageUrl = toAbsolutePublicUrl(getPagePublicPath(page || null));
 
   const editor = useEditor({
+    editable: canEdit,
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
       Placeholder.configure({
-        placeholder: "Type '/' for commands, or start writing your document...",
+        placeholder: "Type '/' for commands, or start writing...",
       }),
-      Highlight,
+      Underline,
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        defaultProtocol: "https",
+      }),
       TaskList,
       TaskItem.configure({ nested: true }),
-      Link.configure({ openOnClick: false, autolink: true }),
-      Underline,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
       Mention.configure({
         HTMLAttributes: {
-          class: "rounded bg-muted px-1 py-0.5 text-foreground",
+          class: "rounded-md bg-primary/10 px-1.5 py-0.5 text-primary font-medium",
         },
       }),
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
+      Image.configure({
+        allowBase64: false,
+      }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      CodeBlockLowlight.configure({ lowlight }),
+      CharacterCount,
     ],
-    content,
-    onUpdate: ({ editor: activeEditor }) => {
-      setContent(activeEditor.getHTML());
-    },
+    content: "<p></p>",
     editorProps: {
       attributes: {
         class:
-          "min-h-[600px] w-full max-w-none bg-transparent px-4 md:px-0 py-4 text-[16px] md:text-[18px] leading-relaxed outline-none prose prose-slate dark:prose-invert",
+          "ProseMirror page-editor min-h-[520px] w-full rounded-2xl border border-border/60 bg-card px-6 py-6 text-[16px] leading-7 text-foreground shadow-sm outline-none sm:px-8",
       },
       handleKeyDown: (view, event) => {
+        if (!canEdit) return false;
+
         if (event.key === "/") {
           const pos = view.state.selection.from;
           const coords = view.coordsAtPos(pos);
@@ -273,120 +254,333 @@ export default function PageEditorPage() {
         return false;
       },
     },
+    onUpdate: () => {
+      if (!canEdit) return;
+      setSaveState("dirty");
+    },
     immediatelyRender: false,
   });
 
-  const insertSlashBlock = (run: () => void) => {
-    run();
-    setSlashOpen(false);
-    editor?.commands.focus();
+  const applyHydratedContent = (nextPage: PageDoc) => {
+    const parsed = parsePageContent(nextPage.content);
+    const nextTitle = nextPage.title || "Untitled";
+
+    setTitle(nextTitle);
+    setVisibility(nextPage.visibility);
+    setIcon(parsed.meta.icon || "P");
+    setCoverUrl(parsed.meta.coverUrl || "");
+    setTemplateId((parsed.meta.templateId as PageTemplateId) || "empty");
+
+    if (editor) {
+      if (parsed.isStructured) {
+        editor.commands.setContent(parsed.doc, { emitUpdate: false });
+      } else {
+        editor.commands.setContent(parsed.html, { emitUpdate: false });
+      }
+    }
+
+    const html = parsed.isStructured ? parsed.html : parsed.html;
+    const doc = parsed.isStructured ? parsed.doc : (editor?.getJSON() || { type: "doc", content: [{ type: "paragraph" }] });
+
+    const snapshot = JSON.stringify({
+      title: nextTitle,
+      visibility: nextPage.visibility,
+      content: createSerializedPageContent({
+        html,
+        doc,
+        meta: {
+          icon: parsed.meta.icon || "P",
+          coverUrl: parsed.meta.coverUrl || "",
+          templateId: (parsed.meta.templateId as PageTemplateId) || "empty",
+        },
+      }),
+    });
+
+    lastSavedSnapshot.current = snapshot;
+    setSaveState("saved");
+    hydratedPageId.current = nextPage.id;
+  };
+
+  useEffect(() => {
+    if (!page || !editor) return;
+    if (hydratedPageId.current === page.id) return;
+
+    applyHydratedContent(page);
+  }, [editor, page]);
+
+  useEffect(() => {
+    return () => {
+      if (autosaveTimer.current) {
+        window.clearTimeout(autosaveTimer.current);
+      }
+    };
+  }, []);
+
+  const serializedContent = useMemo(() => {
+    if (!editor) return "";
+
+    return createSerializedPageContent({
+      html: editor.getHTML(),
+      doc: editor.getJSON(),
+      meta: {
+        icon,
+        coverUrl,
+        templateId,
+      },
+    });
+  }, [coverUrl, editor, icon, templateId, saveState]);
+
+  const currentSnapshot = useMemo(
+    () =>
+      JSON.stringify({
+        title,
+        visibility,
+        content: serializedContent,
+      }),
+    [serializedContent, title, visibility],
+  );
+
+  useEffect(() => {
+    if (!canEdit || !editor || !page) return;
+    if (!serializedContent) return;
+
+    if (currentSnapshot === lastSavedSnapshot.current) {
+      if (saveState !== "saved") {
+        setSaveState("saved");
+      }
+      return;
+    }
+
+    setSaveState("dirty");
+
+    if (autosaveTimer.current) {
+      window.clearTimeout(autosaveTimer.current);
+    }
+
+    autosaveTimer.current = window.setTimeout(async () => {
+      try {
+        setSaveState("saving");
+
+        await updatePage.mutateAsync({
+          id: page.id,
+          data: {
+            title: title.trim() || "Untitled",
+            visibility,
+            content: serializedContent,
+          },
+        });
+
+        lastSavedSnapshot.current = JSON.stringify({
+          title: title.trim() || "Untitled",
+          visibility,
+          content: serializedContent,
+        });
+        setSaveState("saved");
+      } catch {
+        setSaveState("error");
+      }
+    }, 500);
+  }, [
+    canEdit,
+    currentSnapshot,
+    editor,
+    page,
+    saveState,
+    serializedContent,
+    title,
+    updatePage,
+    visibility,
+  ]);
+
+  useEffect(() => {
+    if (!copiedPublicLink) return;
+
+    const timer = window.setTimeout(() => setCopiedPublicLink(false), 1500);
+    return () => window.clearTimeout(timer);
+  }, [copiedPublicLink]);
+
+  const insertLink = () => {
+    if (!editor || !canEdit) return;
+    const href = safePrompt("Enter a URL (https://...)");
+    if (!href) return;
+
+    editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
+  };
+
+  const insertImage = () => {
+    if (!editor || !canEdit) return;
+    const src = safePrompt("Paste image URL");
+    if (!src) return;
+
+    editor.chain().focus().setImage({ src, alt: "Page image" }).run();
+  };
+
+  const insertTable = () => {
+    if (!editor || !canEdit) return;
+    editor
+      .chain()
+      .focus()
+      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+      .run();
+  };
+
+  const applyTemplate = (nextTemplate: PageTemplateId) => {
+    if (!editor || !canEdit) return;
+
+    const templateDoc = getTemplateDocument(nextTemplate);
+    editor.commands.setContent(templateDoc, { emitUpdate: true });
+    setTemplateId(nextTemplate);
+    toast.success("Template applied.");
   };
 
   const slashCommands: SlashCommand[] = [
     {
+      id: "text",
+      title: "Text",
+      hint: "Plain paragraph",
+      icon: Type,
+      run: () => editor?.chain().focus().setParagraph().run(),
+    },
+    {
       id: "h1",
-      label: "Heading 1",
+      title: "Heading 1",
+      hint: "Large section title",
       icon: Heading1,
       run: () => editor?.chain().focus().toggleHeading({ level: 1 }).run(),
     },
     {
       id: "h2",
-      label: "Heading 2",
+      title: "Heading 2",
+      hint: "Medium section title",
       icon: Heading2,
       run: () => editor?.chain().focus().toggleHeading({ level: 2 }).run(),
     },
     {
-      id: "list",
-      label: "Bullet List",
-      icon: List,
-      run: () => editor?.chain().focus().toggleBulletList().run(),
+      id: "table",
+      title: "Table",
+      hint: "Insert editable table",
+      icon: TableIcon,
+      run: insertTable,
     },
     {
-      id: "task",
-      label: "Checklist",
-      icon: CheckSquare,
+      id: "checklist",
+      title: "Checklist",
+      hint: "Track action items",
+      icon: ListChecks,
       run: () => editor?.chain().focus().toggleTaskList().run(),
     },
     {
-      id: "quote",
-      label: "Quote",
-      icon: Quote,
-      run: () => editor?.chain().focus().toggleBlockquote().run(),
-    },
-    {
       id: "code",
-      label: "Code Block",
-      icon: Code2,
+      title: "Code Block",
+      hint: "Share technical snippets",
+      icon: FileCode2,
       run: () => editor?.chain().focus().toggleCodeBlock().run(),
     },
     {
-      id: "divider",
-      label: "Divider",
-      icon: Minus,
-      run: () => editor?.chain().focus().setHorizontalRule().run(),
-    },
-    {
-      id: "mention",
-      label: "Mention",
-      icon: AtSign,
-      run: () => editor?.chain().focus().insertContent("@teammate ").run(),
+      id: "image",
+      title: "Image",
+      hint: "Paste image URL",
+      icon: FileImage,
+      run: insertImage,
     },
   ];
 
-  const plainText = useMemo(() => toPlainText(content), [content]);
-  const wordCount = useMemo(() => {
-    if (!plainText) return 0;
-    return plainText.split(" ").filter(Boolean).length;
-  }, [plainText]);
-  const readTime = useMemo(
-    () => Math.max(1, Math.ceil(wordCount / 220)),
-    [wordCount],
-  );
+  const blocks: PageBlock[] = useMemo(() => {
+    if (!editor) return [];
+    return parsePageContent(serializedContent).blocks;
+  }, [editor, serializedContent, saveState]);
 
-  useEffect(() => {
-    setHasHydrated(false);
-  }, [pageId]);
+  const moveBlock = (fromIndex: number, toIndex: number) => {
+    if (!editor || fromIndex === toIndex) return;
 
-  useEffect(() => {
-    if (!page || hasHydrated) return;
+    const json = editor.getJSON();
+    const content = Array.isArray(json.content) ? [...json.content] : [];
 
-    setTitle(page.title);
-    setContent(page.content || "<p></p>");
-    setVisibility(page.visibility);
-    setHasHydrated(true);
-
-    commitLocalSnapshot(page.title, page.content || "<p></p>", page.visibility);
-    hydratedPageId.current = page.id;
-
-    if (editor && editor.getHTML() !== (page.content || "<p></p>")) {
-      editor.commands.setContent(page.content || "<p></p>");
+    if (fromIndex < 0 || fromIndex >= content.length || toIndex < 0 || toIndex >= content.length) {
+      return;
     }
-  }, [page, editor, hasHydrated]);
+
+    const [moved] = content.splice(fromIndex, 1);
+    content.splice(toIndex, 0, moved);
+
+    const nextDoc: JSONContent = {
+      type: "doc",
+      content,
+    };
+
+    editor.commands.setContent(nextDoc, { emitUpdate: true });
+    setSaveState("dirty");
+  };
+
+  const deleteBlock = (index: number) => {
+    if (!editor) return;
+
+    const json = editor.getJSON();
+    const content = Array.isArray(json.content) ? [...json.content] : [];
+
+    if (index < 0 || index >= content.length) return;
+
+    content.splice(index, 1);
+
+    editor.commands.setContent(
+      {
+        type: "doc",
+        content: content.length > 0 ? content : [{ type: "paragraph" }],
+      },
+      { emitUpdate: true },
+    );
+
+    setSaveState("dirty");
+  };
 
   const toggleUserAccess = async (userId: string) => {
     if (!page || !canEdit) return;
-    
+
     const currentAllowed = page.allowedUsers || [];
-    const isShared = currentAllowed.some(id => String(id) === userId);
-    
-    const newAllowed = isShared 
-      ? currentAllowed.filter(id => String(id) !== userId)
+    const isShared = currentAllowed.some((id) => String(id) === userId);
+    const nextAllowed = isShared
+      ? currentAllowed.filter((id) => String(id) !== userId)
       : [...currentAllowed, userId];
 
     try {
       await updatePage.mutateAsync({
-        id: pageId,
-        data: { allowedUsers: newAllowed }
+        id: page.id,
+        data: { allowedUsers: nextAllowed },
       });
+
       toast.success(isShared ? "Access removed." : "Access granted.");
     } catch {
       toast.error("Failed to update access.");
     }
   };
 
+  const updateVisibility = async (nextVisibility: PageVisibility) => {
+    if (!page || !canEdit) return;
+
+    try {
+      const updated = await updatePage.mutateAsync({
+        id: page.id,
+        data: {
+          visibility: nextVisibility,
+        },
+      });
+
+      setVisibility(updated.data.visibility);
+      toast.success(
+        nextVisibility === "PUBLIC"
+          ? "Page published."
+          : nextVisibility === "PRIVATE"
+            ? "Page is now private."
+            : "Page is now workspace-visible.",
+      );
+    } catch {
+      toast.error("Failed to update visibility.");
+    }
+  };
+
   const copyPublicLink = async () => {
     if (!publicPageUrl) {
-      toast.error("Publish the page first to generate its public link.");
+      toast.error("Publish the page first to create a public link.");
       return;
     }
 
@@ -395,102 +589,20 @@ export default function PageEditorPage() {
       setCopiedPublicLink(true);
       toast.success("Public link copied.");
     } catch {
-      toast.error("Failed to copy public link.");
+      toast.error("Failed to copy link.");
     }
   };
 
-  const updateVisibilityImmediately = async (nextVisibility: PageVisibility) => {
-    if (!page || !canEdit) return;
-
-    try {
-      const updated = await updatePage.mutateAsync({
-        id: pageId,
-        data: { visibility: nextVisibility },
-      });
-
-      syncLocalPageState(updated.data);
-      setSaveStatus("saved");
-      toast.success(
-        nextVisibility === "PUBLIC"
-          ? "Page published."
-          : nextVisibility === "WORKSPACE"
-            ? "Page moved to workspace visibility."
-            : "Page is now private.",
-      );
-    } catch {
-      toast.error("Failed to update visibility.");
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (autosaveTimer.current) {
-        clearTimeout(autosaveTimer.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!copiedPublicLink) return;
-
-    const timer = window.setTimeout(() => setCopiedPublicLink(false), 1800);
-    return () => window.clearTimeout(timer);
-  }, [copiedPublicLink]);
-
-  useEffect(() => {
-    if (!hasHydrated || !canEdit) return;
-
-    if (baseline === lastSaved.current) {
-      if (saveStatus !== "saved") {
-        setSaveStatus("saved");
-      }
-      return;
-    }
-
-    setSaveStatus("dirty");
-
-    if (autosaveTimer.current) {
-      clearTimeout(autosaveTimer.current);
-    }
-
-    autosaveTimer.current = setTimeout(async () => {
-      setSaveStatus("saving");
-      try {
-        await updatePage.mutateAsync({
-          id: pageId,
-          data: {
-            title,
-            content,
-            visibility,
-          },
-        });
-        lastSaved.current = JSON.stringify({ title, content, visibility });
-        setSaveStatus("saved");
-      } catch {
-        setSaveStatus("error");
-      }
-    }, 800);
-  }, [
-    baseline,
-    canEdit,
-    content,
-    hasHydrated,
-    pageId,
-    saveStatus,
-    title,
-    updatePage,
-    visibility,
-  ]);
-
-  const handleDuplicate = async () => {
+  const duplicatePage = async () => {
     if (!page) return;
 
     try {
       const created = await createPage.mutateAsync({
         title: `${title} (Copy)`,
-        content,
         visibility,
+        content: serializedContent,
       });
+
       toast.success("Page duplicated.");
       router.push(`/pages/${created.data.id}`);
     } catch {
@@ -498,608 +610,409 @@ export default function PageEditorPage() {
     }
   };
 
-  const handleDelete = async () => {
+  const deletePageNow = async () => {
+    if (!page) return;
+
     try {
-      await deletePage.mutateAsync(pageId);
+      await deletePage.mutateAsync(page.id);
       toast.success("Page deleted.");
-      setDeleteOpen(false);
       router.push("/pages");
     } catch {
       toast.error("Failed to delete page.");
     }
   };
 
-  const handleExportPdf = async () => {
-    if (!page || !editorRef.current) return;
+  const insertMentionUser = () => {
+    if (!editor || !canEdit) return;
 
-    const toastId = toast.loading("Preparing professional PDF...");
-
-    try {
-      await document.fonts.ready;
-      
-      const renderRoot = document.createElement("div");
-      renderRoot.id = "pdf-render-root";
-      Object.assign(renderRoot.style, {
-        position: "fixed",
-        top: "-20000px",
-        left: "-20000px",
-        width: "794px",
-        backgroundColor: "#ffffff",
-        zIndex: "-10000",
-        visibility: "visible",
-      });
-      document.body.appendChild(renderRoot);
-
-      const clone = editorRef.current.cloneNode(true) as HTMLElement;
-      
-      const themeClasses = ["dark", "theme-dark", "bg-card", "bg-background", "text-foreground", "shadow-sm"];
-      const allClonedElements = [clone, ...Array.from(clone.querySelectorAll("*"))];
-      allClonedElements.forEach(el => {
-        if (el instanceof HTMLElement) {
-          themeClasses.forEach(tc => el.classList.remove(tc));
-          el.style.backgroundColor = "transparent";
-          el.style.color = "#1a1a1a";
-        }
-      });
-
-      Object.assign(clone.style, {
-        width: "794px",
-        height: "auto",
-        margin: "0",
-        padding: "50px 60px",
-        backgroundColor: "#ffffff",
-        color: "#1a1a1a",
-        fontSize: "15px",
-        lineHeight: "1.7",
-        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-        border: "none",
-        boxShadow: "none",
-      });
-
-      clone.querySelectorAll("h1").forEach(h1 => {
-        Object.assign(h1.style, {
-          fontSize: "32px",
-          fontWeight: "800",
-          color: "#000000",
-          marginBottom: "20px",
-          letterSpacing: "-0.02em",
-        });
-      });
-      
-      clone.querySelectorAll("h2").forEach(h2 => {
-        Object.assign(h2.style, {
-          fontSize: "24px",
-          fontWeight: "700",
-          color: "#000000",
-          marginTop: "32px",
-          marginBottom: "12px",
-        });
-      });
-
-      clone.querySelectorAll("p").forEach(p => {
-        (p as HTMLElement).style.marginBottom = "14px";
-      });
-
-      clone.querySelectorAll("ul, ol").forEach(list => {
-        Object.assign((list as HTMLElement).style, {
-          paddingLeft: "24px",
-          marginBottom: "16px",
-        });
-      });
-
-      const titleInput = clone.querySelector("textarea");
-      if (titleInput) {
-        const titleH1 = document.createElement("h1");
-        titleH1.textContent = title || "Untitled Document";
-        Object.assign(titleH1.style, {
-          fontSize: "34px",
-          fontWeight: "800",
-          color: "#000000",
-          marginBottom: "30px",
-          borderBottom: "1px solid #eaeaea",
-          paddingBottom: "16px",
-        });
-        titleInput.replaceWith(titleH1);
-      }
-
-      const scrubbedSelectors = [
-        "button", 
-        "nav", 
-        ".slash-menu", 
-        ".border-b", 
-        ".page-metadata", 
-        "[role='toolbar']",
-        ".ProseMirror-trailingBreak"
-      ];
-      scrubbedSelectors.forEach(s => {
-        clone.querySelectorAll(s).forEach(el => el.remove());
-      });
-
-      renderRoot.appendChild(clone);
-
-      const canvas = await html2canvas(renderRoot, {
-        scale: 2.5,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        windowWidth: 794,
-        imageTimeout: 15000,
-      });
-
-      document.body.removeChild(renderRoot);
-
-      const imgData = canvas.toDataURL("image/jpeg", 0.95);
-      const pdf = new jsPDF({
-        orientation: "p",
-        unit: "mm",
-        format: "a4",
-        compress: true,
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, 'MEDIUM');
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight, undefined, 'MEDIUM');
-        heightLeft -= pdfHeight;
-      }
-
-      pdf.save(`${title.replace(/\s+/g, "_") || "Page_Export"}.pdf`);
-      toast.success("Professional PDF generated", { id: toastId });
-    } catch (error) {
-      toast.error("Export failed. Please check content for large images and try again.", { id: toastId });
-    }
+    const target = members.find((member) => member.id !== user?.id);
+    const text = target ? `@${target.firstName}` : "@teammate";
+    editor.chain().focus().insertContent(`${text} `).run();
   };
+
+  const insertMentionTask = () => {
+    if (!editor || !canEdit) return;
+
+    const targetTask = tasks[0];
+    const text = targetTask ? `#${targetTask.title}` : "#task";
+    editor.chain().focus().insertContent(`${text} `).run();
+  };
+
+  const wordCount = useMemo(() => {
+    const plainText = extractPagePlainText(serializedContent);
+    if (!plainText) return 0;
+    return plainText.split(/\s+/).filter(Boolean).length;
+  }, [serializedContent]);
+
+  const characterCount = editor?.storage.characterCount.characters() || 0;
 
   if (pageQuery.isLoading) {
     return (
-      <div className="mx-auto w-full max-w-4xl animate-pulse px-4 md:px-0">
-        <div className="h-10 w-48 bg-muted/50 rounded-lg mb-8" />
-        <div className="h-16 w-3/4 bg-muted/50 rounded-xl mb-12" />
-        <div className="space-y-4">
-          <div className="h-4 w-full bg-muted/30 rounded" />
-          <div className="h-4 w-full bg-muted/30 rounded" />
-          <div className="h-4 w-2/3 bg-muted/30 rounded" />
-        </div>
+      <div className="mx-auto w-full max-w-5xl px-4 py-10">
+        <div className="h-10 w-48 animate-pulse rounded-lg bg-muted/40" />
       </div>
     );
   }
 
-  if (pageQuery.isError && !page) {
+  if ((pageQuery.isError && !page) || (page && !canView)) {
     return (
-      <div className="flex items-center justify-center h-[50vh] px-4">
-        <Alert variant="warning" className="max-w-md">
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <Alert variant="warning" className="max-w-lg">
           <AlertTitle>Page unavailable</AlertTitle>
           <AlertDescription>
-            This page could not be loaded. It may have been deleted or you may not have permission to view it.
+            This page could not be loaded. It may be private, deleted, or unavailable to your account.
           </AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  if (!page || !canView) {
-    if (page && !canView) {
-      return (
-        <div className="flex items-center justify-center h-[50vh] px-4">
-          <Alert variant="warning" className="max-w-md">
-            <AlertTitle>Page unavailable</AlertTitle>
-            <AlertDescription>
-              This page is private or you do not have permission to view it.
-            </AlertDescription>
-          </Alert>
-        </div>
-      );
-    }
-
-    return (
-      <div className="mx-auto w-full max-w-4xl animate-pulse px-4 md:px-0">
-        <div className="h-10 w-48 bg-muted/50 rounded-lg mb-8" />
-        <div className="h-16 w-3/4 bg-muted/50 rounded-xl mb-12" />
-      </div>
-    );
+  if (!page) {
+    return null;
   }
 
-  const ToolbarButton = ({ 
-    icon: Icon, 
-    label, 
-    onClick, 
-    isActive = false,
-    disabled = false
-  }: { 
-    icon: any; 
-    label: string; 
-    onClick: () => void; 
-    isActive?: boolean;
-    disabled?: boolean;
-  }) => (
-    <TooltipProvider delayDuration={400}>
-      <Tooltip>
-        <TooltipTrigger asChild>
+  return (
+    <div className="relative min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.10),transparent_38%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.08),transparent_35%)] bg-background pb-20">
+      <div className="sticky top-2 z-40 mx-auto w-full max-w-295 px-4 pt-3">
+        <div className="flex items-center gap-1 overflow-x-auto rounded-2xl border border-border/60 bg-background/90 p-2 shadow-xl backdrop-blur-xl">
           <Button
             variant="ghost"
-            size="icon"
-            className={cn(
-              "h-8 w-8 rounded-md transition-colors",
-              isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-              disabled && "opacity-50 cursor-not-allowed"
-            )}
-            onClick={onClick}
-            disabled={disabled}
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={() => editor?.chain().focus().setParagraph().run()}
+            disabled={!canEdit}
           >
-            <Icon className="size-4" />
+            <Type className="size-3.5" />
+            Text
           </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
-          {label}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
 
-  return (
-    <div className="relative min-h-screen bg-background text-foreground selection:bg-primary/20">
-      {/* 1. Floating Toolbar */}
-      <div className="sticky top-2 md:top-6 z-40 flex justify-center pointer-events-none mb-6 md:mb-12 px-2">
-        <div className="flex items-center gap-0.5 p-1 bg-background/80 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl pointer-events-auto transition-all animate-in fade-in slide-in-from-top-4 duration-500 max-w-full overflow-x-auto no-scrollbar">
-          
+          <Separator orientation="vertical" className="mx-1 h-5" />
+
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editor?.chain().focus().toggleBold().run()} disabled={!canEdit}>
+            <Bold className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editor?.chain().focus().toggleItalic().run()} disabled={!canEdit}>
+            <Italic className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editor?.chain().focus().toggleUnderline().run()} disabled={!canEdit}>
+            <UnderlineIcon className="size-4" />
+          </Button>
+
+          <Separator orientation="vertical" className="mx-1 h-5" />
+
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editor?.chain().focus().toggleBulletList().run()} disabled={!canEdit}>
+            <List className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editor?.chain().focus().toggleOrderedList().run()} disabled={!canEdit}>
+            <ListOrdered className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editor?.chain().focus().toggleTaskList().run()} disabled={!canEdit}>
+            <CheckSquare className="size-4" />
+          </Button>
+
+          <Separator orientation="vertical" className="mx-1 h-5" />
+
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={insertTable} disabled={!canEdit}>
+            <TableIcon className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={insertImage} disabled={!canEdit}>
+            <ImagePlus className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={insertLink} disabled={!canEdit}>
+            <Link2 className="size-4" />
+          </Button>
+
+          <Separator orientation="vertical" className="mx-1 h-5" />
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs font-medium text-muted-foreground hover:text-foreground">
-                <Type className="size-3.5" />
-                <span>Text</span>
-                <ChevronDown className="size-3" />
+              <Button variant="ghost" size="sm" className="h-8 gap-1.5" disabled={!canEdit}>
+                <Plus className="size-3.5" />
+                Mentions
+                <ChevronDown className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48 p-1">
-              <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => editor?.chain().focus().setParagraph().run()}>
-                <Pilcrow className="size-3.5 text-muted-foreground" />
-                Paragraph
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={insertMentionUser}>
+                <AtSign className="mr-2 size-4" />
+                Mention user
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-xs py-2 gap-2 font-bold" onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}>
-                <Heading1 className="size-3.5 text-muted-foreground" />
-                Heading 1
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-xs py-2 gap-2 font-semibold" onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}>
-                <Heading2 className="size-3.5 text-muted-foreground" />
-                Heading 2
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => editor?.chain().focus().toggleCodeBlock().run()}>
-                <Code2 className="size-3.5 text-muted-foreground" />
-                Code Block
+              <DropdownMenuItem onClick={insertMentionTask}>
+                <ListChecks className="mr-2 size-4" />
+                Mention task
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Separator orientation="vertical" className="h-4 mx-1.5" />
-
-          <ToolbarButton 
-            icon={Bold} 
-            label="Bold" 
-            onClick={() => editor?.chain().focus().toggleBold().run()} 
-            isActive={editor?.isActive("bold")}
-            disabled={!canEdit}
-          />
-          <ToolbarButton 
-            icon={Italic} 
-            label="Italic" 
-            onClick={() => editor?.chain().focus().toggleItalic().run()} 
-            isActive={editor?.isActive("italic")}
-            disabled={!canEdit}
-          />
-          <ToolbarButton 
-            icon={UnderlineIcon} 
-            label="Underline" 
-            onClick={() => editor?.chain().focus().toggleUnderline().run()} 
-            isActive={editor?.isActive("underline")}
-            disabled={!canEdit}
-          />
-          <ToolbarButton 
-            icon={Strikethrough} 
-            label="Strikethrough" 
-            onClick={() => editor?.chain().focus().toggleStrike().run()} 
-            isActive={editor?.isActive("strike")}
-            disabled={!canEdit}
-          />
-
-          <Separator orientation="vertical" className="h-4 mx-1.5" />
-
-          <ToolbarButton 
-            icon={List} 
-            label="Bullet List" 
-            onClick={() => editor?.chain().focus().toggleBulletList().run()} 
-            isActive={editor?.isActive("bulletList")}
-            disabled={!canEdit}
-          />
-          <ToolbarButton 
-            icon={ListOrdered} 
-            label="Numbered List" 
-            onClick={() => editor?.chain().focus().toggleOrderedList().run()} 
-            isActive={editor?.isActive("orderedList")}
-            disabled={!canEdit}
-          />
-          <ToolbarButton 
-            icon={CheckSquare} 
-            label="Checklist" 
-            onClick={() => editor?.chain().focus().toggleTaskList().run()} 
-            isActive={editor?.isActive("taskList")}
-            disabled={!canEdit}
-          />
-
-          <Separator orientation="vertical" className="h-4 mx-1.5" />
-
-          <ToolbarButton 
-            icon={TableIcon} 
-            label="Insert Table" 
-            onClick={() => {}} 
-            disabled={!canEdit}
-          />
-          <ToolbarButton 
-            icon={ImageIcon} 
-            label="Insert Image" 
-            onClick={() => {}} 
-            disabled={!canEdit}
-          />
-          <ToolbarButton 
-            icon={Link2} 
-            label="Insert Link" 
-            onClick={() => editor?.chain().focus().setLink({ href: "https://" }).run()} 
-            isActive={editor?.isActive("link")}
-            disabled={!canEdit}
-          />
-
-          <Separator orientation="vertical" className="h-4 mx-1.5" />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                <MoreHorizontal className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-1">
-               <div className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                 Document Actions
-               </div>
-                <DropdownMenuItem className="text-xs py-2 gap-2" onClick={handleExportPdf} disabled={exportPdf.isPending}>
-                  <Download className="size-3.5" />
-                  Export as PDF
-                </DropdownMenuItem>
-                
-                {canEdit && (
-                  <>
-                    <DropdownMenuItem className="text-xs py-2 gap-2" onClick={handleDuplicate} disabled={createPage.isPending}>
-                      <Copy className="size-3.5" />
-                      Duplicate Page
-                    </DropdownMenuItem>
-
-                    {visibility !== "PUBLIC" ? (
-                      <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => setPublishOpen(true)}>
-                        <Globe className="size-3.5" />
-                        Publish Page
-                      </DropdownMenuItem>
-                    ) : (
-                      <>
-                        <DropdownMenuItem className="text-xs py-2 gap-2" onClick={copyPublicLink}>
-                          <Copy className="size-3.5" />
-                          {copiedPublicLink ? "Copied" : "Copy Public Link"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-xs py-2 gap-2"
-                          onClick={() => void updateVisibilityImmediately("WORKSPACE")}
-                        >
-                          <Users className="size-3.5" />
-                          Unpublish
-                        </DropdownMenuItem>
-                      </>
-                    )}
-
-                    {visibility === "PRIVATE" ? (
-                      <DropdownMenuItem className="text-xs py-2 gap-2" onClick={() => setShareOpen(true)}>
-                        <UserPlus className="size-3.5" />
-                        Manage Access
-                      </DropdownMenuItem>
-                    ) : null}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-xs py-2 gap-2 text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
-                      <Trash2 className="size-3.5" />
-                      Delete Permanently
-                    </DropdownMenuItem>
-                  </>
-                )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="ml-auto flex items-center gap-2 pl-3">
+            <Badge variant="secondary" className="h-7 rounded-full px-3 text-[11px]">
+              {saveState === "saving"
+                ? "Saving..."
+                : saveState === "error"
+                  ? "Save failed"
+                  : saveState === "dirty"
+                    ? "Unsaved"
+                    : "Saved"}
+            </Badge>
+            <Button variant="outline" size="sm" className="h-8" onClick={() => setPublishOpen(true)}>
+              Share
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* 2. Main Content Workspace */}
-      <div className="mx-auto w-full max-w-4xl pb-32 px-4 md:px-0">
-        <div className="group/page relative flex flex-col pt-8">
-          
-          {/* Metadata/Status indicator */}
-          <div className="absolute -left-12 top-10 flex flex-col items-center gap-3 opacity-0 group-hover/page:opacity-100 transition-opacity hidden lg:flex">
-             {visibility === "PUBLIC" ? (
-               <Globe className="size-4 text-muted-foreground/40 hover:text-primary transition-colors cursor-help" />
-             ) : visibility === "WORKSPACE" ? (
-               <Users className="size-4 text-muted-foreground/40 hover:text-primary transition-colors cursor-help" />
-             ) : (
-               <Lock className="size-4 text-muted-foreground/40 hover:text-primary transition-colors cursor-help" />
-             )}
-             <div className="h-8 w-px bg-border/40" />
-             <span className="[writing-mode:vertical-lr] text-[10px] uppercase tracking-widest text-muted-foreground/30 font-medium rotate-180">
-               {saveStatus === "saving" ? "Syncing..." : "Encrypted"}
-             </span>
+      <div className="mx-auto grid w-full max-w-295 grid-cols-1 gap-6 px-4 pt-8 lg:grid-cols-[1fr_290px]">
+        <main className="mx-auto w-full max-w-195">
+          {coverUrl ? (
+            <div className="mb-4 h-44 overflow-hidden rounded-2xl border border-border/40 bg-card">
+              <img src={coverUrl} alt="Page cover" className="h-full w-full object-cover" />
+            </div>
+          ) : null}
+
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="rounded-xl border border-border/50 bg-card px-3 py-2 text-lg"
+              onClick={() => {
+                if (!canEdit) return;
+                const nextIcon = safePrompt("Set page icon (emoji recommended)");
+                if (nextIcon) setIcon(nextIcon);
+              }}
+              disabled={!canEdit}
+            >
+              {icon || "P"}
+            </button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9"
+              onClick={() => {
+                if (!canEdit) return;
+                const nextCoverUrl = safePrompt("Set cover image URL");
+                if (nextCoverUrl) setCoverUrl(nextCoverUrl);
+              }}
+              disabled={!canEdit}
+            >
+              <FileImage className="mr-2 size-4" />
+              Cover
+            </Button>
+
+            <Select value={templateId} onValueChange={(value) => applyTemplate(value as PageTemplateId)}>
+              <SelectTrigger className="h-9 w-55">
+                <SelectValue placeholder="Template" />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_TEMPLATES.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="ml-auto flex items-center gap-2">
+              <PageVisibilityBadge visibility={visibility} />
+              <Button variant="outline" size="sm" className="h-9" onClick={() => setShareOpen(true)} disabled={!canEdit}>
+                Permissions
+              </Button>
+            </div>
           </div>
 
-          <button className="flex items-center gap-1.5 w-fit px-2 py-1 -ml-2 rounded-md hover:bg-muted/50 text-muted-foreground/60 transition-colors mb-6 group">
-             <Smile className="size-4 group-hover:text-amber-400 transition-colors" />
-             <span className="text-[13px] font-medium">Add icon</span>
-          </button>
+          <Input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Untitled"
+            disabled={!canEdit}
+            className="mb-5 h-auto border-none bg-transparent px-0 text-4xl font-black tracking-tight shadow-none focus-visible:ring-0 md:text-5xl"
+          />
 
-          <div className="mb-5 flex flex-wrap items-center gap-2 text-sm">
-            <PageVisibilityBadge visibility={visibility} />
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-border/50 px-2.5 py-1 text-xs text-muted-foreground">
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-card px-3 py-1.5">
               <CalendarDays className="size-3.5" />
-              <span>Updated {new Date(page.updatedAt).toLocaleDateString()}</span>
+              Updated {new Date(page.updatedAt).toLocaleDateString()}
             </div>
-            {visibility === "PUBLIC" && publicPageUrl ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 rounded-full px-3 text-xs"
-                onClick={copyPublicLink}
-              >
-                <Copy className="mr-1.5 size-3.5" />
-                {copiedPublicLink ? "Copied" : "Copy Public Link"}
-              </Button>
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-card px-3 py-1.5">
+              <span>{wordCount} words</span>
+              <span>*</span>
+              <span>{characterCount} chars</span>
+            </div>
+            {page.creator ? (
+              <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-card px-2.5 py-1">
+                <Avatar className="h-5 w-5">
+                  <AvatarImage src={page.creator.avatarUrl} alt={page.creator.firstName} />
+                  <AvatarFallback className="text-[10px]">
+                    {toInitials(page.creator.firstName, page.creator.lastName)}
+                  </AvatarFallback>
+                </Avatar>
+                <span>
+                  {`${page.creator.firstName} ${page.creator.lastName}`.trim() || "Unknown"}
+                </span>
+              </div>
             ) : null}
           </div>
 
-          <textarea
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            rows={1}
-            className="w-full resize-none border-0 bg-transparent px-0 text-3xl md:text-5xl font-bold tracking-tight text-foreground placeholder:text-muted-foreground/20 focus:outline-none focus:ring-0 leading-tight mb-8"
-            placeholder="Untitled"
-            disabled={!canEdit}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = 'auto';
-              target.style.height = target.scrollHeight + 'px';
-            }}
-          />
-
-          <div ref={editorRef} className="relative">
-            {editor ? <EditorContent editor={editor} /> : (
-              <div className="h-64 w-full bg-muted/10 rounded-xl animate-pulse" />
-            )}
+          <div className="relative">
+            {editor ? <EditorContent editor={editor} /> : null}
           </div>
-        </div>
-      </div>
 
-      {/* 3. Slash Menu */}
-      {slashOpen && canEdit ? (
-        <div
-          className="fixed z-50 w-64 rounded-xl border border-border/50 bg-background/95 backdrop-blur-md p-1.5 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
-          style={{
-            top: slashPos.top,
-            left: Math.max(16, slashPos.left - 20),
-          }}
-        >
-          <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
-            Basic Blocks
-          </div>
-          <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-            {slashCommands.map((command) => (
-              <button
-                key={command.id}
-                type="button"
-                onClick={() => insertSlashBlock(command.run)}
-                className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-muted/80 transition-colors group"
-              >
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/30 group-hover:bg-background transition-colors">
-                  <command.icon className="size-4 text-muted-foreground group-hover:text-foreground" />
-                </div>
-                <div>
-                  <div className="font-medium">{command.label}</div>
-                  <div className="text-[10px] text-muted-foreground/60">Professional formatting</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
+          {editor?.isActive("table") ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border/50 bg-card p-2">
+              <Button size="sm" variant="outline" onClick={() => editor.chain().focus().addColumnAfter().run()}>
+                Add column
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => editor.chain().focus().deleteColumn().run()}>
+                Remove column
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => editor.chain().focus().addRowAfter().run()}>
+                Add row
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => editor.chain().focus().deleteRow().run()}>
+                Remove row
+              </Button>
+            </div>
+          ) : null}
 
-      {/* 4. Bottom Right Settings Action */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="secondary" size="icon" className="h-10 w-10 rounded-full shadow-lg border border-border/50 hover:scale-105 transition-transform">
-              <Settings2 className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          {canEdit && (
-            <DropdownMenuContent align="end" className="w-64 p-2">
-              <div className="flex flex-col gap-1 p-2 mb-2 bg-muted/30 rounded-lg">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Storage Status</span>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium">Cloud Synchronized</span>
-                  <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-                </div>
-              </div>
-              
-              <div className="space-y-1">
-                <DropdownMenuItem
-                  className="text-xs py-2 gap-2"
-                  onClick={() => void updateVisibilityImmediately("PRIVATE")}
-                  disabled={visibility === "PRIVATE"}
-                >
-                  <Lock className="size-3.5" />
-                  <span>Private</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-xs py-2 gap-2"
-                  onClick={() => void updateVisibilityImmediately("WORKSPACE")}
-                  disabled={visibility === "WORKSPACE"}
-                >
-                  <Users className="size-3.5" />
-                  <span>Workspace</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-xs py-2 gap-2"
-                  onClick={() => (visibility === "PUBLIC" ? void updateVisibilityImmediately("WORKSPACE") : setPublishOpen(true))}
-                >
-                  <Globe className="size-3.5" />
-                  <span>{visibility === "PUBLIC" ? "Disable Public Link" : "Publish Public"}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-xs py-2 gap-2">
-                  <PanelRight className="size-3.5" />
-                  <span>Page Details</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <div className="px-2 py-2">
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span>Words: {wordCount}</span>
-                    <span>Read: {readTime}m</span>
-                  </div>
-                </div>
-              </div>
-            </DropdownMenuContent>
-          )}
-        </DropdownMenu>
-      </div>
-
-      {/* Delete Confirmation */}
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Delete documentation?</DialogTitle>
-            <DialogDesc className="text-sm">
-              This action is permanent and cannot be reversed. All version history for this page will be lost.
-            </DialogDesc>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0 mt-4">
-            <Button variant="ghost" className="text-xs" onClick={() => setDeleteOpen(false)}>
-              Keep Page
-            </Button>
-            <Button
-              variant="destructive"
-              className="text-xs font-semibold"
-              onClick={handleDelete}
-              loading={deletePage.isPending}
+          {slashOpen && canEdit ? (
+            <div
+              className="fixed z-50 w-72 rounded-xl border border-border/60 bg-background/95 p-2 shadow-2xl backdrop-blur"
+              style={{
+                top: slashPos.top,
+                left: Math.max(16, slashPos.left - 30),
+              }}
             >
-              Confirm Deletion
+              <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Insert block
+              </div>
+              <div className="space-y-1">
+                {slashCommands.map((command) => (
+                  <button
+                    key={command.id}
+                    type="button"
+                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted"
+                    onClick={() => {
+                      command.run();
+                      setSlashOpen(false);
+                    }}
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border/40 bg-card">
+                      <command.icon className="size-4" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">{command.title}</div>
+                      <div className="text-[11px] text-muted-foreground">{command.hint}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </main>
+
+        <aside className="space-y-4 lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto">
+          <section className="rounded-2xl border border-border/60 bg-card p-3">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Block Navigator
+            </h3>
+            <div className="space-y-1">
+              {blocks.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No blocks yet.</p>
+              ) : (
+                blocks.map((block, index) => (
+                  <div
+                    key={`${block.id}-${index}`}
+                    draggable={canEdit}
+                    onDragStart={() => setDragIndex(index)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => {
+                      if (dragIndex === null) return;
+                      moveBlock(dragIndex, index);
+                      setDragIndex(null);
+                    }}
+                    className="group flex items-start gap-2 rounded-lg border border-transparent px-2 py-2 hover:border-border/60 hover:bg-muted/50"
+                  >
+                    <GripVertical className="mt-0.5 size-4 text-muted-foreground/60" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {block.type}
+                      </div>
+                      <div className="truncate text-xs text-foreground/85">{block.content || "Untitled block"}</div>
+                    </div>
+                    {canEdit ? (
+                      <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveBlock(index, Math.max(0, index - 1))}>
+                          <MoveUp className="size-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveBlock(index, Math.min(blocks.length - 1, index + 1))}>
+                          <MoveDown className="size-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => deleteBlock(index)}>
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border/60 bg-card p-3">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Visibility
+            </h3>
+            <div className="space-y-1">
+              <Button variant="ghost" className="w-full justify-start" onClick={() => updateVisibility("PRIVATE")} disabled={!canEdit || visibility === "PRIVATE"}>
+                <Lock className="mr-2 size-4" />
+                Private
+              </Button>
+              <Button variant="ghost" className="w-full justify-start" onClick={() => updateVisibility("WORKSPACE")} disabled={!canEdit || visibility === "WORKSPACE"}>
+                <Users className="mr-2 size-4" />
+                Workspace
+              </Button>
+              <Button variant="ghost" className="w-full justify-start" onClick={() => updateVisibility("PUBLIC")} disabled={!canEdit || visibility === "PUBLIC"}>
+                <Globe className="mr-2 size-4" />
+                Public
+              </Button>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border/60 bg-card p-3">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Actions
+            </h3>
+            <div className="space-y-1">
+              <Button variant="outline" className="w-full justify-start" onClick={duplicatePage} disabled={!canEdit || createPage.isPending}>
+                <Copy className="mr-2 size-4" />
+                Duplicate
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={copyPublicLink}>
+                <Link2 className="mr-2 size-4" />
+                {copiedPublicLink ? "Copied" : "Copy public link"}
+              </Button>
+              <Button variant="destructive" className="w-full justify-start" onClick={() => setDeleteOpen(true)} disabled={!canEdit}>
+                <Trash2 className="mr-2 size-4" />
+                Delete page
+              </Button>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Page</DialogTitle>
+            <DialogDescription>
+              This will permanently delete the page and all document content.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={deletePageNow} loading={deletePage.isPending}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1114,67 +1027,77 @@ export default function PageEditorPage() {
         isPublished={visibility === "PUBLIC"}
         isPublishing={updatePage.isPending}
         copied={copiedPublicLink}
-        onPublish={() => updateVisibilityImmediately("PUBLIC")}
+        onPublish={() => updateVisibility("PUBLIC")}
         onCopy={copyPublicLink}
       />
 
-      {/* Share/Access Management */}
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-115">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="size-4" />
-              Manage Access
-            </DialogTitle>
-            <DialogDesc className="text-xs">
-              Invite team members to view or collaborate on this private page.
-            </DialogDesc>
+            <DialogTitle>Manage Private Access</DialogTitle>
+            <DialogDescription>
+              Grant or revoke access for private pages.
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
-            <div className="space-y-4 max-h-[300px] overflow-y-auto px-1">
-              {members.filter(m => m.id !== user?.id).map((member) => {
-                const isShared = (page?.allowedUsers || []).some(id => String(id) === String(member.id));
-                return (
-                  <div key={member.id} className="flex items-center justify-between group">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={member.avatarUrl} />
-                        <AvatarFallback className="text-[10px] bg-muted font-bold">
-                          {member.firstName?.[0]}{member.lastName?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{member.firstName} {member.lastName}</span>
-                        <span className="text-[10px] text-muted-foreground">{member.email}</span>
+          <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
+            {members.filter((member) => member.id !== user?.id).map((member) => {
+              const isShared = (page.allowedUsers || []).some((id) => String(id) === String(member.id));
+
+              return (
+                <div key={member.id} className="flex items-center justify-between rounded-xl border border-border/40 p-2">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={member.avatarUrl} alt={member.firstName} />
+                      <AvatarFallback className="text-[10px]">
+                        {toInitials(member.firstName, member.lastName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="text-sm font-medium">
+                        {member.firstName} {member.lastName}
                       </div>
+                      <div className="text-xs text-muted-foreground">{member.email}</div>
                     </div>
-                    <Button 
-                      size="sm" 
-                      variant={isShared ? "outline" : "secondary"} 
-                      className="h-8 text-[11px] font-semibold"
-                      onClick={() => toggleUserAccess(member.id)}
-                      disabled={updatePage.isPending}
-                    >
-                      {isShared ? "Remove" : "Invite"}
-                    </Button>
                   </div>
-                );
-              })}
-              {members.length <= 1 && (
-                <div className="text-center py-8 text-muted-foreground text-xs italic">
-                  No other team members found.
+
+                  <Button
+                    size="sm"
+                    variant={isShared ? "outline" : "secondary"}
+                    onClick={() => toggleUserAccess(member.id)}
+                    disabled={!canEdit || updatePage.isPending}
+                  >
+                    {isShared ? "Remove" : "Invite"}
+                  </Button>
                 </div>
-              )}
-            </div>
+              );
+            })}
           </div>
+
           <DialogFooter>
-            <Button variant="outline" className="text-xs" onClick={() => setShareOpen(false)}>
+            <Button variant="outline" onClick={() => setShareOpen(false)}>
               Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <style>{`
+        .page-editor h1 { font-size: 2rem; line-height: 1.25; font-weight: 800; margin: 1.2rem 0 0.6rem; }
+        .page-editor h2 { font-size: 1.45rem; line-height: 1.3; font-weight: 760; margin: 1rem 0 0.55rem; }
+        .page-editor h3 { font-size: 1.2rem; line-height: 1.35; font-weight: 700; margin: 0.9rem 0 0.45rem; }
+        .page-editor p { margin: 0.45rem 0; }
+        .page-editor ul, .page-editor ol { margin: 0.5rem 0; padding-left: 1.2rem; }
+        .page-editor ul ul, .page-editor ol ol, .page-editor ul ol, .page-editor ol ul { margin-top: 0.25rem; }
+        .page-editor ul[data-type='taskList'] { list-style: none; padding-left: 0; }
+        .page-editor li[data-type='taskItem'] { display: flex; align-items: flex-start; gap: 0.5rem; }
+        .page-editor li[data-type='taskItem'] > label { margin-top: 0.2rem; }
+        .page-editor pre { border-radius: 0.75rem; padding: 0.9rem; background: #0f172a; color: #e2e8f0; overflow-x: auto; }
+        .page-editor code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace; }
+        .page-editor img { border-radius: 0.75rem; max-width: 100%; height: auto; margin: 0.7rem 0; }
+        .page-editor table { border-collapse: collapse; width: 100%; margin: 0.7rem 0; }
+        .page-editor table td, .page-editor table th { border: 1px solid hsl(var(--border)); padding: 0.5rem; vertical-align: top; }
+      `}</style>
     </div>
   );
 }

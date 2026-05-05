@@ -57,6 +57,10 @@ import {
   getPagePublicPreviewPath,
   toAbsolutePublicUrl,
 } from "@/features/pages/utils/page-sharing";
+import {
+  createEmptySerializedContent,
+  extractPagePlainText,
+} from "@/features/pages/utils/page-content";
 import { PageDoc, PageVisibility } from "@/types/page.types";
 import Link from "@/lib/next-link";
 
@@ -64,13 +68,6 @@ function toInitials(firstName?: string, lastName?: string) {
   return (
     `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.trim().toUpperCase() || "U"
   );
-}
-
-function stripHtml(value: string) {
-  return value
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function canSeePage(page: PageDoc, userId: string, role?: string) {
@@ -204,7 +201,7 @@ export default function PagesListPage() {
 
         if (!term) return true;
 
-        const indexed = `${page.title} ${stripHtml(page.content)}`.toLowerCase();
+        const indexed = `${page.title} ${extractPagePlainText(page.content)}`.toLowerCase();
         return indexed.includes(term);
       })
       .sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt));
@@ -228,7 +225,7 @@ export default function PagesListPage() {
     try {
       const created = await createPage.mutateAsync({
         title,
-        content: "<p></p>",
+        content: createEmptySerializedContent(),
         visibility: createVisibility,
       });
 
@@ -273,7 +270,7 @@ export default function PagesListPage() {
                 value={visibilityFilter}
                 onValueChange={(value) => setVisibilityFilter(value as "ALL" | PageVisibility)}
               >
-                <SelectTrigger className="h-8 min-w-[120px] rounded-lg border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-[140px] lg:text-xs lg:rounded-xl">
+                <SelectTrigger className="h-8 min-w-30 rounded-lg border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-35 lg:text-xs lg:rounded-xl">
                   <SelectValue placeholder="Visibility" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-border/40">
@@ -288,7 +285,7 @@ export default function PagesListPage() {
                 value={ownershipFilter}
                 onValueChange={(value) => setOwnershipFilter(value as "ALL" | "ME" | "SHARED")}
               >
-                <SelectTrigger className="h-8 min-w-[120px] rounded-lg border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-[140px] lg:text-xs lg:rounded-xl">
+                <SelectTrigger className="h-8 min-w-30 rounded-lg border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-35 lg:text-xs lg:rounded-xl">
                   <SelectValue placeholder="Ownership" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-border/40">
@@ -302,7 +299,7 @@ export default function PagesListPage() {
                 value={recentFilter}
                 onValueChange={(value) => setRecentFilter(value as "ALL" | "RECENT")}
               >
-                <SelectTrigger className="h-8 min-w-[120px] rounded-lg border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-[140px] lg:text-xs lg:rounded-xl">
+                <SelectTrigger className="h-8 min-w-30 rounded-lg border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-35 lg:text-xs lg:rounded-xl">
                   <SelectValue placeholder="Date" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-border/40">
@@ -364,7 +361,7 @@ export default function PagesListPage() {
         {!pagesQuery.isLoading && visibleRows.length > 0 ? (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {visibleRows.map((page) => {
-              const excerpt = stripHtml(page.content || "").slice(0, 100) || "No content yet";
+              const excerpt = extractPagePlainText(page.content || "").slice(0, 100) || "No content yet";
               const ownerName =
                 `${page.creator?.firstName || ""} ${page.creator?.lastName || ""}`.trim() ||
                 "Unknown";
@@ -652,3 +649,4 @@ export default function PagesListPage() {
     </div>
   );
 }
+
