@@ -9,7 +9,7 @@ import { logInfo } from '../../services/logService.js';
 export const create = asyncHandler(async (req, res) => {
   const { 
     name, description, workspaceId, status, 
-    techStack, startDate, endDate, visibility, members 
+    techStack, startDate, endDate, visibility, members, code
   } = req.body;
 
   const project = await projectService.createProject({
@@ -23,7 +23,8 @@ export const create = asyncHandler(async (req, res) => {
     endDate,
     visibility,
     members,
-    status
+    status,
+    code
   });
 
   // Structured Audit Log

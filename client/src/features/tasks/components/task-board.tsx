@@ -68,6 +68,7 @@ import {
   useUpdateTaskMutation,
 } from "@/features/tasks/hooks/use-tasks-query";
 import { EditTaskModal } from "@/features/tasks/components/edit-task-modal";
+import { DeleteTaskModal } from "@/features/tasks/components/delete-task-modal";
 import { TagPill } from "@/features/tags/components/tag-pill";
 import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
 import { useAppSelector } from "@/hooks/useAppSelector";
@@ -337,12 +338,10 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
     ];
   }, [dynamicStatuses]);
 
-  const currentStatusId = (task.status && typeof task.status === 'object') ? (task.status as any).id || (task.status as any)._id : task.status;
-  const currentStatus = dynamicStatuses.find((s: any) => (s.id || s._id) === currentStatusId) ||
-    dynamicStatuses.find((s: any) => s.name.toLowerCase() === String(currentStatusId || "").toLowerCase());
-
-  const statusLabel = currentStatus?.name || (task.status && typeof task.status === 'object' ? (task.status as any).name : String(task.status || "").toLowerCase().replace("_", " "));
-  const statusColor = currentStatus?.color || ALL_STATUS_CONFIG.find((c) => c.id === task.status)?.dotColor || "#94a3b8";
+  const resolvedStatusObj = resolveStatus(task, dynamicStatuses);
+  const currentStatusId = normalizeId(task.status?._id) || normalizeId(task.status?.$oid) || normalizeId(task.status);
+  const statusLabel = resolvedStatusObj?.name || (task.status && typeof task.status === 'object' ? (task.status as any).name : null) || "Unknown";
+  const statusColor = resolvedStatusObj?.color || (task.status && typeof task.status === 'object' ? (task.status as any).color : ALL_STATUS_CONFIG.find((c) => c.id === task.status)?.dotColor || "#94a3b8");
 
   return (
     <>
@@ -368,6 +367,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
               snapshot.isDragging
                 ? "shadow-2xl border-primary/20 ring-1 ring-primary/10 scale-[1.02] z-50 bg-accent rounded-sm"
                 : "cursor-grab active:cursor-grabbing",
+              (task as any).isOptimistic && "opacity-70 grayscale-[0.3] pointer-events-none animate-pulse"
             )}
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
@@ -1137,41 +1137,13 @@ export function TaskBoard({
         />
       )}
 
-      <Dialog
+      <DeleteTaskModal
         open={Boolean(deleteId)}
         onOpenChange={(open) => !open && setDeleteId(null)}
-      >
-        <DialogContent className="rounded-md border-border/10 max-w-100">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Delete Task</DialogTitle>
-            <DialogDescription className="text-sm">
-              Are you sure? This will permanently remove{" "}
-              <span className="text-foreground font-semibold">
-                &quot;{deleteId && data.tasks[deleteId]?.title}&quot;
-              </span>
-              .
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0 mt-4">
-            <Button
-              variant="ghost"
-              onClick={() => setDeleteId(null)}
-              className="rounded-sm">
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={deleteTask.isPending}
-              className="rounded-sm px-6">
-              {deleteTask.isPending && (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              )}
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        taskTitle={deleteId ? data.tasks[deleteId]?.title : undefined}
+        isPending={deleteTask.isPending}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

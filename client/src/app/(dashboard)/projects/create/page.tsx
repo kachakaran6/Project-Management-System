@@ -48,18 +48,21 @@ export default function CreateProjectPage() {
         startDate: values.startDate instanceof Date ? values.startDate.toISOString() : undefined,
         endDate: values.endDate instanceof Date ? values.endDate.toISOString() : undefined,
         members: values.members,
+        code: values.code || undefined,
       });
 
-              // Handle resource creation if any were added
-              if (values.resources && values.resources.length > 0 && result.data?.id) {
-                const newProjectId = result.data.id;
-                await Promise.all(
-                  values.resources.map((res) => {
-                    const { id: _, ...resData } = res as any;
-                    return projectResourcesApi.createResource(newProjectId, resData);
-                  })
-                );
-              }
+      // Handle resource creation if any were added
+      if (values.resources && values.resources.length > 0) {
+        const newProjectId = result.data?.id || (result.data as any)?._id;
+        if (newProjectId) {
+          await Promise.all(
+            values.resources.map((res) => {
+              const { id: _, ...resData } = res as any;
+              return projectResourcesApi.createResource(newProjectId, resData);
+            })
+          );
+        }
+      }
 
       toast.success(`Project "${values.name}" created!`);
       router.push("/projects");
@@ -71,7 +74,7 @@ export default function CreateProjectPage() {
 
   return (
     <div className="min-h-[calc(100vh-80px)] py-6 md:py-0 md:h-[calc(100vh-100px)] flex items-start md:items-center justify-center md:-mt-4 overflow-y-auto md:overflow-hidden animate-in fade-in zoom-in-95 duration-500 px-4">
-      <div className="w-full max-w-6xl rounded-[32px] border border-border/40 bg-card/30 backdrop-blur-md p-4 md:p-6 shadow-2xl shadow-primary/5 mb-8 md:mb-0">
+      <div className="w-full max-w-6xl rounded-md border border-border/40 bg-card/30 backdrop-blur-md p-4 md:p-6 shadow-2xl mb-8 md:mb-0">
         <ProjectForm
           isSubmitting={createProject.isPending}
           onSubmit={handleSubmit}

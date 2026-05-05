@@ -113,6 +113,7 @@ type SectionId =
   | "tags"
   | "workflow"
   | "default_assignees"
+  | "preferences"
   | "github";
 
 
@@ -145,6 +146,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "tags", label: "Tags", icon: Tag, managerPlus: true },
   { id: "workflow", label: "Workflow", icon: Workflow, managerPlus: true },
   { id: "default_assignees", label: "Default Assignees", icon: UserPlus },
+  { id: "preferences", label: "Preferences", icon: Settings2 },
   { id: "github", label: "GitHub Workflow", icon: GitBranch },
 
 ];
@@ -1682,6 +1684,67 @@ function GithubSection() {
 }
 
 
+function PreferencesSection() {
+  const { user } = useAuth();
+  const dispatch = useAppDispatch();
+  const [saving, setSaving] = useState(false);
+
+  const taskSuggestionsEnabled = user?.settings?.taskSuggestionsEnabled ?? false;
+  const taskDraftEnabled = user?.settings?.taskDraftEnabled ?? false;
+
+  const toggleSetting = async (key: string, enabled: boolean) => {
+    setSaving(true);
+    try {
+      const nextSettings = { 
+        ...user?.settings, 
+        [key]: enabled 
+      };
+      const res = await authApi.updateMe({ settings: nextSettings });
+      dispatch(updateUser(res.data.user));
+      
+      // Update local cache
+      localStorage.setItem(key, JSON.stringify(enabled));
+      
+      const label = key === 'taskSuggestionsEnabled' ? 'Suggestions' : 'Draft auto-save';
+      toast.success(`${label} ${enabled ? "enabled" : "disabled"}`);
+    } catch {
+      toast.error("Failed to update preferences");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <SectionCard title="Productivity Features" description="Configure smart features to help you work faster.">
+        <div className="space-y-2">
+          <FormRow 
+            label="Enable Task Suggestions" 
+            description="Get AI-powered suggestions for similar tasks while creating a new task to avoid duplicates."
+          >
+            <Switch 
+              checked={taskSuggestionsEnabled} 
+              onCheckedChange={(val) => toggleSetting('taskSuggestionsEnabled', val)} 
+              disabled={saving} 
+            />
+          </FormRow>
+
+          <FormRow 
+            label="Enable Task Draft Auto-Save" 
+            description="Automatically save unfinished tasks as drafts to avoid losing progress."
+          >
+            <Switch 
+              checked={taskDraftEnabled} 
+              onCheckedChange={(val) => toggleSetting('taskDraftEnabled', val)} 
+              disabled={saving} 
+            />
+          </FormRow>
+        </div>
+      </SectionCard>
+    </div>
+  );
+}
+
 // ─── SECTION RENDERER ─────────────────────────────────────────────────────────
 
 function renderSection(id: SectionId) {
@@ -1711,6 +1774,8 @@ function renderSection(id: SectionId) {
       return <StatusManagement />;
     case "default_assignees":
       return <DefaultAssigneesSection />;
+    case "preferences":
+      return <PreferencesSection />;
     case "github":
       return <GithubSection />;
 
@@ -1950,6 +2015,7 @@ export default function SettingsPage() {
                 {activeSection === "tags" && "Create and manage organization-wide labels for better organization."}
                 {activeSection === "workflow" && "Configure task lifecycles, statuses, and board automation."}
                 {activeSection === "default_assignees" && "Set up default users who are automatically assigned to new tasks."}
+                {activeSection === "preferences" && "Customize your personal workflow and productivity tools."}
                 {activeSection === "github" && "Manage GitHub repository links and automation workflows."}
               </p>
             </div>

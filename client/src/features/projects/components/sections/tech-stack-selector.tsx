@@ -31,19 +31,18 @@ export function TechStackSelector({ value, onChange }: TechStackSelectorProps) {
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5 min-h-8 p-1.5 rounded-md border border-border/40 bg-muted/20">
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2 min-h-[44px] p-2 rounded-lg border border-border bg-background focus-within:ring-4 focus-within:ring-primary/5 focus-within:border-primary/50 transition-all">
         {value.map((tag) => (
-          <Badge key={tag} variant="secondary" className="pl-2 pr-1 h-6 text-[10px] bg-primary/5 border-primary/10 rounded-xs">
+          <Badge key={tag} variant="secondary" className="pl-2.5 pr-1 h-7 text-[12px] font-medium bg-secondary/50 hover:bg-secondary text-secondary-foreground border-none rounded-md transition-colors">
             {tag}
-            <Button
-              size="icon"
-              variant="ghost"
-              className="size-3.5 ml-1 hover:bg-destructive/10 hover:text-destructive rounded-full"
+            <button
+              type="button"
+              className="size-4 ml-1 flex items-center justify-center hover:bg-foreground/10 rounded-full transition-colors"
               onClick={() => removeTag(tag)}
             >
-              <X className="size-2" />
-            </Button>
+              <X className="size-3" />
+            </button>
           </Badge>
         ))}
         <input
@@ -55,22 +54,21 @@ export function TechStackSelector({ value, onChange }: TechStackSelectorProps) {
               addTag(query);
             }
           }}
-          placeholder={value.length === 0 ? "Add tech..." : ""}
-          className="flex-1 bg-transparent border-none outline-none text-[11px] min-w-[70px] placeholder:opacity-50"
+          placeholder={value.length === 0 ? "Add technology..." : ""}
+          className="flex-1 bg-transparent border-none outline-none text-[14px] px-1 min-w-[120px] placeholder:text-muted-foreground"
         />
       </div>
 
-      <div className="flex flex-wrap gap-1">
-        {PREDEFINED_STACKS.filter(s => !value.includes(s)).slice(0, 6).map(stack => (
-          <Button
+      <div className="flex flex-wrap gap-2">
+        {PREDEFINED_STACKS.filter(s => !value.includes(s)).slice(0, 8).map(stack => (
+          <button
             key={stack}
-            variant="ghost"
-            size="sm"
-            className="h-6 text-[9px] uppercase tracking-wider font-semibold border border-transparent hover:border-primary/20 hover:bg-primary/5 px-2"
+            type="button"
+            className="h-7 px-3 text-[11px] font-medium border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md transition-all"
             onClick={() => addTag(stack)}
           >
             {stack}
-          </Button>
+          </button>
         ))}
       </div>
     </div>

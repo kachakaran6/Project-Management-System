@@ -15,6 +15,8 @@ import {
 import { ProjectForm } from "@/features/projects/components/project-form";
 import { ProjectFormValues } from "@/features/projects/schemas/project.schema";
 import { useCreateProjectMutation } from "@/features/projects/hooks/use-projects-query";
+import { projectResourcesApi } from "@/features/projects/api/project-resources.api";
+
 
 interface CreateProjectModalProps {
   trigger?: React.ReactNode;
@@ -30,7 +32,7 @@ export function CreateProjectModal({
 
   const handleSubmit = async (values: ProjectFormValues) => {
     try {
-      await createProject.mutateAsync({
+      const result = await createProject.mutateAsync({
         name: values.name,
         description: values.description || undefined,
         status: values.status,
@@ -39,12 +41,28 @@ export function CreateProjectModal({
         startDate: values.startDate?.toISOString(),
         endDate: values.endDate?.toISOString(),
         members: values.members,
+        code: values.code || undefined,
       });
+
+      // Handle resource creation if any were added
+      if (values.resources && values.resources.length > 0) {
+        const newProjectId = result.data?.id || (result.data as any)?._id;
+        if (newProjectId) {
+          await Promise.all(
+            values.resources.map((res) => {
+              const { id: _, ...resData } = res as any;
+              return projectResourcesApi.createResource(newProjectId, resData);
+            })
+          );
+        }
+      }
+
       toast.success(`Project "${values.name}" created!`);
       setOpen(false);
       onCreated?.();
-    } catch {
-      toast.error("Failed to create project. Please try again.");
+    } catch (err: any) {
+      const message = err?.response?.data?.message || "Failed to create project. Please try again.";
+      toast.error(message);
     }
   };
 
@@ -58,7 +76,7 @@ export function CreateProjectModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl p-6 rounded-md">
+      <DialogContent className="max-w-5xl p-6 rounded-md">
         <DialogHeader>
           <DialogTitle className="text-xl">Create New Project</DialogTitle>
           <DialogDescription>

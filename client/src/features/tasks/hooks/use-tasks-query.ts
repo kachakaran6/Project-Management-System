@@ -44,11 +44,57 @@ export function useTasksQuery(
 
 export function useCreateTaskMutation() {
   const queryClient = useQueryClient();
+  const { activeOrgId, user } = useAppSelector((state) => state.auth);
 
   return useMutation({
     mutationFn: (payload: CreateTaskInput) => taskApi.createTask(payload),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
+      const previousTasks = queryClient.getQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) });
+
+      const tempTask = {
+        id: `temp-${Date.now()}`,
+        _id: `temp-${Date.now()}`,
+        ...payload,
+        status: payload.status || "TODO",
+        priority: payload.priority || "MEDIUM",
+        creatorId: user,
+        creator: {
+          id: user?.id,
+          firstName: user?.firstName,
+          lastName: user?.lastName,
+          email: user?.email,
+          avatarUrl: user?.avatarUrl,
+        },
+        createdAt: new Date().toISOString(),
+        isOptimistic: true,
+        assignees: [],
+        assigneeUsers: [],
+        tags: [],
+      };
+
+      queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
+        if (!old || !old.data || !Array.isArray(old.data.items)) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            items: [tempTask, ...old.data.items]
+          }
+        };
+      });
+
+      return { previousTasks };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousTasks) {
+        context.previousTasks.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
     },
   });
 }
@@ -88,15 +134,79 @@ export function useUpsertTaskDraftMutation() {
 
 export function usePublishTaskDraftMutation() {
   const queryClient = useQueryClient();
+  const { activeOrgId, user } = useAppSelector((state) => state.auth);
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: CreateTaskInput }) =>
       taskApi.publishDraft(id, data),
-    onSuccess: async (_, variables) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
-        queryClient.invalidateQueries({ queryKey: ["tasks", "drafts"] }),
-      ]);
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
+      await queryClient.cancelQueries({ queryKey: tasksQueryKeys.drafts({}, activeOrgId) });
+      
+      const previousTasks = queryClient.getQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) });
+      const previousDrafts = queryClient.getQueriesData({ queryKey: tasksQueryKeys.drafts({}, activeOrgId) });
+
+      const tempTask = {
+        id: `temp-pub-${Date.now()}`,
+        _id: `temp-pub-${Date.now()}`,
+        ...data,
+        status: data.status || "TODO",
+        priority: data.priority || "MEDIUM",
+        creator: {
+          id: user?.id,
+          firstName: user?.firstName,
+          lastName: user?.lastName,
+          email: user?.email,
+          avatarUrl: user?.avatarUrl,
+        },
+        createdAt: new Date().toISOString(),
+        isOptimistic: true,
+        assignees: [],
+        assigneeUsers: [],
+        tags: [],
+      };
+
+      // Add to tasks list
+      queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
+        if (!old || !old.data || !Array.isArray(old.data.items)) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            items: [tempTask, ...old.data.items]
+          }
+        };
+      });
+
+      // Remove from drafts list
+      queryClient.setQueriesData({ queryKey: tasksQueryKeys.drafts({}, activeOrgId) }, (old: any) => {
+        if (!old || !old.data || !Array.isArray(old.data.items)) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            items: old.data.items.filter((d: any) => (d.id !== id && d._id !== id))
+          }
+        };
+      });
+
+      return { previousTasks, previousDrafts };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousTasks) {
+        context.previousTasks.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      if (context?.previousDrafts) {
+        context.previousDrafts.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
+      queryClient.invalidateQueries({ queryKey: tasksQueryKeys.drafts({}, activeOrgId) });
     },
   });
 }

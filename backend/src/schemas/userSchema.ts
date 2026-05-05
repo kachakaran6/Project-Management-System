@@ -95,6 +95,14 @@ const userSchema = new mongoose.Schema({
     defaultTaskStatus: { 
       type: String, 
       default: null 
+    },
+    taskSuggestionsEnabled: { 
+      type: Boolean, 
+      default: false 
+    },
+    taskDraftEnabled: { 
+      type: Boolean, 
+      default: false 
     }
 
   },

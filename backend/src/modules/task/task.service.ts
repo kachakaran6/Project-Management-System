@@ -315,12 +315,23 @@ const syncTags = async (taskId: any, tags: any[], organizationId: any, workspace
   const mongoOrgId = toObjectId(organizationId);
   const tagIds: mongoose.Types.ObjectId[] = [];
 
+  // Batch process string tags to reduce findOne calls if possible
+  const stringTags = tags.filter(item => typeof item === 'string' && !mongoose.Types.ObjectId.isValid(item));
+  const existingTagsMap = new Map();
+  
+  if (stringTags.length > 0) {
+    const normalizedNames = stringTags.map(s => s.trim().toLowerCase().replace(/\s+/g, '-'));
+    const found = await Tag.find({ organizationId: mongoOrgId, name: { $in: normalizedNames } }).session(session);
+    found.forEach(t => existingTagsMap.set(t.name, t));
+  }
+
   for (const item of tags) {
     if (mongoose.Types.ObjectId.isValid(String(item))) {
       tagIds.push(new mongoose.Types.ObjectId(String(item)));
     } else if (typeof item === 'string' && item.trim()) {
       const name = item.trim().toLowerCase().replace(/\s+/g, '-');
-      let tag = await Tag.findOne({ organizationId: mongoOrgId, name }).session(session);
+      let tag = existingTagsMap.get(name);
+      
       if (!tag) {
         const [newTag] = await Tag.create([{
           name,
@@ -457,52 +468,57 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
 
     await session.commitTransaction();
 
-    // Log initial status
-    await logStatusChange({
-      taskId: task._id,
-      userId,
-      fromStatus: null,
-      toStatus: finalStatusId,
-      organizationId: task.organizationId
-    });
-
-
     if (draftState) {
       return getTaskById(task._id, userId, role);
     }
 
-    const projectName = await resolveProjectName(task.projectId);
+    // BACKGROUND PROCESSING (Non-blocking)
+    setImmediate(async () => {
+      try {
+        const projectName = await resolveProjectName(task.projectId);
 
-    activityLog.logActivity({
-      userId, organizationId, workspaceId, projectId,
-      resourceId: task._id, resourceType: 'Task', action: 'CREATE',
-      metadata: {
-        taskId: String(task._id),
-        taskTitle: task.title,
-        title: task.title,
-        projectName,
-        newStatus: task.status,
-        assignedTo: '-',
-        changedFields: ['Title', 'Description', 'Status'],
-        timestamp: new Date(),
+        await logStatusChange({
+          taskId: task._id,
+          userId,
+          fromStatus: null,
+          toStatus: finalStatusId,
+          organizationId: task.organizationId
+        });
+
+        activityLog.logActivity({
+          userId, organizationId, workspaceId, projectId,
+          resourceId: task._id, resourceType: 'Task', action: 'CREATE',
+          metadata: {
+            taskId: String(task._id),
+            taskTitle: task.title,
+            title: task.title,
+            projectName,
+            newStatus: task.status,
+            assignedTo: '-',
+            changedFields: ['Title', 'Description', 'Status'],
+            timestamp: new Date(),
+          }
+        });
+
+        if (normalizedAssignees.length > 0) {
+          activityLog.triggerNotification({
+            userIds: normalizedAssignees, organizationId, actorId: userId,
+            type: 'TASK_ASSIGNED', message: `Assigned: ${task.title}`,
+            resourceId: task._id, resourceType: 'Task',
+            metadata: {
+              taskId: String(task._id),
+              taskTitle: task.title,
+              projectName,
+              timestamp: new Date(),
+            }
+          });
+        }
+
+        emitToRoom(SOCKET_ROOMS.WORKSPACE(workspaceId), SOCKET_EVENTS.TASK_CREATED, { taskId: task._id, title: task.title });
+      } catch (err) {
+        console.error("[TASK_CREATE_BACKGROUND_ERROR]", err);
       }
     });
-
-    if (normalizedAssignees.length > 0) {
-      activityLog.triggerNotification({
-        userIds: normalizedAssignees, organizationId, actorId: userId,
-        type: 'TASK_ASSIGNED', message: `Assigned: ${task.title}`,
-        resourceId: task._id, resourceType: 'Task',
-        metadata: {
-          taskId: String(task._id),
-          taskTitle: task.title,
-          projectName,
-          timestamp: new Date(),
-        }
-      });
-    }
-
-    emitToRoom(SOCKET_ROOMS.WORKSPACE(workspaceId), SOCKET_EVENTS.TASK_CREATED, { taskId: task._id, title: task.title });
 
     return getTaskById(task._id, userId, role);
   } catch (error) {
@@ -833,63 +849,69 @@ export const publishDraft = async (
 
     await session.commitTransaction();
 
-    // Log status change if it changed during publish
-    if (String(draft.status) !== String(publishedTask.status)) {
-      await logStatusChange({
-        taskId: publishedTask._id,
-        userId,
-        fromStatus: draft.status,
-        toStatus: publishedTask.status,
-        organizationId: publishedTask.organizationId
-      });
-    }
+    // BACKGROUND PROCESSING (Non-blocking)
+    setImmediate(async () => {
+      try {
+        // Log status change if it changed during publish
+        if (String(draft.status) !== String(publishedTask.status)) {
+          await logStatusChange({
+            taskId: publishedTask._id,
+            userId,
+            fromStatus: draft.status,
+            toStatus: publishedTask.status,
+            organizationId: publishedTask.organizationId
+          });
+        }
 
+        const projectName = await resolveProjectName(publishedTask.projectId);
 
-    const projectName = await resolveProjectName(publishedTask.projectId);
+        activityLog.logActivity({
+          userId,
+          organizationId: publishedTask.organizationId,
+          workspaceId: publishedTask.workspaceId,
+          projectId: publishedTask.projectId,
+          resourceId: publishedTask._id,
+          resourceType: 'Task',
+          action: 'CREATE',
+          metadata: {
+            taskId: String(publishedTask._id),
+            taskTitle: publishedTask.title,
+            title: publishedTask.title,
+            projectName,
+            newStatus: publishedTask.status,
+            assignedTo: '-',
+            changedFields: ['Title', 'Description', 'Status'],
+            timestamp: new Date(),
+          }
+        });
 
-    activityLog.logActivity({
-      userId,
-      organizationId: publishedTask.organizationId,
-      workspaceId: publishedTask.workspaceId,
-      projectId: publishedTask.projectId,
-      resourceId: publishedTask._id,
-      resourceType: 'Task',
-      action: 'CREATE',
-      metadata: {
-        taskId: String(publishedTask._id),
-        taskTitle: publishedTask.title,
-        title: publishedTask.title,
-        projectName,
-        newStatus: publishedTask.status,
-        assignedTo: '-',
-        changedFields: ['Title', 'Description', 'Status'],
-        timestamp: new Date(),
+        if (normalizedAssignees.length > 0) {
+          activityLog.triggerNotification({
+            userIds: normalizedAssignees,
+            organizationId: publishedTask.organizationId,
+            actorId: userId,
+            type: 'TASK_ASSIGNED',
+            message: `Assigned: ${publishedTask.title}`,
+            resourceId: publishedTask._id,
+            resourceType: 'Task',
+            metadata: {
+              taskId: String(publishedTask._id),
+              taskTitle: publishedTask.title,
+              projectName,
+              timestamp: new Date(),
+            }
+          });
+        }
+
+        emitToRoom(
+          SOCKET_ROOMS.WORKSPACE(publishedTask.workspaceId),
+          SOCKET_EVENTS.TASK_CREATED,
+          { taskId: publishedTask._id, title: publishedTask.title }
+        );
+      } catch (err) {
+        console.error("[TASK_PUBLISH_BACKGROUND_ERROR]", err);
       }
     });
-
-    if (normalizedAssignees.length > 0) {
-      activityLog.triggerNotification({
-        userIds: normalizedAssignees,
-        organizationId: publishedTask.organizationId,
-        actorId: userId,
-        type: 'TASK_ASSIGNED',
-        message: `Assigned: ${publishedTask.title}`,
-        resourceId: publishedTask._id,
-        resourceType: 'Task',
-        metadata: {
-          taskId: String(publishedTask._id),
-          taskTitle: publishedTask.title,
-          projectName,
-          timestamp: new Date(),
-        }
-      });
-    }
-
-    emitToRoom(
-      SOCKET_ROOMS.WORKSPACE(publishedTask.workspaceId),
-      SOCKET_EVENTS.TASK_CREATED,
-      { taskId: publishedTask._id, title: publishedTask.title }
-    );
 
     return getTaskById(publishedTask._id, userId, role);
   } catch (error) {

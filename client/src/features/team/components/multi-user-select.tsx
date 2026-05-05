@@ -168,6 +168,43 @@ export function MultiUserSelect({
             />
           </div>
           <div className="max-h-75 overflow-y-auto overflow-x-hidden p-1">
+            {/* Assign All Option */}
+            {searchResults && searchResults.length > 1 && !query && (
+              <div
+                className={cn(
+                  "flex items-center gap-3 p-2 px-3 mb-1 cursor-pointer rounded-md transition-colors",
+                  value.length === searchResults.length 
+                    ? "bg-primary/10 text-primary" 
+                    : "hover:bg-muted"
+                )}
+                onClick={() => {
+                  if (value.length === searchResults.length) {
+                    onChange([]);
+                  } else {
+                    onChange(searchResults.map((m: any) => String(m.id || m._id)));
+                  }
+                }}
+              >
+                <div className={cn(
+                  "size-8 rounded-full border-2 flex items-center justify-center transition-all",
+                  value.length === searchResults.length 
+                    ? "bg-primary border-primary" 
+                    : "border-muted-foreground/30"
+                )}>
+                  <Check className={cn(
+                    "size-4 text-white transition-opacity",
+                    value.length === searchResults.length ? "opacity-100" : "opacity-0"
+                  )} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold">Assign to All Members</span>
+                  <span className="text-[10px] opacity-70">
+                    {value.length === searchResults.length ? "All selected" : `Select all ${searchResults.length} members`}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {isLoading ? (
               <div className="space-y-1 p-1">
                 {[1, 2, 3].map(i => (

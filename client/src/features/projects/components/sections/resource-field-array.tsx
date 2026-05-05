@@ -29,18 +29,18 @@ export function ResourceFieldArray() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-primary/80 font-bold uppercase tracking-wider text-[10px]">
-          <Shield className="size-3" />
+        <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Shield className="size-4" />
           <span>Initial Resources (Vault)</span>
         </div>
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="h-7 rounded-sm px-2 text-[10px] font-bold uppercase tracking-tight gap-1.5 border-primary/20 text-primary hover:bg-primary/5"
+          className="h-8 rounded-md px-3 text-[11px] font-medium transition-all gap-1.5"
           onClick={() => append({ title: "", type: "link", url: "", username: "", password: "", description: "" })}
         >
-          <Plus className="size-3" />
+          <Plus className="size-3.5" />
           Add Item
         </Button>
       </div>
@@ -52,32 +52,30 @@ export function ResourceFieldArray() {
           return (
             <div 
               key={field.id} 
-              className="group relative bg-muted/30 p-4 rounded-md border border-border/40 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300"
+              className="group relative bg-muted/30 p-5 rounded-lg border border-border/50 space-y-5 animate-in fade-in slide-in-from-top-2 duration-300"
             >
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 h-7 w-7 rounded-sm text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 size-7 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
                 onClick={() => remove(index)}
               >
-                <Trash2 className="size-3.5" />
-              </Button>
+                <Trash2 className="size-4" />
+              </button>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={control}
                   name={`resources.${index}.type`}
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold opacity-60 uppercase tracking-tight">Type</FormLabel>
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Type</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-9 rounded-sm bg-background border-border/40">
+                          <SelectTrigger className="h-9 rounded-md bg-background border-border shadow-sm text-[13px]">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="rounded-sm">
+                        <SelectContent className="rounded-lg">
                           <SelectItem value="link">Link</SelectItem>
                           <SelectItem value="credential">Credential</SelectItem>
                           <SelectItem value="note">Note</SelectItem>
@@ -91,12 +89,12 @@ export function ResourceFieldArray() {
                   control={control}
                   name={`resources.${index}.title`}
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold opacity-60 uppercase tracking-tight">Title</FormLabel>
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Title</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="e.g. AWS Console" className="h-9 rounded-sm bg-background border-border/40" />
+                        <Input {...field} placeholder="e.g. AWS Console" className="h-9 rounded-md bg-background border-border shadow-sm text-[13px]" />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-[11px]" />
                     </FormItem>
                   )}
                 />
@@ -108,10 +106,10 @@ export function ResourceFieldArray() {
                     control={control}
                     name={`resources.${index}.url`}
                     render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
-                        <FormLabel className="text-[10px] font-bold opacity-60 uppercase tracking-tight">URL</FormLabel>
+                      <FormItem className="sm:col-span-2 space-y-1.5">
+                        <FormLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">URL</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="https://..." className="h-9 rounded-sm bg-background border-border/40" />
+                          <Input {...field} placeholder="https://..." className="h-9 rounded-md bg-background border-border shadow-sm text-[13px]" />
                         </FormControl>
                       </FormItem>
                     )}
@@ -124,10 +122,10 @@ export function ResourceFieldArray() {
                       control={control}
                       name={`resources.${index}.username`}
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-[10px] font-bold opacity-60 uppercase tracking-tight">Username</FormLabel>
+                        <FormItem className="space-y-1.5">
+                          <FormLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Username</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="User" className="h-9 rounded-sm bg-background border-border/40" />
+                            <Input {...field} placeholder="User" className="h-9 rounded-md bg-background border-border shadow-sm text-[13px]" />
                           </FormControl>
                         </FormItem>
                       )}
@@ -136,10 +134,10 @@ export function ResourceFieldArray() {
                       control={control}
                       name={`resources.${index}.password`}
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-[10px] font-bold opacity-60 uppercase tracking-tight">Password</FormLabel>
+                        <FormItem className="space-y-1.5">
+                          <FormLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Password</FormLabel>
                           <FormControl>
-                            <Input {...field} type="password" placeholder="Pass" className="h-9 rounded-sm bg-background border-border/40" />
+                            <Input {...field} type="password" placeholder="Pass" className="h-9 rounded-md bg-background border-border shadow-sm text-[13px]" />
                           </FormControl>
                         </FormItem>
                       )}
@@ -152,8 +150,8 @@ export function ResourceFieldArray() {
         })}
 
         {fields.length === 0 && (
-          <div className="py-8 text-center border border-dashed border-border/40 rounded-md bg-muted/10">
-            <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">No initial resources added</p>
+          <div className="py-8 text-center border border-dashed border-border rounded-lg bg-muted/20">
+            <p className="text-[12px] font-medium text-muted-foreground/60 italic tracking-normal">No initial resources added</p>
           </div>
         )}
       </div>
