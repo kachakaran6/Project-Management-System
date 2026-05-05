@@ -271,324 +271,109 @@ export async function listActivityLogs(input: ListActivityLogsInput) {
   const organizationKey = String(input.organizationId).trim();
   const safePage = Math.max(1, Number(input.page) || 1);
   const safeLimit = Math.min(100, Math.max(1, Number(input.limit) || 20));
-  const skip = (safePage - 1) * safeLimit;
-
-  const activityBranchMatch: Record<string, any> = { organizationId };
-  const legacyBranchMatch: Record<string, any> = { organizationId: organizationKey };
+  
+  const activityMatch: Record<string, any> = { 
+    $or: [
+      { organizationId },
+      { action: { $regex: 'LOGIN|REGISTER|OTP|AUTH', $options: 'i' } }
+    ]
+  };
+  
+  const legacyMatch: Record<string, any> = { 
+    $or: [
+      { organizationId: organizationKey },
+      { action: { $regex: 'LOGIN|REGISTER|OTP|AUTH', $options: 'i' } }
+    ]
+  };
 
   if (input.userId && input.userId !== 'ALL_USERS') {
     const userObjectId = toObjectId(input.userId, 'userId');
-    const member = await OrganizationMember.findOne({
-      organizationId,
-      userId: userObjectId,
-      isActive: true,
-    }).select('_id').lean();
-
-    if (!member) {
-      throw new AppError('Selected user is not an active member of this organization.', 404);
-    }
-
-    activityBranchMatch.userId = userObjectId;
-    legacyBranchMatch.userId = userObjectId;
+    activityMatch.userId = userObjectId;
+    legacyMatch.$and = legacyMatch.$and || [];
+    legacyMatch.$and.push({
+      $or: [
+        { userId: userObjectId },
+        { 'performedBy.userId': String(input.userId).trim() }
+      ]
+    });
   }
 
-  if (input.action) {
-    activityBranchMatch.action = input.action.toUpperCase();
+  // Fetch from both sources (limited to limit * page to allow sorting)
+  // For performance, we fetch up to safeLimit * safePage from both
+  const fetchLimit = safePage * safeLimit;
+  
+  const [activities, legacyLogs] = await Promise.all([
+    ActivityLog.find(activityMatch).sort({ createdAt: -1 }).limit(fetchLimit).lean(),
+    Log.find(legacyMatch).sort({ createdAt: -1 }).limit(fetchLimit).lean()
+  ]);
 
-    const legacyActionMatch = buildLegacyActionMatch(input.action);
-    if (legacyActionMatch) {
-      legacyBranchMatch.$and = legacyBranchMatch.$and || [];
-      legacyBranchMatch.$and.push(legacyActionMatch);
-    }
-  }
-
-  if (input.entityType) {
-    activityBranchMatch.entityType = input.entityType.toUpperCase();
-
-    const legacyEntityTypeMatch = buildLegacyEntityTypeMatch(input.entityType);
-    if (legacyEntityTypeMatch) {
-      legacyBranchMatch.$and = legacyBranchMatch.$and || [];
-      legacyBranchMatch.$and.push(legacyEntityTypeMatch);
-    }
-  }
-
-  if (input.entityId) {
-    activityBranchMatch.entityId = toObjectId(input.entityId, 'entityId');
-    
-    // Legacy maps entityId to target.targetId or targetMember
-    const eId = String(input.entityId).trim();
-    legacyBranchMatch.$or = legacyBranchMatch.$or || [];
-    legacyBranchMatch.$or.push(
-      { 'target.targetId': eId },
-      { targetMember: eId }
-    );
-  }
-
-  if (input.startDate || input.endDate) {
-    activityBranchMatch.createdAt = {};
-    legacyBranchMatch.createdAt = {};
-    if (input.startDate) {
-      const start = new Date(input.startDate);
-      if (!Number.isNaN(start.getTime())) {
-        activityBranchMatch.createdAt.$gte = start;
-        legacyBranchMatch.createdAt.$gte = start;
-      }
-    }
-    if (input.endDate) {
-      const end = new Date(input.endDate);
-      if (!Number.isNaN(end.getTime())) {
-        end.setHours(23, 59, 59, 999);
-        activityBranchMatch.createdAt.$lte = end;
-        legacyBranchMatch.createdAt.$lte = end;
-      }
-    }
-  }
-
-  if (input.query) {
-    const regex = new RegExp(String(input.query).trim(), 'i');
-    activityBranchMatch.$and = activityBranchMatch.$and || [];
-    activityBranchMatch.$and.push(buildActivityQueryMatch(String(input.query).trim()));
-
-    legacyBranchMatch.$and = legacyBranchMatch.$and || [];
-    legacyBranchMatch.$and.push(buildLegacyQueryMatch(String(input.query).trim()));
-  }
-
-  const commonProjectStage = {
-    _id: 1,
-    organizationKey: 1,
-    actorUserKey: 1,
-    targetUserKey: 1,
-    action: 1,
-    entityType: 1,
-    entityId: 1,
-    entityName: 1,
-    metadata: 1,
-    createdAt: 1,
-    message: 1,
-    module: 1,
-    status: 1,
-    level: 1,
-    source: 1,
-    searchText: 1,
-  };
-
-  const activityPipeline = [
-    { $match: activityBranchMatch },
-    {
-      $project: {
-        _id: 1,
-        organizationKey: { $convert: { input: '$organizationId', to: 'string', onError: null, onNull: null } },
-        actorUserKey: { $convert: { input: '$userId', to: 'string', onError: null, onNull: null } },
-        targetUserKey: { $convert: { input: '$targetUserId', to: 'string', onError: null, onNull: null } },
-        action: 1,
-        entityType: 1,
-        entityId: { $convert: { input: '$entityId', to: 'string', onError: null, onNull: null } },
-        entityName: 1,
-        metadata: 1,
-        createdAt: 1,
-        message: { $literal: null },
-        module: { $literal: 'ACTIVITY' },
-        status: { $literal: 'SUCCESS' },
-        level: { $literal: 'info' },
-        source: { $literal: 'activity' },
-        searchText: {
-          $concat: [
-            { $ifNull: ['$action', ''] },
-            ' ',
-            { $ifNull: ['$entityName', ''] },
-            ' ',
-            { $ifNull: ['$entityType', ''] },
-            ' ',
-            { $ifNull: [{ $toString: '$metadata.fieldChanged' }, ''] },
-            ' ',
-            { $ifNull: [{ $toString: '$metadata.oldValue' }, ''] },
-            ' ',
-            { $ifNull: [{ $toString: '$metadata.newValue' }, ''] },
-            ' ',
-            { $ifNull: [{ $toString: '$metadata.projectName' }, ''] },
-          ],
-        },
-      },
-    },
-  ];
-
-  const legacyPipeline = [
-    { $match: legacyBranchMatch },
-    {
-      $project: {
-        _id: 1,
-        organizationKey: { $convert: { input: '$organizationId', to: 'string', onError: null, onNull: null } },
-        actorUserKey: {
-          $convert: {
-            input: {
-              $ifNull: [
-                '$userId',
-                {
-                  $convert: {
-                    input: '$performedBy.userId',
-                    to: 'objectId',
-                    onError: null,
-                    onNull: null,
-                  },
-                },
-              ],
-            },
-            to: 'string',
-            onError: null,
-            onNull: null,
-          },
-        },
-        targetUserKey: {
-          $convert: {
-            input: '$targetMember',
-            to: 'string',
-            onError: null,
-            onNull: null,
-          },
-        },
-        action: 1,
-        entityType: { $ifNull: ['$module', 'SYSTEM'] },
-        entityId: {
-          $convert: {
-            input: {
-              $ifNull: ['$target.targetId', '$targetMember'],
-            },
-            to: 'string',
-            onError: null,
-            onNull: null,
-          },
-        },
-        entityName: {
-          $trim: {
-            input: {
-              $ifNull: [
-                '$target.name',
-                {
-                  $ifNull: [
-                    '$performedBy.name',
-                    '$message',
-                  ],
-                },
-              ],
-            },
-          },
-        },
+  // Transform and Merge
+  const mergedItems = [
+    ...activities.map(item => ({
+      ...item,
+      _id: String(item._id),
+      source: 'activity' as const,
+      organizationKey
+    })),
+    ...legacyLogs.map(item => {
+      const legacyItem = item as any;
+      const actorUserId = String(legacyItem.userId || legacyItem.performedBy?.userId || '');
+      const action = normalizeLegacyAction(String(legacyItem.action || ''), String(legacyItem.module || ''));
+      const entityType = normalizeLegacyEntityType(String(legacyItem.action || ''), String(legacyItem.module || ''), String(legacyItem.target?.type || ''));
+      
+      return {
+        _id: String(legacyItem._id),
+        userId: actorUserId,
+        action,
+        entityType,
+        entityId: String(legacyItem.target?.targetId || legacyItem.targetMember || legacyItem._id),
+        entityName: mapLegacyEntityName(legacyItem),
+        createdAt: legacyItem.createdAt,
         metadata: {
-          $mergeObjects: [
-            { message: '$message', status: '$status', level: '$level', module: '$module' },
-            { $ifNull: ['$metadata', {}] },
-          ],
+          ...legacyItem.metadata,
+          message: legacyItem.message,
+          module: legacyItem.module
         },
-        createdAt: 1,
-        message: 1,
-        module: 1,
-        status: 1,
-        level: 1,
-        source: { $literal: 'legacy' },
-        searchText: {
-          $concat: [
-            { $ifNull: ['$message', ''] },
-            ' ',
-            { $ifNull: ['$action', ''] },
-            ' ',
-            { $ifNull: ['$module', ''] },
-            ' ',
-            { $ifNull: ['$target.name', ''] },
-            ' ',
-            { $ifNull: ['$performedBy.name', ''] },
-            ' ',
-            { $ifNull: ['$performedBy.email', ''] },
-          ],
-        },
-      },
-    },
+        source: 'legacy' as const,
+        organizationKey
+      };
+    })
   ];
 
-  const unifiedPipeline = [
-    ...activityPipeline,
-    {
-      $unionWith: {
-        coll: Log.collection.name,
-        pipeline: legacyPipeline,
-      },
-    },
-    { $match: { organizationKey } },
-    { $sort: { createdAt: -1, _id: -1 } },
-    {
-      $facet: {
-        items: [
-          { $skip: skip },
-          { $limit: safeLimit },
-        ],
-        total: [
-          { $count: 'value' },
-        ],
-      },
-    },
-    {
-      $project: {
-        items: 1,
-        total: { $ifNull: [{ $arrayElemAt: ['$total.value', 0] }, 0] },
-      },
-    },
-  ];
+  // Sort merged items
+  mergedItems.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const [result] = await ActivityLog.aggregate(unifiedPipeline as mongoose.PipelineStage[]).allowDiskUse(true);
-  const rawItems = (result?.items || []) as any[];
-  const total = Number(result?.total || 0);
+  // Paginate
+  const startIndex = (safePage - 1) * safeLimit;
+  const paginatedItems = mergedItems.slice(startIndex, startIndex + safeLimit);
 
-  const userMap = await buildUnifiedUserMap(rawItems);
+  // Get total counts for pagination
+  const [totalActivities, totalLegacy] = await Promise.all([
+    ActivityLog.countDocuments(activityMatch),
+    Log.countDocuments(legacyMatch)
+  ]);
+  const total = totalActivities + totalLegacy;
+
+  // Build User Map for the paginated items
+  const userMap = await buildUnifiedUserMap(paginatedItems);
 
   return {
-    items: rawItems.map((item: any) => {
-      const source = String(item.source || 'legacy');
-      const actorUserId = String(item.actorUserKey || '');
-      const targetUserId = item.targetUserKey ? String(item.targetUserKey) : undefined;
-
-      const normalizedAction = source === 'legacy'
-        ? normalizeLegacyAction(String(item.action || ''), String(item.module || ''))
-        : String(item.action || '');
-
-      const normalizedEntityType = source === 'legacy'
-        ? normalizeLegacyEntityType(String(item.action || ''), String(item.module || ''), String(item.entityType || ''))
-        : String(item.entityType || 'SYSTEM');
-
-      const normalizedEntityId = String(item.entityId || item._id || '');
-      const normalizedEntityName = source === 'legacy'
-        ? mapLegacyEntityName(item)
-        : String(item.entityName || 'Activity');
-
-      return {
-        _id: String(item._id),
-        organizationId: organizationKey,
-        userId: actorUserId,
-        targetUserId,
-        action: normalizedAction,
-        entityType: normalizedEntityType,
-        entityId: normalizedEntityId,
-        entityName: normalizedEntityName,
-        metadata: item.metadata || {},
-        createdAt: item.createdAt,
-        ipAddress: item.ipAddress,
-        userAgent: item.userAgent,
-        message: item.message || undefined,
-        module: item.module || undefined,
-        source,
-        user: userMap.get(actorUserId) || {
-          id: actorUserId || 'system',
-          firstName: 'System',
-          lastName: '',
-          email: '',
-        },
-        targetUser: targetUserId ? userMap.get(targetUserId) : undefined,
-      };
-    }),
+    items: paginatedItems.map((item: any) => ({
+      ...item,
+      user: userMap.get(String(item.userId)) || {
+        id: String(item.userId || 'system'),
+        firstName: 'System',
+        lastName: '',
+        email: '',
+      },
+      targetUser: item.targetUserId ? userMap.get(String(item.targetUserId)) : undefined
+    })),
     pagination: {
       total,
       page: safePage,
       limit: safeLimit,
       pages: Math.ceil(total / safeLimit),
-      hasNextPage: safePage < Math.ceil(total / safeLimit),
+      hasNextPage: (safePage * safeLimit) < total,
     },
   };
 }

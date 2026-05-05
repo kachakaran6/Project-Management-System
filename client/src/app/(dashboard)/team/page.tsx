@@ -17,7 +17,9 @@ import {
   Loader2,
   Clock3,
   History,
+  BarChart2,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import {
   Table,
@@ -83,6 +85,7 @@ const ROLES: TeamRole[] = ["OWNER", "ADMIN", "MANAGER", "MEMBER"];
 
 export default function TeamPage() {
   // ─── State ──────────────────────────────────────────────────────────────────
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -649,6 +652,7 @@ function InviteModal({ open, onOpenChange, onInvite }: { open: boolean; onOpenCh
 }
 
 function UserDetailsSheet({ selectedUser, onClose }: { selectedUser: TeamMember | null; onClose: () => void }) {
+  const navigate = useNavigate();
   const { data: statsData, isLoading } = useMemberStatsQuery(selectedUser?.id);
   const stats = statsData?.data;
   const { isAdmin } = useAuth();
@@ -810,7 +814,21 @@ function UserDetailsSheet({ selectedUser, onClose }: { selectedUser: TeamMember 
           </div>
         )}
 
-        <div className="p-6 border-t border-border/40 bg-muted/20">
+        <div className="p-6 border-t border-border/40 bg-muted/20 flex flex-col gap-3">
+          {isAdmin && selectedUser && (
+            <Button 
+              variant="secondary" 
+              className="w-full h-11 rounded-xl font-bold text-xs uppercase tracking-widest gap-2 shadow-sm"
+              onClick={() => {
+                const userId = selectedUser.id;
+                onClose();
+                navigate(`/organization/users/${userId}`);
+              }}
+            >
+              <BarChart2 className="size-4" />
+              View Full Analytics
+            </Button>
+          )}
           <Button variant="outline" className="w-full h-11 rounded-xl font-bold text-xs uppercase tracking-widest border-border/60" onClick={onClose}>
             Close Detail
           </Button>

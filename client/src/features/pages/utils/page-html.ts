@@ -1,3 +1,5 @@
+import { extractRenderableHtml } from "@/features/pages/utils/page-content";
+
 const ALLOWED_LINK_PROTOCOLS = ["http:", "https:", "mailto:", "tel:"];
 const ALLOWED_TAGS = new Set([
   "P",
@@ -22,6 +24,13 @@ const ALLOWED_TAGS = new Set([
   "SPAN",
   "LABEL",
   "INPUT",
+  "TABLE",
+  "TBODY",
+  "THEAD",
+  "TR",
+  "TD",
+  "TH",
+  "IMG",
 ]);
 
 function sanitizeUrl(url: string): string {
@@ -85,6 +94,18 @@ export function sanitizePageHtml(rawHtml: string): string {
       cleanElement.setAttribute("rel", "noopener noreferrer nofollow");
     }
 
+    if (tag === "IMG") {
+      const src = sanitizeUrl(element.getAttribute("src") || "");
+      if (!src) {
+        return null;
+      }
+
+      cleanElement.setAttribute("src", src);
+      cleanElement.setAttribute("alt", element.getAttribute("alt") || "Image");
+      cleanElement.setAttribute("loading", "lazy");
+      return cleanElement;
+    }
+
     if ((tag === "UL" || tag === "LI" || tag === "DIV") && element.dataset.type) {
       cleanElement.setAttribute("data-type", element.dataset.type);
     }
@@ -121,7 +142,6 @@ export function sanitizePageHtml(rawHtml: string): string {
 
 export function sanitizePageHtmlForDisplay(value: string): string {
   if (!value.trim()) return "";
-  const hasHtml = /<\/?[a-z][\s\S]*>/i.test(value);
-  const html = hasHtml ? value : `<p>${value.replace(/\n/g, "<br />")}</p>`;
+  const html = extractRenderableHtml(value);
   return sanitizePageHtml(html);
 }

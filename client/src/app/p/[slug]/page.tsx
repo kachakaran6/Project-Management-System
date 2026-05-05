@@ -62,7 +62,7 @@ export default function PublicPageView() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.10),_transparent_35%),linear-gradient(180deg,rgba(15,23,42,0.03),transparent_35%)] bg-background px-4 py-8 text-foreground md:px-6 md:py-12">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.10),transparent_35%),linear-gradient(180deg,rgba(15,23,42,0.03),transparent_35%)] bg-background px-4 py-8 text-foreground md:px-6 md:py-12">
       <div className="mx-auto max-w-4xl">
         <div className="mb-8 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">
           <Globe className="size-3.5" />
@@ -109,6 +109,10 @@ export default function PublicPageView() {
               [&_blockquote]:border-l-2 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:italic
               [&_code]:rounded-md [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5
               [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:bg-slate-950 [&_pre]:p-4 [&_pre]:text-slate-100
+              [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-lg
+              [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2
+              [&_th]:border [&_th]:border-border [&_th]:bg-muted/40 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left
+              [&_img]:max-w-full [&_img]:rounded-xl
               [&_ul[data-type='taskList']]:list-none [&_ul[data-type='taskList']]:pl-0
               [&_li[data-type='taskItem']]:my-2 [&_li[data-type='taskItem']>label]:mr-3 [&_li[data-type='taskItem']>label]:inline-flex
               [&_input[type='checkbox']]:pointer-events-none"
