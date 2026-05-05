@@ -104,10 +104,9 @@ function ProjectActionButton({
   tone?: "default" | "danger";
 }) {
   const baseClasses = cn(
-    "inline-flex items-center justify-center size-8 rounded-xl text-xs transition-all duration-200 active:scale-95 touch-none shadow-sm",
-    "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 hover:text-black hover:border-neutral-300",
-    "dark:border-neutral-800 dark:bg-neutral-900/80 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white dark:hover:border-neutral-600 dark:shadow-none",
-    tone === "danger" && "text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:text-red-400/80 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:border-red-500/30"
+    "inline-flex items-center justify-center size-8 rounded-lg text-xs transition-all duration-200 active:scale-95 touch-none shadow-sm",
+    "border border-border bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground",
+    tone === "danger" && "text-red-500 border-red-200/50 hover:bg-red-500/10 hover:text-red-600 dark:border-red-500/20"
   );
 
   const content = (
@@ -310,8 +309,8 @@ export default function ProjectsPage() {
                     window.location.href = `/projects/${pid}`;
                   }}
                   className={cn(
-                    "group relative flex flex-col rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-all duration-200 cursor-pointer",
-                    "hover:border-primary/40 hover:shadow-md dark:border-neutral-800 dark:bg-card dark:hover:bg-card/80 dark:hover:border-neutral-700 dark:shadow-none",
+                    "group relative flex flex-col rounded-xl border border-border/60 bg-card p-4 shadow-sm transition-all duration-200 cursor-pointer",
+                    "hover:border-primary/40 hover:shadow-md dark:hover:bg-card/80 dark:shadow-none",
                     "active:scale-[0.98] md:active:scale-100", // Visual feedback on tap
                     "max-md:rounded-[20px] max-md:p-6 max-md:shadow-lg max-md:shadow-neutral-200/50 dark:max-md:shadow-none" // Professional mobile UI
                   )}
@@ -320,7 +319,7 @@ export default function ProjectsPage() {
                   <div className="flex items-start justify-between gap-3 mb-3 max-md:mb-4">
                     <div className="flex flex-col gap-2 min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-black leading-tight line-clamp-2 group-hover:text-primary transition-colors dark:text-foreground max-md:text-lg">
+                        <h3 className="text-base font-bold text-foreground leading-tight line-clamp-2 group-hover:text-primary transition-colors max-md:text-lg">
                           {project.name}
                         </h3>
                         {isPrivate && <Lock className="size-3.5 text-amber-500/80 shrink-0" />}
@@ -370,7 +369,7 @@ export default function ProjectsPage() {
                   {/* CONTENT SECTION */}
                   <div className="space-y-4 mb-6 max-md:mb-8">
                     {project.description ? (
-                      <p className="text-sm text-neutral-800 line-clamp-2 leading-relaxed font-medium dark:text-muted-foreground max-md:text-neutral-600 max-md:line-clamp-3">
+                      <p className="text-sm text-foreground/80 line-clamp-2 leading-relaxed font-medium max-md:text-neutral-600 max-md:line-clamp-3">
                         {project.description}
                       </p>
                     ) : (

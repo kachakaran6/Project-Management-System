@@ -3,16 +3,16 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { differenceInDays } from "date-fns";
-import { 
-  Folder, 
-  Layers, 
-  Calendar, 
-  Users, 
-  Lock, 
-  Globe, 
+import {
+  Folder,
+  Layers,
+  Calendar,
+  Users,
+  Lock,
+  Globe,
   ArrowRight,
   Info,
-  Shield 
+  Shield
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,7 @@ export function ProjectForm({
       endDate: initialValues?.endDate ? new Date(initialValues.endDate) : null,
       members: initialValues?.members ?? [],
       resources: initialValues?.resources ?? [],
+      code: initialValues?.code ?? "",
     },
   });
 
@@ -83,7 +84,7 @@ export function ProjectForm({
         <div className="flex-1 overflow-y-auto pr-2 -mr-2 custom-scrollbar p-1">
           {/* GRID LAYOUT FOR TOP FIELDS */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-            
+
             {/* LEFT COLUMN: CORE INFO */}
             <div className="lg:col-span-7 space-y-6 md:space-y-8">
               <div className="space-y-3">
@@ -91,20 +92,47 @@ export function ProjectForm({
                   <Folder className="size-3 md:size-3.5" />
                   <span>Primary Details</span>
                 </div>
-                  <div className="space-y-4 bg-muted/20 p-4 rounded-md border border-border/40 shadow-sm">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-semibold">Project Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="e.g. Phoenix Dashboard" className="h-9 md:h-9 rounded-sm text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <div className="space-y-4 bg-muted/20 p-4 rounded-md border border-border/40 shadow-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div className="md:col-span-9">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold">Project Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g. Phoenix Dashboard" className="h-9 rounded-sm text-sm" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <FormField
+                        control={form.control}
+                        name="code"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold">Key (ID)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                placeholder="e.g. PHX" 
+                                className="h-9 rounded-sm text-sm uppercase font-mono" 
+                                maxLength={10}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-[9px] leading-tight">
+                              Task IDs use this prefix (e.g. PHX-1)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
                   <FormField
                     control={form.control}
                     name="description"
@@ -112,10 +140,10 @@ export function ProjectForm({
                       <FormItem>
                         <FormLabel className="text-xs font-semibold">Description (Optional)</FormLabel>
                         <FormControl>
-                          <Textarea 
-                            {...field} 
-                            placeholder="What's the goal of this project?" 
-                            className="rounded-sm resize-none min-h-[80px] md:min-h-[80px] text-sm" 
+                          <Textarea
+                            {...field}
+                            placeholder="What's the goal of this project?"
+                            className="rounded-sm resize-none min-h-[80px] md:min-h-[80px] text-sm"
                           />
                         </FormControl>
                         <FormMessage />
@@ -168,9 +196,9 @@ export function ProjectForm({
                         <FormItem className="flex-1">
                           <FormLabel className="text-[10px] md:text-[11px] font-bold opacity-60 uppercase tracking-tight">START</FormLabel>
                           <FormControl>
-                            <DatePicker 
-                              value={field.value || undefined} 
-                              onChange={(d) => field.onChange(d ? new Date(d as string) : null)} 
+                            <DatePicker
+                              value={field.value || undefined}
+                              onChange={(d) => field.onChange(d ? new Date(d as string) : null)}
                             />
                           </FormControl>
                         </FormItem>
@@ -186,9 +214,9 @@ export function ProjectForm({
                         <FormItem className="flex-1">
                           <FormLabel className="text-[10px] md:text-[11px] font-bold opacity-60 uppercase tracking-tight">END</FormLabel>
                           <FormControl>
-                            <DatePicker 
-                              value={field.value || undefined} 
-                              onChange={(d) => field.onChange(d ? new Date(d as string) : null)} 
+                            <DatePicker
+                              value={field.value || undefined}
+                              onChange={(d) => field.onChange(d ? new Date(d as string) : null)}
                             />
                           </FormControl>
                         </FormItem>
@@ -225,7 +253,7 @@ export function ProjectForm({
                       <FormItem className="space-y-3">
                         <FormLabel className="text-xs font-semibold">Visibility</FormLabel>
                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
-                          <div 
+                          <div
                             className={cn(
                               "flex-1 p-2 rounded-sm border border-border/60 cursor-pointer transition-all hover:bg-muted/50 select-none",
                               field.value === 'public' && "border-primary bg-primary/5 ring-1 ring-primary"
@@ -237,7 +265,7 @@ export function ProjectForm({
                               <span className="text-[11px] font-bold">Public</span>
                             </div>
                           </div>
-                          <div 
+                          <div
                             className={cn(
                               "flex-1 p-2 rounded-sm border border-border/60 cursor-pointer transition-all hover:bg-muted/50 select-none",
                               field.value === 'private' && "border-amber-500/50 bg-amber-500/5 ring-1 ring-amber-500/50"
@@ -266,22 +294,22 @@ export function ProjectForm({
             <span>Settings can be adjusted later in dashboard.</span>
           </div>
           <div className="flex flex-col-reverse sm:flex-row items-center gap-3 w-full sm:w-auto">
-             <Button 
-                type="button" 
-                variant="ghost" 
-                className="w-full sm:w-auto rounded-sm text-xs h-9 px-6 font-medium"
-                disabled={isSubmitting}
-                onClick={() => router.push("/projects")}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting} 
-                className="w-full sm:w-auto rounded-sm h-9 px-10 shadow-lg shadow-primary/10 font-bold text-xs tracking-wide"
-              >
-                {isSubmitting ? "Creating..." : submitLabel}
-              </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full sm:w-auto rounded-sm text-xs h-9 px-6 font-medium"
+              disabled={isSubmitting}
+              onClick={() => router.push("/projects")}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto rounded-sm h-9 px-10 shadow-lg shadow-primary/10 font-bold text-xs tracking-wide"
+            >
+              {isSubmitting ? "Creating..." : submitLabel}
+            </Button>
           </div>
         </div>
       </form>

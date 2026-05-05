@@ -20,29 +20,43 @@ export const createProject = async (projectData: Record<string, any>) => {
   if (!name) throw new AppError('Project name is required.', 400);
 
   // Helper to generate a unique project code if not provided
-  let projectCode = code;
+  let projectCode = code?.toUpperCase();
   if (!projectCode) {
-    projectCode = name
+    const baseCode = name
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, '')
-      .substring(0, 4);
+      .substring(0, 4) || 'PRJ';
     
-    // Ensure it's at least 2 chars
-    if (projectCode.length < 2) projectCode = 'PRJ';
-  }
-
-  // Ensure uniqueness (basic check before transaction, schema will also enforce)
-  const existingProject = await Project.findOne({ 
-    organizationId, 
-    code: projectCode.toUpperCase(),
-    isActive: true
-  });
-  
-  if (existingProject && !code) {
-    // If we auto-generated it and it's not unique, add a random suffix
-    projectCode = `${projectCode}${Math.floor(Math.random() * 100)}`;
-  } else if (existingProject && code) {
-    throw new AppError(`Project code "${code}" is already in use.`, 400);
+    projectCode = baseCode;
+    let isUnique = false;
+    let attempts = 0;
+    
+    while (!isUnique && attempts < 10) {
+      const existing = await Project.findOne({ 
+        organizationId, 
+        code: projectCode,
+        isActive: true
+      });
+      
+      if (!existing) {
+        isUnique = true;
+      } else {
+        // If collision, add random suffix
+        projectCode = `${baseCode}${Math.floor(Math.random() * 100)}`;
+        attempts++;
+      }
+    }
+  } else {
+    // If code was provided, check if it's already in use
+    const existingProject = await Project.findOne({ 
+      organizationId, 
+      code: projectCode,
+      isActive: true
+    });
+    
+    if (existingProject) {
+      throw new AppError(`Project code "${projectCode}" is already in use.`, 400);
+    }
   }
 
   const session = await mongoose.startSession();

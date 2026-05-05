@@ -22,6 +22,7 @@ import {
   Lock,
   Globe,
   FileText,
+  Check,
 } from "lucide-react";
 
 import {Button} from "@/components/ui/button";
@@ -48,6 +49,8 @@ import {DatePicker} from "@/components/ui/date-picker";
 import { useTaskDuplicateSuggestions } from "@/features/tasks/hooks/use-task-duplicate-suggestions";
 import { TagSelect } from "@/features/tags/components/tag-select";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
+import { hasTaskDraftContent } from "@/features/tasks/utils/task-draft";
+import { useMemberSearch } from "@/features/team/hooks/use-member-search";
 
 interface ProjectOption {
   id: string;
@@ -195,7 +198,11 @@ export function TaskForm({
     isLoading: isLoadingSimilar,
     normalizedQuery,
     canSearch,
-  } = useTaskDuplicateSuggestions(titleValue, projectIdValue || undefined, !isSubmitting && !isSuccess);
+  } = useTaskDuplicateSuggestions(
+    titleValue, 
+    projectIdValue || undefined, 
+    !isSubmitting && !isSuccess && !!user?.settings?.taskSuggestionsEnabled
+  );
 
   const showSuggestionsPanel =
     !isEdit &&
@@ -338,7 +345,7 @@ export function TaskForm({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden rounded-sm border border-border shadow-2xl">
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden rounded-xl border border-border shadow-2xl">
       {/* Header Area */}
       <div className="pt-6 pb-2 px-6 shrink-0 space-y-3">
         <div className="flex items-center justify-between">
@@ -361,7 +368,7 @@ export function TaskForm({
                 onCancel();
               }
             }}
-            className="h-8 w-8 rounded-sm text-muted-foreground/50 hover:text-foreground transition-all">
+            className="h-8 w-8 rounded-md text-muted-foreground/50 hover:text-foreground transition-all">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -374,15 +381,15 @@ export function TaskForm({
               form.setValue("projectId", v, {shouldValidate: true})
             }
             >
-            <SelectTrigger className="px-3 bg-muted/20 border-border/30 text-[11px] font-bold text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-all ring-0 focus:ring-0 rounded-sm">
+            <SelectTrigger className="px-3 bg-muted/20 border-border/30 text-[11px] font-bold text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-all ring-0 focus:ring-0 rounded-md">
               <div className="flex items-center gap-1.5">
                 <Layout className="h-3 w-3 opacity-60" />
                 <span>{currentProject?.name || "Select Project"}</span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-sm border-border/50 w-80">
+            <SelectContent className="rounded-md border-border/50 w-80">
               {projects.map((p) => (
-                <SelectItem key={p.id} value={p.id} className="w-80 rounded-sm">
+                <SelectItem key={p.id} value={p.id} className="w-80 rounded-md">
                   {p.name}
                 </SelectItem>
               ))}
@@ -410,7 +417,7 @@ export function TaskForm({
               onKeyDown={handleTitleKeyDown}
               placeholder="What needs to be done?"
               className={cn(
-                "h-12 px-4 text-lg font-medium bg-muted/10 border border-border/20 rounded-sm transition-all duration-200",
+                "h-12 px-4 text-lg font-medium bg-muted/10 border border-border/20 rounded-md transition-all duration-200",
                 "placeholder:text-muted-foreground/30 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:bg-background",
                 form.formState.errors.title &&
                   "border-destructive/40 focus:border-destructive/40 focus:ring-destructive/5",
@@ -421,7 +428,7 @@ export function TaskForm({
           />
 
           {showSuggestionsPanel && (
-            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-sm border border-border/40 bg-background/98 shadow-xl backdrop-blur-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-xl border border-border/40 bg-background/98 shadow-xl backdrop-blur-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/10 bg-muted/20">
                 <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tight">
                   <Sparkles className="size-3 text-primary/60" />
@@ -505,7 +512,7 @@ export function TaskForm({
           <Select
             value={statusValue}
             onValueChange={(v) => form.setValue("status", v as any)}>
-            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-sm text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
+            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-md text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
               <div className="flex items-center gap-2">
                 <StatusIcon
                   className={cn(
@@ -518,12 +525,12 @@ export function TaskForm({
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-sm border-border/30">
+            <SelectContent className="rounded-md border-border/30">
               {dynamicStatuses.map((s: any) => (
                 <SelectItem
                   key={s.id || s._id}
                   value={s.id || s._id}
-                  className="text-xs focus:bg-primary/10 rounded-sm">
+                  className="text-xs focus:bg-primary/10 rounded-md">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color || "#94a3b8" }} />
                     {s.name}
@@ -534,7 +541,7 @@ export function TaskForm({
                 <SelectItem
                   key={s}
                   value={s}
-                  className="text-xs uppercase focus:bg-primary/10 rounded-sm">
+                  className="text-xs uppercase focus:bg-primary/10 rounded-md">
                   {s.replace("_", " ")}
                 </SelectItem>
               ))}
@@ -545,7 +552,7 @@ export function TaskForm({
           <Select
             value={priorityValue}
             onValueChange={(v) => form.setValue("priority", v as any)}>
-            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-sm text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
+            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-md text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
               <div className="flex items-center gap-2">
                 <Flag
                   className={cn(
@@ -558,12 +565,12 @@ export function TaskForm({
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-sm border-border/30">
+            <SelectContent className="rounded-md border-border/30">
               {["LOW", "MEDIUM", "HIGH", "URGENT"].map((p) => (
                 <SelectItem
                   key={p}
                   value={p}
-                  className="text-xs focus:bg-primary/10 rounded-sm">
+                  className="text-xs focus:bg-primary/10 rounded-md">
                   {p}
                 </SelectItem>
               ))}
@@ -580,7 +587,7 @@ export function TaskForm({
                 form.setValue("visibleToUsers", []);
               }
             }}>
-            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-sm text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
+            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-md text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
               <div className="flex items-center gap-2">
                 {visibilityConfig[visibilityValue]?.icon && 
                   React.createElement(visibilityConfig[visibilityValue].icon, {
@@ -592,12 +599,12 @@ export function TaskForm({
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-sm border-border/30 w-56">
+            <SelectContent className="rounded-md border-border/30 w-56">
               {Object.entries(visibilityConfig).map(([key, config]) => (
                 <SelectItem
                   key={key}
                   value={key}
-                  className="text-xs focus:bg-primary/10 rounded-sm">
+                  className="text-xs focus:bg-primary/10 rounded-md">
                   <div className="flex items-center gap-2">
                     {React.createElement(config.icon, {className: "h-4 w-4"})}
                     <div>
@@ -615,31 +622,39 @@ export function TaskForm({
             <Controller
               name="assigneeIds"
               control={form.control}
-              render={({field}) => (
-                <MultiUserSelect
-                  value={field.value || []}
-                  onChange={field.onChange}
-                  trigger={
-                    <button
-                      type="button"
-                      className={cn(
-                        "inline-flex items-center gap-2 h-8 px-3 bg-background border border-border/40 rounded-sm text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all",
-                        assigneeIdsValue.length > 0 &&
-                          "border-primary/30 bg-primary/5 text-primary",
-                      )}>
-                      <UserPlus className="h-3.5 w-3.5 opacity-70" />
-                      <span>
-                        {assigneeIdsValue.length > 0
-                          ? `${assigneeIdsValue.length} Assignee${assigneeIdsValue.length > 1 ? "s" : ""}`
-                          : "Assignees"}
-                      </span>
-                    </button>
-                  }
-                  hideDefaultTrigger={true}
-                  placeholder="Assignees"
-                  disabled={isMemberOnlySelection}
-                />
-              )}
+              render={({field}) => {
+                // Fetch members to determine if "All" are selected for the trigger text
+                const { data: allMembers = [] } = useMemberSearch("");
+                const isAllSelected = allMembers.length > 0 && (field.value || []).length === allMembers.length;
+
+                return (
+                  <MultiUserSelect
+                    value={field.value || []}
+                    onChange={field.onChange}
+                    trigger={
+                      <button
+                        type="button"
+                        className={cn(
+                          "inline-flex items-center gap-2 h-8 px-3 bg-background border border-border/40 rounded-md text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all",
+                          (field.value || []).length > 0 &&
+                            "border-primary/30 bg-primary/5 text-primary",
+                        )}>
+                        <UserPlus className="h-3.5 w-3.5 opacity-70" />
+                        <span>
+                          {isAllSelected 
+                            ? "All Members"
+                            : (field.value || []).length > 0
+                              ? `${(field.value || []).length} Assignee${(field.value || []).length > 1 ? "s" : ""}`
+                              : "Assignees"}
+                        </span>
+                      </button>
+                    }
+                    hideDefaultTrigger={true}
+                    placeholder="Assignees"
+                    disabled={isMemberOnlySelection}
+                  />
+                );
+              }}
             />
           </div>
 
@@ -654,7 +669,7 @@ export function TaskForm({
                   onChange={field.onChange}
                   placeholder="Due date"
                   className={cn(
-                    "h-8 px-3 rounded-sm text-[13px] border-border/40",
+                    "h-8 px-3 rounded-md text-[13px] border-border/40",
                     field.value
                       ? "text-primary border-primary/30 bg-primary/5"
                       : "bg-background hover:bg-muted"
@@ -678,7 +693,7 @@ export function TaskForm({
                       <button
                         type="button"
                         className={cn(
-                          "inline-flex items-center gap-2 h-8 px-3 bg-background border border-border/40 rounded-sm text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all",
+                          "inline-flex items-center gap-2 h-8 px-3 bg-background border border-border/40 rounded-md text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all",
                           visibleToUsersValue.length > 0 &&
                             "border-blue-500/30 bg-blue-500/5 text-blue-500",
                         )}>
@@ -731,6 +746,19 @@ export function TaskForm({
         )}
 
         <div className="flex items-center gap-3">
+          {isSavingDraft && (
+            <span className="text-[10px] text-muted-foreground/40 flex items-center gap-1.5 animate-in fade-in duration-300">
+              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+              Draft saving...
+            </span>
+          )}
+          {!isSavingDraft && hasTaskDraftContent(form.getValues()) && !!user?.settings?.taskDraftEnabled && (
+             <span className="text-[10px] text-emerald-500/60 flex items-center gap-1.5 animate-in fade-in duration-500">
+              <Check className="h-2.5 w-2.5" />
+              Draft saved
+            </span>
+          )}
+
           <Button
             type="button"
             onClick={form.handleSubmit((values) =>
@@ -738,7 +766,7 @@ export function TaskForm({
             )}
             disabled={isSubmitting || !titleValue || !titleValue.trim()}
             className={cn(
-              "h-9 px-6 text-xs font-bold rounded-sm transition-all flex items-center gap-2 shadow-sm",
+              "h-9 px-6 text-xs font-bold rounded-md transition-all flex items-center gap-2 shadow-sm",
               isSubmitting ? "bg-primary/80" : "bg-primary hover:bg-primary/90"
             )}
           >

@@ -119,9 +119,15 @@ export function CreateTaskModal({
   const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
 
   const userId = user?.id || "";
+  const draftingEnabled = !!user?.settings?.taskDraftEnabled;
 
   const baseValues = useMemo(() => createBaseValues(defaultProjectId), [defaultProjectId]);
-  const debouncedDraftValues = useDebounce(draftValues, 2500);
+  
+  // Debounce for LOCAL storage save (Phase 3)
+  const debouncedLocalDraftValues = useDebounce(draftValues, 800);
+  
+  // Debounce for SERVER sync (Phase 4) - only when idle
+  const debouncedServerDraftValues = useDebounce(draftValues, 3000);
 
   const projects = (projectsQuery.data?.data.items ?? []).map((p: any) => ({
     id: p.id || p._id,
@@ -228,9 +234,9 @@ export function CreateTaskModal({
 
   const syncDraftToServer = async (
     values: TaskFormValues,
-    options?: { force?: boolean; showErrors?: boolean },
+    options?: { force?: boolean; showErrors?: boolean; silent?: boolean },
   ) => {
-    if (!userId || !hasTaskDraftContent(values)) {
+    if (!userId || !draftingEnabled || !hasTaskDraftContent(values)) {
       return null;
     }
 
@@ -239,7 +245,11 @@ export function CreateTaskModal({
       return draftId;
     }
 
-    setIsSavingDraft(true);
+    // Phase 4: Non-blocking background sync
+    if (!options?.force) {
+      setIsSavingDraft(true);
+    }
+    
     try {
       const response = await upsertTaskDraft.mutateAsync({
         id: draftId,
@@ -248,7 +258,10 @@ export function CreateTaskModal({
       const nextDraftId = response.data.id || (response.data as any)._id;
       setDraftId(nextDraftId);
       lastSavedFingerprintRef.current = fingerprint;
+      
+      // Update local storage too to keep in sync
       persistLocalDraft(values, nextDraftId);
+      
       return nextDraftId;
     } catch (error) {
       if (options?.showErrors) {
@@ -256,7 +269,7 @@ export function CreateTaskModal({
         const message =
           apiError.response?.data?.errors?.[0] ||
           apiError.response?.data?.message ||
-          "Failed to save draft. Please try again.";
+          "Failed to save draft.";
         toast.error(message);
       }
       return null;
@@ -274,27 +287,33 @@ export function CreateTaskModal({
   }, [open]);
 
   useEffect(() => {
+    if (!open || !draftingEnabled || !hasTaskDraftContent(debouncedLocalDraftValues)) {
+      return;
+    }
+    persistLocalDraft(debouncedLocalDraftValues);
+  }, [debouncedLocalDraftValues, open, draftingEnabled]);
+
+  useEffect(() => {
     if (
       !open || 
+      !draftingEnabled ||
       isCheckingDraft || 
       isSubmittingRef.current ||
-      !hasTaskDraftContent(debouncedDraftValues)
+      !hasTaskDraftContent(debouncedServerDraftValues)
     ) {
       return;
     }
 
-    void syncDraftToServer(debouncedDraftValues, { showErrors: false });
-  }, [debouncedDraftValues, isCheckingDraft, open]);
+    // Background sync to server
+    void syncDraftToServer(debouncedServerDraftValues, { showErrors: false });
+  }, [debouncedServerDraftValues, isCheckingDraft, open, draftingEnabled]);
 
   const handleValuesChange = (values: TaskFormValues) => {
     setDraftValues(values);
-
-    if (hasTaskDraftContent(values)) {
-      persistLocalDraft(values);
-      return;
+    // Instant clear if empty, but saving is debounced in useEffect
+    if (!hasTaskDraftContent(values)) {
+      clearLocalDraft(values.projectId);
     }
-
-    clearLocalDraft(values.projectId);
   };
 
   const handleDiscard = async () => {
@@ -334,12 +353,13 @@ export function CreateTaskModal({
   };
 
   const handleSilentSaveDraft = async (values: TaskFormValues) => {
-    if (!hasTaskDraftContent(values)) {
+    if (!draftingEnabled || !hasTaskDraftContent(values)) {
       setOpen(false);
       return;
     }
 
-    await syncDraftToServer(values, {
+    // Fire and forget sync on close
+    syncDraftToServer(values, {
       force: true,
       showErrors: false,
     });
@@ -369,52 +389,52 @@ export function CreateTaskModal({
 
   const isSubmitting = createTask.isPending || publishTaskDraft.isPending;
 
-  const handleSubmit = async (values: TaskFormValues, createMoreArg?: boolean) => {
+  const handleSubmit = (values: TaskFormValues, createMoreArg?: boolean) => {
     if (isLocalSubmitting) return;
-    setIsLocalSubmitting(true);
-    isSubmittingRef.current = true;
-    try {
-      const publishPayload = buildPublishPayload(values);
-      
-      // Use existing draftId if we have one, otherwise create a fresh task.
-      // This avoids the double-hop of syncing draft then publishing.
-      if (userId && draftId) {
-        await publishTaskDraft.mutateAsync({
-          id: draftId,
-          data: publishPayload,
-        });
-      } else {
-        await createTask.mutateAsync({
-          ...publishPayload,
-          dueDate: values.dueDate || undefined,
-        });
-      }
+    
+    const publishPayload = buildPublishPayload(values);
+    const currentDraftId = draftId;
+    const taskTitle = values.title;
+    
+    // Cleanup local state immediately for instant feedback
+    clearLocalDraft(values.projectId, currentDraftId);
+    setDraftId(null);
+    lastSavedFingerprintRef.current = "";
 
-      const currentDraftId = draftId;
-      clearLocalDraft(values.projectId, currentDraftId);
-      setDraftId(null);
-      lastSavedFingerprintRef.current = "";
-      toast.success(`Task "${values.title}" created!`);
-      onCreated?.();
-
-      if (!createMoreArg) {
-        setOpen(false);
-        return;
-      }
-
+    if (!createMoreArg) {
+      setOpen(false);
+    } else {
+      // If create more is checked, reset the form immediately so they can start typing the next one
       const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
       resetDraftState(createBaseValues(values.projectId || defaultProjectId, defaultAssigneeIds, defaultStatus));
+    }
 
-    } catch (error) {
-      const apiError = error as AxiosError<{ message?: string; errors?: string[] }>;
-      const message =
-        apiError.response?.data?.errors?.[0] ||
-        apiError.response?.data?.message ||
-        "Failed to create task. Please try again.";
-      toast.error(message);
-    } finally {
-      setIsLocalSubmitting(false);
-      isSubmittingRef.current = false;
+    // Trigger mutation with callbacks for background success/error handling
+    const mutationCallbacks = {
+      onSuccess: () => {
+        toast.success(`Task "${taskTitle}" created!`);
+        onCreated?.();
+      },
+      onError: (error: any) => {
+        const apiError = error as AxiosError<{ message?: string; errors?: string[] }>;
+        const message =
+          apiError.response?.data?.errors?.[0] ||
+          apiError.response?.data?.message ||
+          "Failed to create task. Please try again.";
+        toast.error(message);
+      }
+    };
+
+    if (userId && currentDraftId) {
+      publishTaskDraft.mutate({
+        id: currentDraftId,
+        data: publishPayload,
+      }, mutationCallbacks);
+    } else {
+      createTask.mutate({
+        ...publishPayload,
+        dueDate: values.dueDate || undefined,
+      }, mutationCallbacks);
     }
   };
 
@@ -432,7 +452,7 @@ export function CreateTaskModal({
         hideClose
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
-        className="max-w-[640px] w-[95vw] md:w-full h-fit max-h-[90vh] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-md gap-0 flex flex-col"
+        className="max-w-[640px] w-[95vw] md:w-full h-fit max-h-[90vh] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-xl gap-0 flex flex-col"
       >
         {isCheckingDraft ? (
           <div className="flex min-h-[320px] items-center justify-center text-sm text-muted-foreground">

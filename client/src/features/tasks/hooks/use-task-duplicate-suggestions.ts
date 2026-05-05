@@ -129,19 +129,19 @@ function computeSimilarity(task: Task, query: string, activeProjectId?: string) 
 }
 
 export function useTaskDuplicateSuggestions(query: string, projectId?: string, enabled = true) {
-  const debouncedQuery = useDebounce(query, 350);
+  const debouncedQuery = useDebounce(query, 500);
   const normalizedQuery = useMemo(() => normalizeText(debouncedQuery), [debouncedQuery]);
   const canSearch = normalizedQuery.length >= 4 && enabled;
 
   const suggestionsQuery = useQuery({
     queryKey: ["tasks", "duplicate-suggestions", normalizedQuery, projectId || "ALL"],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const response = await taskApi.getTasks({
         search: normalizedQuery,
         page: 1,
         limit: 60,
         projectId: projectId || undefined,
-      });
+      }, { signal });
 
       const ranked = (response.data.items || [])
         .map((task) => ({

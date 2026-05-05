@@ -64,3 +64,38 @@ export const updateDefaultStatus = async (req: Request, res: Response, next: Nex
   }
 };
 
+export const getSuggestionSettings = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.id;
+    const result = await settingsService.getSuggestionSettings(userId);
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateSuggestionSettings = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.id;
+    const { enabled } = req.body;
+
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'enabled must be a boolean',
+      });
+    }
+
+    const result = await settingsService.updateSuggestionSettings(userId, enabled);
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

@@ -87,6 +87,7 @@ import {
 import { TaskBoard } from "@/features/tasks/components/task-board";
 import { EditTaskModal } from "@/features/tasks/components/edit-task-modal";
 import { CreateTaskModal } from "@/features/tasks/components/create-task-modal";
+import { DeleteTaskModal } from "@/features/tasks/components/delete-task-modal";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { Task, TaskStatus, TaskPriority } from "@/types/task.types";
 import { cn } from "@/lib/utils";
@@ -440,21 +441,8 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   const getTaskId = (task: Task) => String(task.id || (task as any)._id || "");
   const getAssignees = (task: Task) => task.assigneeUsers ?? [];
 
-  const getStatusName = (status: any) => {
-    if (!status) return "Unknown";
-    // Try to find in dynamic statuses first
-    const resolved = resolveStatus({ status }, dynamicStatuses);
-    if (resolved) return resolved.name;
-    
-    if (typeof status === 'object') return status.name || "Unknown";
-    return String(status).replace(/_/g, " ");
-  };
-
-  const getStatusColor = (status: any) => {
-    if (!status) return "#94a3b8";
-    const resolved = resolveStatus({ status }, dynamicStatuses);
-    return resolved?.color || "#94a3b8";
-  };
+  const tasks = listQuery.data?.data?.items ?? [];
+  const deletingTask = tasks.find((t) => (t.id || (t as any)._id) === deleteId);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -993,11 +981,11 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                           variant="outline"
                                           className="h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight shrink-0 border-none"
                                           style={{ 
-                                            color: getStatusColor(task.status), 
-                                            backgroundColor: `${getStatusColor(task.status)}15` 
+                                            color: getStatusColor(task.status, dynamicStatuses), 
+                                            backgroundColor: `${getStatusColor(task.status, dynamicStatuses)}15` 
                                           }}
                                         >
-                                          {getStatusName(task.status)}
+                                          {getStatusName(task.status, dynamicStatuses)}
                                         </Badge>
                                       </div>
                                     </div>
@@ -1181,12 +1169,13 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                               isOverdue={
                                 task.dueDate &&
                                 new Date(task.dueDate) < new Date() &&
-                                getStatusName(task.status).toUpperCase() !== "DONE"
+                                getStatusName(task.status, dynamicStatuses).toUpperCase() !== "DONE"
                               }
                               canMutate={canMutate}
                               setSelectedTask={setSelectedTask}
                               setDeleteId={setDeleteId}
                               hideProject={Boolean(fixedProjectId)}
+                              dynamicStatuses={dynamicStatuses}
                             />
                           ))}
                         </TableBody>
@@ -1261,41 +1250,23 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
         )}
       </div>
 
-      <Dialog
+      <DeleteTaskModal
         open={Boolean(deleteId)}
         onOpenChange={(open) => !open && setDeleteId(null)}
-      >
-        <DialogContent className="sm:max-w-110">
-          <DialogHeader>
-            <DialogTitle>Delete Task</DialogTitle>
-            <DialogDescription>
-              Confirm task deletion for this organization.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteId(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deleteTask.isPending || !deleteId}
-              onClick={async () => {
-                if (!deleteId) return;
-                try {
-                  await deleteTask.mutateAsync(deleteId);
-                  setDeleteId(null);
-                  toast.success("Task deleted");
-                } catch (err: any) {
-                  const errorMsg = err.response?.data?.message || "Task deletion failed";
-                  toast.error(errorMsg);
-                }
-              }}
-            >
-              Confirm Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        taskTitle={deletingTask?.title}
+        isPending={deleteTask.isPending}
+        onConfirm={async () => {
+          if (!deleteId) return;
+          try {
+            await deleteTask.mutateAsync(deleteId);
+            setDeleteId(null);
+            toast.success("Task deleted");
+          } catch (err: any) {
+            const errorMsg = err.response?.data?.message || "Task deletion failed";
+            toast.error(errorMsg);
+          }
+        }}
+      />
 
       {selectedTask && (
         <EditTaskModal
@@ -1711,6 +1682,20 @@ function AccordionSection({ title, color, count, children, defaultOpen = false }
   );
 }
 
+const getStatusName = (status: any, dynamicStatuses: any[]) => {
+  if (!status) return "Unknown";
+  const resolved = resolveStatus({ status }, dynamicStatuses);
+  if (resolved) return resolved.name;
+  if (typeof status === 'object') return (status as any).name || "Unknown";
+  return "Unknown";
+};
+
+const getStatusColor = (status: any, dynamicStatuses: any[]) => {
+  if (!status) return "#94a3b8";
+  const resolved = resolveStatus({ status }, dynamicStatuses);
+  return resolved?.color || "#94a3b8";
+};
+
 function TaskRow({ 
   task, 
   idx, 
@@ -1720,7 +1705,8 @@ function TaskRow({
   canMutate, 
   setSelectedTask, 
   setDeleteId,
-  hideProject 
+  hideProject,
+  dynamicStatuses
 }: any) {
   return (
     <TableRow
@@ -1766,11 +1752,11 @@ function TaskRow({
           variant="outline"
           className="h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight border-none"
           style={{ 
-            color: task.statusColor || "#94a3b8", 
-            backgroundColor: `${task.statusColor || "#94a3b8"}15` 
+            color: getStatusColor(task.status, dynamicStatuses), 
+            backgroundColor: `${getStatusColor(task.status, dynamicStatuses)}15` 
           }}
         >
-          {String(task.status).replace(/_/g, " ")}
+          {getStatusName(task.status, dynamicStatuses)}
         </Badge>
       </TableCell>
       <TableCell>

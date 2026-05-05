@@ -12,5 +12,8 @@ router.put('/default-assignees', settingsController.updateDefaultAssignees);
 router.get('/default-status', settingsController.getDefaultStatus);
 router.put('/default-status', settingsController.updateDefaultStatus);
 
+router.get('/suggestions', settingsController.getSuggestionSettings);
+router.put('/suggestions', settingsController.updateSuggestionSettings);
+
 
 export default router;

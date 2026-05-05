@@ -34,21 +34,22 @@ export function MemberSelector({ value, onChange }: MemberSelectorProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
               size="sm"
-              className="h-9 w-9 rounded-sm border-dashed p-0 shrink-0 hover:bg-primary/5 hover:border-primary/30"
+              className="h-9 px-3 rounded-lg border-dashed border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all gap-2"
               disabled={isLoading}
             >
-              <UserPlus className="size-4 opacity-70" />
+              <UserPlus className="size-4" />
+              <span className="text-[12px] font-medium">Add Member</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[calc(100vw-32px)] md:w-72 max-h-80 overflow-y-auto p-1.5 rounded-md shadow-xl border-border/40 backdrop-blur-lg custom-scrollbar">
+          <DropdownMenuContent align="start" className="w-64 max-h-80 overflow-y-auto p-1 rounded-xl shadow-xl border-border bg-popover custom-scrollbar">
             {members.length === 0 && (
-              <div className="p-4 text-center text-xs text-muted-foreground">
+              <div className="p-4 text-center text-[12px] text-muted-foreground font-medium">
                 No team members found
               </div>
             )}
@@ -60,7 +61,7 @@ export function MemberSelector({ value, onChange }: MemberSelectorProps) {
               return (
                 <DropdownMenuItem
                   key={mId}
-                  className="flex items-center gap-2 rounded-sm px-2 py-1.5 cursor-pointer"
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 cursor-pointer mb-0.5 last:mb-0"
                   onSelect={(e) => {
                     e.preventDefault();
                     toggleMember(mId);
@@ -69,19 +70,19 @@ export function MemberSelector({ value, onChange }: MemberSelectorProps) {
                   <div className="relative size-7 shrink-0">
                     <Avatar className="size-7">
                       <AvatarImage src={member.avatarUrl} />
-                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
                         {member.firstName?.[0]}{member.lastName?.[0]}
                       </AvatarFallback>
                     </Avatar>
                     {isSelected && (
-                      <div className="absolute -right-0.5 -top-0.5 size-3 bg-primary rounded-full flex items-center justify-center border-2 border-background">
+                      <div className="absolute -right-0.5 -top-0.5 size-3 bg-primary rounded-full flex items-center justify-center border border-background">
                         <Check className="size-2 text-white" />
                       </div>
                     )}
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-medium truncate">{fullName}</span>
-                    <span className="text-[10px] text-muted-foreground truncate">{member.email}</span>
+                    <span className="text-[12px] font-semibold truncate text-foreground">{fullName}</span>
+                    <span className="text-[10px] text-muted-foreground truncate font-medium">{member.email}</span>
                   </div>
                 </DropdownMenuItem>
               );
@@ -91,20 +92,20 @@ export function MemberSelector({ value, onChange }: MemberSelectorProps) {
 
         <div className="flex -space-x-2 overflow-hidden items-center">
           {selectedMembers.slice(0, 5).map((member) => (
-            <Avatar key={member.id} className="size-8 border-2 border-background ring-1 ring-border/20 transition-transform hover:scale-110 hover:z-10 cursor-help">
+            <Avatar key={member.id} className="size-8 border-2 border-background shadow-sm transition-transform hover:translate-y-[-2px] cursor-help">
               <AvatarImage src={member.avatarUrl} />
-              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+              <AvatarFallback className="text-[10px] bg-secondary text-secondary-foreground font-bold">
                 {member.firstName?.[0]}{member.lastName?.[0]}
               </AvatarFallback>
             </Avatar>
           ))}
           {selectedMembers.length > 5 && (
-            <div className="flex size-8 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium ring-1 ring-border/20">
+            <div className="flex size-8 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-bold text-muted-foreground shadow-sm">
               +{selectedMembers.length - 5}
             </div>
           )}
           {selectedMembers.length === 0 && (
-            <span className="text-xs text-muted-foreground ml-4 italic">No members selected (Private)</span>
+            <span className="text-[12px] text-muted-foreground/60 font-medium ml-2 italic">No members added</span>
           )}
         </div>
       </div>

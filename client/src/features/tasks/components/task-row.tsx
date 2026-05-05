@@ -35,6 +35,7 @@ import { ChevronRight, Clock, User, Calendar, Tag, Folder, Hash } from "lucide-r
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { resolveStatus } from "../utils/resolve-status";
 
 export const TaskRow = ({
   taskId,
@@ -121,15 +122,17 @@ export const TaskRow = ({
   const createdAt = task.createdAt;
   const tags = task.tags || [];
  
-  const currentStatusId = (task.status && typeof task.status === 'object') ? (task.status as any).id || (task.status as any)._id : task.status;
-  const currentStatus = dynamicStatuses.find((s: any) => (s.id || s._id) === currentStatusId);
-  const statusLabel = currentStatus?.name || (task.status && typeof task.status === 'object' ? (task.status as any).name : String(task.status || "").replace("_", " "));
-  const statusColor = currentStatus?.color || "#94a3b8";
+  const resolvedStatusObj = resolveStatus(task, dynamicStatuses);
+  const statusLabel = resolvedStatusObj?.name || (task.status && typeof task.status === 'object' ? (task.status as any).name : null) || "Unknown";
+  const statusColor = resolvedStatusObj?.color || (task.status && typeof task.status === 'object' ? (task.status as any).color : "#94a3b8");
 
   return (
     <TableRow
       key={taskId || `task-${idx}`}
-      className="group border-b border-border/30 last:border-0 hover:bg-muted/5 transition-all h-16">
+      className={cn(
+        "group border-b border-border/30 last:border-0 hover:bg-muted/5 transition-all h-16",
+        (task as any).isOptimistic && "opacity-60 grayscale-[0.5] pointer-events-none animate-pulse"
+      )}>
       <TableCell className="py-4 pl-6">
         <div className="flex flex-col gap-0.5 min-w-[140px]">
           <button

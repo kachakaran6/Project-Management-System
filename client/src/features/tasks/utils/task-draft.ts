@@ -36,6 +36,13 @@ function safeParseSnapshot(raw: string | null): StoredTaskDraftSnapshot | null {
     const parsed = JSON.parse(raw) as StoredTaskDraftSnapshot;
     if (!parsed || typeof parsed !== "object") return null;
     if (!parsed.userId || !parsed.updatedAt) return null;
+
+    // Phase 7: Expiry logic (24 hours)
+    const lastUpdate = new Date(parsed.updatedAt).getTime();
+    const now = Date.now();
+    const ageHours = (now - lastUpdate) / (1000 * 60 * 60);
+    if (ageHours > 24) return null;
+
     return parsed;
   } catch {
     return null;

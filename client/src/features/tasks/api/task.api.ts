@@ -15,10 +15,11 @@ import {
 export const taskApi = {
   getTasks: async (
     filters: TaskFilters = {},
+    config: any = {}
   ): Promise<ApiResponse<PaginatedResult<Task>>> => {
     const response = await api.get<ApiResponse<PaginatedResult<Task>>>(
       "/tasks",
-      { params: filters },
+      { ...config, params: filters },
     );
     return response.data;
   },
