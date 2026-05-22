@@ -14,6 +14,7 @@ import {
   Eye,
   Pencil,
   Trash2,
+  GitBranch,
   Filter,
   Plus,
   ChevronLeft,
@@ -99,6 +100,7 @@ import {
   generatePDF,
   type TaskExportFilters,
 } from "@/features/tasks/utils/task-export";
+import { formatGitBranchCommand } from "@/features/tasks/utils/git-branch-formatter";
 import {
   Tooltip,
   TooltipContent,
@@ -1022,16 +1024,31 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                             </span>
                                          )}
                                         <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedTask(task);
-                                          }}
-                                        >
-                                          <Pencil className="size-4" />
-                                        </Button>
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const rawId = taskId;
+                                              const taskCode = task.taskCode || (task as any).legacyId || `T-${rawId.slice(-4).toUpperCase()}`;
+                                              const cmd = formatGitBranchCommand(taskCode, task.title);
+                                              navigator.clipboard.writeText(cmd);
+                                              toast.success("Copied branch command to clipboard!");
+                                            }}
+                                          >
+                                            <GitBranch className="size-4" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedTask(task);
+                                            }}
+                                          >
+                                            <Pencil className="size-4" />
+                                          </Button>
                                         {canMutate && (
                                           <Button
                                             variant="ghost"
@@ -1779,6 +1796,21 @@ function TaskRow({
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              const rawId = tid(task);
+              const taskCode = task.taskCode || (task as any).legacyId || `T-${rawId.slice(-4).toUpperCase()}`;
+              const cmd = formatGitBranchCommand(taskCode, task.title);
+              navigator.clipboard.writeText(cmd);
+              toast.success("Copied branch command to clipboard!");
+            }}
+          >
+            <GitBranch className="size-3.5" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"

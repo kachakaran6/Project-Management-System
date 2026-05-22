@@ -35,7 +35,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { formatDistanceToNow } from "date-fns";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api/axios-instance";
 import {
   RepositoryRowSkeleton,
@@ -109,6 +109,13 @@ const GithubProfileChip = ({ account, onDisconnect, onConnect, isDisconnecting }
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48 rounded-md border-border/60 shadow-xl p-1">
         <DropdownMenuItem
+          className="hover:bg-primary/10 rounded-sm cursor-pointer font-bold text-xs py-2"
+          onClick={() => window.location.href = `/github/profile/${account.username}`}
+        >
+          <Activity className="mr-2 size-4" />
+          View Analytics
+        </DropdownMenuItem>
+        <DropdownMenuItem
           className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-sm cursor-pointer font-bold text-xs py-2"
           disabled={isDisconnecting}
           onClick={onDisconnect}
@@ -129,12 +136,15 @@ const GithubProfileChip = ({ account, onDisconnect, onConnect, isDisconnecting }
  * 🖥️ DESKTOP ONLY COMPONENTS
  */
 
-const RepositoryRowDesktop = ({ repo, status, onLink, onUnlink, isLinking, isUnlinking }: any) => {
+const RepositoryRowDesktop = ({ repo, status, onLink, onUnlink, isLinking, isUnlinking, onClick }: any) => {
   const isLinked = status === "connected";
   const isLegacy = status === "legacy";
 
   return (
-    <div className="group flex items-center h-14 py-2 px-4 hover:bg-muted/30 border-b border-border/20 last:border-0 transition-all">
+    <div 
+      className="group flex items-center h-14 py-2 px-4 hover:bg-muted/30 border-b border-border/20 last:border-0 transition-all cursor-pointer"
+      onClick={onClick}
+    >
       {/* LEFT: Identity (Flexible) */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div className="size-8 rounded-sm bg-primary/5 flex items-center justify-center shrink-0 border border-primary/10">
@@ -176,7 +186,10 @@ const RepositoryRowDesktop = ({ repo, status, onLink, onUnlink, isLinking, isUnl
           variant="ghost"
           size="icon"
           className="size-8 rounded-sm text-muted-foreground hover:bg-primary/5 hover:text-primary transition-all"
-          onClick={() => window.open(repo.html_url || `https://github.com/${repo.fullName}`, '_blank')}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.open(repo.html_url || `https://github.com/${repo.fullName}`, '_blank');
+          }}
         >
           <ExternalLink className="size-3.5" />
         </Button>
@@ -187,7 +200,7 @@ const RepositoryRowDesktop = ({ repo, status, onLink, onUnlink, isLinking, isUnl
             size="icon"
             className="size-8 rounded-sm text-destructive hover:bg-destructive/10 transition-all lg:opacity-0 lg:group-hover:opacity-100"
             disabled={isUnlinking}
-            onClick={onUnlink}
+            onClick={(e) => { e.stopPropagation(); onUnlink(); }}
           >
             <LoadingButtonContent loading={isUnlinking} text="" icon={Trash2} />
           </Button>
@@ -197,7 +210,7 @@ const RepositoryRowDesktop = ({ repo, status, onLink, onUnlink, isLinking, isUnl
             variant="ghost"
             className="h-8 px-3 rounded-sm font-black uppercase tracking-widest text-[9px] text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all"
             disabled={isLinking}
-            onClick={() => onLink(repo)}
+            onClick={(e) => { e.stopPropagation(); onLink(repo); }}
           >
             <LoadingButtonContent loading={isLinking} text="Link" icon={Plus} />
           </Button>
@@ -209,7 +222,7 @@ const RepositoryRowDesktop = ({ repo, status, onLink, onUnlink, isLinking, isUnl
             size="sm"
             className="h-8 px-3 rounded-sm font-black uppercase tracking-widest text-[9px] border-amber-500/20 bg-amber-500/5 text-amber-600 hover:bg-amber-600 hover:text-white transition-all shadow-sm"
             disabled={isLinking}
-            onClick={() => onLink(repo)}
+            onClick={(e) => { e.stopPropagation(); onLink(repo); }}
           >
             <LoadingButtonContent loading={isLinking} text="Migrate" />
           </Button>
@@ -223,12 +236,15 @@ const RepositoryRowDesktop = ({ repo, status, onLink, onUnlink, isLinking, isUnl
  * 📱 MOBILE ONLY COMPONENTS
  */
 
-const RepositoryCardMobile = ({ repo, status, onLink, onUnlink, isLinking, isUnlinking }: any) => {
+const RepositoryCardMobile = ({ repo, status, onLink, onUnlink, isLinking, isUnlinking, onClick }: any) => {
   const isLinked = status === "connected";
   const isLegacy = status === "legacy";
 
   return (
-    <div className="p-4 bg-card/40 rounded-md border border-border/40 space-y-3">
+    <div 
+      className="p-4 bg-card/40 rounded-md border border-border/40 space-y-3 cursor-pointer hover:bg-muted/10 transition-colors"
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="size-8 rounded-sm bg-primary/5 flex items-center justify-center">
@@ -254,7 +270,10 @@ const RepositoryCardMobile = ({ repo, status, onLink, onUnlink, isLinking, isUnl
           variant="outline"
           size="sm"
           className="h-9 flex-1 rounded-sm text-[10px] font-bold"
-          onClick={() => window.open(repo.html_url || `https://github.com/${repo.fullName}`, '_blank')}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.open(repo.html_url || `https://github.com/${repo.fullName}`, '_blank');
+          }}
         >
           <ExternalLink className="size-3 mr-1.5" />
           View GitHub
@@ -266,7 +285,7 @@ const RepositoryCardMobile = ({ repo, status, onLink, onUnlink, isLinking, isUnl
             size="sm"
             className="h-9 px-3 rounded-sm text-destructive hover:bg-destructive/10"
             disabled={isUnlinking}
-            onClick={onUnlink}
+            onClick={(e) => { e.stopPropagation(); onUnlink(); }}
           >
             <Trash2 className="size-4" />
           </Button>
@@ -275,7 +294,7 @@ const RepositoryCardMobile = ({ repo, status, onLink, onUnlink, isLinking, isUnl
             size="sm"
             className="h-9 flex-1 rounded-sm text-[10px] font-bold bg-primary text-primary-foreground"
             disabled={isLinking}
-            onClick={() => onLink(repo)}
+            onClick={(e) => { e.stopPropagation(); onLink(repo); }}
           >
             <LoadingButtonContent loading={isLinking} text="Link Repository" />
           </Button>
@@ -285,7 +304,7 @@ const RepositoryCardMobile = ({ repo, status, onLink, onUnlink, isLinking, isUnl
             size="sm"
             className="h-9 flex-1 rounded-sm text-[10px] font-bold border-amber-500/20 bg-amber-500/5 text-amber-600"
             disabled={isLinking}
-            onClick={() => onLink(repo)}
+            onClick={(e) => { e.stopPropagation(); onLink(repo); }}
           >
             <LoadingButtonContent loading={isLinking} text="Migrate Repo" />
           </Button>
@@ -325,6 +344,7 @@ const ActivityItemMobile = ({ activity }: any) => (
  */
 
 export default function GithubPage() {
+  const router = useRouter();
   const { user, activeOrg } = useAuth();
   const searchParams = useSearchParams();
   const [account, setAccount] = useState<any>(null);
@@ -436,9 +456,6 @@ export default function GithubPage() {
   return (
     <div className="flex flex-col min-h-screen lg:h-[calc(100vh-theme(spacing.16))] bg-background">
       <GithubOnboardingModal />
-      {loading && repos.length === 0 && (
-        <PageLoader message="Syncing repositories..." icon={Github} />
-      )}
 
       {/* 📱 MOBILE LAYOUT (< 1024px) */}
       <div className="lg:hidden flex flex-col space-y-4 p-2">
@@ -479,6 +496,15 @@ export default function GithubPage() {
             </div>
 
             <div className="space-y-3">
+              {loading && repos.length === 0 && (
+                <div className="divide-y divide-border/20">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="mb-3">
+                      <RepositoryRowSkeleton />
+                    </div>
+                  ))}
+                </div>
+              )}
               {repos.length === 0 && !loading && (
                 <div className="p-8 text-center bg-muted/5 rounded-md border border-dashed border-border/60">
                   <p className="text-xs font-bold text-muted-foreground">No repositories found.</p>
@@ -498,6 +524,7 @@ export default function GithubPage() {
                     onUnlink={() => handleUnlinkRepo(linkedRepo?._id)}
                     isLinking={linkingRepoId === repo.id.toString()}
                     isUnlinking={unlinkingRepoId === linkedRepo?._id}
+                    onClick={() => router.push(`/github/${repo.owner?.login || repo.owner}/${repo.name}`)}
                   />
                 );
               })}
@@ -586,6 +613,7 @@ export default function GithubPage() {
                         onUnlink={() => handleUnlinkRepo(linkedRepo?._id)}
                         isLinking={linkingRepoId === repo.id.toString()}
                         isUnlinking={unlinkingRepoId === linkedRepo?._id}
+                        onClick={() => router.push(`/github/${repo.owner?.login || repo.owner}/${repo.name}`)}
                       />
                     );
                   })}

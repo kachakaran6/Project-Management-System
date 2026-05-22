@@ -205,3 +205,61 @@ export const getFullGithubActivity = asyncHandler(async (req: Request, res: Resp
   const activity = await githubService.getWorkspaceActivity(scopeId);
   return res.status(200).json({ success: true, data: activity });
 });
+
+/**
+ * SECTION 6: GitHub API Proxies for Repository Details
+ */
+export const getRepoBranches = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { owner, repo } = req.params;
+  const { page = 1, per_page = 30 } = req.query;
+  const data = await githubService.getRepoBranches(userId, owner as string, repo as string, Number(page), Number(per_page));
+  return res.status(200).json({ success: true, data });
+});
+
+export const getRepoCommits = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { owner, repo } = req.params;
+  const { sha, page = 1, per_page = 30 } = req.query;
+  const data = await githubService.getRepoCommits(userId, owner as string, repo as string, sha as string, Number(page), Number(per_page));
+  return res.status(200).json({ success: true, data });
+});
+
+export const getRepoPullRequests = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { owner, repo } = req.params;
+  const { state = 'all', page = 1, per_page = 30 } = req.query;
+  const data = await githubService.getRepoPullRequests(userId, owner as string, repo as string, state as string, Number(page), Number(per_page));
+  return res.status(200).json({ success: true, data });
+});
+
+export const getRepoIssues = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { owner, repo } = req.params;
+  const { state = 'all', page = 1, per_page = 30 } = req.query;
+  const data = await githubService.getRepoIssues(userId, owner as string, repo as string, state as string, Number(page), Number(per_page));
+  return res.status(200).json({ success: true, data });
+});
+
+export const getRepoFileTree = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { owner, repo, sha } = req.params;
+  const data = await githubService.getRepoFileTree(userId, owner as string, repo as string, sha as string);
+  return res.status(200).json({ success: true, data });
+});
+
+export const getRepoFileContent = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { owner, repo } = req.params;
+  const path = req.params[0]; // Capture wildcard path
+  const { ref } = req.query;
+  const data = await githubService.getRepoFileContent(userId, owner as string, repo as string, path as string, ref as string);
+  return res.status(200).json({ success: true, data });
+});
+
+export const getProfileAnalytics = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { username } = req.params;
+  const data = await githubService.getProfileAnalytics(userId, username as string);
+  return res.status(200).json({ success: true, data });
+});

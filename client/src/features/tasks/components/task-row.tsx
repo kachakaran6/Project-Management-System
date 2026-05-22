@@ -27,9 +27,10 @@ import {
   useUpdateTaskMutation,
   useUpdateTaskStatusMutation,
 } from "../hooks/use-tasks-query";
-import {AlertCircle, Eye, MoreHorizontal, Pencil, Trash2} from "lucide-react";
+import {AlertCircle, Eye, MoreHorizontal, Pencil, Trash2, GitBranch} from "lucide-react";
 import {Dispatch, SetStateAction} from "react";
 import {useTaskPanelStore} from "../store/task-panel-store";
+import { formatGitBranchCommand } from "@/features/tasks/utils/git-branch-formatter";
 import {usePathname, useRouter, useSearchParams} from "@/lib/next-navigation";
 import { ChevronRight, Clock, User, Calendar, Tag, Folder, Hash } from "lucide-react";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
@@ -334,6 +335,17 @@ export const TaskRow = ({
             <DropdownMenuItem className="rounded-sm px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => openPanel(tid(task))}>
               <Eye className="mr-2.5 size-4 text-muted-foreground" />
               <span className="text-sm font-medium">View Details</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="rounded-sm px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={(e) => {
+              e.stopPropagation();
+              const rawId = tid(task);
+              const taskCode = task.taskCode || (task as any).legacyId || `T-${rawId.slice(-4).toUpperCase()}`;
+              const cmd = formatGitBranchCommand(taskCode, task.title);
+              navigator.clipboard.writeText(cmd);
+              toast.success("Copied branch command to clipboard!");
+            }}>
+              <GitBranch className="mr-2.5 size-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">Copy Git Branch</span>
             </DropdownMenuItem>
             {/* <DropdownMenuItem className="rounded-sm px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => setSelectedTask(task)}>
               <Pencil className="mr-2.5 size-4 text-muted-foreground" />
