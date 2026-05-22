@@ -4,6 +4,8 @@ import TaskTag from '../../models/TaskTag.js';
 import TaskVisibilityUser from '../../models/TaskVisibilityUser.js';
 import TaskStatusHistory from '../../models/TaskStatusHistory.js';
 import Tag from '../../models/Tag.js';
+import TaskPage from '../../models/TaskPage.js';
+import Page from '../../models/Page.js';
 
 import Project from '../../models/Project.js';
 import Status from '../../models/Status.js';
@@ -1201,9 +1203,10 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
   if (tasks.length === 0) return { tasks, totalCount };
 
   const taskIds = tasks.map(t => t._id);
-  const [assigneeRows, tagRows] = await Promise.all([
+  const [assigneeRows, tagRows, pageRows] = await Promise.all([
     TaskAssignee.find({ taskId: { $in: taskIds } }).populate('userId', 'firstName lastName email avatarUrl').lean(),
-    TaskTag.find({ taskId: { $in: taskIds } }).populate('tagId').lean()
+    TaskTag.find({ taskId: { $in: taskIds } }).populate('tagId').lean(),
+    TaskPage.find({ taskId: { $in: taskIds } }).lean()
   ]);
 
   const assigneesByTaskId = new Map();
@@ -1221,12 +1224,19 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
     tagsByTaskId.set(String(row.taskId), existing);
   });
 
+  const pagesCountByTaskId = new Map();
+  pageRows.forEach(row => {
+    const count = pagesCountByTaskId.get(String(row.taskId)) || 0;
+    pagesCountByTaskId.set(String(row.taskId), count + 1);
+  });
+
   return {
     tasks: tasks.map(t => ({
       ...enrichTaskWithAssignees(t, assigneesByTaskId.get(String(t._id))),
       creator: normalizeUser(t.creatorId),
       tags: tagsByTaskId.get(String(t._id)) || [],
-      visibility: t.visibility || 'PUBLIC'
+      visibility: t.visibility || 'PUBLIC',
+      linkedPagesCount: pagesCountByTaskId.get(String(t._id)) || 0
     })),
     totalCount
   };
@@ -1658,6 +1668,7 @@ export const getGlobalStatusHistory = async (organizationId: any, filters: any, 
     TaskStatusHistory.countDocuments(query)
   ]);
 
+
   const tasks = history.map(item => ({
     id: String(item._id),
     taskId: String(item.taskId?._id || item.taskId),
@@ -1682,5 +1693,133 @@ export const getGlobalStatusHistory = async (organizationId: any, filters: any, 
   return { tasks, totalCount };
 };
 
+/**
+ * Task ↔ Pages Integration
+ */
 
+export const attachPage = async (taskId: string, pageId: string, userId: string, organizationId: string) => {
+  const task = await getTaskById(taskId, userId, 'MEMBER');
+  if (!task) throw new AppError('Task not found', 404);
 
+  const page = await Page.findOne({ _id: toObjectId(pageId), organizationId: toObjectId(organizationId), isActive: true });
+  if (!page) throw new AppError('Page not found', 404);
+
+  const existing = await TaskPage.findOne({ taskId: toObjectId(taskId), pageId: page._id });
+  if (existing) return existing;
+
+  const taskPage = await TaskPage.create({
+    taskId: toObjectId(taskId),
+    pageId: page._id,
+    linkedBy: toObjectId(userId)
+  });
+
+  await activityLog.logActivity({
+    action: 'PAGE_ATTACHED',
+    resourceType: 'TASK',
+    resourceId: taskId,
+    userId: userId,
+    organizationId,
+    projectId: task.projectId ? String(task.projectId) : undefined,
+    metadata: {
+      pageId: String(page._id),
+      pageTitle: page.title,
+      taskTitle: task.title
+    }
+  });
+
+  return taskPage;
+};
+
+export const detachPage = async (taskId: string, pageId: string, userId: string, organizationId: string) => {
+  const task = await getTaskById(taskId, userId, 'MEMBER');
+  if (!task) throw new AppError('Task not found', 404);
+
+  const result = await TaskPage.findOneAndDelete({ taskId: toObjectId(taskId), pageId: toObjectId(pageId) });
+  if (!result) return;
+
+  const page = await Page.findById(pageId).select('title').lean();
+
+  await activityLog.logActivity({
+    action: 'PAGE_DETACHED',
+    resourceType: 'TASK',
+    resourceId: taskId,
+    userId: userId,
+    organizationId,
+    projectId: task.projectId ? String(task.projectId) : undefined,
+    metadata: {
+      pageId,
+      pageTitle: page?.title || 'Unknown Page',
+      taskTitle: task.title
+    }
+  });
+};
+
+export const getLinkedPages = async (taskId: string, userId: string, organizationId: string) => {
+  const task = await getTaskById(taskId, userId, 'MEMBER');
+  if (!task) throw new AppError('Task not found', 404);
+
+  const links = await TaskPage.find({ taskId: toObjectId(taskId) })
+    .populate({
+      path: 'pageId',
+      select: 'title visibility updatedAt creatorId isActive',
+      populate: { path: 'creatorId', select: 'firstName lastName email avatarUrl' }
+    })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return links
+    .filter((link: any) => link.pageId != null && link.pageId.isActive)
+    .map((link: any) => ({
+      id: String(link.pageId._id),
+      title: link.pageId.title,
+      visibility: link.pageId.visibility,
+      updatedAt: link.pageId.updatedAt,
+      owner: normalizeUser(link.pageId.creatorId),
+      linkedAt: link.createdAt,
+      linkedBy: link.linkedBy
+    }));
+};
+
+export const createAndAttachPage = async (taskId: string, pageData: any, userId: string, organizationId: string) => {
+  const task = await getTaskById(taskId, userId, 'MEMBER');
+  if (!task) throw new AppError('Task not found', 404);
+
+  const page = await Page.create({
+    title: pageData.title || `${task.taskCode || ''} ${task.title}`.trim(),
+    content: pageData.content || '<p></p>',
+    visibility: pageData.visibility || 'WORKSPACE',
+    organizationId: toObjectId(organizationId),
+    creatorId: toObjectId(userId),
+    isActive: true,
+  });
+
+  const taskPage = await TaskPage.create({
+    taskId: toObjectId(taskId),
+    pageId: page._id,
+    linkedBy: toObjectId(userId)
+  });
+
+  await activityLog.logActivity({
+    action: 'PAGE_ATTACHED',
+    resourceType: 'TASK',
+    resourceId: taskId,
+    userId: userId,
+    organizationId,
+    projectId: task.projectId ? String(task.projectId) : undefined,
+    metadata: {
+      pageId: String(page._id),
+      pageTitle: page.title,
+      taskTitle: task.title,
+      createdFromTask: true
+    }
+  });
+
+  return {
+    id: String(page._id),
+    title: page.title,
+    visibility: page.visibility,
+    updatedAt: page.updatedAt,
+    owner: { id: userId, name: 'You' }, // Minimal placeholder
+    linkedAt: taskPage.createdAt
+  };
+};

@@ -14,6 +14,7 @@ import {TaskDescription} from "./task-description";
 import {TaskComments} from "./task-comments";
 import {TaskGithubActivity} from "./task-github-activity";
 import {GithubLinkingGuidance} from "./github-linking-guidance";
+import {TaskLinkedPages} from "./task-linked-pages";
 import {TaskStatusHistory} from "../task-status-history";
 import {History} from "lucide-react";
 
@@ -126,6 +127,9 @@ export function TaskSidePanel() {
                   isProjectConnected={!!(task.projectId as any)?.githubSettings?.repoUrl || !!(task as any).project?.githubSettings?.repoUrl} 
                 />
                 <TaskDescription task={task} />
+
+                {/* Task-Pages Integration */}
+                <TaskLinkedPages taskId={task.id || (task as any)._id} />
 
                 <TaskGithubActivity links={task.githubLinks || []} />
                 

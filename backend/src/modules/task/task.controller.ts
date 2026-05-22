@@ -269,3 +269,54 @@ export const getGlobalStatusHistory = asyncHandler(async (req, res) => {
 
   return successResponse(res, paginate(tasks, totalCount, page, limit), 'Global task status history retrieved.');
 });
+
+/**
+ * Controller: Attach Page to Task
+ */
+export const attachPage = asyncHandler(async (req, res) => {
+  const taskPage = await taskService.attachPage(
+    req.params.id as string,
+    req.params.pageId as string,
+    req.user.id,
+    req.organizationId as string
+  );
+  return successResponse(res, taskPage, 'Page attached successfully.', 201);
+});
+
+/**
+ * Controller: Detach Page from Task
+ */
+export const detachPage = asyncHandler(async (req, res) => {
+  await taskService.detachPage(
+    req.params.id as string,
+    req.params.pageId as string,
+    req.user.id,
+    req.organizationId as string
+  );
+  return successResponse(res, null, 'Page detached successfully.');
+});
+
+/**
+ * Controller: Get Linked Pages for Task
+ */
+export const getLinkedPages = asyncHandler(async (req, res) => {
+  const pages = await taskService.getLinkedPages(
+    req.params.id as string,
+    req.user.id,
+    req.organizationId as string
+  );
+  return successResponse(res, pages, 'Linked pages retrieved successfully.');
+});
+
+/**
+ * Controller: Create and Attach Page
+ */
+export const createAndAttachPage = asyncHandler(async (req, res) => {
+  const result = await taskService.createAndAttachPage(
+    req.params.id as string,
+    req.body, // Page creation data
+    req.user.id,
+    req.organizationId as string
+  );
+  return successResponse(res, result, 'Page created and attached successfully.', 201);
+});

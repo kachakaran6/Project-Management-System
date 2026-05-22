@@ -1413,8 +1413,8 @@ function FilterDrawer({
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Due Date</label>
             <div className="w-full flex justify-start pl-1">
               <DatePicker
-                value={dueDate ? new Date(dueDate) : undefined}
-                onChange={(date) => setDueDate(typeof date === "string" ? new Date(date).toISOString() : "")}
+                value={dueDate ? new Date(dueDate.includes("T") ? dueDate : `${dueDate}T12:00:00`) : undefined}
+                onChange={(date) => setDueDate(typeof date === "string" ? date : "")}
                 placeholder="Select date"
                 className="p-1 border border-border/20 rounded-button bg-muted/5 origin-left"
                 inline
@@ -1615,8 +1615,8 @@ function FilterContent({
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Due Date</label>
           <div className="w-full flex justify-start pl-1">
             <DatePicker
-              value={dueDate ? new Date(dueDate) : undefined}
-              onChange={(date) => setDueDate(typeof date === "string" ? new Date(date).toISOString() : "")}
+              value={dueDate ? new Date(dueDate.includes("T") ? dueDate : `${dueDate}T12:00:00`) : undefined}
+              onChange={(date) => setDueDate(typeof date === "string" ? date : "")}
               placeholder="Select date"
               className="p-1 border border-border/20 rounded-card bg-muted/5 origin-left"
               inline

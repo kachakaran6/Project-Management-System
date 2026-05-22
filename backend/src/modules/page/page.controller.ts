@@ -226,3 +226,17 @@ export const exportPdf = asyncHandler(async (req, res) => {
 
   res.status(200).send(pdf);
 });
+
+export const getLinkedTasks = asyncHandler(async (req, res) => {
+  const organizationId = pageService.resolveOrganizationId(req);
+  const id = readParam(req.params.id);
+
+  const tasks = await pageService.getLinkedTasks(
+    id,
+    req.user.id,
+    req.user.role,
+    organizationId,
+  );
+
+  return successResponse(res, tasks, 'Linked tasks retrieved successfully.');
+});

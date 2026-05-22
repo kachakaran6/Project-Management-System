@@ -80,6 +80,7 @@ import {
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { PageVisibilityBadge } from "@/features/pages/components/page-visibility-badge";
 import { PublishPageDialog } from "@/features/pages/components/publish-page-dialog";
+import { PageLinkedTasks } from "@/features/pages/components/page-linked-tasks";
 import {
   useCreatePageMutation,
   useDeletePageMutation,
@@ -956,6 +957,8 @@ export default function PageEditorPage() {
               )}
             </div>
           </section>
+
+          <PageLinkedTasks pageId={page.id} canEdit={canEdit} />
 
           <section className="rounded-card border border-border/60 bg-card p-3">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

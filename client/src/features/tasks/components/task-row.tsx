@@ -32,7 +32,7 @@ import {Dispatch, SetStateAction} from "react";
 import {useTaskPanelStore} from "../store/task-panel-store";
 import { formatGitBranchCommand } from "@/features/tasks/utils/git-branch-formatter";
 import {usePathname, useRouter, useSearchParams} from "@/lib/next-navigation";
-import { ChevronRight, Clock, User, Calendar, Tag, Folder, Hash } from "lucide-react";
+import { ChevronRight, Clock, User, Calendar, Tag, Folder, Hash, FileText } from "lucide-react";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
@@ -155,9 +155,17 @@ export const TaskRow = ({
               )}
             </div>
           </button>
-          <span className="text-[10px] font-mono text-indigo-500/70">
-            {task.taskCode || (task as any).legacyId || `T-${tid(task).slice(-4).toUpperCase()}`}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono text-indigo-500/70">
+              {task.taskCode || (task as any).legacyId || `T-${tid(task).slice(-4).toUpperCase()}`}
+            </span>
+            {task.linkedPagesCount !== undefined && task.linkedPagesCount > 0 && (
+              <span className="flex items-center gap-1 text-[10px] font-medium text-primary bg-primary/5 px-1.5 rounded-xs border border-primary/10">
+                <FileText className="size-2.5" />
+                {task.linkedPagesCount}
+              </span>
+            )}
+          </div>
         </div>
       </TableCell>
       <TableCell>
