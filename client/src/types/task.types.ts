@@ -79,6 +79,7 @@ export interface Task {
     repoUrl?: string;
     isEnabled?: boolean;
   };
+  linkedPagesCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -178,5 +179,43 @@ export interface TaskStatusHistory {
     color: string;
   };
   changedAt: string;
+}
+
+export interface TaskPageLink {
+  id: string;
+  title: string;
+  visibility: string;
+  updatedAt: string;
+  owner: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    email?: string;
+    avatarUrl?: string;
+  };
+  linkedAt: string;
+  linkedBy: string;
+}
+
+export interface PageTaskLink {
+  id: string;
+  title: string;
+  taskCode?: string;
+  status: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
+  priority: TaskPriority;
+  dueDate?: string;
+  owner: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    avatarUrl?: string;
+  } | null;
+  linkedAt: string;
+  linkedBy: string;
 }
 

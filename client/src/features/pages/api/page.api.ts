@@ -237,4 +237,9 @@ export const pageApi = {
     });
     return response.data;
   },
+
+  async getLinkedTasks(id: string): Promise<ApiResponse<any[]>> {
+    const response = await api.get(`/pages/${id}/tasks`);
+    return response.data;
+  },
 };

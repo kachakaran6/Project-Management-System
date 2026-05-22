@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-  --radius-xs: var(--radius-xs);
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-  --radius-xl: var(--radius-xl);
-  --radius-card: var(--radius-card);
-  --radius-button: var(--radius-button);
-  --radius-input: var(--radius-input);
-  --radius-modal: var(--radius-modal);
-  --radius-dropdown: var(--radius-dropdown);
-  --radius-badge: var(--radius-badge);
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-card: 12px;
+  --radius-button: 10px;
+  --radius-input: 10px;
+  --radius-modal: 14px;
+  --radius-dropdown: 10px;
+  --radius-badge: 6px;
 }
 
 html,
@@ -27,11 +27,7 @@ body {
   --font-jakarta: "Plus Jakarta Sans", "Segoe UI", sans-serif;
   --font-sora: "Sora", "Segoe UI", sans-serif;
 
-  --radius-xs: 2px;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
+
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;

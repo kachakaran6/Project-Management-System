@@ -112,6 +112,27 @@ export const taskApi = {
     const response = await api.get<ApiResponse<PaginatedResult<TaskStatusHistory>>>(`/tasks/status-history/all`, { params });
     return response.data;
   },
+
+  // Task ↔ Pages Integration
+  getLinkedPages: async (taskId: string): Promise<ApiResponse<any[]>> => {
+    const response = await api.get(`/tasks/${taskId}/pages`);
+    return response.data;
+  },
+
+  attachPage: async (taskId: string, pageId: string): Promise<ApiResponse<any>> => {
+    const response = await api.post(`/tasks/${taskId}/pages/${pageId}`);
+    return response.data;
+  },
+
+  detachPage: async (taskId: string, pageId: string): Promise<ApiResponse<null>> => {
+    const response = await api.delete(`/tasks/${taskId}/pages/${pageId}`);
+    return response.data;
+  },
+
+  createAndAttachPage: async (taskId: string, data: any): Promise<ApiResponse<any>> => {
+    const response = await api.post(`/tasks/${taskId}/pages/create`, data);
+    return response.data;
+  },
 };
 
 

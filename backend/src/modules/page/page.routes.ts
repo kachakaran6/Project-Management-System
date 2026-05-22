@@ -10,6 +10,7 @@ router.get('/', pageController.getAll);
 router.post('/', pageController.create);
 router.get('/:id/export.pdf', pageController.exportPdf);
 router.get('/:id', pageController.getById);
+router.get('/:id/tasks', pageController.getLinkedTasks);
 router.patch('/:id', pageController.update);
 router.delete('/:id', pageController.remove);
 

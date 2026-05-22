@@ -118,3 +118,28 @@ router.get(
   taskController.getGlobalStatusHistory,
 );
 
+// Task ↔ Page Integration
+router.get(
+  "/:id/pages",
+  requirePermission(PERMISSIONS.VIEW_TASK),
+  taskController.getLinkedPages,
+);
+
+router.post(
+  "/:id/pages/create",
+  requirePermission(PERMISSIONS.EDIT_TASK), // plus CREATE_PAGE internally
+  taskController.createAndAttachPage,
+);
+
+router.post(
+  "/:id/pages/:pageId",
+  requirePermission(PERMISSIONS.EDIT_TASK),
+  taskController.attachPage,
+);
+
+router.delete(
+  "/:id/pages/:pageId",
+  requirePermission(PERMISSIONS.EDIT_TASK),
+  taskController.detachPage,
+);
+

@@ -5,6 +5,7 @@ import Page from '../../models/Page.js';
 import User from '../../models/User.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import { createActivityLog } from '../../services/activityLogService.js';
+import TaskPage from '../../models/TaskPage.js';
 
 export type PageVisibility = 'PRIVATE' | 'WORKSPACE' | 'PUBLIC';
 
@@ -594,3 +595,48 @@ export const renderPagePdf = async (input: {
 
     doc.end();
   });
+
+export const getLinkedTasks = async (
+  pageId: string,
+  currentUserId: string,
+  role?: string | null,
+  organizationId?: string | null,
+) => {
+  // Verify access to the page first
+  await getPageById(pageId, currentUserId, role, organizationId);
+
+  const links = await TaskPage.find({ pageId: safeObjectId(pageId) })
+    .populate({
+      path: 'taskId',
+      select: 'title taskCode status priority dueDate creatorId',
+      populate: [
+        { path: 'status', select: 'name color' },
+        { path: 'creatorId', select: 'firstName lastName email avatarUrl' }
+      ]
+    })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return links
+    .filter((link: any) => link.taskId != null)
+    .map((link: any) => ({
+      id: String(link.taskId._id),
+      title: link.taskId.title,
+      taskCode: link.taskId.taskCode,
+      status: link.taskId.status ? {
+        id: String(link.taskId.status._id),
+        name: link.taskId.status.name,
+        color: link.taskId.status.color
+      } : null,
+      priority: link.taskId.priority,
+      dueDate: link.taskId.dueDate,
+      owner: link.taskId.creatorId ? {
+        id: String(link.taskId.creatorId._id),
+        firstName: link.taskId.creatorId.firstName,
+        lastName: link.taskId.creatorId.lastName,
+        avatarUrl: link.taskId.creatorId.avatarUrl
+      } : null,
+      linkedAt: link.createdAt,
+      linkedBy: link.linkedBy
+    }));
+};
