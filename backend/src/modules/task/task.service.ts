@@ -997,7 +997,15 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
   if (filter.priority) query.priority = filter.priority;
   if (filter.visibility) query.visibility = filter.visibility;
   if (filter.creatorId) query.creatorId = toObjectId(filter.creatorId);
-  if (filter.dueDate) query.dueDate = { $lte: new Date(filter.dueDate) };
+  if (filter.dueDate) {
+    const targetDate = new Date(filter.dueDate);
+    // If the frontend sends a specific date, we want to match tasks due ON that day.
+    // Or if the requirement is 'due by this date', we should at least include the whole day.
+    // Let's match the entire day to be safe and intuitive for an exact date filter.
+    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+    query.dueDate = { $gte: startOfDay, $lte: endOfDay };
+  }
   if (filter.search) {
     const term = String(filter.search).trim();
     const regex = new RegExp(term, 'i');

@@ -353,10 +353,10 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
       creatorId: creatorId === "ALL" || !creatorId ? undefined : creatorId,
       dueDate: dueDate || undefined,
       tagIds: tagIds.length > 0 ? tagIds : undefined,
-      sortBy: selectedSortField,
-      sortOrder: selectedSortDirection,
+      sortBy: viewMode === "kanban" ? "position" : selectedSortField,
+      sortOrder: viewMode === "kanban" ? "asc" : selectedSortDirection,
     }),
-    [debouncedSearch, status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, selectedSortField, selectedSortDirection],
+    [debouncedSearch, status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, selectedSortField, selectedSortDirection, viewMode],
   );
 
   const listFilters = useMemo(
@@ -647,67 +647,69 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
             )}
 
             <div className="flex items-center gap-2 shrink-0">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "h-10 max-w-48 rounded-button px-3.5 gap-2 border-border/40 bg-muted/10 text-[11px] font-bold transition-all hover:bg-muted/20 hover:border-border/60 active:scale-95",
-                        !isDefaultSort && "border-primary/40 bg-primary/5 text-primary",
-                      )}
-                    >
-                      <span className="truncate">Sort by: {selectedSortLabel}</span>
-                      <ChevronDown className="size-3.5 shrink-0 opacity-60" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56 rounded-button border-border/40 p-1.5 shadow-2xl bg-card/95 backdrop-blur-xl">
-                    {TASK_SORT_OPTIONS.map((option) => {
-                      const isSelected = option.value === selectedSortField;
-                      return (
-                        <DropdownMenuItem
-                          key={option.value}
-                          onClick={() => handleSortFieldChange(option.value)}
-                          className={cn(
-                            "rounded-button py-2.5 text-sm font-medium cursor-pointer",
-                            isSelected && "bg-primary/10 text-primary",
-                          )}
-                        >
-                          <div className="flex w-full items-center justify-between gap-3">
-                            <span>{option.label}</span>
-                            {isSelected && <span className="text-[10px] font-black uppercase tracking-[0.2em]">Active</span>}
-                          </div>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={resetSort}
-                      className="rounded-button py-2.5 text-sm font-medium cursor-pointer"
-                      disabled={isDefaultSort}
-                    >
-                      Reset to Default
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              {viewMode === "list" && (
+                <>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "h-10 max-w-48 rounded-button px-3.5 gap-2 border-border/40 bg-muted/10 text-[11px] font-bold transition-all hover:bg-muted/20 hover:border-border/60 active:scale-95",
+                          !isDefaultSort && "border-primary/40 bg-primary/5 text-primary",
+                        )}
+                      >
+                        <span className="truncate">Sort by: {selectedSortLabel}</span>
+                        <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56 rounded-button border-border/40 p-1.5 shadow-2xl bg-card/95 backdrop-blur-xl">
+                      {TASK_SORT_OPTIONS.map((option) => {
+                        const isSelected = option.value === selectedSortField;
+                        return (
+                          <DropdownMenuItem
+                            key={option.value}
+                            onClick={() => handleSortFieldChange(option.value)}
+                            className={cn(
+                              "rounded-button py-2.5 text-sm font-medium cursor-pointer",
+                              isSelected && "bg-primary/10 text-primary",
+                            )}
+                          >
+                            <div className="flex w-full items-center justify-between gap-3">
+                              <span>{option.label}</span>
+                              {isSelected && <span className="text-[10px] font-black uppercase tracking-[0.2em]">Active</span>}
+                            </div>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={resetSort}
+                        className="rounded-button py-2.5 text-sm font-medium cursor-pointer"
+                        disabled={isDefaultSort}
+                      >
+                        Reset to Default
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
 
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={toggleSortDirection}
-                  className={cn(
-                    "h-10 w-10 rounded-button border-border/40 bg-muted/10 text-xs font-black transition-all hover:bg-muted/20 hover:border-border/60 active:scale-95",
-                    !isDefaultSort && "border-primary/40 bg-primary/5 text-primary",
-                  )}
-                  aria-label={`Sort ${selectedSortDirection === "desc" ? "descending" : "ascending"}`}
-                  title={selectedSortDirection === "desc" ? "Descending" : "Ascending"}
-                >
-                   {isAnyFetching ? (
-                    <Loader2 className="size-3.5 animate-spin opacity-70" />
-                  ) : (
-                    selectedSortDirection === "desc" ? "↓" : "↑"
-                  )}
-                </Button>
-              </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={toggleSortDirection}
+                    className={cn(
+                      "h-10 w-10 rounded-button border-border/40 bg-muted/10 text-xs font-black transition-all hover:bg-muted/20 hover:border-border/60 active:scale-95",
+                      !isDefaultSort && "border-primary/40 bg-primary/5 text-primary",
+                    )}
+                  >
+                    {isAnyFetching ? (
+                      <Loader2 className="size-3.5 animate-spin opacity-70" />
+                    ) : (
+                      selectedSortDirection === "desc" ? "↓" : "↑"
+                    )}
+                  </Button>
+                </>
+              )}
+            </div>
 
             {isMobile && (
               <FilterDrawer
@@ -1412,7 +1414,7 @@ function FilterDrawer({
             <div className="w-full flex justify-start pl-1">
               <DatePicker
                 value={dueDate ? new Date(dueDate) : undefined}
-                onChange={(date) => setDueDate(date ? date.toISOString() : "")}
+                onChange={(date) => setDueDate(typeof date === "string" ? new Date(date).toISOString() : "")}
                 placeholder="Select date"
                 className="p-1 border border-border/20 rounded-button bg-muted/5 origin-left"
                 inline
@@ -1614,7 +1616,7 @@ function FilterContent({
           <div className="w-full flex justify-start pl-1">
             <DatePicker
               value={dueDate ? new Date(dueDate) : undefined}
-              onChange={(date) => setDueDate(date ? date.toISOString() : "")}
+              onChange={(date) => setDueDate(typeof date === "string" ? new Date(date).toISOString() : "")}
               placeholder="Select date"
               className="p-1 border border-border/20 rounded-card bg-muted/5 origin-left"
               inline
