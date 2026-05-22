@@ -8,7 +8,8 @@ export type TaskSortField =
   | "priority"
   | "title"
   | "status"
-  | "assignee";
+  | "assignee"
+  | "position";
 export type TaskSortDirection = "asc" | "desc";
 
 export interface Status {

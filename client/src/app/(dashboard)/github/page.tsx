@@ -356,6 +356,12 @@ export default function GithubPage() {
   const [linkingRepoId, setLinkingRepoId] = useState<string | null>(null);
   const [unlinkingRepoId, setUnlinkingRepoId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (searchParams.get("connected") === "success") {
@@ -453,6 +459,9 @@ export default function GithubPage() {
     (r.owner?.login || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const totalPages = Math.ceil(filteredRepos.length / itemsPerPage);
+  const paginatedRepos = filteredRepos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div className="flex flex-col min-h-screen lg:h-[calc(100vh-theme(spacing.16))] bg-background">
       <GithubOnboardingModal />
@@ -510,7 +519,7 @@ export default function GithubPage() {
                   <p className="text-xs font-bold text-muted-foreground">No repositories found.</p>
                 </div>
               )}
-              {repos.map((repo) => {
+              {paginatedRepos.map((repo) => {
                 const linkedRepo = connectedRepos.find(cr => cr.fullName === repo.full_name || cr.repoId === repo.id.toString());
                 let status = "unlinked";
                 if (linkedRepo) status = linkedRepo.isLegacy ? "legacy" : "connected";
@@ -529,6 +538,34 @@ export default function GithubPage() {
                 );
               })}
             </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between py-2 border-t border-border/10 mt-2">
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredRepos.length)} of {filteredRepos.length}
+                </span>
+                <div className="flex gap-1.5">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                    disabled={currentPage === 1}
+                    className="h-7 px-2.5 text-[10px] rounded-button font-bold"
+                  >
+                    Prev
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                    disabled={currentPage === totalPages}
+                    className="h-7 px-2.5 text-[10px] rounded-button font-bold"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="activity" className="mt-4 space-y-3">
@@ -599,7 +636,7 @@ export default function GithubPage() {
               </div>
             ) : (
               <div className="divide-y divide-border/20">
-                {filteredRepos.map((repo) => {
+                {paginatedRepos.map((repo) => {
                   const linkedRepo = connectedRepos.find(cr => cr.fullName === repo.full_name || cr.repoId === repo.id.toString());
                   let status = "unlinked";
                   if (linkedRepo) status = linkedRepo.isLegacy ? "legacy" : "connected";
@@ -620,6 +657,34 @@ export default function GithubPage() {
               </div>
             )}
           </div>
+
+          {!loading && totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border/20 shrink-0 bg-muted/5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredRepos.length)} of {filteredRepos.length} Repos
+              </span>
+              <div className="flex gap-1.5">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                  disabled={currentPage === 1}
+                  className="h-7 px-3 text-[10px] rounded-button font-bold"
+                >
+                  Previous
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                  disabled={currentPage === totalPages}
+                  className="h-7 px-3 text-[10px] rounded-button font-bold"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* RIGHT: ACTIVITY PANEL */}
