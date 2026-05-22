@@ -179,7 +179,7 @@ export default function SystemLogsPage() {
             <RefreshCw className={cn("mr-2 h-4 w-4", isRefetching && "animate-spin")} />
             {isRefetching ? "Syncing..." : "Refresh"}
           </Button>
-          <div className="bg-muted inline-flex rounded-lg p-1">
+          <div className="bg-muted inline-flex rounded-card p-1">
             <Button
               variant={viewMode === "table" ? "secondary" : "ghost"}
               size="sm"
@@ -388,7 +388,7 @@ export default function SystemLogsPage() {
                     Array.from({ length: 10 }).map((_, i) => (
                       <TableRow key={i} className="border-border/50">
                         {Array.from({ length: 6 }).map((_, j) => (
-                          <TableCell key={j}><div className="h-5 w-full animate-pulse bg-muted/40 rounded-md" /></TableCell>
+                          <TableCell key={j}><div className="h-5 w-full animate-pulse bg-muted/40 rounded-button" /></TableCell>
                         ))}
                       </TableRow>
                     ))
@@ -531,7 +531,7 @@ export default function SystemLogsPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={cn(
-                  "h-10 w-10 rounded-xl flex items-center justify-center shadow-lg",
+                  "h-10 w-10 rounded-card flex items-center justify-center shadow-lg",
                   selectedLog?.status === "SUCCESS" ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive"
                 )}>
                   {selectedLog?.status === "SUCCESS" ? <CheckCircle2 size={22} /> : <XCircle size={22} />}
@@ -553,7 +553,7 @@ export default function SystemLogsPage() {
 
           {selectedLog && (
             <div className="space-y-8 overflow-y-auto max-h-[calc(100vh-180px)] pr-2 scrollbar-premium">
-              <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl">
+              <div className="bg-primary/5 border border-primary/20 p-4 rounded-card">
                  <p className="text-sm font-medium leading-relaxed italic text-primary/90">
                   &quot;{selectedLog.message}&quot;
                 </p>
@@ -563,7 +563,7 @@ export default function SystemLogsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Actor context</span>
-                    <div className="flex items-center gap-3 bg-muted/30 p-2 rounded-lg ring-1 ring-border/50">
+                    <div className="flex items-center gap-3 bg-muted/30 p-2 rounded-card ring-1 ring-border/50">
                        <Avatar className="h-8 w-8 ring-1 ring-background">
                         <AvatarImage src={selectedLog.actor?.avatarUrl} />
                         <AvatarFallback>{selectedLog.actor?.firstName?.[0] || 'S'}</AvatarFallback>
@@ -576,7 +576,7 @@ export default function SystemLogsPage() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Network Origin</span>
-                    <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-lg ring-1 ring-border/50">
+                    <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-card ring-1 ring-border/50">
                       <Globe size={14} className="text-muted-foreground" />
                       <span className="text-xs font-mono">{selectedLog.ip || "127.0.0.1"}</span>
                     </div>
@@ -608,7 +608,7 @@ export default function SystemLogsPage() {
               {selectedLog.endpoint && (
                 <section>
                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Endpoint Trail</h4>
-                  <div className="bg-[#0b0e14] border border-white/5 p-3 rounded-lg flex items-center gap-3 font-mono text-xs">
+                  <div className="bg-[#0b0e14] border border-white/5 p-3 rounded-card flex items-center gap-3 font-mono text-xs">
                     <span className="text-primary font-bold">{selectedLog.method}</span>
                     <span className="text-emerald-400 opacity-80">{selectedLog.endpoint}</span>
                   </div>
@@ -631,7 +631,7 @@ export default function SystemLogsPage() {
                       <FileCode size={14} />
                       <span className="text-[10px] font-bold uppercase tracking-widest">Stack Trace</span>
                     </div>
-                    <div className="bg-destructive/5 border border-destructive/20 p-4 rounded-xl overflow-x-auto">
+                    <div className="bg-destructive/5 border border-destructive/20 p-4 rounded-card overflow-x-auto">
                       <pre className="text-[10px] font-mono text-destructive tracking-tight leading-relaxed">
                         {selectedLog.stack}
                       </pre>
@@ -639,7 +639,7 @@ export default function SystemLogsPage() {
                   </div>
                 )}
 
-                <div className="bg-[#0D1117] p-4 rounded-xl border border-white/5 shadow-inner overflow-hidden">
+                <div className="bg-[#0D1117] p-4 rounded-card border border-white/5 shadow-inner overflow-hidden">
                    <pre className="text-[11px] font-mono text-blue-300 leading-normal overflow-x-auto scrollbar-hide">
                     {JSON.stringify(selectedLog.metadata, null, 2)}
                   </pre>
@@ -689,7 +689,7 @@ function ActionBadge({ action }: { action: string }) {
 
 function MetricItem({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: string, color?: string }) {
   return (
-    <div className="bg-muted/20 p-3 rounded-xl ring-1 ring-border/50 flex flex-col gap-1 hover:bg-muted/30 transition-colors text-center">
+    <div className="bg-muted/20 p-3 rounded-card ring-1 ring-border/50 flex flex-col gap-1 hover:bg-muted/30 transition-colors text-center">
       <div className="flex items-center justify-center gap-1.5 text-muted-foreground">
         {icon}
         <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
@@ -722,7 +722,7 @@ function TimelineView({ logs, onSelect }: { logs: AuditLogEntry[], onSelect: (l:
               </div>
             </div>
             <div 
-              className="bg-surface/30 backdrop-blur-sm border border-white/5 p-5 rounded-2xl hover:bg-surface/60 transition-all cursor-pointer shadow-sm group-hover:shadow-xl group-hover:ring-1 group-hover:ring-primary/20"
+              className="bg-surface/30 backdrop-blur-sm border border-white/5 p-5 rounded-card hover:bg-surface/60 transition-all cursor-pointer shadow-sm group-hover:shadow-xl group-hover:ring-1 group-hover:ring-primary/20"
               onClick={() => onSelect(log)}
             >
               <div className="flex items-start justify-between gap-6">

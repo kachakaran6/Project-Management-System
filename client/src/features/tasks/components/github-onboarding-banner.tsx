@@ -24,14 +24,14 @@ export function GithubOnboardingBanner() {
 
   return (
     <div className="mx-4 md:mx-6 mt-4 animate-in slide-in-from-top-4 duration-500">
-      <div className="relative overflow-hidden rounded-md border border-primary/20 bg-primary/5 px-6 py-5 shadow-2xl shadow-primary/5">
+      <div className="relative overflow-hidden rounded-button border border-primary/20 bg-primary/5 px-6 py-5 shadow-2xl shadow-primary/5">
         {/* Background Sparkles */}
         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
           <Sparkles className="size-24 text-primary" />
         </div>
 
         <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
-          <div className="shrink-0 size-14 rounded-sm bg-background border border-border/40 shadow-xl flex items-center justify-center text-primary transform -rotate-3">
+          <div className="shrink-0 size-14 rounded-button bg-background border border-border/40 shadow-xl flex items-center justify-center text-primary transform -rotate-3">
             <Github className="size-8" />
           </div>
 
@@ -47,7 +47,7 @@ export function GithubOnboardingBanner() {
 
           <div className="flex items-center gap-3">
              <Button 
-              className="rounded-sm font-black uppercase tracking-widest text-[11px] h-10 px-6 shadow-lg shadow-primary/20"
+              className="rounded-button font-black uppercase tracking-widest text-[11px] h-10 px-6 shadow-lg shadow-primary/20"
               onClick={handleDismiss}
             >
               Got it!

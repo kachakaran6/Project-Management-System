@@ -39,12 +39,12 @@ export function CookieBlockWarning() {
   return (
     <>
       <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-[200] animate-in slide-in-from-right-full duration-700">
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-surface/80 p-5 shadow-2xl backdrop-blur-xl">
+        <div className="relative overflow-hidden rounded-card border border-white/10 bg-surface/80 p-5 shadow-2xl backdrop-blur-xl">
           {/* Decorative Gradient */}
           <div className="absolute -right-4 -top-4 size-24 bg-destructive/10 blur-3xl" />
           
           <div className="flex gap-4">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-card bg-destructive/10 text-destructive">
               <ShieldAlert className="size-6" />
             </div>
             
@@ -97,7 +97,7 @@ export function CookieBlockWarning() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="rounded-xl border border-white/5 bg-white/5 p-4 space-y-3">
+            <div className="rounded-card border border-white/5 bg-white/5 p-4 space-y-3">
               <h4 className="font-semibold flex items-center gap-2">
                 <CheckCircle2 className="size-4 text-emerald-500" />
                 Chrome / Edge / Brave
@@ -107,7 +107,7 @@ export function CookieBlockWarning() {
               </p>
             </div>
 
-            <div className="rounded-xl border border-white/5 bg-white/5 p-4 space-y-3">
+            <div className="rounded-card border border-white/5 bg-white/5 p-4 space-y-3">
               <h4 className="font-semibold flex items-center gap-2">
                 <CheckCircle2 className="size-4 text-emerald-500" />
                 Safari (iPhone/Mac)
@@ -117,7 +117,7 @@ export function CookieBlockWarning() {
               </p>
             </div>
 
-            <div className="rounded-xl border border-white/5 bg-white/5 p-4 space-y-3">
+            <div className="rounded-card border border-white/5 bg-white/5 p-4 space-y-3">
               <h4 className="font-semibold flex items-center gap-2">
                 <CheckCircle2 className="size-4 text-emerald-500" />
                 Firefox

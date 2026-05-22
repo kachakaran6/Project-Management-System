@@ -168,7 +168,7 @@ function SectionCard({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm transition-all", className)}>
+    <div className={cn("rounded-card border border-border/50 bg-card/50 backdrop-blur-sm transition-all", className)}>
       <div className="border-b border-border/50 px-4 py-3">
         <h3 className="text-[15px] font-semibold tracking-tight">{title}</h3>
         {description && (
@@ -190,7 +190,7 @@ function DangerCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-destructive/20 bg-destructive/5 transition-all">
+    <div className="rounded-card border border-destructive/20 bg-destructive/5 transition-all">
       <div className="border-b border-destructive/10 px-4 py-3">
         <h3 className="text-[15px] font-semibold text-destructive tracking-tight">
           {title}
@@ -504,11 +504,11 @@ function AppearanceSection() {
                 key={m.id}
                 onClick={() => changeMode(m.id)}
                 className={cn(
-                  "flex flex-col items-center gap-2 rounded-xl border p-3 transition-all",
+                  "flex flex-col items-center gap-2 rounded-card border p-3 transition-all",
                   active ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-sm" : "border-border hover:bg-muted/50"
                 )}
               >
-                <div className={cn("p-2 rounded-lg bg-background border border-border/50 shadow-sm", active && "border-primary/20")}>
+                <div className={cn("p-2 rounded-card bg-background border border-border/50 shadow-sm", active && "border-primary/20")}>
                   <m.icon className={cn("size-4", active ? "text-primary" : m.color)} />
                 </div>
                 <span className={cn("text-xs font-semibold", active ? "text-primary" : "text-muted-foreground")}>
@@ -552,7 +552,7 @@ function AppearanceSection() {
                 key={opt.id}
                 onClick={() => changeRadius(opt.id)}
                 className={cn(
-                  "flex flex-col items-center gap-2 rounded-xl border p-3 transition-all",
+                  "flex flex-col items-center gap-2 rounded-card border p-3 transition-all",
                   active ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-sm" : "border-border hover:bg-muted/50"
                 )}
               >
@@ -744,7 +744,7 @@ function NotificationsSection() {
                           <p className="text-[11px] font-bold uppercase tracking-widest text-primary/80">Task Notifications</p>
                           <div className="grid gap-2">
                              {isAdmin ? (
-                                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                <div className="flex items-center justify-between p-3 rounded-card bg-muted/20 border border-border/50">
                                    <div>
                                       <p className="text-[13px] font-bold">Receive ALL Task Updates</p>
                                       <p className="text-[10px] text-muted-foreground">Get notified for every creation, update, and deletion in the org.</p>
@@ -757,7 +757,7 @@ function NotificationsSection() {
                                 </div>
                              ) : (
                                 <>
-                                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                   <div className="flex items-center justify-between p-3 rounded-card bg-muted/20 border border-border/50">
                                       <div>
                                          <p className="text-[13px] font-bold">Tasks Assigned to Me</p>
                                          <p className="text-[10px] text-muted-foreground">Receive alerts when you are set as an assignee.</p>
@@ -768,7 +768,7 @@ function NotificationsSection() {
                                          disabled={personalSaving}
                                       />
                                    </div>
-                                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                   <div className="flex items-center justify-between p-3 rounded-card bg-muted/20 border border-border/50">
                                       <div>
                                          <p className="text-[13px] font-bold">Tasks Created by Me</p>
                                          <p className="text-[10px] text-muted-foreground">Follow updates on tasks you initiated.</p>
@@ -789,7 +789,7 @@ function NotificationsSection() {
                           <p className="text-[11px] font-bold uppercase tracking-widest text-primary/80">Project Notifications</p>
                           <div className="grid gap-2">
                              {isAdmin ? (
-                                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                <div className="flex items-center justify-between p-3 rounded-card bg-muted/20 border border-border/50">
                                    <div>
                                       <p className="text-[13px] font-bold">Receive ALL Project Updates</p>
                                       <p className="text-[10px] text-muted-foreground">Monitor every new project and modification.</p>
@@ -801,7 +801,7 @@ function NotificationsSection() {
                                    />
                                 </div>
                              ) : (
-                                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                <div className="flex items-center justify-between p-3 rounded-card bg-muted/20 border border-border/50">
                                    <div>
                                       <p className="text-[13px] font-bold">Projects Created by Me</p>
                                       <p className="text-[10px] text-muted-foreground">Updates for projects where you are the owner.</p>
@@ -821,7 +821,7 @@ function NotificationsSection() {
                           <div className="grid gap-2">
                              {isAdmin ? (
                                 <>
-                                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                   <div className="flex items-center justify-between p-3 rounded-card bg-muted/20 border border-border/50">
                                       <div>
                                          <p className="text-[13px] font-bold">Track All User Activity</p>
                                          <p className="text-[10px] text-muted-foreground">Get alerts for page views and actions across the org.</p>
@@ -832,7 +832,7 @@ function NotificationsSection() {
                                          disabled={personalSaving}
                                       />
                                    </div>
-                                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                   <div className="flex items-center justify-between p-3 rounded-card bg-muted/20 border border-border/50">
                                       <div>
                                          <p className="text-[13px] font-bold">Track All Login Events</p>
                                          <p className="text-[10px] text-muted-foreground">Monitor every login attempt in the organization.</p>
@@ -846,7 +846,7 @@ function NotificationsSection() {
                                 </>
                              ) : (
                                 <>
-                                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                   <div className="flex items-center justify-between p-3 rounded-card bg-muted/20 border border-border/50">
                                       <div>
                                          <p className="text-[13px] font-bold">My Personal Activity</p>
                                          <p className="text-[10px] text-muted-foreground">Alerts for your own interactions and navigation.</p>
@@ -857,7 +857,7 @@ function NotificationsSection() {
                                          disabled={personalSaving}
                                       />
                                    </div>
-                                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                                   <div className="flex items-center justify-between p-3 rounded-card bg-muted/20 border border-border/50">
                                       <div>
                                          <p className="text-[13px] font-bold">My Login Events</p>
                                          <p className="text-[10px] text-muted-foreground">Security alerts for your account logins.</p>
@@ -880,7 +880,7 @@ function NotificationsSection() {
             <SectionCard title="Legacy Alerts (Personal)" description="Old-style direct alerts for your personal actions (deprecated).">
                <div className="space-y-3">
                  {personalEvents[0].items.map(item => (
-                   <div key={item.key} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/20 border border-border/40 opacity-70">
+                   <div key={item.key} className="flex items-center justify-between p-2.5 rounded-card bg-muted/20 border border-border/40 opacity-70">
                       <div>
                         <p className="text-[12px] font-bold">{item.label}</p>
                         <p className="text-[10px] text-muted-foreground">{item.desc}</p>
@@ -914,7 +914,7 @@ function NotificationsSection() {
           </div>
 
           {tgLoading ? (
-            <Skeleton className="h-48 w-full rounded-xl" />
+            <Skeleton className="h-48 w-full rounded-card" />
           ) : tgData ? (
             <div className="space-y-6">
               <SectionCard title="Telegram Broadcast Engine" description="Master controls for the organization-wide Telegram bot.">
@@ -933,7 +933,7 @@ function NotificationsSection() {
                         <p className="text-[10px] font-bold uppercase tracking-widest text-primary px-1">{group.section}</p>
                         <div className="grid gap-3 sm:grid-cols-2">
                           {group.items.map(item => (
-                            <div key={item.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-all group">
+                            <div key={item.key} className="flex items-center justify-between p-3 rounded-card bg-muted/20 border border-border/50 hover:bg-muted/30 transition-all group">
                               <div className="min-w-0 pr-2">
                                 <p className="text-[13px] font-bold truncate group-hover:text-primary transition-colors">{item.label}</p>
                                 <p className="text-[10px] text-muted-foreground line-clamp-1">{item.desc}</p>
@@ -969,7 +969,7 @@ function NotificationsSection() {
                         disabled={tgSaving}
                         onClick={() => updateTgSettings({ audience: opt.id })} 
                         className={cn(
-                          "flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all", 
+                          "flex flex-col items-center gap-1.5 p-3 rounded-card border text-center transition-all", 
                           tgData.orgSettings.audience === opt.id 
                             ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-sm" 
                             : "border-border hover:bg-muted/50 hover:border-border/80"
@@ -984,7 +984,7 @@ function NotificationsSection() {
               )}
             </div>
           ) : (
-             <div className="p-8 rounded-xl border border-dashed border-border flex flex-col items-center justify-center text-center bg-muted/5">
+             <div className="p-8 rounded-card border border-dashed border-border flex flex-col items-center justify-center text-center bg-muted/5">
                 <BellRing className="size-8 text-muted-foreground/30 mb-3" />
                 <p className="text-sm font-bold">Telegram Not Configured</p>
                 <p className="text-xs text-muted-foreground max-w-xs mt-1">Connect your organization to Telegram in the Integrations tab first.</p>
@@ -1183,7 +1183,7 @@ function OrganizationSection() {
               key={org.id}
               className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+                <div className="flex h-8 w-8 items-center justify-center rounded-card bg-primary/10 text-sm font-bold text-primary">
                   {org.name[0]?.toUpperCase()}
                 </div>
                 <div>
@@ -1208,7 +1208,7 @@ function OrganizationSection() {
           title="Organization Access Request"
           description="Request elevated organization access and track approval status.">
           <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-xl border border-border bg-muted/20 p-4">
+            <div className="flex items-center justify-between rounded-card border border-border bg-muted/20 p-4">
               <div>
                 <p className="text-sm font-semibold">Request Status</p>
                 <p className="text-xs text-muted-foreground">
@@ -1295,7 +1295,7 @@ function BillingSection() {
     <div className="space-y-4">
       <SectionCard title="Current Subscription" description="Manage your plan and billing cycles.">
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex flex-col justify-between">
+          <div className="rounded-card border border-primary/20 bg-primary/5 p-4 flex flex-col justify-between">
             <div>
                <div className="flex items-center gap-2 mb-1">
                  <Zap className="size-4 text-primary" />
@@ -1313,7 +1313,7 @@ function BillingSection() {
             <Badge className="mt-4 w-fit bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Active Now</Badge>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-4 flex flex-col justify-between hover:border-primary/50 transition-colors group">
+          <div className="rounded-card border border-border bg-card p-4 flex flex-col justify-between hover:border-primary/50 transition-colors group">
             <div>
                <div className="flex items-center justify-between mb-1">
                  <div className="flex items-center gap-2">
@@ -1337,7 +1337,7 @@ function BillingSection() {
       </SectionCard>
 
       <SectionCard title="Invoices" description="Your recent transaction history.">
-        <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-border rounded-xl">
+        <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-border rounded-card">
           <CreditCard className="size-8 text-muted-foreground/30 mb-2" />
           <p className="text-xs font-medium text-muted-foreground">No invoices yet</p>
           <p className="text-[10px] text-muted-foreground/60">Your billing history will appear here.</p>
@@ -1385,13 +1385,13 @@ function SecuritySection() {
 
       <SectionCard title="Active Sessions" description="Devices currently signed into your account.">
         {sessionsQuery.isLoading ? (
-          <div className="space-y-2"><Skeleton className="h-12 w-full rounded-lg" /><Skeleton className="h-12 w-full rounded-lg" /></div>
+          <div className="space-y-2"><Skeleton className="h-12 w-full rounded-card" /><Skeleton className="h-12 w-full rounded-card" /></div>
         ) : (
           <div className="space-y-2">
             {sessions.map((s) => (
-              <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
+              <div key={s.id} className="flex items-center justify-between p-3 rounded-card border border-border bg-muted/20">
                 <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-lg bg-background border border-border flex items-center justify-center">
+                  <div className="size-8 rounded-card bg-background border border-border flex items-center justify-center">
                     {s.deviceType === 'mobile' ? <Smartphone className="size-4" /> : <Monitor className="size-4" />}
                   </div>
                   <div>
@@ -1499,7 +1499,7 @@ function IntegrationsSection() {
     }
   };
 
-  if (loading || !data) return <div className="space-y-4"><Skeleton className="h-32 w-full rounded-xl" /></div>;
+  if (loading || !data) return <div className="space-y-4"><Skeleton className="h-32 w-full rounded-card" /></div>;
 
   const { connection } = data;
 
@@ -1507,8 +1507,8 @@ function IntegrationsSection() {
     <div className="space-y-4">
       <SectionCard title="Telegram Connection" description="Link your account for real-time alerts.">
         {!connection?.isConnected ? (
-          <div className="flex flex-col items-center justify-center p-6 border border-dashed border-border rounded-xl bg-muted/5 text-center">
-            <div className="size-12 rounded-2xl bg-sky-500/10 text-sky-600 flex items-center justify-center mb-3">
+          <div className="flex flex-col items-center justify-center p-6 border border-dashed border-border rounded-card bg-muted/5 text-center">
+            <div className="size-12 rounded-card bg-sky-500/10 text-sky-600 flex items-center justify-center mb-3">
               <MessageSquare className="size-6" />
             </div>
             <h4 className="text-sm font-bold">Connect Telegram</h4>
@@ -1519,7 +1519,7 @@ function IntegrationsSection() {
                 Initiate Link
               </Button>
             ) : (
-              <div className="w-full max-w-md p-6 rounded-2xl border border-border bg-card text-left animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-xl">
+              <div className="w-full max-w-md p-6 rounded-card border border-border bg-card text-left animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-xl">
                 <div className="flex items-center justify-between mb-6">
                   <div className="space-y-1">
                     <h4 className="text-sm font-bold flex items-center gap-2 text-foreground">
@@ -1544,7 +1544,7 @@ function IntegrationsSection() {
                         <p className="text-[11px] font-bold text-foreground">Launch Telegram Bot</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed font-medium">Open the bot and it will automatically recognize your session using your secure token.</p>
                       </div>
-                      <Button asChild className="w-full h-10 bg-[#0088cc] hover:bg-[#0077b5] text-white font-bold rounded-xl shadow-lg shadow-sky-500/10 transition-all active:scale-95 group">
+                      <Button asChild className="w-full h-10 bg-[#0088cc] hover:bg-[#0077b5] text-white font-bold rounded-card shadow-lg shadow-sky-500/10 transition-all active:scale-95 group">
                         <a href={connectionData?.connectionLink || "https://t.me/PMS_Orbit_Bot"} target="_blank" rel="noopener noreferrer">
                           <Send className="mr-2 size-3.5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
                           Launch Telegram Bot
@@ -1571,7 +1571,7 @@ function IntegrationsSection() {
                       <Button 
                         onClick={handleVerify} 
                         disabled={verifying} 
-                        className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/10 transition-all active:scale-95"
+                        className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-card shadow-lg shadow-emerald-500/10 transition-all active:scale-95"
                       >
                         {verifying ? <Loader2 className="mr-2 size-3.5 animate-spin" /> : <ShieldCheck className="mr-2 size-3.5" />}
                         {verifying ? "Verifying Session..." : "Verify Connection"}
@@ -1583,7 +1583,7 @@ function IntegrationsSection() {
             )}
           </div>
         ) : (
-          <div className="flex items-center justify-between p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 transition-all">
+          <div className="flex items-center justify-between p-4 rounded-card border border-emerald-500/20 bg-emerald-500/5 transition-all">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm">
                 <Check className="size-5" />
@@ -1613,9 +1613,9 @@ function IntegrationsSection() {
       <SectionCard title="Other Platforms" description="Tools we support or are coming soon.">
         <div className="grid gap-2">
           {INTEGRATIONS.map(i => (
-            <div key={i.name} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/10 opacity-60">
+            <div key={i.name} className="flex items-center justify-between p-3 rounded-card border border-border bg-muted/10 opacity-60">
               <div className="flex items-center gap-3">
-                <div className="size-8 rounded-lg flex items-center justify-center" style={{ background: `${i.color}15` }}>
+                <div className="size-8 rounded-card flex items-center justify-center" style={{ background: `${i.color}15` }}>
                   <i.icon className="size-4" style={{ color: i.color }} />
                 </div>
                 <div><p className="text-xs font-bold">{i.name}</p><p className="text-[10px] text-muted-foreground">{i.desc}</p></div>
@@ -1646,14 +1646,14 @@ function GithubSection() {
     <div className="space-y-4">
       <SectionCard title="Commit Automation" description="Control task status directly from your code commits.">
         <div className="grid gap-4 sm:grid-cols-2">
-           <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+           <div className="p-4 rounded-card border border-emerald-500/20 bg-emerald-500/5">
               <p className="text-[10px] font-black uppercase text-emerald-700 mb-1">Move to Done</p>
               <p className="text-[11px] text-emerald-600/80 mb-3 leading-tight">Use keywords like fix, close, or resolve.</p>
               <div className="flex flex-wrap gap-1">
                  {['fix', 'close', 'resolve', 'done'].map(k => <code key={k} className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-[9px] font-mono text-emerald-700">{k}</code>)}
               </div>
            </div>
-           <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
+           <div className="p-4 rounded-card border border-blue-500/20 bg-blue-500/5">
               <p className="text-[10px] font-black uppercase text-blue-700 mb-1">In Progress</p>
               <p className="text-[11px] text-blue-600/80 mb-3 leading-tight">Use keywords like start, feat, or working.</p>
               <div className="flex flex-wrap gap-1">
@@ -1666,7 +1666,7 @@ function GithubSection() {
       <SectionCard title="Usage Examples" description="Common commit message patterns.">
         <div className="space-y-3">
           {examples.map(ex => (
-            <div key={ex.label} className="p-3 rounded-lg border border-border bg-muted/10 group">
+            <div key={ex.label} className="p-3 rounded-card border border-border bg-muted/10 group">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <ex.icon className={cn("size-3.5", ex.color)} />
@@ -1829,7 +1829,7 @@ function DefaultAssigneesSection() {
         </div>
       </SectionCard>
 
-      <div className="p-3 rounded-xl border border-primary/10 bg-primary/5 flex gap-3">
+      <div className="p-3 rounded-card border border-primary/10 bg-primary/5 flex gap-3">
         <Sparkles className="size-4 text-primary shrink-0" />
         <p className="text-[11px] text-muted-foreground leading-relaxed">
           <span className="font-bold text-primary">Pro Tip:</span> Setting default assignees is great for recurring tasks or small teams where everyone is involved in every task.
@@ -1892,7 +1892,7 @@ export default function SettingsPage() {
       {/* Mobile Header with Breadcrumb-like title and Menu */}
       <div className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-card">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+          <div className="flex h-8 w-8 items-center justify-center rounded-card bg-primary/10">
             <ActiveIcon className="size-4 text-primary" />
           </div>
           <h2 className="text-sm font-semibold">{activeItem.label}</h2>
@@ -1920,7 +1920,7 @@ export default function SettingsPage() {
                         setIsMobileNavOpen(false);
                       }}
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                        "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-button transition-colors",
                         activeSection === item.id
                           ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -1954,7 +1954,7 @@ export default function SettingsPage() {
                     <button
                       onClick={() => handleTabChange(id)}
                       className={cn(
-                        "w-full group flex items-center gap-3 px-3 py-2 text-[13px] font-medium rounded-lg transition-all",
+                        "w-full group flex items-center gap-3 px-3 py-2 text-[13px] font-medium rounded-card transition-all",
                         active
                           ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
                           : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -1973,7 +1973,7 @@ export default function SettingsPage() {
           {/* User card at bottom */}
           <div className="p-4 border-t border-border/50 bg-muted/20">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-[10px] font-bold text-primary ring-1 ring-primary/30">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-card bg-primary/20 text-[10px] font-bold text-primary ring-1 ring-primary/30">
                 {user?.firstName?.[0]}
                 {user?.lastName?.[0]}
               </div>

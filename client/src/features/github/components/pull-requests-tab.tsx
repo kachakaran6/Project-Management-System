@@ -91,8 +91,8 @@ export const PullRequestsTab = ({ owner, repo }: { owner: string; repo: string }
     return (
       <div className="space-y-4">
         {/* Skeleton for Filters */}
-        <div className="h-14 w-full bg-card border border-border/20 rounded-lg animate-pulse" />
-        <div className="space-y-0 border border-border/20 rounded-lg overflow-hidden bg-card/30">
+        <div className="h-14 w-full bg-card border border-border/20 rounded-card animate-pulse" />
+        <div className="space-y-0 border border-border/20 rounded-card overflow-hidden bg-card/30">
           {[...Array(5)].map((_, i) => <PRSkeleton key={i} />)}
         </div>
       </div>
@@ -100,13 +100,13 @@ export const PullRequestsTab = ({ owner, repo }: { owner: string; repo: string }
   }
 
   if (error) {
-    return <div className="text-destructive p-4 bg-destructive/10 rounded-md border border-destructive/20 text-sm font-medium">Error loading pull requests.</div>;
+    return <div className="text-destructive p-4 bg-destructive/10 rounded-button border border-destructive/20 text-sm font-medium">Error loading pull requests.</div>;
   }
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Filters Toolbar */}
-      <div className="flex flex-col md:flex-row gap-3 p-4 border border-border/40 rounded-lg bg-card shadow-sm">
+      <div className="flex flex-col md:flex-row gap-3 p-4 border border-border/40 rounded-card bg-card shadow-sm">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
@@ -181,14 +181,14 @@ export const PullRequestsTab = ({ owner, repo }: { owner: string; repo: string }
 
       {/* PR List */}
       {!prs?.length ? (
-        <div className="p-12 text-center border border-dashed border-border/40 rounded-lg bg-card text-muted-foreground shadow-sm">
+        <div className="p-12 text-center border border-dashed border-border/40 rounded-card bg-card text-muted-foreground shadow-sm">
           <div className="flex justify-center mb-3">
             <GitPullRequest className="size-8 text-muted-foreground/30" />
           </div>
           <p className="text-sm font-medium">No pull requests found in this repository.</p>
         </div>
       ) : filteredPRs.length === 0 ? (
-        <div className="p-12 text-center border border-dashed border-border/40 rounded-lg bg-card text-muted-foreground shadow-sm">
+        <div className="p-12 text-center border border-dashed border-border/40 rounded-card bg-card text-muted-foreground shadow-sm">
           <div className="flex justify-center mb-3">
             <Filter className="size-8 text-muted-foreground/30" />
           </div>
@@ -198,7 +198,7 @@ export const PullRequestsTab = ({ owner, repo }: { owner: string; repo: string }
           </Button>
         </div>
       ) : (
-        <div className="border border-border/40 rounded-lg bg-card shadow-sm">
+        <div className="border border-border/40 rounded-card bg-card shadow-sm">
           {filteredPRs.map((pr: any, index: number) => {
             const isLast = index === filteredPRs.length - 1;
             return (

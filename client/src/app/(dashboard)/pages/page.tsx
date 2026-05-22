@@ -261,7 +261,7 @@ export default function PagesListPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search pages..."
-                className="h-9 rounded-xl border-border/40 bg-muted/20 pl-10 pr-4 text-sm focus-visible:ring-1 focus-visible:ring-primary/20"
+                className="h-9 rounded-card border-border/40 bg-muted/20 pl-10 pr-4 text-sm focus-visible:ring-1 focus-visible:ring-primary/20"
               />
             </div>
 
@@ -270,10 +270,10 @@ export default function PagesListPage() {
                 value={visibilityFilter}
                 onValueChange={(value) => setVisibilityFilter(value as "ALL" | PageVisibility)}
               >
-                <SelectTrigger className="h-8 min-w-30 rounded-lg border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-35 lg:text-xs lg:rounded-xl">
+                <SelectTrigger className="h-8 min-w-30 rounded-card border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-35 lg:text-xs lg:rounded-card">
                   <SelectValue placeholder="Visibility" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-border/40">
+                <SelectContent className="rounded-card border-border/40">
                   <SelectItem value="ALL">All visibility</SelectItem>
                   <SelectItem value="PRIVATE">Private</SelectItem>
                   <SelectItem value="WORKSPACE">Workspace</SelectItem>
@@ -285,10 +285,10 @@ export default function PagesListPage() {
                 value={ownershipFilter}
                 onValueChange={(value) => setOwnershipFilter(value as "ALL" | "ME" | "SHARED")}
               >
-                <SelectTrigger className="h-8 min-w-30 rounded-lg border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-35 lg:text-xs lg:rounded-xl">
+                <SelectTrigger className="h-8 min-w-30 rounded-card border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-35 lg:text-xs lg:rounded-card">
                   <SelectValue placeholder="Ownership" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-border/40">
+                <SelectContent className="rounded-card border-border/40">
                   <SelectItem value="ALL">All pages</SelectItem>
                   <SelectItem value="ME">Created by me</SelectItem>
                   <SelectItem value="SHARED">Shared with me</SelectItem>
@@ -299,10 +299,10 @@ export default function PagesListPage() {
                 value={recentFilter}
                 onValueChange={(value) => setRecentFilter(value as "ALL" | "RECENT")}
               >
-                <SelectTrigger className="h-8 min-w-30 rounded-lg border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-35 lg:text-xs lg:rounded-xl">
+                <SelectTrigger className="h-8 min-w-30 rounded-card border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-35 lg:text-xs lg:rounded-card">
                   <SelectValue placeholder="Date" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-border/40">
+                <SelectContent className="rounded-card border-border/40">
                   <SelectItem value="ALL">Any time</SelectItem>
                   <SelectItem value="RECENT">Edited in 3 days</SelectItem>
                 </SelectContent>
@@ -311,7 +311,7 @@ export default function PagesListPage() {
           </div>
 
           <Button
-            className="h-9 w-full rounded-xl px-4 lg:h-10 lg:w-auto lg:ml-auto font-bold text-xs lg:text-sm shadow-sm"
+            className="h-9 w-full rounded-card px-4 lg:h-10 lg:w-auto lg:ml-auto font-bold text-xs lg:text-sm shadow-sm"
             onClick={() => setCreateOpen(true)}
             variant="secondary"
           >
@@ -325,10 +325,10 @@ export default function PagesListPage() {
         {pagesQuery.isLoading ? (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="rounded-2xl border border-white/5 bg-white/3 p-4">
+              <div key={index} className="rounded-card border border-white/5 bg-white/3 p-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                     <Skeleton className="h-4 w-4 rounded-md" />
+                     <Skeleton className="h-4 w-4 rounded-button" />
                      <Skeleton className="h-5 w-2/3" />
                   </div>
                   <Skeleton className="h-4 w-full" />
@@ -347,7 +347,7 @@ export default function PagesListPage() {
         ) : null}
 
         {!pagesQuery.isLoading && visibleRows.length === 0 ? (
-          <div className="rounded-2xl border border-white/5 bg-white/3 p-8 text-center">
+          <div className="rounded-card border border-white/5 bg-white/3 p-8 text-center">
             <EmptyState
               icon={NotebookPen}
               title="No pages found"
@@ -370,11 +370,11 @@ export default function PagesListPage() {
                 <Link
                   key={page.id}
                   href={`/pages/${page.id}`}
-                  className="group flex h-full flex-col rounded-2xl border border-white/5 bg-white/3 p-4 transition-all duration-300 hover:-translate-y-1 hover:bg-white/5 hover:border-white/10 hover:shadow-2xl hover:shadow-primary/5"
+                  className="group flex h-full flex-col rounded-card border border-white/5 bg-white/3 p-4 transition-all duration-300 hover:-translate-y-1 hover:bg-white/5 hover:border-white/10 hover:shadow-2xl hover:shadow-primary/5"
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="min-w-0 flex items-start gap-2.5">
-                      <div className="mt-0.5 size-7 rounded-lg bg-muted/30 flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
+                      <div className="mt-0.5 size-7 rounded-card bg-muted/30 flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
                         <FileText className="size-4 text-muted-foreground/60 group-hover:text-primary transition-colors" />
                       </div>
                       <div className="min-w-0">
@@ -403,14 +403,14 @@ export default function PagesListPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-lg hover:bg-white/5"
+                              className="h-8 w-8 rounded-card hover:bg-white/5"
                             >
                               <MoreVertical className="size-4 text-muted-foreground/40" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-52 rounded-xl border-border/40 shadow-2xl bg-popover/95 backdrop-blur-xl">
+                          <DropdownMenuContent align="end" className="w-52 rounded-card border-border/40 shadow-2xl bg-popover/95 backdrop-blur-xl">
                             <DropdownMenuItem
-                              className="rounded-lg gap-2.5"
+                              className="rounded-card gap-2.5"
                               onClick={(event) => {
                                 event.preventDefault();
                                 event.stopPropagation();
@@ -423,7 +423,7 @@ export default function PagesListPage() {
 
                             {page.visibility !== "PUBLIC" ? (
                               <DropdownMenuItem
-                                className="rounded-lg gap-2.5"
+                                className="rounded-card gap-2.5"
                                 onClick={(event) => {
                                   event.preventDefault();
                                   event.stopPropagation();
@@ -436,7 +436,7 @@ export default function PagesListPage() {
                             ) : (
                               <>
                                 <DropdownMenuItem
-                                  className="rounded-lg gap-2.5"
+                                  className="rounded-card gap-2.5"
                                   onClick={(event) => {
                                     event.preventDefault();
                                     event.stopPropagation();
@@ -447,7 +447,7 @@ export default function PagesListPage() {
                                   <span className="font-medium">{copiedPageId === page.id ? "Copied" : "Copy Link"}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  className="rounded-lg gap-2.5"
+                                  className="rounded-card gap-2.5"
                                   onClick={(event) => {
                                     event.preventDefault();
                                     event.stopPropagation();
@@ -462,7 +462,7 @@ export default function PagesListPage() {
 
                             <DropdownMenuSeparator className="bg-border/10" />
                             <DropdownMenuItem
-                              className="rounded-lg gap-2.5 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 focus:bg-rose-500/10 focus:text-rose-600"
+                              className="rounded-card gap-2.5 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 focus:bg-rose-500/10 focus:text-rose-600"
                               onClick={(event) => {
                                 event.preventDefault();
                                 event.stopPropagation();
@@ -538,7 +538,7 @@ export default function PagesListPage() {
               <div className="grid gap-2 sm:grid-cols-3">
                 <button
                   type="button"
-                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${
+                  className={`rounded-card border px-3 py-2 text-left transition-colors ${
                     createVisibility === "PRIVATE"
                       ? "border-primary/40 bg-primary/5 text-foreground"
                       : "border-border text-muted-foreground"
@@ -553,7 +553,7 @@ export default function PagesListPage() {
                 </button>
                 <button
                   type="button"
-                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${
+                  className={`rounded-card border px-3 py-2 text-left transition-colors ${
                     createVisibility === "WORKSPACE"
                       ? "border-primary/40 bg-primary/5 text-foreground"
                       : "border-border text-muted-foreground"
@@ -568,7 +568,7 @@ export default function PagesListPage() {
                 </button>
                 <button
                   type="button"
-                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${
+                  className={`rounded-card border px-3 py-2 text-left transition-colors ${
                     createVisibility === "PUBLIC"
                       ? "border-primary/40 bg-primary/5 text-foreground"
                       : "border-border text-muted-foreground"
@@ -597,7 +597,7 @@ export default function PagesListPage() {
       </Dialog>
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="sm:max-w-100 rounded-2xl border-border/10">
+        <DialogContent className="sm:max-w-100 rounded-card border-border/10">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Delete Page</DialogTitle>
             <DialogDescription>
@@ -605,12 +605,12 @@ export default function PagesListPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" className="rounded-xl" onClick={() => setDeleteOpen(false)}>
+            <Button variant="outline" className="rounded-card" onClick={() => setDeleteOpen(false)}>
               Cancel
             </Button>
             <Button
               variant="destructive"
-              className="rounded-xl bg-rose-500 hover:bg-rose-600"
+              className="rounded-card bg-rose-500 hover:bg-rose-600"
               onClick={handleDelete}
               loading={deletePage.isPending}
             >

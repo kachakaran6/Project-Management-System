@@ -39,7 +39,7 @@ export function TaskGithubActivity({ links }: TaskGithubActivityProps) {
   return (
     <div className="space-y-4 pt-4">
       <div className="flex items-center gap-2 px-1">
-        <div className="size-6 rounded-lg bg-primary/5 flex items-center justify-center text-primary/70">
+        <div className="size-6 rounded-card bg-primary/5 flex items-center justify-center text-primary/70">
           <Github className="size-3.5" />
         </div>
         <h3 className="text-[11px] font-black uppercase tracking-widest text-foreground/80">GitHub Activity</h3>
@@ -68,7 +68,7 @@ export function TaskGithubActivity({ links }: TaskGithubActivityProps) {
                   indicator.color
                 )} />
 
-                <div className="flex-1 min-w-0 bg-muted/10 rounded-xl p-2.5 border border-transparent hover:border-border/60 hover:bg-muted/20 transition-all">
+                <div className="flex-1 min-w-0 bg-muted/10 rounded-card p-2.5 border border-transparent hover:border-border/60 hover:bg-muted/20 transition-all">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       {link.type === 'pr' && <GitPullRequest className="size-3 text-purple-500 shrink-0" />}
@@ -82,7 +82,7 @@ export function TaskGithubActivity({ links }: TaskGithubActivityProps) {
                       href={link.url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="shrink-0 p-1 rounded-md hover:bg-background/80 text-muted-foreground/50 hover:text-primary transition-all"
+                      className="shrink-0 p-1 rounded-button hover:bg-background/80 text-muted-foreground/50 hover:text-primary transition-all"
                     >
                       <ExternalLink className="size-3" />
                     </a>
@@ -110,7 +110,7 @@ export function TaskGithubActivity({ links }: TaskGithubActivityProps) {
                     )}
                     
                     <Badge className={cn(
-                      "ml-auto h-4 px-1 rounded-sm border-none text-[7px] font-black uppercase tracking-tighter",
+                      "ml-auto h-4 px-1 rounded-button border-none text-[7px] font-black uppercase tracking-tighter",
                       indicator.color,
                       "text-white"
                     )}>

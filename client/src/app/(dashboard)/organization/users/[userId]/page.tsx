@@ -183,21 +183,21 @@ export default function UserAnalyticsPage() {
       {/* Tabs Section */}
       <Tabs defaultValue="timeline" className="w-full space-y-6">
         <div className="flex items-center justify-between">
-          <TabsList className="bg-muted/50 p-1 rounded-xl h-12 border border-border/40">
-            <TabsTrigger value="timeline" className="rounded-lg px-6 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all font-bold text-xs uppercase tracking-wider">
+          <TabsList className="bg-muted/50 p-1 rounded-card h-12 border border-border/40">
+            <TabsTrigger value="timeline" className="rounded-card px-6 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all font-bold text-xs uppercase tracking-wider">
               Activity Timeline
             </TabsTrigger>
-            <TabsTrigger value="sessions" className="rounded-lg px-6 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all font-bold text-xs uppercase tracking-wider">
+            <TabsTrigger value="sessions" className="rounded-card px-6 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all font-bold text-xs uppercase tracking-wider">
               Login Sessions
             </TabsTrigger>
-            <TabsTrigger value="contributions" className="rounded-lg px-6 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all font-bold text-xs uppercase tracking-wider">
+            <TabsTrigger value="contributions" className="rounded-card px-6 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all font-bold text-xs uppercase tracking-wider">
               Behavioral Insights
             </TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="timeline" className="space-y-4">
-          <Card className="border-border/40 shadow-sm overflow-hidden rounded-2xl">
+          <Card className="border-border/40 shadow-sm overflow-hidden rounded-card">
             <CardHeader className="bg-muted/10 border-b">
               <div className="flex items-center justify-between">
                 <div>
@@ -212,7 +212,7 @@ export default function UserAnalyticsPage() {
             <CardContent className="p-0">
               {isActivitiesLoading ? (
                 <div className="p-8 space-y-4">
-                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-card" />)}
                 </div>
               ) : activitiesData === undefined && !isActivitiesLoading ? (
                 <div className="p-12 flex flex-col items-center justify-center text-center space-y-4">
@@ -259,7 +259,7 @@ export default function UserAnalyticsPage() {
         </TabsContent>
 
         <TabsContent value="sessions" className="space-y-4">
-          <Card className="border-border/40 shadow-sm overflow-hidden rounded-2xl">
+          <Card className="border-border/40 shadow-sm overflow-hidden rounded-card">
             <CardHeader className="bg-muted/10 border-b">
               <CardTitle className="text-lg">Device & Session History</CardTitle>
               <CardDescription>Tracking logins and active sessions</CardDescription>
@@ -267,7 +267,7 @@ export default function UserAnalyticsPage() {
             <CardContent className="p-0">
               {isSessionsLoading ? (
                 <div className="p-8 space-y-4">
-                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-card" />)}
                 </div>
               ) : sessions.length === 0 ? (
                 <EmptyState icon={LogIn} message="No login sessions recorded" />
@@ -285,7 +285,7 @@ export default function UserAnalyticsPage() {
         <TabsContent value="contributions" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Task Contribution Heatmap / Bar Chart */}
-            <Card className="border-border/40 shadow-sm rounded-2xl">
+            <Card className="border-border/40 shadow-sm rounded-card">
               <CardHeader>
                 <CardTitle className="text-lg">Workload Distribution</CardTitle>
                 <CardDescription>Task contribution metrics</CardDescription>
@@ -319,7 +319,7 @@ export default function UserAnalyticsPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-border/40 shadow-sm rounded-2xl">
+            <Card className="border-border/40 shadow-sm rounded-card">
               <CardHeader>
                 <CardTitle className="text-lg">Behavioral Overview</CardTitle>
                 <CardDescription>Productivity and engagement patterns</CardDescription>
@@ -341,19 +341,19 @@ export default function UserAnalyticsPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+                  <div className="p-4 rounded-card bg-primary/5 border border-primary/10">
                     <p className="text-[10px] font-black uppercase text-primary/70 tracking-widest">Efficiency</p>
                     <p className="text-xl font-black mt-1">High</p>
                     <p className="text-[11px] text-muted-foreground mt-1">Above average completion speed</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-orange-500/5 border border-orange-500/10">
+                  <div className="p-4 rounded-card bg-orange-500/5 border border-orange-500/10">
                     <p className="text-[10px] font-black uppercase text-orange-500/70 tracking-widest">Engagement</p>
                     <p className="text-xl font-black mt-1">Active</p>
                     <p className="text-[11px] text-muted-foreground mt-1">{stats.totalLogins} logins recorded</p>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-500/5 border border-slate-500/10 flex items-center gap-4">
+                <div className="p-4 rounded-card bg-slate-500/5 border border-slate-500/10 flex items-center gap-4">
                    <div className="size-10 rounded-full bg-slate-500/10 flex items-center justify-center shrink-0">
                       <ShieldCheck className="size-5 text-slate-600" />
                    </div>
@@ -380,10 +380,10 @@ function StatCard({ title, value, icon: Icon, description, color }: { title: str
   };
 
   return (
-    <Card className="border-border/40 shadow-sm rounded-2xl hover:shadow-md transition-all group overflow-hidden">
+    <Card className="border-border/40 shadow-sm rounded-card hover:shadow-md transition-all group overflow-hidden">
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <div className={cn("p-2 rounded-xl border shrink-0", colors[color])}>
+          <div className={cn("p-2 rounded-card border shrink-0", colors[color])}>
             <Icon className="size-5" />
           </div>
           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 group-hover:text-muted-foreground transition-colors">Real-time</span>
@@ -509,10 +509,10 @@ function AnalyticsLoadingSkeleton() {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-card" />)}
       </div>
-      <Skeleton className="h-12 w-96 rounded-xl" />
-      <Skeleton className="h-[400px] w-full rounded-2xl" />
+      <Skeleton className="h-12 w-96 rounded-card" />
+      <Skeleton className="h-[400px] w-full rounded-card" />
     </div>
   );
 }

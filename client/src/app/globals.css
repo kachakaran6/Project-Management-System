@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+@theme {
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-card: var(--radius-card);
+  --radius-button: var(--radius-button);
+  --radius-input: var(--radius-input);
+  --radius-modal: var(--radius-modal);
+  --radius-dropdown: var(--radius-dropdown);
+  --radius-badge: var(--radius-badge);
+}
+
 html,
 body {
   overflow-x: hidden;

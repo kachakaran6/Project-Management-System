@@ -27,7 +27,7 @@ export const CommitsTab = ({ owner, repo }: { owner: string; repo: string }) => 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Header and Branch Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border border-border/40 rounded-lg bg-card shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border border-border/40 rounded-card bg-card shadow-sm">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-full bg-primary/10">
             <GitCommit className="size-4 text-primary" />
@@ -68,23 +68,23 @@ export const CommitsTab = ({ owner, repo }: { owner: string; repo: string }) => 
 
       {/* Commits List */}
       {commitsLoading || branchesLoading ? (
-        <div className="space-y-0 border border-border/20 rounded-lg overflow-hidden bg-card shadow-sm">
+        <div className="space-y-0 border border-border/20 rounded-card overflow-hidden bg-card shadow-sm">
           {[...Array(5)].map((_, i) => <CommitSkeleton key={i} />)}
         </div>
       ) : error ? (
-        <div className="flex items-start gap-3 p-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-lg text-sm font-medium">
+        <div className="flex items-start gap-3 p-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-card text-sm font-medium">
           <AlertCircle className="size-5 shrink-0 mt-0.5" />
           <p>Failed to load commit history for {selectedBranch}. The branch might not exist or the GitHub API is rate-limited.</p>
         </div>
       ) : !commits?.length ? (
-        <div className="p-12 flex flex-col items-center justify-center text-center bg-card border border-dashed border-border/40 rounded-lg text-muted-foreground shadow-sm">
+        <div className="p-12 flex flex-col items-center justify-center text-center bg-card border border-dashed border-border/40 rounded-card text-muted-foreground shadow-sm">
           <div className="p-4 rounded-full bg-muted/20 mb-3">
             <GitCommit className="size-8 text-muted-foreground/40" />
           </div>
           <p className="text-sm font-medium">No commits found for branch '{selectedBranch}'</p>
         </div>
       ) : (
-        <div className="border border-border/40 rounded-lg bg-card shadow-sm">
+        <div className="border border-border/40 rounded-card bg-card shadow-sm">
           {commits.map((item: any, index: number) => {
             const isLast = index === commits.length - 1;
             return (

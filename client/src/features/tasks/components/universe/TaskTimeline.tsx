@@ -87,7 +87,7 @@ const TimelineNode = ({ event, index, isDark }: { event: TimelineEvent, index: n
 
       {/* Glassmorphic Node Card */}
       <div className={cn(
-        "w-[42%] p-4 rounded-md backdrop-blur-2xl border shadow-2xl relative overflow-hidden group",
+        "w-[42%] p-4 rounded-button backdrop-blur-2xl border shadow-2xl relative overflow-hidden group",
         isDark ? "bg-white/[0.03] border-white/5" : "bg-white/80 border-black/5 shadow-xl",
         isLeft ? "rounded-tl-none mr-[58%]" : "rounded-tr-none ml-[58%]"
       )}>
@@ -255,7 +255,7 @@ export const TaskTimeline: React.FC<TaskTimelineProps> = ({ tasks }) => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
-                className={cn("px-6 py-2 rounded-md backdrop-blur-xl border shadow-2xl", isDark ? "bg-white/5 border-white/10" : "bg-white/90 border-black/5")}
+                className={cn("px-6 py-2 rounded-button backdrop-blur-xl border shadow-2xl", isDark ? "bg-white/5 border-white/10" : "bg-white/90 border-black/5")}
               >
                 <span className={cn("text-[10px] font-black uppercase tracking-[0.4em]", isDark ? "text-white/40" : "text-black/40")}>
                   {isToday(new Date(date)) ? 'Present' : isYesterday(new Date(date)) ? 'Yesterday' : format(new Date(date), 'MMMM d')}

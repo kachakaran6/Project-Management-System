@@ -44,7 +44,7 @@ export function NotificationBell() {
         <Button
           variant="ghost"
           size="icon"
-          className="relative h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-full md:border md:border-border/70 md:bg-card md:shadow-sm text-muted-foreground hover:text-foreground md:hover:bg-primary/5 transition-all"
+          className="relative h-8 w-8 md:h-10 md:w-10 rounded-card md:rounded-full md:border md:border-border/70 md:bg-card md:shadow-sm text-muted-foreground hover:text-foreground md:hover:bg-primary/5 transition-all"
           aria-label="Notifications"
         >
           <Bell className="size-5 text-foreground/80" />
@@ -58,9 +58,9 @@ export function NotificationBell() {
       <DropdownMenuContent
         align="end"
         sideOffset={12}
-        className="w-88 overflow-hidden rounded-2xl border-border/80 bg-card/95 p-2 shadow-2xl backdrop-blur-md"
+        className="w-88 overflow-hidden rounded-card border-border/80 bg-card/95 p-2 shadow-2xl backdrop-blur-md"
       >
-        <div className="flex items-start justify-between gap-3 rounded-xl border border-border/60 bg-primary/5 px-3 py-3">
+        <div className="flex items-start justify-between gap-3 rounded-card border border-border/60 bg-primary/5 px-3 py-3">
           <div>
             <DropdownMenuLabel className="p-0 text-sm font-semibold text-foreground">
               Notifications
@@ -102,7 +102,7 @@ export function NotificationBell() {
                 <DropdownMenuItem
                   key={notification._id}
                   className={cn(
-                    "cursor-pointer rounded-xl px-3 py-3 focus:bg-primary/8",
+                    "cursor-pointer rounded-card px-3 py-3 focus:bg-primary/8",
                     !notification.isRead && "bg-primary/5",
                   )}
                   onSelect={(event) => {
@@ -134,7 +134,7 @@ export function NotificationBell() {
 
         <DropdownMenuSeparator className="my-2" />
 
-        <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5">
+        <DropdownMenuItem asChild className="rounded-card px-3 py-2.5">
           <Link href="/settings?section=notifications">
             Notification preferences
           </Link>

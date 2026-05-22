@@ -224,7 +224,7 @@ export function PermissionModal({
             </div>
 
             {/* Permission list for active group */}
-            <div className="space-y-3 border border-border rounded-xl p-4 bg-surface shadow-sm">
+            <div className="space-y-3 border border-border rounded-modal p-4 bg-surface shadow-sm">
               <h3 className="font-semibold text-sm">{activeGroup}</h3>
               {PERMISSION_GROUPS[activeGroup as keyof typeof PERMISSION_GROUPS]?.map((permission) => {
                 const isRoleDefault = permissionData.rolePermissions.includes(permission);
@@ -234,7 +234,7 @@ export function PermissionModal({
                 return (
                   <div
                     key={permission}
-                    className="flex items-center space-x-3 p-2 rounded-lg transition-colors hover:bg-muted/30"
+                    className="flex items-center space-x-3 p-2 rounded-modal transition-colors hover:bg-muted/30"
                   >
                     <Checkbox
                       id={permission}
@@ -260,7 +260,7 @@ export function PermissionModal({
 
             {/* Summary */}
             {/* Summary */}
-            <div className="bg-secondary/40 rounded-xl p-4 text-sm border border-border/50">
+            <div className="bg-secondary/40 rounded-modal p-4 text-sm border border-border/50">
               <p className="flex items-center justify-between">
                 <span className="text-muted-foreground font-medium text-xs uppercase tracking-wider">Total permissions</span>
                 <span className="font-bold text-lg">{selectedPermissions.size}</span>

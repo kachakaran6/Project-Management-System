@@ -156,18 +156,18 @@ function ProjectDetailsSkeleton() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <Skeleton className="h-8 w-64 rounded-lg" />
-        <Skeleton className="h-8 w-8 rounded-lg" />
+        <Skeleton className="h-8 w-64 rounded-card" />
+        <Skeleton className="h-8 w-8 rounded-card" />
       </div>
-      <div className="h-10 w-full bg-muted/20 rounded-lg" />
+      <div className="h-10 w-full bg-muted/20 rounded-card" />
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
         <div className="space-y-6">
-          <Skeleton className="h-32 w-full rounded-xl" />
+          <Skeleton className="h-32 w-full rounded-card" />
           <div className="grid grid-cols-4 gap-3">
-             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}
+             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-card" />)}
           </div>
         </div>
-        <Skeleton className="h-[400px] w-full rounded-xl" />
+        <Skeleton className="h-[400px] w-full rounded-card" />
       </div>
     </div>
   );

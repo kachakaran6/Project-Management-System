@@ -213,7 +213,7 @@ export default function PageEditorPage() {
       TaskItem.configure({ nested: true }),
       Mention.configure({
         HTMLAttributes: {
-          class: "rounded-md bg-primary/10 px-1.5 py-0.5 text-primary font-medium",
+          class: "rounded-button bg-primary/10 px-1.5 py-0.5 text-primary font-medium",
         },
       }),
       TextAlign.configure({
@@ -235,7 +235,7 @@ export default function PageEditorPage() {
     editorProps: {
       attributes: {
         class:
-          "ProseMirror page-editor min-h-[520px] w-full rounded-2xl border border-border/60 bg-card px-6 py-6 text-[16px] leading-7 text-foreground shadow-sm outline-none sm:px-8",
+          "ProseMirror page-editor min-h-[520px] w-full rounded-card border border-border/60 bg-card px-6 py-6 text-[16px] leading-7 text-foreground shadow-sm outline-none sm:px-8",
       },
       handleKeyDown: (view, event) => {
         if (!canEdit) return false;
@@ -649,7 +649,7 @@ export default function PageEditorPage() {
   if (pageQuery.isLoading) {
     return (
       <div className="mx-auto w-full max-w-5xl px-4 py-10">
-        <div className="h-10 w-48 animate-pulse rounded-lg bg-muted/40" />
+        <div className="h-10 w-48 animate-pulse rounded-card bg-muted/40" />
       </div>
     );
   }
@@ -674,7 +674,7 @@ export default function PageEditorPage() {
   return (
     <div className="relative min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.10),transparent_38%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.08),transparent_35%)] bg-background pb-20">
       <div className="sticky top-2 z-40 mx-auto w-full max-w-295 px-4 pt-3">
-        <div className="flex items-center gap-1 overflow-x-auto rounded-2xl border border-border/60 bg-background/90 p-2 shadow-xl backdrop-blur-xl">
+        <div className="flex items-center gap-1 overflow-x-auto rounded-card border border-border/60 bg-background/90 p-2 shadow-xl backdrop-blur-xl">
           <Button
             variant="ghost"
             size="sm"
@@ -764,7 +764,7 @@ export default function PageEditorPage() {
       <div className="mx-auto grid w-full max-w-295 grid-cols-1 gap-6 px-4 pt-8 lg:grid-cols-[1fr_290px]">
         <main className="mx-auto w-full max-w-195">
           {coverUrl ? (
-            <div className="mb-4 h-44 overflow-hidden rounded-2xl border border-border/40 bg-card">
+            <div className="mb-4 h-44 overflow-hidden rounded-card border border-border/40 bg-card">
               <img src={coverUrl} alt="Page cover" className="h-full w-full object-cover" />
             </div>
           ) : null}
@@ -772,7 +772,7 @@ export default function PageEditorPage() {
           <div className="mb-5 flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="rounded-xl border border-border/50 bg-card px-3 py-2 text-lg"
+              className="rounded-card border border-border/50 bg-card px-3 py-2 text-lg"
               onClick={() => {
                 if (!canEdit) return;
                 const nextIcon = safePrompt("Set page icon (emoji recommended)");
@@ -857,7 +857,7 @@ export default function PageEditorPage() {
           </div>
 
           {editor?.isActive("table") ? (
-            <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border/50 bg-card p-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2 rounded-card border border-border/50 bg-card p-2">
               <Button size="sm" variant="outline" onClick={() => editor.chain().focus().addColumnAfter().run()}>
                 Add column
               </Button>
@@ -875,7 +875,7 @@ export default function PageEditorPage() {
 
           {slashOpen && canEdit ? (
             <div
-              className="fixed z-50 w-72 rounded-xl border border-border/60 bg-background/95 p-2 shadow-2xl backdrop-blur"
+              className="fixed z-50 w-72 rounded-card border border-border/60 bg-background/95 p-2 shadow-2xl backdrop-blur"
               style={{
                 top: slashPos.top,
                 left: Math.max(16, slashPos.left - 30),
@@ -889,13 +889,13 @@ export default function PageEditorPage() {
                   <button
                     key={command.id}
                     type="button"
-                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted"
+                    className="flex w-full items-center gap-3 rounded-card px-2 py-2 text-left hover:bg-muted"
                     onClick={() => {
                       command.run();
                       setSlashOpen(false);
                     }}
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border/40 bg-card">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-button border border-border/40 bg-card">
                       <command.icon className="size-4" />
                     </div>
                     <div>
@@ -910,7 +910,7 @@ export default function PageEditorPage() {
         </main>
 
         <aside className="space-y-4 lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto">
-          <section className="rounded-2xl border border-border/60 bg-card p-3">
+          <section className="rounded-card border border-border/60 bg-card p-3">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Block Navigator
             </h3>
@@ -929,7 +929,7 @@ export default function PageEditorPage() {
                       moveBlock(dragIndex, index);
                       setDragIndex(null);
                     }}
-                    className="group flex items-start gap-2 rounded-lg border border-transparent px-2 py-2 hover:border-border/60 hover:bg-muted/50"
+                    className="group flex items-start gap-2 rounded-card border border-transparent px-2 py-2 hover:border-border/60 hover:bg-muted/50"
                   >
                     <GripVertical className="mt-0.5 size-4 text-muted-foreground/60" />
                     <div className="min-w-0 flex-1">
@@ -957,7 +957,7 @@ export default function PageEditorPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border/60 bg-card p-3">
+          <section className="rounded-card border border-border/60 bg-card p-3">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Visibility
             </h3>
@@ -977,7 +977,7 @@ export default function PageEditorPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border/60 bg-card p-3">
+          <section className="rounded-card border border-border/60 bg-card p-3">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Actions
             </h3>
@@ -1045,7 +1045,7 @@ export default function PageEditorPage() {
               const isShared = (page.allowedUsers || []).some((id) => String(id) === String(member.id));
 
               return (
-                <div key={member.id} className="flex items-center justify-between rounded-xl border border-border/40 p-2">
+                <div key={member.id} className="flex items-center justify-between rounded-card border border-border/40 p-2">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={member.avatarUrl} alt={member.firstName} />

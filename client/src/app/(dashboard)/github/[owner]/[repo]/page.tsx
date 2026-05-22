@@ -25,7 +25,7 @@ export default function RepositoryDetailsPage() {
           variant="ghost"
           size="icon"
           onClick={() => router.push("/github")}
-          className="size-8 rounded-sm hover:bg-muted/50"
+          className="size-8 rounded-button hover:bg-muted/50"
         >
           <ArrowLeft className="size-4 text-muted-foreground" />
         </Button>
@@ -40,20 +40,20 @@ export default function RepositoryDetailsPage() {
         <RepositoryDetailsHeader owner={owner} repo={repo} />
 
         <Tabs defaultValue="branches" className="w-full">
-          <TabsList className="bg-muted/30 border border-border/20 p-1 rounded-md h-12 w-full justify-start overflow-x-auto overflow-y-hidden">
-            <TabsTrigger value="branches" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-sm text-sm font-semibold h-full px-6 flex items-center gap-2">
+          <TabsList className="bg-muted/30 border border-border/20 p-1 rounded-button h-12 w-full justify-start overflow-x-auto overflow-y-hidden">
+            <TabsTrigger value="branches" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-button text-sm font-semibold h-full px-6 flex items-center gap-2">
               <GitBranch className="size-4" />
               Branches & Code
             </TabsTrigger>
-            <TabsTrigger value="commits" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-sm text-sm font-semibold h-full px-6 flex items-center gap-2">
+            <TabsTrigger value="commits" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-button text-sm font-semibold h-full px-6 flex items-center gap-2">
               <GitCommit className="size-4" />
               Commits
             </TabsTrigger>
-            <TabsTrigger value="pulls" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-sm text-sm font-semibold h-full px-6 flex items-center gap-2">
+            <TabsTrigger value="pulls" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-button text-sm font-semibold h-full px-6 flex items-center gap-2">
               <GitPullRequest className="size-4" />
               Pull Requests
             </TabsTrigger>
-            <TabsTrigger value="issues" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-sm text-sm font-semibold h-full px-6 flex items-center gap-2">
+            <TabsTrigger value="issues" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-button text-sm font-semibold h-full px-6 flex items-center gap-2">
               <AlertCircle className="size-4" />
               Issues
             </TabsTrigger>

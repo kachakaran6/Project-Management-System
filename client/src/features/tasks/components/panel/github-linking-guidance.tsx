@@ -34,14 +34,14 @@ export function GithubLinkingGuidance({ taskCode, projectId, isProjectConnected 
         </div>
         <button 
           onClick={() => setIsHelpOpen(true)}
-          className="p-1 rounded-sm hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
+          className="p-1 rounded-button hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
         >
           <Info className="size-3.5" />
         </button>
       </div>
 
       <div className="relative group">
-        <div className="flex items-center justify-between p-3 rounded-md border border-border/40 bg-muted/5 group-hover:bg-muted/10 transition-all border-dashed">
+        <div className="flex items-center justify-between p-3 rounded-button border border-border/40 bg-muted/5 group-hover:bg-muted/10 transition-all border-dashed">
           <div className="flex flex-col gap-0.5">
             <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none">Your Task ID</span>
             <span className="text-sm font-black tracking-tight text-foreground">{taskCode}</span>
@@ -51,7 +51,7 @@ export function GithubLinkingGuidance({ taskCode, projectId, isProjectConnected 
             variant="ghost" 
             size="sm" 
             onClick={() => copyToClipboard(taskCode)}
-            className="h-8 rounded-sm border border-border/10 bg-background/50 hover:bg-primary/10 hover:text-primary transition-all px-2.5 gap-1.5 shadow-sm"
+            className="h-8 rounded-button border border-border/10 bg-background/50 hover:bg-primary/10 hover:text-primary transition-all px-2.5 gap-1.5 shadow-sm"
           >
             <Copy className="size-3" />
             <span className="text-[10px] font-bold">COPY ID</span>
@@ -60,7 +60,7 @@ export function GithubLinkingGuidance({ taskCode, projectId, isProjectConnected 
       </div>
 
       {!isProjectConnected ? (
-        <div className="p-2 rounded-sm bg-amber-500/5 border border-amber-500/10 flex items-center justify-between gap-3">
+        <div className="p-2 rounded-button bg-amber-500/5 border border-amber-500/10 flex items-center justify-between gap-3">
            <p className="text-[9px] text-amber-600 font-medium leading-tight max-w-[200px]">
             GitHub not connected. Activity tracking disabled.
           </p>

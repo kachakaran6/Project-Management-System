@@ -45,6 +45,14 @@ export function RadiusApplicator() {
     root.style.setProperty("--radius-md", config.md);
     root.style.setProperty("--radius-lg", config.lg);
     root.style.setProperty("--radius-xl", config.xl);
+    
+    // Semantic Radius
+    root.style.setProperty("--radius-card", config.card);
+    root.style.setProperty("--radius-button", config.button);
+    root.style.setProperty("--radius-input", config.input);
+    root.style.setProperty("--radius-modal", config.modal);
+    root.style.setProperty("--radius-dropdown", config.dropdown);
+    root.style.setProperty("--radius-badge", config.badge);
   }, [radius]);
 
   return null;

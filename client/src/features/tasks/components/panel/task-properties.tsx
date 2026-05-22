@@ -171,7 +171,7 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
               <span>Created By</span>
             </div>
             <div>
-              <div className="flex items-center gap-2 rounded-sm border border-border/10 bg-muted/5 px-2 py-1 transition-colors cursor-default max-w-fit">
+              <div className="flex items-center gap-2 rounded-button border border-border/10 bg-muted/5 px-2 py-1 transition-colors cursor-default max-w-fit">
                 <Avatar className="h-5.5 w-5.5 ring-1 ring-border/10">
                   <AvatarImage src={creatorInfo.avatarUrl} alt={creatorInfo.name} />
                   <AvatarFallback className="text-[9px] bg-muted/50 text-muted-foreground font-bold uppercase">

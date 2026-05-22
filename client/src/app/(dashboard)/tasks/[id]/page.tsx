@@ -113,37 +113,37 @@ export default function TaskDetailsPage() {
     return (
       <div className="mx-auto w-full max-w-5xl space-y-8 animate-in fade-in duration-500">
         <div className="flex flex-col gap-4">
-          <Skeleton className="h-10 w-2/3 rounded-xl" />
-          <Skeleton className="h-4 w-1/3 rounded-md" />
+          <Skeleton className="h-10 w-2/3 rounded-card" />
+          <Skeleton className="h-4 w-1/3 rounded-button" />
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
           <div className="md:col-span-2 space-y-6">
             <Card className="border-border/40">
               <CardHeader>
-                <Skeleton className="h-5 w-32 rounded-md" />
+                <Skeleton className="h-5 w-32 rounded-button" />
               </CardHeader>
               <CardContent className="space-y-4">
-                <Skeleton className="h-4 w-full rounded-md" />
-                <Skeleton className="h-4 w-full rounded-md" />
-                <Skeleton className="h-4 w-4/5 rounded-md" />
+                <Skeleton className="h-4 w-full rounded-button" />
+                <Skeleton className="h-4 w-full rounded-button" />
+                <Skeleton className="h-4 w-4/5 rounded-button" />
                 <div className="pt-4 space-y-3">
-                  <Skeleton className="h-3 w-1/4 rounded-md" />
-                  <Skeleton className="h-3 w-1/4 rounded-md" />
+                  <Skeleton className="h-3 w-1/4 rounded-button" />
+                  <Skeleton className="h-3 w-1/4 rounded-button" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="border-border/40">
               <CardHeader>
-                <Skeleton className="h-5 w-24 rounded-md" />
+                <Skeleton className="h-5 w-24 rounded-button" />
               </CardHeader>
               <CardContent className="space-y-6">
                 {[1, 2, 3].map(i => (
                   <div key={i} className="flex gap-4">
                     <SkeletonAvatar className="size-10" />
                     <div className="flex-1 space-y-2">
-                      <Skeleton className="h-10 w-full rounded-xl" />
+                      <Skeleton className="h-10 w-full rounded-card" />
                     </div>
                   </div>
                 ))}
@@ -154,14 +154,14 @@ export default function TaskDetailsPage() {
           <div className="space-y-6">
             <Card className="border-border/40">
               <CardHeader>
-                <Skeleton className="h-5 w-24 rounded-md" />
+                <Skeleton className="h-5 w-24 rounded-button" />
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center gap-3 p-3 rounded-xl border border-border/20">
+                <div className="flex items-center gap-3 p-3 rounded-card border border-border/20">
                   <SkeletonAvatar className="size-10" />
                   <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-4 w-3/4 rounded-md" />
-                    <Skeleton className="h-3 w-1/2 rounded-md" />
+                    <Skeleton className="h-4 w-3/4 rounded-button" />
+                    <Skeleton className="h-3 w-1/2 rounded-button" />
                   </div>
                 </div>
               </CardContent>
@@ -169,11 +169,11 @@ export default function TaskDetailsPage() {
 
             <Card className="border-border/40">
               <CardHeader>
-                <Skeleton className="h-5 w-32 rounded-md" />
+                <Skeleton className="h-5 w-32 rounded-button" />
               </CardHeader>
               <CardContent className="space-y-3">
-                <Skeleton className="h-10 w-full rounded-xl" />
-                <Skeleton className="h-10 w-full rounded-xl" />
+                <Skeleton className="h-10 w-full rounded-card" />
+                <Skeleton className="h-10 w-full rounded-card" />
               </CardContent>
             </Card>
           </div>
@@ -218,7 +218,7 @@ export default function TaskDetailsPage() {
         </CardHeader>
         <CardContent>
           {creator ? (
-            <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/3 px-4 py-3">
+            <div className="flex items-center gap-3 rounded-card border border-white/5 bg-white/3 px-4 py-3">
               <Avatar className="h-11 w-11">
                 <AvatarImage src={creator.avatarUrl} alt={creator.name} />
                 <AvatarFallback className="bg-primary/10 text-primary">
@@ -236,7 +236,7 @@ export default function TaskDetailsPage() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/3 px-4 py-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 rounded-card border border-white/5 bg-white/3 px-4 py-3 text-sm text-muted-foreground">
               <User className="size-4" />
               Creator information is unavailable for this task.
             </div>

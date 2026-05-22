@@ -74,7 +74,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
       {commentsQuery.isLoading ? (
         <ul className="space-y-3">
           {Array.from({ length: 3 }).map((_, idx) => (
-            <li key={idx} className="rounded-lg border border-border bg-card p-3">
+            <li key={idx} className="rounded-card border border-border bg-card p-3">
               <div className="flex items-start gap-3">
                 <Skeleton className="size-8 rounded-full" />
                 <div className="w-full space-y-2">
@@ -87,7 +87,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
           ))}
         </ul>
       ) : comments.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
+        <p className="rounded-card border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
           No comments yet
         </p>
       ) : (

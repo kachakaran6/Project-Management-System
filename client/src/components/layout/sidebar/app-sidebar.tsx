@@ -131,7 +131,7 @@ export function AppSidebar({
         </Button>
       </div>
 
-      <div className="mt-4 rounded-lg border border-sidebar-border bg-sidebar-accent p-3">
+      <div className="mt-4 rounded-card border border-sidebar-border bg-sidebar-accent p-3">
         <p
           className={cn(
             "text-xs text-sidebar-foreground/85",

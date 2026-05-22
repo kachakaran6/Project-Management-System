@@ -66,7 +66,7 @@ export default function AuditLogPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-sm">
+            <div className="size-8 rounded-card bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-sm">
               <History className="size-5" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -91,14 +91,14 @@ export default function AuditLogPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
           <Input 
             placeholder="Search by task title or code..." 
-            className="pl-10 bg-card/40 backdrop-blur-md border-border/40 h-10 rounded-xl focus-visible:ring-primary/20"
+            className="pl-10 bg-card/40 backdrop-blur-md border-border/40 h-10 rounded-card focus-visible:ring-primary/20"
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           />
         </div>
 
         <Select value={filters.status} onValueChange={(val) => setFilters({ ...filters, status: val })}>
-          <SelectTrigger className="h-10 rounded-xl bg-card/40 backdrop-blur-md border-border/40 focus:ring-primary/20 text-sm">
+          <SelectTrigger className="h-10 rounded-card bg-card/40 backdrop-blur-md border-border/40 focus:ring-primary/20 text-sm">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent className="bg-card backdrop-blur-xl border-border/40">
@@ -110,7 +110,7 @@ export default function AuditLogPage() {
           </SelectContent>
         </Select>
 
-        <Button variant="secondary" className="h-10 rounded-xl font-bold text-xs uppercase tracking-wider gap-2 bg-primary/10 hover:bg-primary/20 text-primary border-primary/10 shadow-sm">
+        <Button variant="secondary" className="h-10 rounded-card font-bold text-xs uppercase tracking-wider gap-2 bg-primary/10 hover:bg-primary/20 text-primary border-primary/10 shadow-sm">
           <Filter className="size-3.5" />
           Apply Filters
         </Button>
@@ -133,10 +133,10 @@ export default function AuditLogPage() {
                 {isLoading ? (
                   [1, 2, 3, 4, 5, 6].map((i) => (
                     <TableRow key={i} className="border-border/20">
-                      <TableCell className="py-4 px-6"><Skeleton className="h-5 w-32 rounded-md" /></TableCell>
-                      <TableCell className="py-4 px-6"><Skeleton className="h-5 w-48 rounded-md" /></TableCell>
+                      <TableCell className="py-4 px-6"><Skeleton className="h-5 w-32 rounded-button" /></TableCell>
+                      <TableCell className="py-4 px-6"><Skeleton className="h-5 w-48 rounded-button" /></TableCell>
                       <TableCell className="py-4 px-6"><Skeleton className="h-8 w-32 rounded-full" /></TableCell>
-                      <TableCell className="py-4 px-6"><Skeleton className="h-5 w-24 rounded-md" /></TableCell>
+                      <TableCell className="py-4 px-6"><Skeleton className="h-5 w-24 rounded-button" /></TableCell>
                     </TableRow>
                   ))
                 ) : history.length === 0 ? (
@@ -218,7 +218,7 @@ export default function AuditLogPage() {
                  size="sm" 
                  disabled={page === 1} 
                  onClick={() => setPage(page - 1)}
-                 className="size-8 p-0 rounded-lg bg-background/50 border-border/40 hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-30"
+                 className="size-8 p-0 rounded-card bg-background/50 border-border/40 hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-30"
                >
                  <ChevronLeft className="size-4" />
                </Button>
@@ -227,7 +227,7 @@ export default function AuditLogPage() {
                  size="sm" 
                  disabled={page === totalPages} 
                  onClick={() => setPage(page + 1)}
-                 className="size-8 p-0 rounded-lg bg-background/50 border-border/40 hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-30"
+                 className="size-8 p-0 rounded-card bg-background/50 border-border/40 hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-30"
                >
                  <ChevronRight className="size-4" />
                </Button>

@@ -38,7 +38,7 @@ export const TaskStatusHistory: React.FC<TaskStatusHistoryProps> = ({ taskId }) 
             <Skeleton className="h-10 w-10 rounded-full shrink-0" />
             <div className="space-y-2 flex-1">
               <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-8 w-full rounded-sm" />
+              <Skeleton className="h-8 w-full rounded-button" />
             </div>
           </div>
         ))}
@@ -49,7 +49,7 @@ export const TaskStatusHistory: React.FC<TaskStatusHistoryProps> = ({ taskId }) 
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-        <div className="size-12 rounded-sm bg-destructive/10 flex items-center justify-center text-destructive mb-4">
+        <div className="size-12 rounded-button bg-destructive/10 flex items-center justify-center text-destructive mb-4">
           <AlertCircle className="size-6" />
         </div>
         <h3 className="text-sm font-bold">Failed to load history</h3>

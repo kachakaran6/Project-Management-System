@@ -26,7 +26,7 @@ const ContextMenuItem = ({ label, icon: Icon, onClick, variant = "default" }: Co
       onClick();
     }}
     className={cn(
-      "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium transition-all duration-150 rounded-sm cursor-pointer",
+      "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium transition-all duration-150 rounded-dropdown cursor-pointer",
       "hover:bg-[#1F2937]",
       variant === "danger" ? "text-rose-500 hover:text-rose-400" : "text-slate-300 hover:text-white"
     )}
@@ -118,7 +118,7 @@ export const TaskContextMenu = ({
         visibility: isReady ? 'visible' : 'hidden'
       }}
       className={cn(
-        "fixed z-[9999] w-[200px] bg-[#111827] border border-[#1F2937] rounded-md p-[6px] shadow-[0_10px_38px_-10px_rgba(0,0,0,0.5),0_10px_20px_-15px_rgba(0,0,0,0.3)]",
+        "fixed z-[9999] w-[200px] bg-[#111827] border border-[#1F2937] rounded-dropdown p-[6px] shadow-[0_10px_38px_-10px_rgba(0,0,0,0.5),0_10px_20px_-15px_rgba(0,0,0,0.3)]",
         "animate-in fade-in zoom-in-95 duration-100 ease-out"
       )}
       onContextMenu={(e) => e.preventDefault()}

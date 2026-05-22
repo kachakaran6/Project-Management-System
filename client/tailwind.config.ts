@@ -60,6 +60,12 @@ const config: Config = {
         md: "var(--radius-md)",
         lg: "var(--radius-lg)",
         xl: "var(--radius-xl)",
+        card: "var(--radius-card)",
+        button: "var(--radius-button)",
+        input: "var(--radius-input)",
+        modal: "var(--radius-modal)",
+        dropdown: "var(--radius-dropdown)",
+        badge: "var(--radius-badge)",
       },
       boxShadow: {
         xs: "var(--shadow-xs)",

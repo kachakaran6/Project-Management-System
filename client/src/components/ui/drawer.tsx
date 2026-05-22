@@ -32,7 +32,7 @@ export function DrawerContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground">
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-button p-1 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground">
           <X className="size-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>

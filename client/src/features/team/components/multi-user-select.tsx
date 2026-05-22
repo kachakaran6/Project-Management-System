@@ -112,7 +112,7 @@ export function MultiUserSelect({
             !hideDefaultTrigger && (
               <div
                 className={cn(
-                  "flex min-h-10 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+                  "flex min-h-10 w-full flex-wrap items-center gap-1 rounded-button border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
                   disabled && "opacity-60 cursor-not-allowed pointer-events-none bg-muted/20"
                 )}
                 onClick={() => !disabled && setOpen(true)}
@@ -160,7 +160,7 @@ export function MultiUserSelect({
           <div className="flex items-center border-b px-3 py-2">
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
             <input
-              className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm focus-visible:outline-none! placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 w-full rounded-button bg-transparent py-3 text-sm focus-visible:outline-none! placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="Search team members..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -172,7 +172,7 @@ export function MultiUserSelect({
             {searchResults && searchResults.length > 1 && !query && (
               <div
                 className={cn(
-                  "flex items-center gap-3 p-2 px-3 mb-1 cursor-pointer rounded-md transition-colors",
+                  "flex items-center gap-3 p-2 px-3 mb-1 cursor-pointer rounded-button transition-colors",
                   value.length === searchResults.length 
                     ? "bg-primary/10 text-primary" 
                     : "hover:bg-muted"
@@ -211,8 +211,8 @@ export function MultiUserSelect({
                   <div key={i} className="flex items-center gap-3 p-2">
                     <Skeleton className="size-8 rounded-full" />
                     <div className="flex-1 space-y-1.5">
-                      <Skeleton className="h-3.5 w-24 rounded-md" />
-                      <Skeleton className="h-2.5 w-32 rounded-md opacity-60" />
+                      <Skeleton className="h-3.5 w-24 rounded-button" />
+                      <Skeleton className="h-2.5 w-32 rounded-button opacity-60" />
                     </div>
                   </div>
                 ))}

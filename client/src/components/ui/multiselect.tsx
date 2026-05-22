@@ -34,7 +34,7 @@ export function MultiSelect({
   return (
     <div
       className={cn(
-        "space-y-2 rounded-md border border-input bg-surface p-2",
+        "space-y-2 rounded-input border border-input bg-surface p-2",
         className,
       )}
     >

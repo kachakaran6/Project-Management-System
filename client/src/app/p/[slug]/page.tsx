@@ -31,7 +31,7 @@ export default function PublicPageView() {
       <div className="min-h-screen bg-background px-4 py-10 text-foreground">
         <div className="mx-auto max-w-4xl animate-pulse">
           <div className="mb-4 h-4 w-32 rounded-full bg-muted/40" />
-          <div className="mb-8 h-14 w-3/4 rounded-2xl bg-muted/40" />
+          <div className="mb-8 h-14 w-3/4 rounded-card bg-muted/40" />
           <div className="space-y-4">
             <div className="h-4 w-full rounded bg-muted/30" />
             <div className="h-4 w-full rounded bg-muted/30" />
@@ -45,8 +45,8 @@ export default function PublicPageView() {
   if (publicPageQuery.isError || !page) {
     return (
       <div className="min-h-screen bg-background px-4 py-10 text-foreground">
-        <div className="mx-auto flex max-w-xl flex-col items-center rounded-3xl border border-border/50 bg-card/60 px-8 py-14 text-center shadow-sm">
-          <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-muted/60">
+        <div className="mx-auto flex max-w-xl flex-col items-center rounded-card border border-border/50 bg-card/60 px-8 py-14 text-center shadow-sm">
+          <div className="mb-4 flex size-14 items-center justify-center rounded-card bg-muted/60">
             <FileText className="size-6 text-muted-foreground" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Page not found</h1>
@@ -107,12 +107,12 @@ export default function PublicPageView() {
               className="prose prose-slate dark:prose-invert max-w-none text-[16px] leading-8 text-foreground/90
               [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4
               [&_blockquote]:border-l-2 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:italic
-              [&_code]:rounded-md [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5
-              [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:bg-slate-950 [&_pre]:p-4 [&_pre]:text-slate-100
-              [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-lg
+              [&_code]:rounded-button [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5
+              [&_pre]:overflow-x-auto [&_pre]:rounded-card [&_pre]:bg-slate-950 [&_pre]:p-4 [&_pre]:text-slate-100
+              [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-card
               [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2
               [&_th]:border [&_th]:border-border [&_th]:bg-muted/40 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left
-              [&_img]:max-w-full [&_img]:rounded-xl
+              [&_img]:max-w-full [&_img]:rounded-card
               [&_ul[data-type='taskList']]:list-none [&_ul[data-type='taskList']]:pl-0
               [&_li[data-type='taskItem']]:my-2 [&_li[data-type='taskItem']>label]:mr-3 [&_li[data-type='taskItem']>label]:inline-flex
               [&_input[type='checkbox']]:pointer-events-none"

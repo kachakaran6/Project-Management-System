@@ -14,7 +14,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         data-slot="textarea"
         aria-invalid={error || props["aria-invalid"] === true}
         className={cn(
-          "flex min-h-24 w-full rounded-md border bg-surface px-3 py-2 text-sm transition-all duration-200 outline-none",
+          "flex min-h-24 w-full rounded-input border bg-surface px-3 py-2 text-sm transition-all duration-200 outline-none",
           "placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ring-offset-background",
           error ? "border-destructive" : "border-input",
           "disabled:cursor-not-allowed disabled:opacity-60",

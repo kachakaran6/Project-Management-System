@@ -59,7 +59,7 @@ export default function ProfileAnalyticsPage() {
           variant="ghost"
           size="icon"
           onClick={() => router.push("/github")}
-          className="size-8 rounded-sm hover:bg-muted/50"
+          className="size-8 rounded-button hover:bg-muted/50"
         >
           <ArrowLeft className="size-4 text-muted-foreground" />
         </Button>
@@ -69,10 +69,10 @@ export default function ProfileAnalyticsPage() {
       <div className="flex-1 overflow-auto p-4 space-y-4">
         
         {/* Profile Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 p-4 bg-card/40 border border-border/40 rounded-xl relative overflow-hidden">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 p-4 bg-card/40 border border-border/40 rounded-card relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-primary/20 via-indigo-500/20 to-purple-500/20" />
           
-          <Avatar className="size-20 rounded-xl border-4 border-background shadow-xl z-10">
+          <Avatar className="size-20 rounded-card border-4 border-background shadow-xl z-10">
             <AvatarImage src={profile.avatar_url} />
             <AvatarFallback className="text-xl font-black">{username[0].toUpperCase()}</AvatarFallback>
           </Avatar>
@@ -107,28 +107,28 @@ export default function ProfileAnalyticsPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="p-4 border border-border/40 bg-card rounded-xl flex flex-col items-center justify-center text-center hover:border-primary/50 transition-colors">
+          <div className="p-4 border border-border/40 bg-card rounded-card flex flex-col items-center justify-center text-center hover:border-primary/50 transition-colors">
             <div className="size-8 rounded-full bg-blue-500/10 flex items-center justify-center mb-2">
               <Users className="size-4 text-blue-500" />
             </div>
             <span className="text-xl font-black">{profile.followers}</span>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Followers</span>
           </div>
-          <div className="p-4 border border-border/40 bg-card rounded-xl flex flex-col items-center justify-center text-center hover:border-primary/50 transition-colors">
+          <div className="p-4 border border-border/40 bg-card rounded-card flex flex-col items-center justify-center text-center hover:border-primary/50 transition-colors">
             <div className="size-8 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
               <UserPlus className="size-4 text-emerald-500" />
             </div>
             <span className="text-xl font-black">{profile.following}</span>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Following</span>
           </div>
-          <div className="p-4 border border-border/40 bg-card rounded-xl flex flex-col items-center justify-center text-center hover:border-primary/50 transition-colors">
+          <div className="p-4 border border-border/40 bg-card rounded-card flex flex-col items-center justify-center text-center hover:border-primary/50 transition-colors">
             <div className="size-8 rounded-full bg-purple-500/10 flex items-center justify-center mb-2">
               <BookOpen className="size-4 text-purple-500" />
             </div>
             <span className="text-xl font-black">{profile.public_repos}</span>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Repositories</span>
           </div>
-          <div className="p-4 border border-border/40 bg-card rounded-xl flex flex-col items-center justify-center text-center hover:border-primary/50 transition-colors">
+          <div className="p-4 border border-border/40 bg-card rounded-card flex flex-col items-center justify-center text-center hover:border-primary/50 transition-colors">
             <div className="size-8 rounded-full bg-amber-500/10 flex items-center justify-center mb-2">
               <Star className="size-4 text-amber-500" />
             </div>
@@ -139,7 +139,7 @@ export default function ProfileAnalyticsPage() {
 
         {/* GitHub Activity & Streaks */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="p-6 border border-border/40 bg-card rounded-xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-primary/40 transition-colors">
+          <div className="p-6 border border-border/40 bg-card rounded-card flex flex-col items-center justify-center relative overflow-hidden group hover:border-primary/40 transition-colors">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-purple-500/5 z-0" />
             <h3 className="text-lg font-bold mb-6 w-full text-left z-10 flex items-center gap-2">
               <Activity className="size-5 text-primary" />
@@ -154,7 +154,7 @@ export default function ProfileAnalyticsPage() {
             </div>
           </div>
 
-          <div className="p-6 border border-border/40 bg-card rounded-xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-emerald-500/40 transition-colors">
+          <div className="p-6 border border-border/40 bg-card rounded-card flex flex-col items-center justify-center relative overflow-hidden group hover:border-emerald-500/40 transition-colors">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-primary/5 z-0" />
             <h3 className="text-lg font-bold mb-6 w-full text-left z-10 flex items-center gap-2">
               <Star className="size-5 text-emerald-500" />
@@ -173,7 +173,7 @@ export default function ProfileAnalyticsPage() {
         {/* Charts & Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          <div className="p-6 border border-border/40 bg-card rounded-xl flex flex-col hover:border-primary/40 transition-colors">
+          <div className="p-6 border border-border/40 bg-card rounded-card flex flex-col hover:border-primary/40 transition-colors">
             <h3 className="text-lg font-bold mb-6">Top Languages</h3>
             {languageData.length > 0 ? (
               <div className="flex-1 min-h-[300px]">
@@ -201,13 +201,13 @@ export default function ProfileAnalyticsPage() {
             )}
           </div>
 
-          <div className="p-6 border border-border/40 bg-card rounded-xl flex flex-col hover:border-primary/40 transition-colors">
+          <div className="p-6 border border-border/40 bg-card rounded-card flex flex-col hover:border-primary/40 transition-colors">
             <h3 className="text-lg font-bold mb-4">Recent Repositories</h3>
             <div className="space-y-3 overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
               {repos.slice(0, 10).map((repo: any) => (
                 <div 
                   key={repo.id} 
-                  className="p-3 border border-border/20 rounded-md hover:bg-muted/10 transition-colors flex justify-between items-center cursor-pointer"
+                  className="p-3 border border-border/20 rounded-button hover:bg-muted/10 transition-colors flex justify-between items-center cursor-pointer"
                   onClick={() => router.push(`/github/${repo.owner.login}/${repo.name}`)}
                 >
                   <div className="min-w-0 flex-1 pr-4">

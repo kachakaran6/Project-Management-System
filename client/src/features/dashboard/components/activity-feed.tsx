@@ -51,7 +51,7 @@ export function ActivityFeed({ data }: ActivityFeedProps) {
                     {formatRelativeTime(item.createdAt)}
                   </p>
                 </div>
-                <span className="rounded-md bg-secondary p-1.5 text-secondary-foreground">
+                <span className="rounded-button bg-secondary p-1.5 text-secondary-foreground">
                   {item.type === "project" ? (
                     <FolderKanban className="size-3.5" />
                   ) : (

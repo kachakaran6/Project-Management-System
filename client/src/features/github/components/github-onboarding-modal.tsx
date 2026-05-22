@@ -43,7 +43,7 @@ export const GithubOnboardingModal = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl rounded-md bg-background">
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl rounded-modal bg-background">
         <div className="relative">
           {/* Decorative Header with pattern */}
           <div className="h-28 bg-gradient-to-br from-primary via-primary/90 to-primary/80 relative overflow-hidden">
@@ -82,7 +82,7 @@ export const GithubOnboardingModal = () => {
               ].map((feature, i) => (
                 <div key={i} className="flex gap-4 group">
                   <div className={cn(
-                    "size-10 rounded-sm shrink-0 flex items-center justify-center transition-all group-hover:scale-110",
+                    "size-10 rounded-button shrink-0 flex items-center justify-center transition-all group-hover:scale-110",
                     feature.color
                   )}>
                     {feature.icon}
@@ -95,7 +95,7 @@ export const GithubOnboardingModal = () => {
               ))}
             </div>
 
-            <div className="bg-muted/30 p-4 rounded-md border border-border/40">
+            <div className="bg-muted/30 p-4 rounded-modal border border-border/40">
               <div className="flex items-center gap-2 text-xs font-bold text-foreground mb-2">
                 <span className="flex size-5 items-center justify-center rounded-xs bg-primary text-primary-foreground text-[10px]">!</span>
                 Pro Tip: Task Automation
@@ -107,7 +107,7 @@ export const GithubOnboardingModal = () => {
 
             <Button 
               onClick={handleClose}
-              className="w-full h-12 rounded-sm bg-primary text-primary-foreground font-bold text-sm shadow-xl shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all group"
+              className="w-full h-12 rounded-button bg-primary text-primary-foreground font-bold text-sm shadow-xl shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all group"
             >
               Get Started
               <ArrowRight className="size-4 ml-2 group-hover:translate-x-1 transition-transform" />

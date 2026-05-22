@@ -132,7 +132,7 @@ function OtpInput({
           onFocus={(e) => e.target.select()}
           aria-label={`OTP digit ${i + 1}`}
           className={[
-            "h-12 w-10 rounded-xl border text-center text-lg font-bold tabular-nums",
+            "h-12 w-10 rounded-card border text-center text-lg font-bold tabular-nums",
             "transition-all duration-150 outline-none",
             "border-border bg-card text-foreground",
             "focus:border-primary focus:ring-2 focus:ring-primary/20",
@@ -359,7 +359,7 @@ function StepOtpVerify({
   return (
     <>
       <CardHeader className="space-y-1">
-        <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+        <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-card bg-primary/10">
           <ShieldCheck className="size-6 text-primary" />
         </div>
         <CardTitle className="text-2xl font-bold">Verify your email</CardTitle>

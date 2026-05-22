@@ -18,15 +18,27 @@ export interface RadiusConfig {
   md: string;
   lg: string;
   xl: string;
+  card: string;
+  button: string;
+  input: string;
+  modal: string;
+  dropdown: string;
+  badge: string;
 }
 
 export const RADIUS_CONFIGS: Record<RadiusPreset, RadiusConfig> = {
   compact: {
-    xs: "2px",
-    sm: "4px",
-    md: "6px",
-    lg: "8px",
-    xl: "10px",
+    xs: "0px",
+    sm: "2px",
+    md: "4px",
+    lg: "6px",
+    xl: "8px",
+    card: "4px",
+    button: "4px",
+    input: "4px",
+    modal: "6px",
+    dropdown: "4px",
+    badge: "2px",
   },
   standard: {
     xs: "4px",
@@ -34,6 +46,12 @@ export const RADIUS_CONFIGS: Record<RadiusPreset, RadiusConfig> = {
     md: "8px",
     lg: "10px",
     xl: "12px",
+    card: "12px",
+    button: "10px",
+    input: "10px",
+    modal: "14px",
+    dropdown: "10px",
+    badge: "6px",
   },
   comfortable: {
     xs: "6px",
@@ -41,6 +59,12 @@ export const RADIUS_CONFIGS: Record<RadiusPreset, RadiusConfig> = {
     md: "10px",
     lg: "12px",
     xl: "14px",
+    card: "16px",
+    button: "14px",
+    input: "14px",
+    modal: "18px",
+    dropdown: "14px",
+    badge: "8px",
   },
   soft: {
     xs: "8px",
@@ -48,6 +72,12 @@ export const RADIUS_CONFIGS: Record<RadiusPreset, RadiusConfig> = {
     md: "12px",
     lg: "14px",
     xl: "16px",
+    card: "20px",
+    button: "16px",
+    input: "16px",
+    modal: "24px",
+    dropdown: "16px",
+    badge: "10px",
   },
 };
 

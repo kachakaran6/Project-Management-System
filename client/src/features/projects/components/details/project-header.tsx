@@ -61,7 +61,7 @@ export function ProjectHeader({
           <Link 
             href="/projects" 
             className={cn(
-              "group flex items-center justify-center rounded-lg bg-muted/50 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all",
+              "group flex items-center justify-center rounded-card bg-muted/50 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all",
               isFocusMode ? "size-7" : "size-8"
             )}
           >
@@ -90,17 +90,17 @@ export function ProjectHeader({
               <div className="flex items-center ml-2 pl-4 border-l border-border/10">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-2 px-2 hover:bg-muted/50 rounded-lg">
+                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-2 px-2 hover:bg-muted/50 rounded-card">
                       <currentTab.icon className="size-3.5 text-muted-foreground" />
                       <span className="font-medium">{currentTab.label}</span>
                       <ChevronDown className="size-3 text-muted-foreground/50" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48 p-2 rounded-xl">
+                  <DropdownMenuContent align="start" className="w-48 p-2 rounded-card">
                     {tabs.map((tab) => (
                       <DropdownMenuItem 
                         key={tab.id} 
-                        className={cn("text-xs rounded-lg gap-2", activeTab === tab.id && "bg-muted font-bold")}
+                        className={cn("text-xs rounded-card gap-2", activeTab === tab.id && "bg-muted font-bold")}
                         onClick={() => onTabChange(tab.id)}
                       >
                         <tab.icon className="size-3.5" />
@@ -123,7 +123,7 @@ export function ProjectHeader({
                   variant="ghost" 
                   size="icon" 
                   className={cn(
-                    "rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all",
+                    "rounded-card text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all",
                     isFocusMode ? "size-7" : "size-8"
                   )}
                   onClick={toggleFocusMode}
@@ -142,7 +142,7 @@ export function ProjectHeader({
               variant="ghost" 
               size="icon" 
               className={cn(
-                "rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all",
+                "rounded-card text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all",
                 isFocusMode ? "size-7" : "size-8"
               )}
               onClick={onEditClick}

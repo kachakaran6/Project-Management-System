@@ -216,8 +216,8 @@ export const ProfileAnalyticsSkeleton = () => (
 
     <div className="flex-1 overflow-auto p-6 space-y-8">
       {/* Profile Header Skeleton */}
-      <div className="flex flex-col md:flex-row items-start md:items-center gap-6 p-6 bg-card/40 border border-border/40 rounded-xl">
-        <SkeletonBlock width={96} height={96} rounded="rounded-xl" className="shrink-0" />
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-6 p-6 bg-card/40 border border-border/40 rounded-card">
+        <SkeletonBlock width={96} height={96} rounded="rounded-card" className="shrink-0" />
         <div className="space-y-4 flex-1 w-full">
           <SkeletonBlock width="40%" height={32} />
           <SkeletonBlock width="20%" height={20} />
@@ -233,7 +233,7 @@ export const ProfileAnalyticsSkeleton = () => (
       {/* Stats Grid Skeleton */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="p-5 border border-border/40 bg-card rounded-xl flex flex-col items-center justify-center">
+          <div key={i} className="p-5 border border-border/40 bg-card rounded-card flex flex-col items-center justify-center">
             <SkeletonBlock width={40} height={40} rounded="rounded-full" className="mb-4" />
             <SkeletonBlock width={60} height={24} className="mb-2" />
             <SkeletonBlock width={80} height={12} />
@@ -244,9 +244,9 @@ export const ProfileAnalyticsSkeleton = () => (
       {/* 2x2 Grid for Charts/Streaks Skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="p-6 border border-border/40 bg-card rounded-xl flex flex-col">
+          <div key={i} className="p-6 border border-border/40 bg-card rounded-card flex flex-col">
             <SkeletonBlock width={150} height={20} className="mb-6" />
-            <SkeletonBlock width="100%" height={200} rounded="rounded-lg" />
+            <SkeletonBlock width="100%" height={200} rounded="rounded-card" />
           </div>
         ))}
       </div>

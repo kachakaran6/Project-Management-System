@@ -434,7 +434,7 @@ export default function ActivityLogsPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search actions, entities, metadata"
-            className="h-10 rounded-xl pl-9 text-sm"
+            className="h-10 rounded-card pl-9 text-sm"
           />
         </div>
 
@@ -485,7 +485,7 @@ export default function ActivityLogsPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto rounded-xl border border-border/70 bg-background/40 p-4 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto rounded-card border border-border/70 bg-background/40 p-4 custom-scrollbar">
         <div className="mb-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <p>Organization-wide activity timeline filtered by your selected criteria.</p>
           <p>{pagination ? `${pagination.total} total events` : ''}</p>
@@ -522,7 +522,7 @@ export default function ActivityLogsPage() {
                         <article
                           key={log._id}
                           className={cn(
-                            'relative rounded-xl border border-transparent py-3 pr-2 transition-colors duration-200 hover:border-border/50 hover:bg-muted/15',
+                            'relative rounded-card border border-transparent py-3 pr-2 transition-colors duration-200 hover:border-border/50 hover:bg-muted/15',
                             'px-2 -mx-2',
                           )}
                         >
@@ -566,7 +566,7 @@ export default function ActivityLogsPage() {
                               </div>
 
                               {log.metadata?.fieldChanged ? (
-                                <div className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
+                                <div className="rounded-card border border-border/50 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
                                   {formatFieldChange(
                                     String(log.metadata.fieldChanged),
                                     log.metadata.oldValue,
@@ -594,7 +594,7 @@ export default function ActivityLogsPage() {
       </div>
 
       {pagination && pagination.pages > 1 ? (
-        <div className="flex items-center justify-between rounded-xl border border-border/70 bg-background/40 px-4 py-3 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between rounded-card border border-border/70 bg-background/40 px-4 py-3 text-xs text-muted-foreground">
           <p>
             Page {pagination.page} of {pagination.pages} • {pagination.total} events
           </p>

@@ -50,7 +50,7 @@ function SkeletonCard({
   ...props 
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("rounded-3xl border border-border/40 bg-card/30 p-6 space-y-4", className)} {...props}>
+    <div className={cn("rounded-card border border-border/40 bg-card/30 p-6 space-y-4", className)} {...props}>
       <Skeleton className="h-6 w-1/3" />
       <div className="space-y-2">
         <Skeleton className="h-4 w-full" />
@@ -66,7 +66,7 @@ function SkeletonCard({
 
 function SkeletonTaskItem({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("p-4 border border-border/40 rounded-2xl flex items-center gap-4", className)} {...props}>
+    <div className={cn("p-4 border border-border/40 rounded-card flex items-center gap-4", className)} {...props}>
       <Skeleton className="size-5 rounded-md" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-1/2" />

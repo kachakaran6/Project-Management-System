@@ -14,7 +14,7 @@ const FileViewer = ({ owner, repo, path, branchName }: { owner: string, repo: st
   const { data, isLoading, error } = useRepoFileContent(owner, repo, path, branchName);
   
   if (isLoading) return <div className="p-12 flex justify-center"><Loader2 className="size-8 animate-spin text-muted-foreground" /></div>;
-  if (error) return <div className="p-6 text-destructive bg-destructive/10 rounded-md border border-destructive/20 text-sm font-medium">Failed to load file. It might be too large or binary.</div>;
+  if (error) return <div className="p-6 text-destructive bg-destructive/10 rounded-button border border-destructive/20 text-sm font-medium">Failed to load file. It might be too large or binary.</div>;
   if (!data) return null;
 
   // GitHub API returns content as base64
@@ -34,7 +34,7 @@ const FileViewer = ({ owner, repo, path, branchName }: { owner: string, repo: st
   }
 
   return (
-    <div className="border border-border/40 rounded-md shadow-sm overflow-hidden bg-[#0d1117] flex flex-col max-h-[70vh]">
+    <div className="border border-border/40 rounded-button shadow-sm overflow-hidden bg-[#0d1117] flex flex-col max-h-[70vh]">
       <div className="bg-[#161b22] px-4 py-2.5 border-b border-border/20 flex items-center justify-between shrink-0">
         <span className="text-xs font-mono font-medium text-[#c9d1d9] truncate mr-4">{path}</span>
         <span className="text-[10px] font-bold uppercase tracking-wider text-[#8b949e] shrink-0 whitespace-nowrap bg-white/5 px-2 py-1 rounded">
@@ -75,7 +75,7 @@ const BranchCodeExplorer = ({ owner, repo, branch }: { owner: string, repo: stri
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="lg:col-span-1 border border-border/40 rounded-md shadow-sm bg-card flex flex-col h-[70vh]">
+      <div className="lg:col-span-1 border border-border/40 rounded-button shadow-sm bg-card flex flex-col h-[70vh]">
         <div className="p-3 border-b border-border/40 bg-muted/20">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
@@ -98,7 +98,7 @@ const BranchCodeExplorer = ({ owner, repo, branch }: { owner: string, repo: stri
                 <div 
                   key={file.path} 
                   className={cn(
-                    "flex flex-col gap-0.5 px-3 py-2 rounded-sm cursor-pointer transition-colors group", 
+                    "flex flex-col gap-0.5 px-3 py-2 rounded-button cursor-pointer transition-colors group", 
                     selectedPath === file.path ? "bg-primary/10 border-primary/20" : "hover:bg-muted/50 border-transparent"
                   )}
                   onClick={() => setSelectedPath(file.path)}
@@ -126,7 +126,7 @@ const BranchCodeExplorer = ({ owner, repo, branch }: { owner: string, repo: stri
          {selectedPath ? (
             <FileViewer owner={owner} repo={repo} path={selectedPath} branchName={branch.name} />
          ) : (
-            <div className="h-full min-h-[400px] flex flex-col items-center justify-center gap-3 border border-dashed border-border/40 rounded-md bg-muted/5 text-muted-foreground">
+            <div className="h-full min-h-[400px] flex flex-col items-center justify-center gap-3 border border-dashed border-border/40 rounded-button bg-muted/5 text-muted-foreground">
               <div className="p-4 rounded-full bg-muted/20">
                 <FileText className="size-8 text-muted-foreground/40" />
               </div>
@@ -151,11 +151,11 @@ export const BranchesTab = ({ owner, repo }: { owner: string; repo: string }) =>
   }
 
   if (error) {
-    return <div className="text-destructive p-4 bg-destructive/10 rounded-md border border-destructive/20 text-sm font-medium">Error loading branches.</div>;
+    return <div className="text-destructive p-4 bg-destructive/10 rounded-button border border-destructive/20 text-sm font-medium">Error loading branches.</div>;
   }
 
   if (!branches?.length) {
-    return <div className="p-8 text-center text-muted-foreground bg-muted/10 rounded-md border border-dashed border-border/40">No branches found.</div>;
+    return <div className="p-8 text-center text-muted-foreground bg-muted/10 rounded-button border border-dashed border-border/40">No branches found.</div>;
   }
 
   // Determine default branch if available (usually the one protected or first one)
@@ -165,7 +165,7 @@ export const BranchesTab = ({ owner, repo }: { owner: string; repo: string }) =>
     return (
       <div className="space-y-6">
         {/* Header for selected branch */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-md border border-border/40 bg-card shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-button border border-border/40 bg-card shadow-sm">
           <div className="flex items-center gap-4">
             <Button 
               variant="outline" 
@@ -223,7 +223,7 @@ export const BranchesTab = ({ owner, repo }: { owner: string; repo: string }) =>
             <div 
               key={branch.name} 
               className={cn(
-                "p-4 border rounded-md flex items-center justify-between transition-all cursor-pointer group",
+                "p-4 border rounded-button flex items-center justify-between transition-all cursor-pointer group",
                 isDefault ? "bg-primary/5 border-primary/20 shadow-sm" : "bg-card border-border/40 hover:border-primary/40 hover:shadow-sm"
               )}
               onClick={() => setSelectedBranch(branch)}

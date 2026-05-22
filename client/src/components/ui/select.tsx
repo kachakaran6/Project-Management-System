@@ -21,7 +21,7 @@ export const SelectTrigger = React.forwardRef<
     <SelectPrimitive.Trigger
       ref={ref}
       className={cn(
-        "flex h-10 w-full items-center justify-between rounded-md border bg-surface px-3 py-2 text-sm outline-none transition-all",
+        "flex h-10 w-full items-center justify-between rounded-input border bg-surface px-3 py-2 text-sm outline-none transition-all",
         "focus:ring-2 focus:ring-ring focus:ring-offset-1 ring-offset-background",
         error ? "border-destructive" : "border-input",
         className,
@@ -48,7 +48,7 @@ export const SelectContent = React.forwardRef<
       <SelectPrimitive.Content
         ref={ref}
         className={cn(
-          "relative z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md",
+          "relative z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-input border border-border bg-popover text-popover-foreground shadow-md",
           className,
         )}
         position={position}
@@ -89,7 +89,7 @@ export const SelectItem = React.forwardRef<
     <SelectPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none",
+        "relative flex w-full cursor-default select-none items-center rounded-input py-1.5 pl-8 pr-2 text-sm outline-none",
         "focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className,
       )}

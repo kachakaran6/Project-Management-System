@@ -58,7 +58,7 @@ export function DeleteTaskModal({
             <Button
               variant="outline"
               disabled={isPending}
-              className="flex-1 font-medium bg-background border-border/50 hover:bg-muted hover:text-foreground transition-all rounded-md h-10"
+              className="flex-1 font-medium bg-background border-border/50 hover:bg-muted hover:text-foreground transition-all rounded-modal h-10"
             >
               Cancel
             </Button>
@@ -70,7 +70,7 @@ export function DeleteTaskModal({
               onConfirm();
             }}
             disabled={isPending}
-            className="flex-1 font-bold shadow-lg shadow-destructive/20 transition-all hover:scale-[1.02] active:scale-[0.98] rounded-md h-10"
+            className="flex-1 font-bold shadow-lg shadow-destructive/20 transition-all hover:scale-[1.02] active:scale-[0.98] rounded-modal h-10"
           >
             {isPending ? (
               <>

@@ -76,7 +76,7 @@ export function ResourceCard({
   };
 
   return (
-    <Card className="group relative overflow-hidden rounded-xl border border-border/10 bg-card/30 hover:bg-card/50 hover:border-primary/20 transition-all duration-300">
+    <Card className="group relative overflow-hidden rounded-card border border-border/10 bg-card/30 hover:bg-card/50 hover:border-primary/20 transition-all duration-300">
       <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1 min-w-0 flex-1">
@@ -95,11 +95,11 @@ export function ResourceCard({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-7 rounded-lg text-muted-foreground hover:bg-primary/10 transition-all">
+              <Button variant="ghost" size="icon" className="size-7 rounded-card text-muted-foreground hover:bg-primary/10 transition-all">
                 <MoreVertical className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="rounded-xl">
+            <DropdownMenuContent align="end" className="rounded-card">
               <DropdownMenuItem onClick={() => onEdit(resource)} className="gap-2 text-xs">
                 <Edit2 className="size-3" />
                 Edit
@@ -118,7 +118,7 @@ export function ResourceCard({
 
         <div className="space-y-1.5">
           {resource.url && (
-            <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/20 border border-border/5 group/item">
+            <div className="flex items-center justify-between gap-2 p-2 rounded-card bg-muted/20 border border-border/5 group/item">
               <div className="flex items-center gap-2 min-w-0">
                 <Globe className="size-3 text-muted-foreground shrink-0" />
                 <span className="text-[11px] font-medium truncate text-muted-foreground">{resource.url}</span>
@@ -127,12 +127,12 @@ export function ResourceCard({
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="size-6 rounded-md hover:bg-muted/50" 
+                  className="size-6 rounded-button hover:bg-muted/50" 
                   onClick={() => copyToClipboard(resource.url!, "URL")}
                 >
                   {copiedField === "URL" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
                 </Button>
-                <Button variant="ghost" size="icon" className="size-6 rounded-md hover:bg-muted/50" asChild>
+                <Button variant="ghost" size="icon" className="size-6 rounded-button hover:bg-muted/50" asChild>
                   <a href={resource.url} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="size-3" />
                   </a>
@@ -144,7 +144,7 @@ export function ResourceCard({
           {resource.type === "credential" && (
             <div className="space-y-1.5">
               {resource.username && (
-                <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/20 border border-border/5 group/item">
+                <div className="flex items-center justify-between gap-2 p-2 rounded-card bg-muted/20 border border-border/5 group/item">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[9px] font-medium text-muted-foreground/40 uppercase tracking-wider shrink-0">User</span>
                     <span className="text-[11px] font-medium truncate">{resource.username}</span>
@@ -152,7 +152,7 @@ export function ResourceCard({
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="size-6 rounded-md shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-muted/50" 
+                    className="size-6 rounded-button shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-muted/50" 
                     onClick={() => copyToClipboard(resource.username!, "Username")}
                   >
                     {copiedField === "Username" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
@@ -160,7 +160,7 @@ export function ResourceCard({
                 </div>
               )}
 
-              <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/20 border border-border/5 group/item">
+              <div className="flex items-center justify-between gap-2 p-2 rounded-card bg-muted/20 border border-border/5 group/item">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-[9px] font-medium text-muted-foreground/40 uppercase tracking-wider shrink-0">Pass</span>
                   <span className={cn(
@@ -174,7 +174,7 @@ export function ResourceCard({
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="size-6 rounded-md hover:bg-muted/50" 
+                    className="size-6 rounded-button hover:bg-muted/50" 
                     onClick={handleReveal}
                     disabled={isLoading}
                   >
@@ -184,7 +184,7 @@ export function ResourceCard({
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="size-6 rounded-md hover:bg-muted/50" 
+                      className="size-6 rounded-button hover:bg-muted/50" 
                       onClick={() => copyToClipboard(decryptedPassword, "Password")}
                     >
                       {copiedField === "Password" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
