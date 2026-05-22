@@ -1,7 +1,7 @@
 // HMR trigger luxury
 
 import { useRouter, useSearchParams, usePathname } from "@/lib/next-navigation";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { TaskContextMenu } from "./task-context-menu";
 import { toast } from "sonner";
 import {
@@ -66,7 +66,10 @@ import {
   useUpdateTaskStatusMutation,
   useCreateTaskMutation,
   useUpdateTaskMutation,
+  useInfiniteTasksQuery,
+  tasksQueryKeys,
 } from "@/features/tasks/hooks/use-tasks-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { EditTaskModal } from "@/features/tasks/components/edit-task-modal";
 import { DeleteTaskModal } from "@/features/tasks/components/delete-task-modal";
 import { TagPill } from "@/features/tags/components/tag-pill";
@@ -84,6 +87,7 @@ interface ColumnDef {
   label: string;
   icon: React.ElementType;
   dotColor: string;
+  isHiddenIfEmpty?: boolean;
 }
 
 const ALL_STATUS_CONFIG: ColumnDef[] = [
@@ -357,7 +361,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
             onContextMenu={(e) => {
               if (canEdit) {
                 e.preventDefault();
-                onContextMenu(e, tid(task));
+                onContextMenu(e, task);
               }
             }}
             className={cn(
@@ -795,18 +799,20 @@ function QuickAddInput({
 // --- TaskBoard (Main) ---------------------------------------------------------
 
 interface TaskBoardProps {
-  tasks: Task[];
+  filters: any;
   projectId?: string;
   canEdit?: boolean;
   isEmbedded?: boolean;
 }
 
 export function TaskBoard({
-  tasks: initialTasks,
+  filters,
   projectId,
   canEdit = true,
   isEmbedded = false,
 }: TaskBoardProps) {
+  const queryClient = useQueryClient();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
   const { data: dynamicStatuses, isLoading: isLoadingStatuses } = useStatusesQuery();
 
   const boardColumns = useMemo(() => {
@@ -854,79 +860,11 @@ export function TaskBoard({
     });
   }, [dynamicStatuses]);
 
-  // Derived grouping from props (used when NOT syncing)
-  const groupedData = useMemo(() => {
-    const tasks: Record<string, Task> = {};
-    const columns: Record<string, string[]> = {};
 
-    // Initialize all columns from the current board config
-    boardColumns.forEach((c) => {
-      columns[c.id] = [];
-    });
-
-    initialTasks.forEach((t) => {
-      const id = normalizeId(t.id || (t as any)._id) || "";
-      tasks[id] = t;
-
-      // Force 'draft' status column for draft tasks
-      const resolved = resolveStatus(t, dynamicStatuses);
-      const statusId = resolved 
-        ? (normalizeId(resolved._id) || normalizeId(resolved.id)) 
-        : (t.isDraft ? "draft" : normalizeId(t.status));
-
-      if (statusId && columns[statusId]) {
-        columns[statusId].push(id);
-      } else {
-        // Find by fallback (name match)
-        const matchedCol = boardColumns.find(c => 
-          normalizeId(c.id) === statusId || 
-          c.label.toLowerCase().replace(/[\s_-]/g, "") === String(statusId).toLowerCase().replace(/[\s_-]/g, "")
-        );
-        if (matchedCol && columns[matchedCol.id]) {
-          columns[matchedCol.id].push(id);
-        }
-      }
-    });
-
-    return { tasks, columns };
-  }, [initialTasks, boardColumns]);
-
-  // Local state for optimistic updates during drag and drop
-  const [optimisticData, setOptimisticData] = useState<{
-    tasks: Record<string, Task>;
-    columns: Record<string, string[]>;
-  } | null>(null);
-
-  // The final data to render (prefer optimistic data if syncing)
-  const data = optimisticData || groupedData;
-
-  // --- 3. APPLY VISIBILITY FILTER (AFTER GROUPING) ---
+  // --- 3. APPLY VISIBILITY FILTER ---
   const visibleColumns = useMemo(() => {
-    // Helper to enforce string comparison
-    const normalizeId = (id: any) => id?.toString();
-
-    const cols = boardColumns.filter((col) => {
-      const colId = normalizeId(col.id);
-      const tasksInColumn = data.columns[colId] || [];
-      const hasTasks = tasksInColumn.length > 0;
-
-      // ALWAYS show if tasks exist
-      if (hasTasks) return true;
-
-      // Hide only if explicitly allowed (isHiddenIfEmpty = true)
-      if (col.isHiddenIfEmpty) return false;
-
-      return true;
-    });
-
-    // ⚠️ EDGE CASE HANDLING: If all filtered columns are empty, still show at least one primary column (e.g. Backlog or Todo)
-    if (cols.length === 0 && boardColumns.length > 0) {
-      const primaryFallback = boardColumns.find(c => !c.isHiddenIfEmpty);
-      return [primaryFallback || boardColumns[0]];
-    }
-
-    return cols;
-  }, [data.columns, boardColumns]);
+    return boardColumns;
+  }, [boardColumns]);
 
   const changeStatus = useUpdateTaskStatusMutation();
   const updateTask = useUpdateTaskMutation();
@@ -939,9 +877,9 @@ export function TaskBoard({
   const { openPanel } = useTaskPanelStore();
 
   const [isSyncing, setIsSyncing] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; taskId: string } | null>(null);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; task: Task } | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [deletingTask, setDeletingTask] = useState<Task | null>(null);
 
   const handleOpen = (id: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -954,8 +892,7 @@ export function TaskBoard({
     window.open(`/tasks/${id}`, "_blank");
   };
 
-  const handleDuplicate = async (id: string) => {
-    const task = data.tasks[id];
+  const handleDuplicate = async (task: Task) => {
     if (!task) return;
     try {
       await createTask.mutateAsync({
@@ -975,101 +912,104 @@ export function TaskBoard({
     toast.success("Link copied to clipboard");
   };
 
-  const handleDelete = (id: string) => {
-    setDeleteId(id);
+  const handleDelete = (task: Task) => {
+    setDeletingTask(task);
   };
 
   const confirmDelete = async () => {
-    if (!deleteId) return;
+    if (!deletingTask) return;
+    const id = deletingTask.id || (deletingTask as any)._id;
+    if (!id) return;
     try {
-      await deleteTask.mutateAsync(deleteId);
+      await deleteTask.mutateAsync(id as string);
       toast.success("Task deleted");
-      setDeleteId(null);
+      setDeletingTask(null);
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Failed to delete task";
       toast.error(errorMsg);
     }
   };
 
-  // Clear optimistic data when props change and we are NOT syncing
-  useEffect(() => {
-    if (!isSyncing) {
-      setOptimisticData(null);
-    }
-  }, [initialTasks, isSyncing]);
 
   const onDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
     if (!destination) return;
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    )
-      return;
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
-    const prevData = { ...data };
     const sourceColId = source.droppableId;
     const destColId = destination.droppableId;
 
-    const newColumns = { ...data.columns };
-    const sourceTaskIds = Array.from(newColumns[sourceColId]);
-    sourceTaskIds.splice(source.index, 1);
-    const destTaskIds =
-      sourceColId === destColId
-        ? sourceTaskIds
-        : Array.from(newColumns[destColId]);
-    destTaskIds.splice(destination.index, 0, draggableId);
-    newColumns[sourceColId] = sourceTaskIds;
-    newColumns[destColId] = destTaskIds;
+    const sourceQueryKey = tasksQueryKeys.infinite({ ...filters, status: sourceColId }, activeOrgId);
+    const destQueryKey = tasksQueryKeys.infinite({ ...filters, status: destColId }, activeOrgId);
 
-    const newTasks = { ...data.tasks };
-    if (sourceColId !== destColId) {
-      newTasks[draggableId] = {
-        ...newTasks[draggableId],
-        status: destColId as TaskStatus,
-      };
+    let taskToMove: Task | null = null;
+    const sourceData: any = queryClient.getQueryData(sourceQueryKey);
+    if (sourceData?.pages) {
+      for (const page of sourceData.pages) {
+        const found = page.data?.items?.find((t: any) => String(t.id || (t as any)._id) === draggableId);
+        if (found) {
+          taskToMove = { ...found, status: destColId as TaskStatus };
+          break;
+        }
+      }
     }
 
-    setOptimisticData({ tasks: newTasks, columns: newColumns });
-    setIsSyncing(true);
+    if (!taskToMove) return;
+
+    // Optimistic Update
+    const removeTaskFromPages = (pages: any[]) => {
+      return pages.map((p: any) => ({
+        ...p,
+        data: {
+          ...p.data,
+          items: p.data?.items.filter((t: any) => String(t.id || t._id) !== draggableId)
+        }
+      }));
+    };
+
+    const addTaskToPages = (pages: any[], index: number, task: any) => {
+      if (pages.length === 0) return pages;
+      const newPages = [...pages];
+      const newItems = [...(newPages[0].data?.items || [])];
+      newItems.splice(index, 0, task);
+      newPages[0] = { 
+        ...newPages[0], 
+        data: {
+          ...newPages[0].data,
+          items: newItems
+        }
+      };
+      return newPages;
+    };
+
+    queryClient.setQueryData(sourceQueryKey, (old: any) => {
+      if (!old?.pages) return old;
+      let newPages = removeTaskFromPages(old.pages);
+      if (sourceColId === destColId) {
+         newPages = addTaskToPages(newPages, destination.index, taskToMove);
+      }
+      return { ...old, pages: newPages };
+    });
+
+    if (sourceColId !== destColId) {
+      queryClient.setQueryData(destQueryKey, (old: any) => {
+        if (!old?.pages) return old;
+        const newPages = addTaskToPages(old.pages, destination.index, taskToMove);
+        return { ...old, pages: newPages };
+      });
+    }
 
     try {
-      // IF MOVING OUT OF DRAFT_COLUMN, AUTO-PUBLISH
       if (sourceColId === "DRAFT_COLUMN" && destColId !== "DRAFT_COLUMN") {
-        await updateTask.mutateAsync({
-          id: draggableId,
-          data: {
-            status: destColId as TaskStatus,
-            isDraft: false,
-            isPublic: true,
-            position: destination.index
-          }
-        });
-      }
-      // IF MOVING INTO DRAFT_COLUMN, UNPUBLISH
-      else if (sourceColId !== "DRAFT_COLUMN" && destColId === "DRAFT_COLUMN") {
-        await updateTask.mutateAsync({
-          id: draggableId,
-          data: {
-            isDraft: true,
-            isPublic: false,
-            position: destination.index
-          }
-        });
-      }
-      // NORMAL STATUS CHANGE
-      else {
-        await changeStatus.mutateAsync({
-          id: draggableId,
-          status: destColId as TaskStatus,
-          position: destination.index,
-        });
+        await updateTask.mutateAsync({ id: draggableId, data: { status: destColId as TaskStatus, isDraft: false, isPublic: true, position: destination.index } });
+      } else if (sourceColId !== "DRAFT_COLUMN" && destColId === "DRAFT_COLUMN") {
+        await updateTask.mutateAsync({ id: draggableId, data: { isDraft: true, isPublic: false, position: destination.index } });
+      } else {
+        await changeStatus.mutateAsync({ id: draggableId, status: destColId as TaskStatus, position: destination.index });
       }
     } catch (err) {
-      setOptimisticData(null);
+      queryClient.invalidateQueries({ queryKey: tasksQueryKeys.infinite({ ...filters }, activeOrgId) });
       toast.error("Failed to sync task move.");
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -1096,17 +1036,14 @@ export function TaskBoard({
             isEmbedded ? "p-0 pt-4" : "p-4 pr-12"
           )}>
             {visibleColumns.map((col) => {
-              const columnTasks = data.columns[col.id]?.map(
-                (id) => data.tasks[id],
-              ) || [];
               return (
                 <KanbanColumn
                   key={col.id}
                   col={col}
-                  tasks={columnTasks}
+                  filters={filters}
                   canEdit={canEdit}
                   projectId={projectId}
-                  onContextMenu={(e, id) => setContextMenu({ x: e.clientX, y: e.clientY, taskId: id })}
+                  onContextMenu={(e, task) => setContextMenu({ x: e.clientX, y: e.clientY, task })}
                   onDelete={handleDelete}
                   isEmbedded={isEmbedded}
                 />
@@ -1118,29 +1055,31 @@ export function TaskBoard({
 
       {contextMenu && (
         <TaskContextMenu
-          {...contextMenu}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          taskId={String(contextMenu.task.id || (contextMenu.task as any)._id)}
           onClose={() => setContextMenu(null)}
           onOpen={handleOpen}
           onOpenNewTab={handleOpenNewTab}
-          onEdit={(id) => setEditingTaskId(id)}
-          onDuplicate={handleDuplicate}
+          onEdit={() => setEditingTask(contextMenu.task)}
+          onDuplicate={() => handleDuplicate(contextMenu.task)}
           onCopyLink={handleCopyLink}
-          onDelete={handleDelete}
+          onDelete={() => handleDelete(contextMenu.task)}
         />
       )}
 
-      {editingTaskId && data.tasks[editingTaskId] && (
+      {editingTask && (
         <EditTaskModal
-          task={data.tasks[editingTaskId]}
-          open={!!editingTaskId}
-          onOpenChange={(open) => !open && setEditingTaskId(null)}
+          task={editingTask}
+          open={!!editingTask}
+          onOpenChange={(open) => !open && setEditingTask(null)}
         />
       )}
 
       <DeleteTaskModal
-        open={Boolean(deleteId)}
-        onOpenChange={(open) => !open && setDeleteId(null)}
-        taskTitle={deleteId ? data.tasks[deleteId]?.title : undefined}
+        open={Boolean(deletingTask)}
+        onOpenChange={(open) => !open && setDeletingTask(null)}
+        taskTitle={deletingTask?.title}
         isPending={deleteTask.isPending}
         onConfirm={confirmDelete}
       />
@@ -1152,7 +1091,7 @@ export function TaskBoard({
 
 function KanbanColumn({
   col,
-  tasks,
+  filters,
   canEdit,
   projectId,
   onContextMenu,
@@ -1160,14 +1099,46 @@ function KanbanColumn({
   isEmbedded = false,
 }: {
   col: ColumnDef;
-  tasks: Task[];
+  filters: any;
   canEdit: boolean;
   projectId?: string;
-  onContextMenu: (e: React.MouseEvent, taskId: string) => void;
-  onDelete: (id: string) => void;
+  onContextMenu: (e: React.MouseEvent, task: Task) => void;
+  onDelete: (task: Task) => void;
   isEmbedded?: boolean;
 }) {
   const [isQuickAdd, setQuickAdd] = useState(false);
+  const observerTarget = useRef(null);
+
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteTasksQuery(
+    { ...filters, status: col.id },
+    { enabled: true }
+  );
+
+  const tasks = useMemo(() => {
+    return data?.pages.flatMap((page: any) => page.data?.items || []) || [];
+  }, [data]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Hide the column entirely if it's empty AND configured to hide
+  if (col.isHiddenIfEmpty && !isLoading && tasks.length === 0) {
+    return null;
+  }
 
   return (
     <div className={cn(
@@ -1215,28 +1186,38 @@ function KanbanColumn({
               snapshot.isDraggingOver ? "bg-white/1" : "bg-transparent",
             )}>
             <div className="space-y-2.5">
-              {tasks.map((task, index) => (
-                <TaskCard
-                  key={tid(task)}
-                  task={task}
-                  index={index}
-                  canEdit={canEdit}
-                  onContextMenu={onContextMenu}
-                  onDelete={onDelete}
-                  isEmbedded={isEmbedded}
-                />
-              ))}
+              {isLoading ? (
+                <div className="flex flex-col gap-2 p-2">
+                  <div className="h-24 w-full bg-muted/40 animate-pulse rounded-md" />
+                  <div className="h-24 w-full bg-muted/40 animate-pulse rounded-md" />
+                </div>
+              ) : tasks.length === 0 && !snapshot.isDraggingOver ? (
+                <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-white/2 py-12 opacity-20 mt-2 mx-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    No tasks
+                  </p>
+                </div>
+              ) : (
+                tasks.map((task, index) => (
+                  <TaskCard
+                    key={String(task.id || (task as any)._id)}
+                    task={task}
+                    index={index}
+                    canEdit={canEdit}
+                    onContextMenu={onContextMenu}
+                    onDelete={onDelete}
+                    isEmbedded={isEmbedded}
+                  />
+                ))
+              )}
             </div>
 
             {provided.placeholder}
-
-            {tasks.length === 0 && !snapshot.isDraggingOver && (
-              <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-white/2 py-12 opacity-20 mt-2 mx-1">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                  No tasks
-                </p>
-              </div>
-            )}
+            
+            {/* Intersection Observer Target */}
+            <div ref={observerTarget} className="h-8 flex items-center justify-center mt-2">
+              {isFetchingNextPage && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+            </div>
           </div>
         )}
       </Droppable>
@@ -1273,4 +1254,5 @@ function KanbanColumn({
     </div>
   );
 }
+
 
