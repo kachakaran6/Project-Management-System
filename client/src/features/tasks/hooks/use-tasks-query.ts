@@ -1,7 +1,6 @@
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery, InfiniteData } from "@tanstack/react-query";
 import { useAppSelector } from "@/hooks/useAppSelector";
-
 
 import { taskApi } from "@/features/tasks/api/task.api";
 import {
@@ -19,6 +18,7 @@ export const tasksQueryKeys = {
   detail: (id: string, orgId?: string | null) => ["tasks", orgId, "detail", id] as const,
   draftsAll: (orgId?: string | null) => ["tasks", orgId, "drafts"] as const,
   drafts: (filters: TaskDraftFilters = {}, orgId?: string | null) => ["tasks", orgId, "drafts", filters] as const,
+  infinite: (filters: TaskFilters, orgId?: string | null) => ["tasks", orgId, "infinite", filters] as const,
 };
 
 
@@ -38,6 +38,27 @@ export function useTasksQuery(
     enabled: (options?.enabled ?? true) && !!activeOrgId,
     refetchInterval: options?.refetchInterval,
     refetchOnMount: true,
+  });
+}
+
+export function useInfiniteTasksQuery(
+  filters: TaskFilters = {},
+  options?: {
+    enabled?: boolean;
+    staleTime?: number;
+  },
+) {
+  const { activeOrgId } = useAppSelector((state) => state.auth);
+  return useInfiniteQuery({
+    queryKey: tasksQueryKeys.infinite(filters, activeOrgId),
+    queryFn: ({ pageParam = 1 }) =>
+      taskApi.getTasks({ ...filters, page: pageParam as number, limit: filters.limit || 20 }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.data?.meta?.hasNextPage ? allPages.length + 1 : undefined;
+    },
+    staleTime: options?.staleTime ?? 0,
+    enabled: (options?.enabled ?? true) && !!activeOrgId,
   });
 }
 
@@ -74,7 +95,27 @@ export function useCreateTaskMutation() {
       };
 
       queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
-        if (!old || !old.data || !Array.isArray(old.data.items)) return old;
+        if (!old) return old;
+        
+        // Handle infinite queries
+        if (old.pages) {
+          const newPages = old.pages.map((page: any, i: number) => {
+            if (i === 0) {
+              return {
+                ...page,
+                data: {
+                  ...page.data,
+                  items: [tempTask, ...(page.data?.items || [])]
+                }
+              };
+            }
+            return page;
+          });
+          return { ...old, pages: newPages };
+        }
+        
+        // Handle regular queries
+        if (!old.data || !Array.isArray(old.data.items)) return old;
         return {
           ...old,
           data: {
@@ -253,7 +294,22 @@ export function useUpdateTaskStatusMutation() {
 
       // Optimistically update to the new value in all lists
       queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
-        if (!old || !old.data || !Array.isArray(old.data.items)) return old;
+        if (!old) return old;
+        
+        if (old.pages) {
+          const newPages = old.pages.map((page: any) => ({
+            ...page,
+            data: {
+              ...page.data,
+              items: (page.data?.items || []).map((t: any) =>
+                (t.id === id || t._id === id) ? { ...t, status } : t
+              )
+            }
+          }));
+          return { ...old, pages: newPages };
+        }
+        
+        if (!old.data || !Array.isArray(old.data.items)) return old;
         return {
           ...old,
           data: {
@@ -340,7 +396,22 @@ export function useUpdateTaskMutation() {
 
       // Update lists
       queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
-        if (!old || !old.data || !Array.isArray(old.data.items)) return old;
+        if (!old) return old;
+        
+        if (old.pages) {
+          const newPages = old.pages.map((page: any) => ({
+            ...page,
+            data: {
+              ...page.data,
+              items: (page.data?.items || []).map((t: any) =>
+                (t.id === id || t._id === id) ? { ...t, ...data } : t
+              )
+            }
+          }));
+          return { ...old, pages: newPages };
+        }
+        
+        if (!old.data || !Array.isArray(old.data.items)) return old;
         return {
           ...old,
           data: {

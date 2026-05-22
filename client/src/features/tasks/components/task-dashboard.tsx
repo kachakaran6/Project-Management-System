@@ -401,11 +401,8 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   const listQuery = useTasksQuery(listFilters, {
     enabled: viewMode === "list" || viewMode === "table",
   });
-  const kanbanQuery = useTasksQuery(kanbanFilters, {
-    enabled: viewMode === "kanban",
-  });
 
-  const isAnyFetching = listQuery.isFetching || kanbanQuery.isFetching;
+  const isAnyFetching = listQuery.isFetching;
 
   const totalPages = Math.max(1, listQuery.data?.data.meta?.totalPages ?? 1);
   const listRows = useMemo(() => filterVisibleTasks(listQuery.data?.data.items ?? [], true), [listQuery.data]);
@@ -435,8 +432,6 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     
     return groups;
   }, [listRows, dynamicStatuses, viewMode]);
-
-  const kanbanRows = useMemo(() => filterVisibleTasks(kanbanQuery.data?.data.items ?? [], true), [kanbanQuery.data]);
 
   const getTaskId = (task: Task) => String(task.id || (task as any)._id || "");
   const getAssignees = (task: Task) => task.assigneeUsers ?? [];
@@ -1228,24 +1223,13 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
 
 
         {viewMode === "kanban" && (
-          <div className="flex-1 h-full animate-in fade-in zoom-in-95 duration-500 overflow-hidden">
-            {kanbanQuery.isLoading ? (
-              <TaskBoardSkeleton />
-            ) : kanbanRows.length === 0 ? (
-              <div className="h-full flex items-center justify-center py-20 bg-card/20 rounded-md border border-border/40">
-                <EmptyState
-                  title="No tasks found"
-                  description="Try changing filters or create a task to get started."
-                />
-              </div>
-            ) : (
-              <TaskBoard
-                tasks={kanbanRows}
-                canEdit={canMutate}
-                projectId={projectId !== "ALL" ? projectId : undefined}
-                isEmbedded={isEmbedded}
-              />
-            )}
+          <div className="flex-1 w-full overflow-hidden flex flex-col pt-0 animate-in fade-in zoom-in-95 duration-500">
+            <TaskBoard
+              filters={sharedFilters}
+              projectId={projectId !== "ALL" ? projectId : undefined}
+              canEdit={canMutate}
+              isEmbedded={isEmbedded}
+            />
           </div>
         )}
       </div>
