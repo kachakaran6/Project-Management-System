@@ -40,7 +40,7 @@ export function ProjectTaskCard({ task, index, onClick, canEdit, isDraggable = t
       {...provided?.dragHandleProps}
       onClick={() => onClick(task)}
       className={cn(
-        "group flex flex-col gap-2.5 p-3 rounded-xl border bg-card transition-all cursor-pointer",
+        "group flex flex-col gap-2.5 p-3 rounded-card border bg-card transition-all cursor-pointer",
         snapshot?.isDragging 
           ? "border-primary shadow-xl ring-2 ring-primary/20 scale-[1.02] z-50" 
           : "border-border/10 hover:border-primary/20 hover:shadow-sm"
@@ -93,7 +93,7 @@ export function ProjectTaskCard({ task, index, onClick, canEdit, isDraggable = t
                   </Avatar>
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="flex flex-col gap-0.5 p-2 rounded-lg border-border/10 bg-card/95 backdrop-blur-md shadow-xl z-[100]">
+              <TooltipContent side="bottom" className="flex flex-col gap-0.5 p-2 rounded-card border-border/10 bg-card/95 backdrop-blur-md shadow-xl z-[100]">
                 <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight">Created By</span>
                 <span className="text-xs font-semibold">{createdByName}</span>
                 {createdByEmail && <span className="text-[10px] text-muted-foreground font-medium">{createdByEmail}</span>}
@@ -114,7 +114,7 @@ export function ProjectTaskCard({ task, index, onClick, canEdit, isDraggable = t
                       </AvatarFallback>
                     </Avatar>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="p-2 rounded-lg bg-card/95 backdrop-blur-md border border-border/10">
+                  <TooltipContent side="bottom" className="p-2 rounded-card bg-card/95 backdrop-blur-md border border-border/10">
                      <p className="text-[10px] font-bold">{a.firstName} {a.lastName}</p>
                      <p className="text-[9px] text-muted-foreground">{a.email}</p>
                   </TooltipContent>

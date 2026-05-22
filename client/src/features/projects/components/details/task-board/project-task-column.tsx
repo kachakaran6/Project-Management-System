@@ -32,7 +32,7 @@ export function ProjectTaskColumn({ id, title, count, tasks, onTaskClick, canEdi
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "flex-1 flex flex-col gap-3 overflow-y-auto no-scrollbar pb-20 transition-colors rounded-xl",
+              "flex-1 flex flex-col gap-3 overflow-y-auto no-scrollbar pb-20 transition-colors rounded-card",
               snapshot.isDraggingOver ? "bg-primary/5 ring-1 ring-primary/10" : ""
             )}
           >
@@ -47,7 +47,7 @@ export function ProjectTaskColumn({ id, title, count, tasks, onTaskClick, canEdi
             ))}
             {provided.placeholder}
             {tasks.length === 0 && !snapshot.isDraggingOver && (
-              <div className="h-24 rounded-xl border border-dashed border-border/10 flex items-center justify-center">
+              <div className="h-24 rounded-card border border-dashed border-border/10 flex items-center justify-center">
                 <span className="text-[10px] font-medium text-muted-foreground/30 uppercase tracking-widest">
                   No tasks
                 </span>

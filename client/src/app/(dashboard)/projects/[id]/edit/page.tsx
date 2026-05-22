@@ -29,7 +29,7 @@ export default function EditProjectPage() {
   if (!canMutate) {
     return (
       <div className="max-w-xl mx-auto mt-20">
-        <Alert variant="destructive" className="rounded-3xl border-destructive/20 bg-destructive/5 p-6">
+        <Alert variant="destructive" className="rounded-card border-destructive/20 bg-destructive/5 p-6">
           <AlertTitle className="text-lg font-bold">Access Denied</AlertTitle>
           <AlertDescription className="text-sm opacity-90 mt-1">
             You don't have the necessary permissions to edit projects.

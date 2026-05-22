@@ -165,21 +165,21 @@ export const TaskRow = ({
           {assignees.length > 0 ? (
             <div className="flex items-center -space-x-2">
               {assignees.slice(0, 3).map((a) => (
-                <Avatar key={a.id} className="h-7 w-7 md:h-8 md:w-8 rounded-sm shadow-sm border border-background">
+                <Avatar key={a.id} className="h-7 w-7 md:h-8 md:w-8 rounded-button shadow-sm border border-background">
                   <AvatarImage src={a.avatarUrl} />
-                  <AvatarFallback className="bg-primary/5 text-primary text-[10px] md:text-xs font-bold rounded-sm border border-primary/10">
+                  <AvatarFallback className="bg-primary/5 text-primary text-[10px] md:text-xs font-bold rounded-button border border-primary/10">
                     {a.name.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
               ))}
               {assignees.length > 3 && (
-                <div className="h-7 w-7 md:h-8 md:w-8 rounded-sm bg-muted flex items-center justify-center text-[9px] font-bold border border-background">
+                <div className="h-7 w-7 md:h-8 md:w-8 rounded-button bg-muted flex items-center justify-center text-[9px] font-bold border border-background">
                   +{assignees.length - 3}
                 </div>
               )}
             </div>
           ) : (
-            <div className="h-7 w-7 md:h-8 md:w-8 rounded-sm border border-dashed border-muted-foreground/30 flex items-center justify-center">
+            <div className="h-7 w-7 md:h-8 md:w-8 rounded-button border border-dashed border-muted-foreground/30 flex items-center justify-center">
               <User className="size-3.5 text-muted-foreground/40" />
             </div>
           )}
@@ -212,12 +212,12 @@ export const TaskRow = ({
                 {statusLabel}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="rounded-md border-border/50 shadow-xl p-1">
+            <DropdownMenuContent align="start" className="rounded-button border-border/50 shadow-xl p-1">
               {dynamicStatuses.map((s: any) => (
                 <DropdownMenuItem 
                   key={s.id || s._id} 
                   onClick={() => handleInlineStatusChange(taskId, s.id || s._id)}
-                  className="rounded-sm py-2"
+                  className="rounded-button py-2"
                 >
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
@@ -251,7 +251,7 @@ export const TaskRow = ({
               {task.priority || "MEDIUM"}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="rounded-md border-border/50 shadow-xl">
+          <DropdownMenuContent align="start" className="rounded-button border-border/50 shadow-xl">
             <DropdownMenuItem onClick={() => handleInlinePriorityChange(taskId, "URGENT")}>Urgent</DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleInlinePriorityChange(taskId, "HIGH")}>High</DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleInlinePriorityChange(taskId, "MEDIUM")}>Medium</DropdownMenuItem>
@@ -263,7 +263,7 @@ export const TaskRow = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex items-center gap-2 cursor-help group/creator">
-               <Avatar className="h-6 w-6 rounded-sm border border-border/40 transition-shadow group-hover/creator:shadow-sm">
+               <Avatar className="h-6 w-6 rounded-button border border-border/40 transition-shadow group-hover/creator:shadow-sm">
                 <AvatarImage src={createdByUser?.avatarUrl} />
                 <AvatarFallback className="bg-primary/5 text-primary text-[8px] font-bold">
                   {createdByName.charAt(0)}
@@ -272,7 +272,7 @@ export const TaskRow = ({
               <span className="text-xs font-semibold whitespace-nowrap group-hover/creator:text-primary transition-colors">{createdByName}</span>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="flex flex-col gap-0.5 p-2 rounded-sm border-border/40 bg-card/95 backdrop-blur-md shadow-xl z-[100]">
+          <TooltipContent side="bottom" className="flex flex-col gap-0.5 p-2 rounded-button border-border/40 bg-card/95 backdrop-blur-md shadow-xl z-[100]">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Created By</span>
             <span className="text-xs font-semibold">{createdByName}</span>
             {createdByEmail && <span className="text-[11px] text-muted-foreground font-medium">{createdByEmail}</span>}
@@ -327,16 +327,16 @@ export const TaskRow = ({
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md hover:bg-muted focus-visible:ring-0 active:scale-90 transition-all">
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-button hover:bg-muted focus-visible:ring-0 active:scale-90 transition-all">
               <MoreHorizontal className="size-4.5 text-muted-foreground/70" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 rounded-md border-border/50 shadow-2xl p-1.5 slide-in-from-right-2">
-            <DropdownMenuItem className="rounded-sm px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => openPanel(tid(task))}>
+          <DropdownMenuContent align="end" className="w-48 rounded-button border-border/50 shadow-2xl p-1.5 slide-in-from-right-2">
+            <DropdownMenuItem className="rounded-button px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => openPanel(tid(task))}>
               <Eye className="mr-2.5 size-4 text-muted-foreground" />
               <span className="text-sm font-medium">View Details</span>
             </DropdownMenuItem>
-            <DropdownMenuItem className="rounded-sm px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={(e) => {
+            <DropdownMenuItem className="rounded-button px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={(e) => {
               e.stopPropagation();
               const rawId = tid(task);
               const taskCode = task.taskCode || (task as any).legacyId || `T-${rawId.slice(-4).toUpperCase()}`;
@@ -347,12 +347,12 @@ export const TaskRow = ({
               <GitBranch className="mr-2.5 size-4 text-muted-foreground" />
               <span className="text-sm font-medium text-foreground">Copy Git Branch</span>
             </DropdownMenuItem>
-            {/* <DropdownMenuItem className="rounded-sm px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => setSelectedTask(task)}>
+            {/* <DropdownMenuItem className="rounded-button px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => setSelectedTask(task)}>
               <Pencil className="mr-2.5 size-4 text-muted-foreground" />
               <span className="text-sm font-medium text-foreground">Edit Task</span>
             </DropdownMenuItem> */}
             <DropdownMenuSeparator className="my-2 bg-border/40" />
-            <DropdownMenuItem className="rounded-sm px-3 py-2 cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive" onClick={() => setDeleteId(taskId)}>
+            <DropdownMenuItem className="rounded-button px-3 py-2 cursor-pointer focus:bg-destructive/10 text-destructive focus:text-destructive" onClick={() => setDeleteId(taskId)}>
               <Trash2 className="mr-2.5 size-4" />
               <span className="text-sm font-bold">Delete Task</span>
             </DropdownMenuItem>

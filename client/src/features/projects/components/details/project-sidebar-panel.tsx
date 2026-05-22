@@ -93,7 +93,7 @@ export function ProjectSidebarPanel({
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="size-7 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">
+      <div className="size-7 rounded-card bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">
         {icon}
       </div>
       <div className="flex flex-col min-w-0">

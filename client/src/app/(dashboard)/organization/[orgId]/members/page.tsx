@@ -248,9 +248,9 @@ export default function OrganizationMembersPage() {
         <CardContent>
           {isLoading ? (
             <div className="space-y-2">
-              <div className="h-12 rounded-lg bg-muted/40" />
-              <div className="h-12 rounded-lg bg-muted/40" />
-              <div className="h-12 rounded-lg bg-muted/40" />
+              <div className="h-12 rounded-card bg-muted/40" />
+              <div className="h-12 rounded-card bg-muted/40" />
+              <div className="h-12 rounded-card bg-muted/40" />
             </div>
           ) : (
             <Table>
@@ -354,7 +354,7 @@ export default function OrganizationMembersPage() {
             invites.map((invite) => (
               <div
                 key={invite.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-card border p-4"
               >
                 <div className="space-y-1">
                   <p className="text-sm font-medium">{invite.email}</p>

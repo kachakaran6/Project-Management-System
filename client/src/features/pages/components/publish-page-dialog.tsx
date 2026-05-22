@@ -54,11 +54,11 @@ export function PublishPageDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+          <div className="rounded-modal border border-border/60 bg-muted/20 p-3">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
               Public URL Preview
             </div>
-            <div className="mt-2 break-all rounded-lg bg-background/80 px-3 py-2 font-mono text-sm text-foreground/90">
+            <div className="mt-2 break-all rounded-modal bg-background/80 px-3 py-2 font-mono text-sm text-foreground/90">
               {publicUrl || previewPath}
             </div>
           </div>

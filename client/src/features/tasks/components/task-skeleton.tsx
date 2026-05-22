@@ -5,20 +5,20 @@ export function TaskCardSkeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-2xl border border-border/40 bg-card/50 p-4 shadow-sm",
+        "flex flex-col gap-3 rounded-card border border-border/40 bg-card/50 p-4 shadow-sm",
         className
       )}
     >
       {/* Header: ID and Menu */}
       <div className="flex items-center justify-between">
         <Skeleton className="h-3 w-16 rounded-full" />
-        <Skeleton className="h-4 w-4 rounded-md" />
+        <Skeleton className="h-4 w-4 rounded-button" />
       </div>
 
       {/* Title lines */}
       <div className="space-y-2">
-        <Skeleton className="h-4 w-[90%] rounded-md" />
-        <Skeleton className="h-4 w-[65%] rounded-md" />
+        <Skeleton className="h-4 w-[90%] rounded-button" />
+        <Skeleton className="h-4 w-[65%] rounded-button" />
       </div>
 
       {/* Footer metadata */}
@@ -30,7 +30,7 @@ export function TaskCardSkeleton({ className }: { className?: string }) {
         <Skeleton className="h-6 w-16 rounded-full" />
         
         {/* Priority Flag */}
-        <Skeleton className="h-6 w-6 rounded-md" />
+        <Skeleton className="h-6 w-6 rounded-button" />
         
         {/* Assignees (Right aligned) */}
         <div className="ml-auto flex items-center -space-x-1.5">
@@ -51,9 +51,9 @@ export function TaskBoardSkeleton() {
           <div className="mb-2 flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <Skeleton className="size-2 rounded-full" />
-              <Skeleton className="h-5 w-24 rounded-md" />
+              <Skeleton className="h-5 w-24 rounded-button" />
             </div>
-            <Skeleton className="h-5 w-5 rounded-md" />
+            <Skeleton className="h-5 w-5 rounded-button" />
           </div>
           
           {/* Cards in column */}
@@ -70,8 +70,8 @@ export function TaskListSkeleton() {
   return (
     <div className="space-y-3 p-4">
       {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-        <div key={i} className="flex items-center gap-4 rounded-2xl border border-border/40 bg-card/30 p-4">
-          <Skeleton className="h-5 w-[45%] rounded-md" />
+        <div key={i} className="flex items-center gap-4 rounded-card border border-border/40 bg-card/30 p-4">
+          <Skeleton className="h-5 w-[45%] rounded-button" />
           <div className="flex-1" />
           <Skeleton className="h-8 w-20 rounded-full" />
           <Skeleton className="h-8 w-24 rounded-full" />
@@ -87,19 +87,19 @@ export function TaskTableSkeleton() {
     <div className="animate-in fade-in duration-500">
       <div className="grid grid-cols-[1fr,150px,120px,120px,150px,150px,150px] gap-4 py-4 px-8 border-b border-border/40 bg-muted/20">
         {Array.from({ length: 7 }).map((_, i) => (
-          <Skeleton key={i} className="h-4 w-20 rounded-md opacity-50" />
+          <Skeleton key={i} className="h-4 w-20 rounded-button opacity-50" />
         ))}
       </div>
       <div className="divide-y divide-border/10">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
           <div key={i} className="grid grid-cols-[1fr,150px,120px,120px,150px,150px,150px] gap-4 py-5 px-8">
-            <Skeleton className="h-4 w-full rounded-md" />
-            <Skeleton className="h-4 w-3/4 rounded-md" />
+            <Skeleton className="h-4 w-full rounded-button" />
+            <Skeleton className="h-4 w-3/4 rounded-button" />
             <Skeleton className="h-6 w-16 rounded-full" />
             <Skeleton className="h-6 w-16 rounded-full" />
-            <Skeleton className="h-4 w-3/4 rounded-md" />
-            <Skeleton className="h-4 w-2/3 rounded-md" />
-            <Skeleton className="h-4 w-1/2 rounded-md" />
+            <Skeleton className="h-4 w-3/4 rounded-button" />
+            <Skeleton className="h-4 w-2/3 rounded-button" />
+            <Skeleton className="h-4 w-1/2 rounded-button" />
           </div>
         ))}
       </div>

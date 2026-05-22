@@ -12,8 +12,8 @@ interface StatCardProps {
 
 export function StatCard({ label, value, icon, color }: StatCardProps) {
   return (
-    <div className="flex flex-col gap-2 p-3 rounded-xl border border-border/10 bg-card/30 hover:bg-card/50 transition-all">
-      <div className={cn("size-7 rounded-lg flex items-center justify-center", color)}>
+    <div className="flex flex-col gap-2 p-3 rounded-card border border-border/10 bg-card/30 hover:bg-card/50 transition-all">
+      <div className={cn("size-7 rounded-card flex items-center justify-center", color)}>
         {icon}
       </div>
       <div className="space-y-0.5">

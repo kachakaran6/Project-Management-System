@@ -12,7 +12,7 @@ export function JsonViewer({
 }: JsonViewerProps) {
   return (
     <pre
-      className={`max-h-[420px] overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs ${className ?? ""}`}
+      className={`max-h-[420px] overflow-auto rounded-button border border-border bg-muted/30 p-3 text-xs ${className ?? ""}`}
     >
       {data ? JSON.stringify(data, null, 2) : emptyMessage}
     </pre>

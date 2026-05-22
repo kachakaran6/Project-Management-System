@@ -63,7 +63,7 @@ export function EditProjectModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 h-[92vh] md:h-[85vh] rounded-md overflow-hidden border-border/40 bg-card/95 backdrop-blur-xl shadow-2xl">
+      <DialogContent className="max-w-5xl p-0 h-[92vh] md:h-[85vh] rounded-modal overflow-hidden border-border/40 bg-card/95 backdrop-blur-xl shadow-2xl">
         <div className="flex flex-col h-full">
           <DialogHeader className="p-6 md:p-8 pb-4">
             <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight">Project Settings</DialogTitle>

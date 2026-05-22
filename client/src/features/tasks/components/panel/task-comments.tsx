@@ -66,7 +66,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
               <Skeleton className="size-8 rounded-full" />
               <div className="space-y-2 flex-1 pt-1">
                 <Skeleton className="h-4 w-1/4" />
-                <Skeleton className="h-16 w-full rounded-sm" />
+                <Skeleton className="h-16 w-full rounded-button" />
               </div>
             </div>
           </div>
@@ -110,7 +110,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
                       )}
                     </div>
                     <div className="relative group/content max-w-[90%] flex items-start gap-2">
-                       <div className="text-[14px] bg-accent/20 dark:bg-accent/10 p-3 rounded-sm rounded-tl-none border border-border/40 text-foreground/90 leading-relaxed flex-1">
+                       <div className="text-[14px] bg-accent/20 dark:bg-accent/10 p-3 rounded-button rounded-tl-none border border-border/40 text-foreground/90 leading-relaxed flex-1">
                         {comment.content}
                       </div>
                       {comment.canDelete && (
@@ -145,7 +145,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Discuss this task..."
-            className="w-full min-h-[100px] p-4 text-sm bg-accent/10 border-border/40 border-2 rounded-sm focus:outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/5 transition-all resize-none placeholder:text-muted-foreground/40"
+            className="w-full min-h-[100px] p-4 text-sm bg-accent/10 border-border/40 border-2 rounded-button focus:outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/5 transition-all resize-none placeholder:text-muted-foreground/40"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -158,7 +158,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
               size="sm" 
               onClick={() => handleSubmit()} 
               disabled={!content.trim() || createCommentMutation.isPending}
-              className="h-8 rounded-sm shadow-sm font-semibold text-[12px] px-3"
+              className="h-8 rounded-button shadow-sm font-semibold text-[12px] px-3"
             >
               {createCommentMutation.isPending ? (
                 <Loader2 className="size-3 animate-spin mr-1" />

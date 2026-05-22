@@ -267,11 +267,11 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
               <img
                 src={user.avatarUrl}
                 alt={`${user.firstName} ${user.lastName}`}
-                className="size-10 rounded-sm object-cover ring-2 ring-sidebar-accent/50"
+                className="size-10 rounded-button object-cover ring-2 ring-sidebar-accent/50"
               />
             ) : (
               <div className={cn(
-                "size-10 rounded-sm flex items-center justify-center font-bold text-sm ring-2 ring-sidebar-accent/50",
+                "size-10 rounded-button flex items-center justify-center font-bold text-sm ring-2 ring-sidebar-accent/50",
                 role === "SUPER_ADMIN" ? "bg-orange-500/20 text-orange-500" :
                   role === "ADMIN" ? "bg-primary/20 text-primary" :
                     role === "MANAGER" ? "bg-blue-500/20 text-blue-500" :
@@ -357,13 +357,13 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
             "hidden md:block transition-all duration-300",
             sidebarCollapsed && !mobile
               ? "flex justify-center px-1"
-              : "rounded-md border border-sidebar-border bg-sidebar-accent/40 p-3 mx-1"
+              : "rounded-button border border-sidebar-border bg-sidebar-accent/40 p-3 mx-1"
           )}
         >
           {sidebarCollapsed && !mobile ? (
             <div
               className={cn(
-                "size-8 rounded-sm flex items-center justify-center transition-all duration-500 shadow-lg",
+                "size-8 rounded-button flex items-center justify-center transition-all duration-500 shadow-lg",
                 role === "SUPER_ADMIN" ? "bg-orange-500/20 text-orange-500 border border-orange-500/30 ring-1 ring-orange-500/10" :
                   role === "ADMIN" ? "bg-primary/20 text-primary border border-primary/30 ring-1 ring-primary/10" :
                     role === "MANAGER" ? "bg-blue-500/20 text-blue-500 border border-blue-500/30 ring-1 ring-blue-500/10" :

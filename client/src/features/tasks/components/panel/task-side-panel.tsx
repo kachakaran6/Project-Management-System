@@ -77,7 +77,7 @@ export function TaskSidePanel() {
           </div>
           <button
             onClick={closePanel}
-            className="p-2 hover:bg-accent rounded-sm transition-all text-muted-foreground hover:text-foreground group">
+            className="p-2 hover:bg-accent rounded-button transition-all text-muted-foreground hover:text-foreground group">
             <X className="size-4.5 group-hover:rotate-90 transition-transform duration-300" />
           </button>
         </div>
@@ -101,7 +101,7 @@ export function TaskSidePanel() {
             </div>
           ) : error ? (
             <div className="p-6 sm:p-12 text-center space-y-4">
-              <div className="inline-flex size-12 items-center justify-center rounded-sm bg-red-100 text-red-600">
+              <div className="inline-flex size-12 items-center justify-center rounded-button bg-red-100 text-red-600">
                 <X className="size-6" />
               </div>
               <h3 className="text-lg font-semibold">Failed to load task</h3>
@@ -132,7 +132,7 @@ export function TaskSidePanel() {
                 {/* Status Timeline Section */}
                 <div className="pt-8 pb-4">
                   <div className="flex items-center gap-2 mb-4">
-                    <div className="size-8 rounded-sm bg-primary/10 flex items-center justify-center text-primary shadow-sm ring-1 ring-primary/20">
+                    <div className="size-8 rounded-button bg-primary/10 flex items-center justify-center text-primary shadow-sm ring-1 ring-primary/20">
                       <History className="size-4" />
                     </div>
                     <div>

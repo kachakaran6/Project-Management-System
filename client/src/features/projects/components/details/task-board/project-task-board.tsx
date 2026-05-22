@@ -185,7 +185,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/50" />
             <Input
               placeholder="Search tasks..."
-              className="pl-9 h-8 md:h-9 text-xs bg-muted/30 border-border/10 focus:ring-primary/20 rounded-lg"
+              className="pl-9 h-8 md:h-9 text-xs bg-muted/30 border-border/10 focus:ring-primary/20 rounded-card"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -196,7 +196,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
             trigger={
               <Button
                 size="sm"
-                className="h-8 md:h-9 text-xs px-3 rounded-lg gap-2"
+                className="h-8 md:h-9 text-xs px-3 rounded-card gap-2"
               >
                 <Plus className="size-3.5" />
                 <span className="hidden xs:inline">Add Task</span>
@@ -211,7 +211,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
             variant="ghost"
             size="sm"
             className={cn(
-              "h-8 text-[10px] px-2 rounded-lg gap-2 font-bold uppercase tracking-wider transition-all shrink-0",
+              "h-8 text-[10px] px-2 rounded-card gap-2 font-bold uppercase tracking-wider transition-all shrink-0",
               hideEmptyColumns ? "text-primary bg-primary/5 hover:bg-primary/10" : "text-muted-foreground/40 hover:text-muted-foreground"
             )}
             onClick={() => setHideEmptyColumns(!hideEmptyColumns)}
@@ -223,7 +223,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
           {/* FILTERS */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 text-xs px-3 rounded-lg border-border/10 gap-2 relative shrink-0">
+              <Button variant="outline" size="sm" className="h-8 text-xs px-3 rounded-card border-border/10 gap-2 relative shrink-0">
                 <Filter className="size-3.5" />
                 <span className="hidden sm:inline">Filter</span>
                 {activeFilterCount > 0 && (
@@ -287,7 +287,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
                   <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">Due Date</label>
                   <Input
                     type="date"
-                    className="h-9 text-xs bg-muted/20 border-border/10 rounded-lg"
+                    className="h-9 text-xs bg-muted/20 border-border/10 rounded-card"
                     value={dueDateFilter}
                     onChange={(e) => setDueDateFilter(e.target.value)}
                   />
@@ -340,31 +340,31 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
           {/* SORTING */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 text-xs px-3 rounded-lg border-border/10 gap-2 shrink-0">
+              <Button variant="outline" size="sm" className="h-8 text-xs px-3 rounded-card border-border/10 gap-2 shrink-0">
                 <ChevronDown className="size-3.5 text-muted-foreground" />
                 <span className="hidden sm:inline">Sort</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
+            <DropdownMenuContent align="end" className="w-56 p-2 rounded-card">
               <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Sort By</DropdownMenuLabel>
-              <DropdownMenuItem className={cn("text-xs rounded-lg", sortBy === "createdAt" && "bg-muted font-bold")} onClick={() => setSortBy("createdAt")}>Created Date</DropdownMenuItem>
-              <DropdownMenuItem className={cn("text-xs rounded-lg", sortBy === "dueDate" && "bg-muted font-bold")} onClick={() => setSortBy("dueDate")}>Due Date</DropdownMenuItem>
-              <DropdownMenuItem className={cn("text-xs rounded-lg", sortBy === "priority" && "bg-muted font-bold")} onClick={() => setSortBy("priority")}>Priority</DropdownMenuItem>
-              <DropdownMenuItem className={cn("text-xs rounded-lg", sortBy === "title" && "bg-muted font-bold")} onClick={() => setSortBy("title")}>Title</DropdownMenuItem>
+              <DropdownMenuItem className={cn("text-xs rounded-card", sortBy === "createdAt" && "bg-muted font-bold")} onClick={() => setSortBy("createdAt")}>Created Date</DropdownMenuItem>
+              <DropdownMenuItem className={cn("text-xs rounded-card", sortBy === "dueDate" && "bg-muted font-bold")} onClick={() => setSortBy("dueDate")}>Due Date</DropdownMenuItem>
+              <DropdownMenuItem className={cn("text-xs rounded-card", sortBy === "priority" && "bg-muted font-bold")} onClick={() => setSortBy("priority")}>Priority</DropdownMenuItem>
+              <DropdownMenuItem className={cn("text-xs rounded-card", sortBy === "title" && "bg-muted font-bold")} onClick={() => setSortBy("title")}>Title</DropdownMenuItem>
 
               <DropdownMenuSeparator className="my-2 opacity-50" />
 
               <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Direction</DropdownMenuLabel>
-              <DropdownMenuItem className={cn("text-xs rounded-lg", sortOrder === "asc" && "bg-muted font-bold")} onClick={() => setSortOrder("asc")}>Ascending</DropdownMenuItem>
-              <DropdownMenuItem className={cn("text-xs rounded-lg", sortOrder === "desc" && "bg-muted font-bold")} onClick={() => setSortOrder("desc")}>Descending</DropdownMenuItem>
+              <DropdownMenuItem className={cn("text-xs rounded-card", sortOrder === "asc" && "bg-muted font-bold")} onClick={() => setSortOrder("asc")}>Ascending</DropdownMenuItem>
+              <DropdownMenuItem className={cn("text-xs rounded-card", sortOrder === "desc" && "bg-muted font-bold")} onClick={() => setSortOrder("desc")}>Descending</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-lg border border-border/10 ml-2 shrink-0">
+          <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-card border border-border/10 ml-2 shrink-0">
             <Button
               variant={viewMode === "board" ? "secondary" : "ghost"}
               size="sm"
-              className="h-6 w-8 p-0 rounded-md"
+              className="h-6 w-8 p-0 rounded-button"
               onClick={() => setViewMode("board")}
             >
               <Kanban className="size-3.5" />
@@ -372,7 +372,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
             <Button
               variant={viewMode === "list" ? "secondary" : "ghost"}
               size="sm"
-              className="h-6 w-8 p-0 rounded-md"
+              className="h-6 w-8 p-0 rounded-button"
               onClick={() => setViewMode("list")}
             >
               <List className="size-3.5" />
@@ -380,7 +380,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
             <Button
               variant={viewMode === "table" ? "secondary" : "ghost"}
               size="sm"
-              className="h-6 w-8 p-0 rounded-md"
+              className="h-6 w-8 p-0 rounded-button"
               onClick={() => setViewMode("table")}
             >
               <TableIcon className="size-3.5" />
@@ -392,7 +392,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
       {/* KANBAN BOARD */}
       {viewMode === "board" ? (
         isMobile ? (
-          <div className="flex-1 flex flex-col min-h-0 bg-background/50 rounded-2xl border border-border/10 overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0 bg-background/50 rounded-card border border-border/10 overflow-hidden">
              {/* Mobile Column Selector */}
              <div className="shrink-0 flex items-center justify-between p-3 border-b border-border/10 bg-muted/20">
                <div className="flex items-center gap-2">
@@ -412,14 +412,14 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
                        <ChevronDown className="size-3" />
                     </Button>
                  </DropdownMenuTrigger>
-                 <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
+                 <DropdownMenuContent align="end" className="w-56 p-2 rounded-card">
                     {statuses.map(s => {
                       const id = s.id || (s as any)._id;
                       const count = groupedTasks.groups[id]?.length || 0;
                       return (
                         <DropdownMenuItem 
                           key={id} 
-                          className={cn("text-xs rounded-lg flex justify-between", mobileActiveStatus === id && "bg-muted font-bold")}
+                          className={cn("text-xs rounded-card flex justify-between", mobileActiveStatus === id && "bg-muted font-bold")}
                           onClick={() => setMobileActiveStatus(id)}
                         >
                           {s.name.replace(/_/g, ' ')}
@@ -444,7 +444,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
                    />
                 ))}
                 {(!groupedTasks.groups[mobileActiveStatus] || groupedTasks.groups[mobileActiveStatus].length === 0) && (
-                   <div className="h-40 flex flex-col items-center justify-center gap-3 border border-dashed border-border/10 rounded-2xl bg-muted/5">
+                   <div className="h-40 flex flex-col items-center justify-center gap-3 border border-dashed border-border/10 rounded-card bg-muted/5">
                       <LayoutGrid className="size-8 text-muted-foreground/10" />
                       <p className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em]">No tasks in this stage</p>
                    </div>
@@ -467,7 +467,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
                   />
                 ))}
                 {groupedTasks.sortedStatuses.length === 0 && !isLoading && (
-                  <div className="flex-1 flex flex-col items-center justify-center bg-muted/5 rounded-2xl border border-dashed border-border/10 h-full">
+                  <div className="flex-1 flex flex-col items-center justify-center bg-muted/5 rounded-card border border-dashed border-border/10 h-full">
                     <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">No Active Columns</p>
                     <p className="text-[10px] text-muted-foreground/40 mt-1">Try disabling "Empty Hidden" to see all stages.</p>
                   </div>
@@ -498,7 +498,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
                     {groupTasks.map((task) => (
                       <div
                         key={task.id}
-                        className="rounded-md border border-border/10 bg-card/40 p-2.5 md:p-3 shadow-sm hover:border-primary/20 transition-all cursor-pointer group/card"
+                        className="rounded-button border border-border/10 bg-card/40 p-2.5 md:p-3 shadow-sm hover:border-primary/20 transition-all cursor-pointer group/card"
                         onClick={() => onTaskClick(task)}
                       >
                         <div className="flex items-start justify-between gap-3 mb-1.5">
@@ -595,7 +595,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
                       </div>
                     ))}
                     {groupTasks.length === 0 && (
-                      <div className="py-4 text-center border border-dashed border-border/5 rounded-xl bg-muted/5">
+                      <div className="py-4 text-center border border-dashed border-border/5 rounded-card bg-muted/5">
                         <p className="text-[9px] text-muted-foreground/20 font-bold uppercase">No tasks in this stage</p>
                       </div>
                     )}
@@ -606,7 +606,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-auto bg-card/20 rounded-xl border border-border/10 shadow-inner-sm custom-scrollbar">
+        <div className="flex-1 overflow-auto bg-card/20 rounded-card border border-border/10 shadow-inner-sm custom-scrollbar">
           <table className="w-full border-separate border-spacing-0 min-w-[800px]">
              <thead className="sticky top-0 z-20 bg-background/95 backdrop-blur-md">
                 <tr>
@@ -692,10 +692,10 @@ function FilterSelect({ label, value, onChange, options }: { label: string, valu
     <div className="space-y-2">
       <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">{label}</label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-9 text-xs bg-muted/20 border-border/10 rounded-lg">
+        <SelectTrigger className="h-9 text-xs bg-muted/20 border-border/10 rounded-card">
           <SelectValue placeholder={`Select ${label}`} />
         </SelectTrigger>
-        <SelectContent className="rounded-xl border-border/10">
+        <SelectContent className="rounded-card border-border/10">
           {options.map(opt => (
             <SelectItem key={opt.value} value={opt.value} className="text-xs">
               {opt.label}
@@ -710,7 +710,7 @@ function FilterSelect({ label, value, onChange, options }: { label: string, valu
 function AccordionSection({ title, color, count, children, defaultOpen = false }: any) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
-    <div className="border border-border/10 rounded-lg overflow-hidden bg-card/20 shadow-sm">
+    <div className="border border-border/10 rounded-card overflow-hidden bg-card/20 shadow-sm">
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-2 md:p-2.5 hover:bg-muted/10 transition-colors group"

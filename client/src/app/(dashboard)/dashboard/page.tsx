@@ -88,7 +88,7 @@ function StatCard({
         <div className="flex flex-col md:flex-row items-center justify-center md:justify-start aspect-square md:aspect-auto p-3 md:p-6 md:pt-5 gap-1.5 md:gap-4 relative overflow-hidden">
           <div
             className={cn(
-              "flex h-9 w-9 md:h-12 md:w-12 items-center justify-center rounded-2xl md:rounded-xl border shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg",
+              "flex h-9 w-9 md:h-12 md:w-12 items-center justify-center rounded-card md:rounded-card border shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg",
               variants[variant],
             )}
           >
@@ -178,9 +178,9 @@ export default function DashboardPage() {
       {/* Stats */}
       {projectsQuery.isLoading || tasksQuery.isLoading ? (
         <div className="grid grid-cols-3 gap-2 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
-          <Skeleton className="aspect-square md:h-28 rounded-xl md:rounded-2xl border border-border/40" />
-          <Skeleton className="aspect-square md:h-28 rounded-xl md:rounded-2xl border border-border/40" />
-          <Skeleton className="aspect-square md:h-28 rounded-xl md:rounded-2xl border border-border/40" />
+          <Skeleton className="aspect-square md:h-28 rounded-card md:rounded-card border border-border/40" />
+          <Skeleton className="aspect-square md:h-28 rounded-card md:rounded-card border border-border/40" />
+          <Skeleton className="aspect-square md:h-28 rounded-card md:rounded-card border border-border/40" />
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-2 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
@@ -214,7 +214,7 @@ export default function DashboardPage() {
           <Card className="border-border/40 overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Recent Projects</CardTitle>
-              <Button asChild variant="ghost" size="sm" className="h-8 rounded-lg text-xs font-bold">
+              <Button asChild variant="ghost" size="sm" className="h-8 rounded-card text-xs font-bold">
                 <Link href="/projects">
                   View all
                   <ArrowRight className="ml-1 size-4" />
@@ -225,11 +225,11 @@ export default function DashboardPage() {
               {projectsQuery.isLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-border/20">
-                      <Skeleton className="size-8 rounded-lg" />
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-card border border-border/20">
+                      <Skeleton className="size-8 rounded-card" />
                       <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-1/3 rounded-md" />
-                        <Skeleton className="h-3 w-1/4 rounded-md" />
+                        <Skeleton className="h-4 w-1/3 rounded-button" />
+                        <Skeleton className="h-3 w-1/4 rounded-button" />
                       </div>
                       <Skeleton className="h-7 w-16 rounded-full" />
                     </div>
@@ -247,10 +247,10 @@ export default function DashboardPage() {
                   {recentProjects.map((project) => (
                     <div
                       key={project.id || (project as any)._id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-card border border-border p-3 hover:bg-muted/30 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <Link href={`/tasks?projectId=${project.id}`} className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm shrink-0">
+                        <Link href={`/tasks?projectId=${project.id}`} className="flex h-8 w-8 items-center justify-center rounded-card bg-primary/10 text-primary font-bold text-sm shrink-0">
                           {project.name.charAt(0).toUpperCase()}
                         </Link>
                         <div className="min-w-0">
@@ -290,7 +290,7 @@ export default function DashboardPage() {
           <Card className="border-border/40 overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Recent Tasks</CardTitle>
-              <Button asChild variant="ghost" size="sm" className="h-8 rounded-lg text-xs font-bold">
+              <Button asChild variant="ghost" size="sm" className="h-8 rounded-card text-xs font-bold">
                 <Link href="/tasks">
                   View all
                   <ArrowRight className="ml-1 size-4" />
@@ -301,11 +301,11 @@ export default function DashboardPage() {
               {tasksQuery.isLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-border/20">
-                      <Skeleton className="size-4 rounded-sm" />
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-card border border-border/20">
+                      <Skeleton className="size-4 rounded-button" />
                       <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-1/2 rounded-md" />
-                        <Skeleton className="h-3 w-1/4 rounded-md" />
+                        <Skeleton className="h-4 w-1/2 rounded-button" />
+                        <Skeleton className="h-3 w-1/4 rounded-button" />
                       </div>
                       <Skeleton className="h-6 w-16 rounded-full" />
                     </div>
@@ -322,7 +322,7 @@ export default function DashboardPage() {
                   {recentTasks.map((task) => (
                     <div
                       key={task.id || (task as any)._id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-card border border-border p-3 hover:bg-muted/30 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <Flag

@@ -24,13 +24,13 @@ export default function CreateProjectPage() {
   if (!canMutate) {
     return (
       <div className="max-w-xl mx-auto mt-20">
-        <Alert variant="destructive" className="rounded-3xl border-destructive/20 bg-destructive/5 p-6">
+        <Alert variant="destructive" className="rounded-card border-destructive/20 bg-destructive/5 p-6">
           <AlertTitle className="text-lg font-bold">Access Denied</AlertTitle>
           <AlertDescription className="text-sm opacity-90 mt-1">
             You don't have the necessary permissions to create projects in this organization.
           </AlertDescription>
         </Alert>
-        <Button variant="ghost" className="mt-4 rounded-xl" asChild>
+        <Button variant="ghost" className="mt-4 rounded-card" asChild>
           <Link href="/projects">Go back to projects</Link>
         </Button>
       </div>
@@ -74,7 +74,7 @@ export default function CreateProjectPage() {
 
   return (
     <div className="min-h-[calc(100vh-80px)] py-6 md:py-0 md:h-[calc(100vh-100px)] flex items-start md:items-center justify-center md:-mt-4 overflow-y-auto md:overflow-hidden animate-in fade-in zoom-in-95 duration-500 px-4">
-      <div className="w-full max-w-6xl rounded-md border border-border/40 bg-card/30 backdrop-blur-md p-4 md:p-6 shadow-2xl mb-8 md:mb-0">
+      <div className="w-full max-w-6xl rounded-button border border-border/40 bg-card/30 backdrop-blur-md p-4 md:p-6 shadow-2xl mb-8 md:mb-0">
         <ProjectForm
           isSubmitting={createProject.isPending}
           onSubmit={handleSubmit}

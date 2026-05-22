@@ -13,9 +13,9 @@ function ResultRow({ item, onSelect }: { item: SearchResultItem; onSelect: () =>
     <Link
       href={item.href}
       onClick={onSelect}
-      className="flex items-start gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-primary/8"
+      className="flex items-start gap-3 rounded-dropdown px-3 py-2 text-left transition-colors hover:bg-primary/8"
     >
-      <div className="mt-0.5 flex size-8 items-center justify-center rounded-lg bg-primary/10 text-[10px] font-semibold uppercase text-primary">
+      <div className="mt-0.5 flex size-8 items-center justify-center rounded-dropdown bg-primary/10 text-[10px] font-semibold uppercase text-primary">
         {item.type.slice(0, 2)}
       </div>
       <div className="min-w-0 flex-1">
@@ -95,7 +95,7 @@ export function GlobalSearch() {
       </div>
 
       {isVisible ? (
-        <div className="absolute left-0 top-[calc(100%+0.5rem)] z-50 w-full overflow-hidden rounded-2xl border border-border/80 bg-card/95 shadow-2xl backdrop-blur-md">
+        <div className="absolute left-0 top-[calc(100%+0.5rem)] z-50 w-full overflow-hidden rounded-dropdown border border-border/80 bg-card/95 shadow-2xl backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
             <div>
               <p className="text-sm font-semibold">Global Search</p>

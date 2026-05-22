@@ -110,7 +110,7 @@ export default function PublicInvitePage() {
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(52,211,153,0.12),transparent_35%),linear-gradient(180deg,#050816_0%,#0b1020_100%)] text-slate-100">
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center justify-center">
         <div className="grid w-full gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-2xl shadow-black/30">
+          <section className="rounded-card border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-2xl shadow-black/30">
             <Badge className="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">
               Secure organization invite
             </Badge>
@@ -128,7 +128,7 @@ export default function PublicInvitePage() {
                 { icon: Users, title: "Role", value: roleLabel(invite?.role) },
                 { icon: Shield, title: "Status", value: invite?.status || "Loading" },
               ].map((item) => (
-                <div key={item.title} className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                <div key={item.title} className="rounded-card border border-white/10 bg-slate-950/40 p-4">
                   <item.icon className="h-5 w-5 text-emerald-300" />
                   <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-400">{item.title}</p>
                   <p className="mt-1 text-sm font-medium text-white break-all">{item.value}</p>
@@ -137,7 +137,7 @@ export default function PublicInvitePage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-slate-950/70 p-2 shadow-2xl shadow-black/40">
+          <section className="rounded-card border border-white/10 bg-slate-950/70 p-2 shadow-2xl shadow-black/40">
             <Card className="border-0 bg-transparent text-white shadow-none">
               <CardHeader className="pb-4">
                 <CardTitle className="text-2xl text-white">Invitation details</CardTitle>
@@ -153,12 +153,12 @@ export default function PublicInvitePage() {
                     <Skeleton className="h-10 w-1/2 bg-white/10" />
                   </div>
                 ) : error ? (
-                  <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-100">
+                  <div className="rounded-card border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-100">
                     {error}
                   </div>
                 ) : invite ? (
                   <>
-                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div className="flex items-center justify-between gap-3 rounded-card border border-white/10 bg-white/5 p-4">
                       <div>
                         <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Organization</p>
                         <p className="mt-1 text-lg font-semibold text-white">
@@ -171,22 +171,22 @@ export default function PublicInvitePage() {
                     </div>
 
                     <div className="grid gap-3 text-sm text-slate-300">
-                      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                      <div className="flex items-center justify-between rounded-card border border-white/10 bg-white/5 px-4 py-3">
                         <span>Invitee email</span>
                         <span className="font-medium text-white break-all">{invite.email}</span>
                       </div>
-                      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                      <div className="flex items-center justify-between rounded-card border border-white/10 bg-white/5 px-4 py-3">
                         <span>Role</span>
                         <span className="font-medium text-white">{roleLabel(invite.role)}</span>
                       </div>
-                      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                      <div className="flex items-center justify-between rounded-card border border-white/10 bg-white/5 px-4 py-3">
                         <span>Expires</span>
                         <span className="font-medium text-white">{new Date(invite.expiresAt).toLocaleString()}</span>
                       </div>
                     </div>
 
                     {!isAuthenticated ? (
-                      <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-5 text-sm text-amber-50">
+                      <div className="rounded-card border border-amber-400/20 bg-amber-400/10 p-5 text-sm text-amber-50">
                         You need to sign in with the invited email address before you can join.
                         <div className="mt-4 flex flex-wrap gap-3">
                           <Button
@@ -202,7 +202,7 @@ export default function PublicInvitePage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5 text-sm text-emerald-50">
+                      <div className="rounded-card border border-emerald-400/20 bg-emerald-400/10 p-5 text-sm text-emerald-50">
                         Signed in as <span className="font-semibold">{user?.email}</span>.
                         If this does not match the invite email, acceptance will be rejected.
                       </div>

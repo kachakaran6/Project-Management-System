@@ -4,9 +4,9 @@ import { Star, GitFork, Eye, Activity } from "lucide-react";
 
 export const RepositoryDetailsHeader = ({ owner, repo }: { owner: string; repo: string }) => {
   return (
-    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-6 bg-card/50 border border-border/40 rounded-lg">
+    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-6 bg-card/50 border border-border/40 rounded-card">
       <div className="flex items-center gap-4">
-        <div className="size-12 rounded-md bg-primary/10 flex items-center justify-center border border-primary/20">
+        <div className="size-12 rounded-button bg-primary/10 flex items-center justify-center border border-primary/20">
           <Activity className="size-6 text-primary" />
         </div>
         <div>

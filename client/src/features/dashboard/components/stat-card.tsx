@@ -24,7 +24,7 @@ export function StatCard({
     <Card className="overflow-hidden border-border/80">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <p className="text-sm font-medium text-muted-foreground">{label}</p>
-        <span className="rounded-md bg-secondary p-2 text-secondary-foreground">
+        <span className="rounded-button bg-secondary p-2 text-secondary-foreground">
           <Icon className="size-4" />
         </span>
       </CardHeader>

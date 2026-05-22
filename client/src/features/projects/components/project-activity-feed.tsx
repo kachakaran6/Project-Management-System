@@ -89,7 +89,7 @@ function ActivityItem({ item }: { item: GithubFullActivityItem }) {
 
         {item.hash && (
           <div className="flex items-center gap-2 pt-1">
-             <span className="text-[10px] font-mono text-muted-foreground/30 bg-muted/20 px-1.5 py-0.5 rounded-md">
+             <span className="text-[10px] font-mono text-muted-foreground/30 bg-muted/20 px-1.5 py-0.5 rounded-button">
                 {item.hash.slice(0, 7)}
              </span>
              {item.url && (
@@ -159,7 +159,7 @@ export function ProjectActivityFeed({ projectId }: ProjectActivityFeedProps) {
   }, {});
 
   if (isLoading) return <div className="space-y-6">
-    {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+    {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-card" />)}
   </div>;
 
   if (!isConnected) return (
@@ -193,7 +193,7 @@ export function ProjectActivityFeed({ projectId }: ProjectActivityFeedProps) {
           </div>
         ))}
         {allItems.length === 0 && (
-          <div className="py-12 text-center border border-dashed border-border/10 rounded-xl">
+          <div className="py-12 text-center border border-dashed border-border/10 rounded-card">
              <p className="text-xs text-muted-foreground/30 font-medium uppercase tracking-widest">No activity found</p>
           </div>
         )}

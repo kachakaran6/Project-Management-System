@@ -76,7 +76,7 @@ export function CreateProjectModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-5xl p-6 rounded-md">
+      <DialogContent className="max-w-5xl p-6 rounded-modal">
         <DialogHeader>
           <DialogTitle className="text-xl">Create New Project</DialogTitle>
           <DialogDescription>

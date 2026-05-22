@@ -44,7 +44,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <DialogPrimitive.Content className="fixed left-0 top-0 z-50 h-[100dvh] w-[280px] border-r border-sidebar-border bg-sidebar p-0 outline-none md:hidden transition-transform duration-300 flex flex-col overflow-hidden">
             <div className="absolute right-3 top-3 z-10">
               <DialogPrimitive.Close
-                className="rounded-md p-1 text-sidebar-foreground hover:bg-sidebar-accent"
+                className="rounded-button p-1 text-sidebar-foreground hover:bg-sidebar-accent"
                 aria-label="Close navigation"
               >
                 <X className="size-4" />

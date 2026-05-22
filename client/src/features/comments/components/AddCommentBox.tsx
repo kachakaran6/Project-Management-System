@@ -22,7 +22,7 @@ export function AddCommentBox({ onSubmit, isSubmitting = false }: AddCommentBoxP
   };
 
   return (
-    <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+    <div className="space-y-3 rounded-card border border-border bg-muted/20 p-3">
       <Textarea
         value={content}
         onChange={(event) => setContent(event.target.value)}

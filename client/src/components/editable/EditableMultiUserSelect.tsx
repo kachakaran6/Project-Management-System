@@ -64,7 +64,7 @@ export function EditableMultiUserSelect({
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "group flex items-center gap-2 rounded-md px-2 py-1.5 -ml-2 transition-all hover:bg-muted text-sm w-full text-left focus:outline-none min-h-[36px]",
+            "group flex items-center gap-2 rounded-input px-2 py-1.5 -ml-2 transition-all hover:bg-muted text-sm w-full text-left focus:outline-none min-h-[36px]",
             className
           )}
         >

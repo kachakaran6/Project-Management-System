@@ -36,9 +36,9 @@ function MobileSearchResult({ item, onSelect }: { item: SearchResultItem; onSele
     <Link
       href={item.href}
       onClick={onSelect}
-      className="flex items-start gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-primary/8 active:bg-primary/10"
+      className="flex items-start gap-3 rounded-card px-3 py-2 text-left transition-colors hover:bg-primary/8 active:bg-primary/10"
     >
-      <div className="mt-0.5 flex size-8 items-center justify-center rounded-lg bg-primary/10 text-[10px] font-semibold uppercase text-primary">
+      <div className="mt-0.5 flex size-8 items-center justify-center rounded-card bg-primary/10 text-[10px] font-semibold uppercase text-primary">
         {item.type.slice(0, 2)}
       </div>
       <div className="min-w-0 flex-1">
@@ -87,7 +87,7 @@ export function AppHeader() {
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden h-8 w-8 rounded-lg hover:bg-accent/50 transition-colors"
+          className="md:hidden h-8 w-8 rounded-card hover:bg-accent/50 transition-colors"
           onClick={() => setMobileSidebarOpen(true)}
           aria-label="Open navigation"
         >
@@ -107,7 +107,7 @@ export function AppHeader() {
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden h-8 w-8 rounded-lg hover:bg-accent/50 text-muted-foreground hover:text-foreground transition-all shrink-0"
+          className="md:hidden h-8 w-8 rounded-card hover:bg-accent/50 text-muted-foreground hover:text-foreground transition-all shrink-0"
           onClick={() => setShowSearch(true)}
         >
           <Search className="size-[18px]" />

@@ -14,9 +14,9 @@ export function ProjectOverview({ projectId }: ProjectOverviewProps) {
   const project = projectResult?.data;
 
   if (isLoading) return <div className="space-y-6">
-    <div className="h-32 bg-muted/20 animate-pulse rounded-xl" />
+    <div className="h-32 bg-muted/20 animate-pulse rounded-card" />
     <div className="grid grid-cols-4 gap-3">
-      {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-muted/20 animate-pulse rounded-xl" />)}
+      {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-muted/20 animate-pulse rounded-card" />)}
     </div>
   </div>;
   
@@ -27,7 +27,7 @@ export function ProjectOverview({ projectId }: ProjectOverviewProps) {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* DESCRIPTION CARD */}
-      <Card className="rounded-xl border border-border/10 bg-card/30 backdrop-blur-xl overflow-hidden shadow-none">
+      <Card className="rounded-card border border-border/10 bg-card/30 backdrop-blur-xl overflow-hidden shadow-none">
         <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
             <Info className="size-3.5 text-primary" />

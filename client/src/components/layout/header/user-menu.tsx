@@ -43,9 +43,9 @@ export function HeaderUserMenu() {
         <DropdownMenuContent
           align="end"
           sideOffset={12}
-          className="w-72 overflow-hidden rounded-2xl border-border/80 bg-card/95 p-2 shadow-xl backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2"
+          className="w-72 overflow-hidden rounded-dropdown border-border/80 bg-card/95 p-2 shadow-xl backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2"
         >
-          <div className="rounded-2xl border border-border/60 bg-primary/5 px-3 py-3 shadow-sm">
+          <div className="rounded-dropdown border border-border/60 bg-primary/5 px-3 py-3 shadow-sm">
             <div className="flex items-start gap-3">
               <Avatar className="size-11 border border-border/60 shadow-sm">
                 <AvatarImage src={user?.avatarUrl} alt={fullName} />
@@ -70,7 +70,7 @@ export function HeaderUserMenu() {
 
           <div className="p-1 mt-2 space-y-1">
             <DropdownMenuItem
-              className="gap-3 rounded-xl px-3 py-2.5 focus:bg-primary/10"
+              className="gap-3 rounded-dropdown px-3 py-2.5 focus:bg-primary/10"
               onSelect={async (event) => {
                 event.preventDefault();
                 router.push("/settings");
@@ -87,7 +87,7 @@ export function HeaderUserMenu() {
 
             {isAdmin && (
               <DropdownMenuItem
-                className="gap-3 rounded-xl px-3 py-2.5 text-primary border border-transparent hover:border-primary/20 focus:bg-primary/10"
+                className="gap-3 rounded-dropdown px-3 py-2.5 text-primary border border-transparent hover:border-primary/20 focus:bg-primary/10"
                 onSelect={(event) => {
                   event.preventDefault();
                   setCreateOrgOpen(true);

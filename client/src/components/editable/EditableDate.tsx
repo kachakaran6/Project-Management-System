@@ -27,7 +27,7 @@ export function EditableDate({
         placeholder={placeholder}
         showClear={true}
         className={cn(
-          "group flex items-center gap-2 rounded-md px-2 py-1.5 -ml-2 transition-all hover:bg-muted text-sm w-full text-left border-none focus-visible:ring-0",
+          "group flex items-center gap-2 rounded-input px-2 py-1.5 -ml-2 transition-all hover:bg-muted text-sm w-full text-left border-none focus-visible:ring-0",
           !value && "text-muted-foreground italic",
           value && "font-semibold text-primary"
         )}

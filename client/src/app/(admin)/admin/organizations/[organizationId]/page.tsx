@@ -165,7 +165,7 @@ function Metric({
   icon: React.ElementType;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-muted/20 p-4">
+    <div className="rounded-card border border-border bg-muted/20 p-4">
       <div className="mb-2 flex items-center gap-2 text-muted-foreground">
         <Icon className="h-4 w-4" />
         <span className="text-xs uppercase tracking-wider">{title}</span>

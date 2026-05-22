@@ -95,7 +95,7 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/50" />
           <Input 
             placeholder="Search resources..." 
-            className="pl-9 h-8 text-xs bg-muted/30 border-border/10 focus:ring-primary/20 rounded-lg"
+            className="pl-9 h-8 text-xs bg-muted/30 border-border/10 focus:ring-primary/20 rounded-card"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -104,12 +104,12 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 text-xs px-3 rounded-lg border-border/10 gap-2">
+              <Button variant="outline" size="sm" className="h-8 text-xs px-3 rounded-card border-border/10 gap-2">
                 <Filter className="size-3.5 opacity-60" />
                 <span className="capitalize">{typeFilter === "all" ? "All Types" : typeFilter}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40 rounded-xl">
+            <DropdownMenuContent align="end" className="w-40 rounded-card">
               <DropdownMenuItem onClick={() => setTypeFilter("all")} className="gap-2 text-xs">
                 <LayoutGrid className="size-3 opacity-60" /> All Resources
               </DropdownMenuItem>
@@ -127,7 +127,7 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
 
           <Button 
             size="sm"
-            className="h-8 text-xs px-4 rounded-lg gap-2"
+            className="h-8 text-xs px-4 rounded-card gap-2"
             onClick={() => {
               setSelectedResource(null);
               setIsModalOpen(true);
@@ -140,7 +140,7 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
       </div>
 
       {/* SECURITY NOTICE - Compact */}
-      <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10">
+      <div className="flex items-center gap-3 p-3 rounded-card bg-primary/5 border border-primary/10">
         <ShieldCheck className="size-4 text-primary shrink-0" />
         <p className="text-[11px] text-primary/80 font-medium leading-tight">
           Credentials are AES-256-GCM encrypted and only decrypted on request.
@@ -162,7 +162,7 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
           ))}
         </div>
       ) : (
-        <div className="py-12 border border-dashed border-border/10 rounded-xl flex items-center justify-center">
+        <div className="py-12 border border-dashed border-border/10 rounded-card flex items-center justify-center">
           <p className="text-xs text-muted-foreground/40 font-medium uppercase tracking-widest">
             No resources found
           </p>
@@ -177,7 +177,7 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <AlertDialogContent className="rounded-xl">
+        <AlertDialogContent className="rounded-card">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg">Delete Resource?</AlertDialogTitle>
             <AlertDialogDescription className="text-sm">
@@ -185,10 +185,10 @@ export function ProjectVault({ projectId }: ProjectVaultProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-lg text-xs">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-card text-xs">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
-              className="rounded-lg text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="rounded-card text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
             </AlertDialogAction>

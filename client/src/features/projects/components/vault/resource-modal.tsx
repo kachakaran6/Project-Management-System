@@ -120,7 +120,7 @@ export function ResourceModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] rounded-md">
+      <DialogContent className="sm:max-w-[500px] rounded-modal">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold tracking-tight">
             {resource ? "Edit Resource" : "Add New Resource"}
@@ -140,11 +140,11 @@ export function ResourceModal({
                   <FormLabel>Resource Type</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="rounded-sm h-11 bg-muted/20 border-border/40">
+                      <SelectTrigger className="rounded-button h-11 bg-muted/20 border-border/40">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="rounded-sm">
+                    <SelectContent className="rounded-button">
                       <SelectItem value="link">
                         <div className="flex items-center gap-2">
                           <Globe className="size-4 text-blue-500" />
@@ -179,7 +179,7 @@ export function ResourceModal({
                   <FormControl>
                     <Input 
                       placeholder="e.g. AWS Console, Staging DB, API Docs" 
-                      className="rounded-sm h-11 bg-muted/20 border-border/40" 
+                      className="rounded-button h-11 bg-muted/20 border-border/40" 
                       {...field} 
                     />
                   </FormControl>
@@ -198,7 +198,7 @@ export function ResourceModal({
                     <FormControl>
                       <Input 
                         placeholder="https://..." 
-                        className="rounded-sm h-11 bg-muted/20 border-border/40" 
+                        className="rounded-button h-11 bg-muted/20 border-border/40" 
                         {...field} 
                       />
                     </FormControl>
@@ -219,7 +219,7 @@ export function ResourceModal({
                       <FormControl>
                         <Input 
                           placeholder="Username" 
-                          className="rounded-sm h-11 bg-muted/20 border-border/40" 
+                          className="rounded-button h-11 bg-muted/20 border-border/40" 
                           {...field} 
                         />
                       </FormControl>
@@ -237,7 +237,7 @@ export function ResourceModal({
                         <Input 
                           type="password"
                           placeholder={resource ? "Leave blank to keep current" : "Password"} 
-                          className="rounded-sm h-11 bg-muted/20 border-border/40" 
+                          className="rounded-button h-11 bg-muted/20 border-border/40" 
                           {...field} 
                         />
                       </FormControl>
@@ -257,7 +257,7 @@ export function ResourceModal({
                   <FormControl>
                     <Textarea 
                       placeholder="Additional details about this resource..." 
-                      className="rounded-sm min-h-[100px] bg-muted/20 border-border/40 resize-none" 
+                      className="rounded-button min-h-[100px] bg-muted/20 border-border/40 resize-none" 
                       {...field} 
                     />
                   </FormControl>
@@ -275,7 +275,7 @@ export function ResourceModal({
                   <FormControl>
                     <Input 
                       placeholder="dev, production, database" 
-                      className="rounded-sm h-11 bg-muted/20 border-border/40" 
+                      className="rounded-button h-11 bg-muted/20 border-border/40" 
                       {...field} 
                     />
                   </FormControl>
@@ -289,14 +289,14 @@ export function ResourceModal({
                 type="button" 
                 variant="ghost" 
                 onClick={() => onOpenChange(false)}
-                className="rounded-sm h-11"
+                className="rounded-button h-11"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
                 disabled={isPending}
-                className="rounded-sm h-11 px-8 shadow-lg shadow-primary/20"
+                className="rounded-button h-11 px-8 shadow-lg shadow-primary/20"
               >
                 {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
                 {resource ? "Save Changes" : "Create Resource"}

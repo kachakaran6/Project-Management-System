@@ -367,10 +367,10 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
             }}
             className={cn(
               "group relative flex flex-col gap-1.5 border bg-card mx-0.5 transition-all duration-300 ease-in-out select-none",
-              isEmbedded ? "rounded-sm p-3 border-border/10 shadow-sm" : "rounded-sm p-2.5 border-border/40 shadow-sm",
+              isEmbedded ? "rounded-button p-3 border-border/10 shadow-sm" : "rounded-button p-2.5 border-border/40 shadow-sm",
               "hover:-translate-y-1 hover:bg-white/2 hover:shadow-md",
               snapshot.isDragging
-                ? "shadow-2xl border-primary/20 ring-1 ring-primary/10 scale-[1.02] z-50 bg-accent rounded-sm"
+                ? "shadow-2xl border-primary/20 ring-1 ring-primary/10 scale-[1.02] z-50 bg-accent rounded-button"
                 : "cursor-grab active:cursor-grabbing",
               (task as any).isOptimistic && "opacity-70 grayscale-[0.3] pointer-events-none animate-pulse"
             )}
@@ -416,15 +416,15 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="shrink-0 cursor-default">
-                    <Avatar className="h-4 w-4 rounded-sm border border-border/20 shadow-sm opacity-80 hover:opacity-100 transition-opacity">
+                    <Avatar className="h-4 w-4 rounded-button border border-border/20 shadow-sm opacity-80 hover:opacity-100 transition-opacity">
                       <AvatarImage src={createdByUser?.avatarUrl} alt={createdByName} />
-                      <AvatarFallback className="text-[7px] bg-muted text-muted-foreground font-bold rounded-sm">
+                      <AvatarFallback className="text-[7px] bg-muted text-muted-foreground font-bold rounded-button">
                         {createdByName.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="flex flex-col gap-0.5 p-2 rounded-sm border-border/40 bg-card/95 backdrop-blur-md shadow-xl z-[100]">
+                <TooltipContent side="bottom" className="flex flex-col gap-0.5 p-2 rounded-button border-border/40 bg-card/95 backdrop-blur-md shadow-xl z-[100]">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Created By</span>
                   <span className="text-xs font-semibold">{createdByName}</span>
                   {createdByEmail && <span className="text-[11px] text-muted-foreground font-medium">{createdByEmail}</span>}
@@ -441,7 +441,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                       className={cn(
                         "inline-flex items-center gap-1 transition-all",
                         isEmbedded
-                          ? "px-2 py-1 rounded-sm text-[8px] font-black border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
+                          ? "px-2 py-1 rounded-button text-[8px] font-black border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
                           : "px-1.5 py-0.5 rounded-xs text-[9px] font-bold border border-border/40 bg-muted/50 text-muted-foreground hover:bg-muted/70"
                       )}
                     >
@@ -459,7 +459,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                       </span>
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48 rounded-md border-border/40">
+                  <DropdownMenuContent align="start" className="w-48 rounded-button border-border/40">
                     {statusItems.map((item) => (
                       <DropdownMenuItem
                         key={item.value}
@@ -467,7 +467,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                           e.stopPropagation();
                           handleStatusChange(item.value);
                         }}
-                        className="flex items-center justify-between rounded-sm"
+                        className="flex items-center justify-between rounded-button"
                       >
                         <span>{item.label}</span>
                         {currentStatusId === item.value ? <Check className="size-3.5" /> : null}
@@ -486,7 +486,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                     className={cn(
                       "flex items-center justify-center transition-all",
                       isEmbedded
-                        ? "p-1.5 rounded-sm border border-border/10 bg-muted/10 hover:bg-muted/20 active:scale-90"
+                        ? "p-1.5 rounded-button border border-border/10 bg-muted/10 hover:bg-muted/20 active:scale-90"
                         : "p-1 rounded-xs border border-border/20 bg-muted/30 hover:bg-muted/50",
                       priority.color,
                     )}
@@ -494,7 +494,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                     <Flag className={isEmbedded ? "size-3.5" : "size-3"} fill="currentColor" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-40 rounded-md border-border/40">
+                <DropdownMenuContent align="start" className="w-40 rounded-button border-border/40">
                   {[
                     { value: "LOW", label: "Low" },
                     { value: "MEDIUM", label: "Medium" },
@@ -506,7 +506,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                         e.stopPropagation();
                         handlePriorityChange(item.value as "LOW" | "MEDIUM" | "HIGH");
                       }}
-                      className="flex items-center justify-between rounded-sm"
+                      className="flex items-center justify-between rounded-button"
                     >
                       <span>{item.label}</span>
                       {task.priority === item.value ? <Check className="size-3.5" /> : null}
@@ -524,7 +524,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                     className={cn(
                       "flex items-center gap-1 transition-all",
                       isEmbedded
-                        ? "text-[8px] font-black px-2 py-1 rounded-sm border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
+                        ? "text-[8px] font-black px-2 py-1 rounded-button border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
                         : "text-[9px] font-bold px-1.5 py-0.5 rounded-xs border border-border/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
                       isPastDue && (isEmbedded ? "text-rose-500 bg-rose-500/10 border-rose-500/20 shadow-[0_0_8px_rgba(244,63,94,0.1)]" : "text-rose-400 bg-rose-500/10"),
                     )}
@@ -535,7 +535,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                 </PopoverTrigger>
                 <PopoverContent
                   align="start"
-                  className="w-auto p-0 border-border/40 rounded-md shadow-xl"
+                  className="w-auto p-0 border-border/40 rounded-button shadow-xl"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <DatePicker
@@ -558,16 +558,16 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                     className={cn(
                       "ml-auto flex items-center gap-1 transition-all active:scale-95",
                       isEmbedded
-                        ? "rounded-sm border border-border/10 bg-muted/10 px-2 py-1 hover:bg-muted/20 shadow-sm"
-                        : "rounded-sm border border-border/30 bg-muted/20 px-1.5 py-0.5 hover:bg-muted/40"
+                        ? "rounded-button border border-border/10 bg-muted/10 px-2 py-1 hover:bg-muted/20 shadow-sm"
+                        : "rounded-button border border-border/30 bg-muted/20 px-1.5 py-0.5 hover:bg-muted/40"
                     )}
                   >
                     {assignees.length > 0 ? (
                       <div className="flex items-center -space-x-1.5 overflow-visible">
                         {assignees.slice(0, 3).map((item) => (
-                          <Avatar key={item.id} className={cn("ring-background shadow-sm", isEmbedded ? "h-4 w-4 ring-2 border border-border/10 rounded-sm" : "h-4 w-4 ring-1 rounded-sm")}>
+                          <Avatar key={item.id} className={cn("ring-background shadow-sm", isEmbedded ? "h-4 w-4 ring-2 border border-border/10 rounded-button" : "h-4 w-4 ring-1 rounded-button")}>
                             <AvatarImage src={item.avatarUrl} alt={item.name} />
-                            <AvatarFallback className={cn("text-[7px] text-primary rounded-sm", isEmbedded ? "bg-primary/10 font-black" : "bg-primary/15 font-bold")}>
+                            <AvatarFallback className={cn("text-[7px] text-primary rounded-button", isEmbedded ? "bg-primary/10 font-black" : "bg-primary/15 font-bold")}>
                               {item.name.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
@@ -588,7 +588,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                 </PopoverTrigger>
                 <PopoverContent
                   align="end"
-                  className="w-60 rounded-md border-border/40 p-2 shadow-xl"
+                  className="w-60 rounded-button border-border/40 p-2 shadow-xl"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="space-y-2">
@@ -596,9 +596,9 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                       value={assigneeQuery}
                       onChange={(e) => setAssigneeQuery(e.target.value)}
                       placeholder="Search members..."
-                      className="h-8 border-border/40 bg-muted/20 text-sm focus-visible:ring-1 focus-visible:ring-primary/20 rounded-sm"
+                      className="h-8 border-border/40 bg-muted/20 text-sm focus-visible:ring-1 focus-visible:ring-primary/20 rounded-button"
                     />
-                    <div className="max-h-52 overflow-y-auto rounded-sm border border-border/30 bg-background/80 p-1">
+                    <div className="max-h-52 overflow-y-auto rounded-button border border-border/30 bg-background/80 p-1">
                       {filteredMembers.length === 0 ? (
                         <div className="px-2 py-3 text-xs text-muted-foreground">No member found.</div>
                       ) : (
@@ -607,11 +607,11 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                             key={member.id}
                             type="button"
                             onClick={() => handleAssigneeChange(member.id)}
-                            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted/40 transition-colors"
+                            className="flex w-full items-center gap-2 rounded-button px-2 py-1.5 text-left text-sm hover:bg-muted/40 transition-colors"
                           >
-                            <Avatar className="h-5 w-5 rounded-sm">
+                            <Avatar className="h-5 w-5 rounded-button">
                               <AvatarImage src={member.avatarUrl} alt={member.name} />
-                              <AvatarFallback className="text-[9px] rounded-sm">{member.name.charAt(0)}</AvatarFallback>
+                              <AvatarFallback className="text-[9px] rounded-button">{member.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div className="min-w-0 flex-1">
                               <span className="block truncate">{member.name}</span>
@@ -625,7 +625,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                     <button
                       type="button"
                       onClick={handleClearAssignees}
-                      className="flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/30 transition-colors"
+                      className="flex w-full items-center justify-between rounded-button px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/30 transition-colors"
                     >
                       <span>Unassign</span>
                       {selectedAssigneeIds.length === 0 ? <Check className="size-3.5 text-primary" /> : null}
@@ -667,7 +667,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1 h-8 px-2 gap-1.5 rounded-sm text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
+                className="flex-1 h-8 px-2 gap-1.5 rounded-button text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
                 onClick={(e) => {
                   e.stopPropagation();
                   const params = new URLSearchParams(searchParams.toString());
@@ -683,7 +683,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 h-8 px-2 gap-1.5 rounded-sm text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
+                  className="flex-1 h-8 px-2 gap-1.5 rounded-button text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
                   onClick={(e) => {
                     e.stopPropagation();
                     setEditOpen(true);
@@ -697,7 +697,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 h-8 px-2 gap-1.5 rounded-sm text-[10px] font-bold border-rose-500/20 bg-rose-500/5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 active:scale-95 transition-all"
+                  className="flex-1 h-8 px-2 gap-1.5 rounded-button text-[10px] font-bold border-rose-500/20 bg-rose-500/5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 active:scale-95 transition-all"
                   onClick={handleDeleteClick}
                 >
                   <Trash2 className="size-3.5" />
@@ -758,7 +758,7 @@ function QuickAddInput({
   };
 
   return (
-    <div className="mx-3 my-2 rounded-md border border-border/20 bg-card p-3 shadow-lg ring-1 ring-primary/5 animate-in fade-in slide-in-from-top-2 duration-200">
+    <div className="mx-3 my-2 rounded-button border border-border/20 bg-card p-3 shadow-lg ring-1 ring-primary/5 animate-in fade-in slide-in-from-top-2 duration-200">
       <Input
         autoFocus
         value={value}
@@ -775,14 +775,14 @@ function QuickAddInput({
           variant="ghost"
           size="sm"
           onClick={onDone}
-          className="h-8 px-3 text-xs rounded-sm">
+          className="h-8 px-3 text-xs rounded-button">
           Cancel
         </Button>
         <Button
           size="sm"
           onClick={handleSubmit}
           disabled={createTask.isPending}
-          className="h-8 px-4 text-xs font-semibold rounded-sm">
+          className="h-8 px-4 text-xs font-semibold rounded-button">
           {createTask.isPending && (
             <Loader2 className="mr-1.5 size-3 animate-spin" />
           )}
@@ -1152,7 +1152,7 @@ function KanbanColumn({
 
   return (
     <div className={cn(
-      "group flex flex-col w-[280px] shrink-0 rounded-md border h-full overflow-hidden transition-all duration-300 shadow-sm",
+      "group flex flex-col w-[280px] shrink-0 rounded-button border h-full overflow-hidden transition-all duration-300 shadow-sm",
       isEmbedded
         ? "bg-muted/5 border-border/20 ring-1 ring-border/5"
         : "bg-muted/10 border-border/50"
@@ -1177,7 +1177,7 @@ function KanbanColumn({
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground/30 hover:text-foreground hover:bg-muted transition-all"
+            className="h-6 w-6 flex items-center justify-center rounded-button text-muted-foreground/30 hover:text-foreground hover:bg-muted transition-all"
             onClick={() => setQuickAdd(true)}>
             <Plus className="size-3.5" />
           </button>
@@ -1198,11 +1198,11 @@ function KanbanColumn({
             <div className="space-y-2">
               {isLoading ? (
                 <div className="flex flex-col gap-2 p-2">
-                  <div className="h-20 w-full bg-muted/40 animate-pulse rounded-md" />
-                  <div className="h-20 w-full bg-muted/40 animate-pulse rounded-md" />
+                  <div className="h-20 w-full bg-muted/40 animate-pulse rounded-button" />
+                  <div className="h-20 w-full bg-muted/40 animate-pulse rounded-button" />
                 </div>
               ) : tasks.length === 0 && !snapshot.isDraggingOver ? (
-                <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-white/2 py-12 opacity-20 mt-2 mx-1">
+                <div className="flex flex-col items-center justify-center rounded-button border border-dashed border-white/2 py-12 opacity-20 mt-2 mx-1">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                     No tasks
                   </p>
@@ -1247,7 +1247,7 @@ function KanbanColumn({
           <button
             onClick={() => setQuickAdd(true)}
             className={cn(
-              "group flex items-center justify-start gap-2 w-full h-8 px-3 rounded-lg transition-all duration-300",
+              "group flex items-center justify-start gap-2 w-full h-8 px-3 rounded-card transition-all duration-300",
               "bg-primary/[0.03] border border-dashed border-primary/20 text-primary/60",
               "hover:bg-primary/10 hover:text-primary hover:border-primary/40 hover:shadow-[0_0_15px_rgba(var(--primary),0.1)]",
               "active:scale-[0.98]"

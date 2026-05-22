@@ -63,7 +63,7 @@ export function EditableText({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={cn(
-          "w-full bg-background border border-primary rounded-md p-2 text-[15px] focus:outline-none transition-all resize-none",
+          "w-full bg-background border border-primary rounded-input p-2 text-[15px] focus:outline-none transition-all resize-none",
           inputClassName
         )}
       />
@@ -77,7 +77,7 @@ export function EditableText({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={cn(
-          "w-full bg-background border border-primary rounded-md px-2 py-1 text-[15px] focus:outline-none transition-all",
+          "w-full bg-background border border-primary rounded-input px-2 py-1 text-[15px] focus:outline-none transition-all",
           inputClassName
         )}
       />
@@ -88,7 +88,7 @@ export function EditableText({
     <div
       onClick={() => setIsEditing(true)}
       className={cn(
-        "group relative cursor-text rounded-md px-2 py-1 -ml-2 transition-all hover:bg-muted min-h-[1.5em] flex items-center",
+        "group relative cursor-text rounded-input px-2 py-1 -ml-2 transition-all hover:bg-muted min-h-[1.5em] flex items-center",
         className
       )}
     >

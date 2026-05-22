@@ -345,7 +345,7 @@ export function TaskForm({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden rounded-xl border border-border shadow-2xl">
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden rounded-card border border-border shadow-2xl">
       {/* Header Area */}
       <div className="pt-6 pb-2 px-6 shrink-0 space-y-3">
         <div className="flex items-center justify-between">
@@ -368,7 +368,7 @@ export function TaskForm({
                 onCancel();
               }
             }}
-            className="h-8 w-8 rounded-md text-muted-foreground/50 hover:text-foreground transition-all">
+            className="h-8 w-8 rounded-button text-muted-foreground/50 hover:text-foreground transition-all">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -381,15 +381,15 @@ export function TaskForm({
               form.setValue("projectId", v, {shouldValidate: true})
             }
             >
-            <SelectTrigger className="px-3 bg-muted/20 border-border/30 text-[11px] font-bold text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-all ring-0 focus:ring-0 rounded-md">
+            <SelectTrigger className="px-3 bg-muted/20 border-border/30 text-[11px] font-bold text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-all ring-0 focus:ring-0 rounded-button">
               <div className="flex items-center gap-1.5">
                 <Layout className="h-3 w-3 opacity-60" />
                 <span>{currentProject?.name || "Select Project"}</span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-md border-border/50 w-80">
+            <SelectContent className="rounded-button border-border/50 w-80">
               {projects.map((p) => (
-                <SelectItem key={p.id} value={p.id} className="w-80 rounded-md">
+                <SelectItem key={p.id} value={p.id} className="w-80 rounded-button">
                   {p.name}
                 </SelectItem>
               ))}
@@ -417,7 +417,7 @@ export function TaskForm({
               onKeyDown={handleTitleKeyDown}
               placeholder="What needs to be done?"
               className={cn(
-                "h-12 px-4 text-lg font-medium bg-muted/10 border border-border/20 rounded-md transition-all duration-200",
+                "h-12 px-4 text-lg font-medium bg-muted/10 border border-border/20 rounded-button transition-all duration-200",
                 "placeholder:text-muted-foreground/30 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 focus:bg-background",
                 form.formState.errors.title &&
                   "border-destructive/40 focus:border-destructive/40 focus:ring-destructive/5",
@@ -428,7 +428,7 @@ export function TaskForm({
           />
 
           {showSuggestionsPanel && (
-            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-xl border border-border/40 bg-background/98 shadow-xl backdrop-blur-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-card border border-border/40 bg-background/98 shadow-xl backdrop-blur-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/10 bg-muted/20">
                 <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tight">
                   <Sparkles className="size-3 text-primary/60" />
@@ -512,7 +512,7 @@ export function TaskForm({
           <Select
             value={statusValue}
             onValueChange={(v) => form.setValue("status", v as any)}>
-            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-md text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
+            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-button text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
               <div className="flex items-center gap-2">
                 <StatusIcon
                   className={cn(
@@ -525,12 +525,12 @@ export function TaskForm({
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-md border-border/30">
+            <SelectContent className="rounded-button border-border/30">
               {dynamicStatuses.map((s: any) => (
                 <SelectItem
                   key={s.id || s._id}
                   value={s.id || s._id}
-                  className="text-xs focus:bg-primary/10 rounded-md">
+                  className="text-xs focus:bg-primary/10 rounded-button">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color || "#94a3b8" }} />
                     {s.name}
@@ -541,7 +541,7 @@ export function TaskForm({
                 <SelectItem
                   key={s}
                   value={s}
-                  className="text-xs uppercase focus:bg-primary/10 rounded-md">
+                  className="text-xs uppercase focus:bg-primary/10 rounded-button">
                   {s.replace("_", " ")}
                 </SelectItem>
               ))}
@@ -552,7 +552,7 @@ export function TaskForm({
           <Select
             value={priorityValue}
             onValueChange={(v) => form.setValue("priority", v as any)}>
-            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-md text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
+            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-button text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
               <div className="flex items-center gap-2">
                 <Flag
                   className={cn(
@@ -565,12 +565,12 @@ export function TaskForm({
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-md border-border/30">
+            <SelectContent className="rounded-button border-border/30">
               {["LOW", "MEDIUM", "HIGH", "URGENT"].map((p) => (
                 <SelectItem
                   key={p}
                   value={p}
-                  className="text-xs focus:bg-primary/10 rounded-md">
+                  className="text-xs focus:bg-primary/10 rounded-button">
                   {p}
                 </SelectItem>
               ))}
@@ -587,7 +587,7 @@ export function TaskForm({
                 form.setValue("visibleToUsers", []);
               }
             }}>
-            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-md text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
+            <SelectTrigger className="w-auto h-8 px-3 bg-background border border-border/40 rounded-button text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all focus:ring-0">
               <div className="flex items-center gap-2">
                 {visibilityConfig[visibilityValue]?.icon && 
                   React.createElement(visibilityConfig[visibilityValue].icon, {
@@ -599,12 +599,12 @@ export function TaskForm({
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-md border-border/30 w-56">
+            <SelectContent className="rounded-button border-border/30 w-56">
               {Object.entries(visibilityConfig).map(([key, config]) => (
                 <SelectItem
                   key={key}
                   value={key}
-                  className="text-xs focus:bg-primary/10 rounded-md">
+                  className="text-xs focus:bg-primary/10 rounded-button">
                   <div className="flex items-center gap-2">
                     {React.createElement(config.icon, {className: "h-4 w-4"})}
                     <div>
@@ -635,7 +635,7 @@ export function TaskForm({
                       <button
                         type="button"
                         className={cn(
-                          "inline-flex items-center gap-2 h-8 px-3 bg-background border border-border/40 rounded-md text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all",
+                          "inline-flex items-center gap-2 h-8 px-3 bg-background border border-border/40 rounded-button text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all",
                           (field.value || []).length > 0 &&
                             "border-primary/30 bg-primary/5 text-primary",
                         )}>
@@ -669,7 +669,7 @@ export function TaskForm({
                   onChange={field.onChange}
                   placeholder="Due date"
                   className={cn(
-                    "h-8 px-3 rounded-md text-[13px] border-border/40",
+                    "h-8 px-3 rounded-button text-[13px] border-border/40",
                     field.value
                       ? "text-primary border-primary/30 bg-primary/5"
                       : "bg-background hover:bg-muted"
@@ -693,7 +693,7 @@ export function TaskForm({
                       <button
                         type="button"
                         className={cn(
-                          "inline-flex items-center gap-2 h-8 px-3 bg-background border border-border/40 rounded-md text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all",
+                          "inline-flex items-center gap-2 h-8 px-3 bg-background border border-border/40 rounded-button text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all",
                           visibleToUsersValue.length > 0 &&
                             "border-blue-500/30 bg-blue-500/5 text-blue-500",
                         )}>
@@ -766,7 +766,7 @@ export function TaskForm({
             )}
             disabled={isSubmitting || !titleValue || !titleValue.trim()}
             className={cn(
-              "h-9 px-6 text-xs font-bold rounded-md transition-all flex items-center gap-2 shadow-sm",
+              "h-9 px-6 text-xs font-bold rounded-button transition-all flex items-center gap-2 shadow-sm",
               isSubmitting ? "bg-primary/80" : "bg-primary hover:bg-primary/90"
             )}
           >

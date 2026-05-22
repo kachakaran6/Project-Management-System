@@ -49,7 +49,7 @@ export function EditableSelect({
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "group flex items-center gap-2 rounded-sm px-2 py-1.5 -ml-2 transition-all hover:bg-muted text-[13px] w-full text-left focus:outline-none",
+            "group flex items-center gap-2 rounded-input px-2 py-1.5 -ml-2 transition-all hover:bg-muted text-[13px] w-full text-left focus:outline-none",
             className
           )}
         >
@@ -73,7 +73,7 @@ export function EditableSelect({
           </div>
         </button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-[200px] rounded-sm shadow-xl border-border/10" align="start">
+      <PopoverContent className="p-0 w-[200px] rounded-input shadow-xl border-border/10" align="start">
         <Command>
           <CommandInput placeholder="Search..." className="h-9 focus-visible:outline-none!" />
           <CommandList>

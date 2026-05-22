@@ -325,7 +325,7 @@ function MetricCard({
             </p>
           ) : null}
         </div>
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground/80">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-card bg-muted/60 text-muted-foreground/80">
           <Icon className="size-4" />
         </div>
       </CardContent>
@@ -374,7 +374,7 @@ function CustomChartTooltip({ active, payload, label, total }: any) {
 function TaskRow({ task, label }: { task: Task; label: string }) {
   const creatorName = getTaskCreatorName(task);
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/10 px-4 py-3 transition-colors hover:bg-muted/20">
+    <div className="flex items-center justify-between gap-3 rounded-card border border-border/70 bg-muted/10 px-4 py-3 transition-colors hover:bg-muted/20">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-medium text-foreground">
@@ -669,7 +669,7 @@ export default function YourWorkPage() {
                   <PopoverTrigger asChild>
                     <button
                       className={cn(
-                        "inline-flex items-center gap-2 h-9 px-3 rounded-xl md:rounded-full w-full md:w-auto",
+                        "inline-flex items-center gap-2 h-9 px-3 rounded-card md:rounded-full w-full md:w-auto",
                         "border border-border bg-muted/30 hover:bg-muted/50",
                         "transition-colors duration-120 cursor-pointer",
                         "text-[13px] font-medium text-foreground"
@@ -699,7 +699,7 @@ export default function YourWorkPage() {
 
                   <PopoverContent
                     className={cn(
-                      "w-56 p-1.5 rounded-xl border border-border/60",
+                      "w-56 p-1.5 rounded-card border border-border/60",
                       "bg-card/95 backdrop-blur-lg",
                       "shadow-lg animate-in fade-in zoom-in-95",
                       "data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95"
@@ -713,7 +713,7 @@ export default function YourWorkPage() {
                       <button
                         onClick={() => setViewingUserId("me")}
                         className={cn(
-                          "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-colors duration-100",
+                          "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-card transition-colors duration-100",
                           "text-[13px]",
                           viewingUserId === "me"
                             ? "bg-muted text-foreground"
@@ -742,7 +742,7 @@ export default function YourWorkPage() {
                       <button
                         onClick={() => setViewingUserId("all")}
                         className={cn(
-                          "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-colors duration-100",
+                          "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-card transition-colors duration-100",
                           "text-[13px]",
                           viewingUserId === "all"
                             ? "bg-muted text-foreground"
@@ -772,7 +772,7 @@ export default function YourWorkPage() {
                               key={member.id}
                               onClick={() => setViewingUserId(member.id)}
                               className={cn(
-                                "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-colors duration-100",
+                                "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-card transition-colors duration-100",
                                 "text-[13px]",
                                 viewingUserId === member.id
                                   ? "bg-muted text-foreground"
@@ -807,14 +807,14 @@ export default function YourWorkPage() {
           {loading ? (
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Skeleton className="h-28 w-full rounded-xl" />
-                <Skeleton className="h-28 w-full rounded-xl" />
-                <Skeleton className="h-28 w-full rounded-xl" />
+                <Skeleton className="h-28 w-full rounded-card" />
+                <Skeleton className="h-28 w-full rounded-card" />
+                <Skeleton className="h-28 w-full rounded-card" />
               </div>
-              <Skeleton className="h-36 w-full rounded-xl" />
+              <Skeleton className="h-36 w-full rounded-card" />
               <div className="grid gap-4 xl:grid-cols-2">
-                <Skeleton className="h-96 w-full rounded-xl" />
-                <Skeleton className="h-96 w-full rounded-xl" />
+                <Skeleton className="h-96 w-full rounded-card" />
+                <Skeleton className="h-96 w-full rounded-card" />
               </div>
             </div>
           ) : (
@@ -988,7 +988,7 @@ export default function YourWorkPage() {
                         >
                           <div className="flex items-center gap-2">
                             <span
-                              className="size-3 rounded-sm"
+                              className="size-3 rounded-button"
                               style={{ backgroundColor: entry.color }}
                             />
                             <span className="text-muted-foreground">
@@ -1114,7 +1114,7 @@ export default function YourWorkPage() {
               </CardTitle>
               <button
                 onClick={() => toggleProfile(false)}
-                className="rounded-md p-1 text-muted-foreground/40 transition-colors hover:bg-muted hover:text-foreground md:opacity-0 md:group-hover/profile:opacity-100"
+                className="rounded-button p-1 text-muted-foreground/40 transition-colors hover:bg-muted hover:text-foreground md:opacity-0 md:group-hover/profile:opacity-100"
               >
                 <X className="size-3.5" />
               </button>
@@ -1149,7 +1149,7 @@ export default function YourWorkPage() {
         ) : (
           <button
             onClick={() => toggleProfile(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 py-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+            className="flex w-full items-center justify-center gap-2 rounded-card border border-dashed border-border/60 py-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
           >
             <User2 className="size-3.5" />
             Restore Profile Card

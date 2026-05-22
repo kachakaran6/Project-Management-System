@@ -40,7 +40,7 @@ function resolveMode(
 function RolePill({ role }: { role: string }) {
   const clean = role.replace(/_/g, " ");
   return (
-    <span className="rounded-md bg-primary/10 px-1.5 py-px text-[9px] font-semibold uppercase tracking-widest text-primary">
+    <span className="rounded-dropdown bg-primary/10 px-1.5 py-px text-[9px] font-semibold uppercase tracking-widest text-primary">
       {clean}
     </span>
   );
@@ -61,7 +61,7 @@ function OrgAvatar({
   return (
     <div
       className={cn(
-        "flex flex-shrink-0 items-center justify-center rounded-lg font-bold text-primary-foreground",
+        "flex flex-shrink-0 items-center justify-center rounded-dropdown font-bold text-primary-foreground",
         active ? "bg-primary shadow-sm" : "bg-primary/20 text-primary",
         size === "sm" ? "h-6 w-6 text-[10px]" : "h-8 w-8 text-sm",
       )}
@@ -81,7 +81,7 @@ function SoloChip({ onCreateOrg, isAdmin }: { onCreateOrg: () => void, isAdmin: 
           <TooltipTrigger asChild>
             <div
               className={cn(
-                "flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-3",
+                "flex h-9 items-center gap-2 rounded-dropdown border border-border/60 bg-card/60 px-3",
                 "text-sm text-muted-foreground backdrop-blur-sm",
               )}
             >
@@ -116,7 +116,7 @@ function SingleOrgChip({ org, onCreateOrg, isAdmin }: { org: OrganizationMembers
     return (
       <div
         className={cn(
-          "flex h-9 max-w-[220px] items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-3",
+          "flex h-9 max-w-[220px] items-center gap-2 rounded-dropdown border border-border/60 bg-card/60 px-3",
           "text-sm backdrop-blur-sm",
         )}
       >
@@ -135,7 +135,7 @@ function SingleOrgChip({ org, onCreateOrg, isAdmin }: { org: OrganizationMembers
         <DropdownMenuTrigger asChild>
           <button
             className={cn(
-              "flex h-9 max-w-[220px] items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-3",
+              "flex h-9 max-w-[220px] items-center gap-2 rounded-dropdown border border-border/60 bg-card/60 px-3",
               "text-sm backdrop-blur-sm transition-all hover:border-primary/40 hover:bg-primary/5",
             )}
           >
@@ -147,14 +147,14 @@ function SingleOrgChip({ org, onCreateOrg, isAdmin }: { org: OrganizationMembers
             <ChevronDown className="size-3.5 text-muted-foreground" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={8} className="w-56 overflow-hidden rounded-xl border-border/80 bg-card/95 p-1.5 shadow-xl backdrop-blur-md">
+        <DropdownMenuContent align="start" sideOffset={8} className="w-56 overflow-hidden rounded-dropdown border-border/80 bg-card/95 p-1.5 shadow-xl backdrop-blur-md">
           <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Options
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="mb-1" />
           <DropdownMenuItem
             onSelect={(e) => { e.preventDefault(); onCreateOrg(); }}
-            className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2"
+            className="flex cursor-pointer items-center gap-2 rounded-dropdown px-2 py-2"
           >
             <Building2 className="mr-2 h-4 w-4 text-primary" />
             <span className="text-sm font-medium">Create New Organization</span>
@@ -200,7 +200,7 @@ function MultiOrgDropdown({
           aria-expanded={open}
           aria-label="Switch organization"
           className={cn(
-            "flex h-9 max-w-[220px] items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-1.5 md:px-3",
+            "flex h-9 max-w-[220px] items-center gap-2 rounded-dropdown border border-border/60 bg-card/60 px-1.5 md:px-3",
             "text-sm font-medium backdrop-blur-sm transition-all duration-150",
             "hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -236,7 +236,7 @@ function MultiOrgDropdown({
       <DropdownMenuContent
         align="start"
         sideOffset={8}
-        className="w-64 overflow-hidden rounded-xl border-border/80 bg-card/95 p-1.5 shadow-xl backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2"
+        className="w-64 overflow-hidden rounded-dropdown border-border/80 bg-card/95 p-1.5 shadow-xl backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2"
       >
         {/* Header */}
         <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -253,7 +253,7 @@ function MultiOrgDropdown({
                 key={org.id}
                 onSelect={(e) => { e.preventDefault(); handleSelect(org.id); }}
                 className={cn(
-                  "group flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2.5 transition-all",
+                  "group flex cursor-pointer items-center gap-2.5 rounded-dropdown px-2.5 py-2.5 transition-all",
                   "focus:bg-primary/8",
                   isActive && "bg-primary/8",
                 )}
@@ -292,9 +292,9 @@ function MultiOrgDropdown({
             <DropdownMenuSeparator className="mt-1" />
             <DropdownMenuItem
               onSelect={(e) => { e.preventDefault(); onCreateOrg(); }}
-              className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-primary hover:bg-primary/5 focus:bg-primary/5"
+              className="flex cursor-pointer items-center gap-2.5 rounded-dropdown px-2.5 py-2.5 text-primary hover:bg-primary/5 focus:bg-primary/5"
             >
-              <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <div className="flex size-8 items-center justify-center rounded-dropdown bg-primary/10 text-primary">
                 <Building2 className="size-4" />
               </div>
               <span className="text-sm font-semibold">Create Organization</span>

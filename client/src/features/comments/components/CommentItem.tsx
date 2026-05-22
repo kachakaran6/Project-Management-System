@@ -107,7 +107,7 @@ export function CommentItem({
   };
 
   return (
-    <li className="rounded-lg border border-border bg-card p-3">
+    <li className="rounded-card border border-border bg-card p-3">
       <div className="flex items-start gap-3">
         <Avatar className="size-8">
           <AvatarImage src={user.avatarUrl} alt={displayName} />

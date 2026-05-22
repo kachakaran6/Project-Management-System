@@ -15,14 +15,14 @@ export const IssuesTab = ({ owner, repo }: { owner: string; repo: string }) => {
 
   if (isLoading) {
     return (
-      <div className="space-y-0 border border-border/20 rounded-lg overflow-hidden bg-card/30">
+      <div className="space-y-0 border border-border/20 rounded-card overflow-hidden bg-card/30">
         {[...Array(5)].map((_, i) => <IssueSkeleton key={i} />)}
       </div>
     );
   }
 
   if (error) {
-    return <div className="text-destructive p-4 bg-destructive/10 rounded-md">Error loading issues.</div>;
+    return <div className="text-destructive p-4 bg-destructive/10 rounded-button">Error loading issues.</div>;
   }
 
   // Filter out pull requests as GitHub API returns them as issues
@@ -30,7 +30,7 @@ export const IssuesTab = ({ owner, repo }: { owner: string; repo: string }) => {
 
   if (!actualIssues.length) {
     return (
-      <div className="p-12 text-center border border-dashed border-border/40 rounded-lg bg-card text-muted-foreground shadow-sm">
+      <div className="p-12 text-center border border-dashed border-border/40 rounded-card bg-card text-muted-foreground shadow-sm">
         <div className="flex justify-center mb-3">
           <AlertCircle className="size-8 text-muted-foreground/30" />
         </div>
@@ -40,7 +40,7 @@ export const IssuesTab = ({ owner, repo }: { owner: string; repo: string }) => {
   }
 
   return (
-    <div className="border border-border/20 rounded-lg bg-card/30 shadow-sm animate-in fade-in duration-300">
+    <div className="border border-border/20 rounded-card bg-card/30 shadow-sm animate-in fade-in duration-300">
       {actualIssues.map((issue: any, index: number) => {
         const isLast = index === actualIssues.length - 1;
         return (

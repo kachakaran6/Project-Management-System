@@ -104,7 +104,7 @@ function ProjectActionButton({
   tone?: "default" | "danger";
 }) {
   const baseClasses = cn(
-    "inline-flex items-center justify-center size-8 rounded-lg text-xs transition-all duration-200 active:scale-95 touch-none shadow-sm",
+    "inline-flex items-center justify-center size-8 rounded-card text-xs transition-all duration-200 active:scale-95 touch-none shadow-sm",
     "border border-border bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground",
     tone === "danger" && "text-red-500 border-red-200/50 hover:bg-red-500/10 hover:text-red-600 dark:border-red-500/20"
   );
@@ -203,7 +203,7 @@ export default function ProjectsPage() {
                 setSearch(event.target.value);
               }}
               placeholder="Search projects"
-              className="h-10 rounded-xl border-border/60 bg-background/60 pl-10 pr-4 text-sm"
+              className="h-10 rounded-card border-border/60 bg-background/60 pl-10 pr-4 text-sm"
             />
           </div>
 
@@ -214,7 +214,7 @@ export default function ProjectsPage() {
               setStatus(v);
             }}
           >
-            <SelectTrigger className="h-10 w-full rounded-xl border-border/60 bg-background/60 px-3 text-sm sm:w-44">
+            <SelectTrigger className="h-10 w-full rounded-card border-border/60 bg-background/60 px-3 text-sm sm:w-44">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -228,7 +228,7 @@ export default function ProjectsPage() {
           </Select>
 
           {canMutate ? (
-            <Button asChild className="h-10 rounded-xl px-4 lg:ml-auto" variant="secondary">
+            <Button asChild className="h-10 rounded-card px-4 lg:ml-auto" variant="secondary">
               <Link href="/projects/create">
                 <Plus className="mr-1.5 size-4" />
                 Create Project
@@ -246,17 +246,17 @@ export default function ProjectsPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="space-y-2 flex-1">
-                    <Skeleton className="h-5 w-2/3 rounded-md" />
-                    <Skeleton className="h-4 w-1/3 rounded-md" />
+                    <Skeleton className="h-5 w-2/3 rounded-button" />
+                    <Skeleton className="h-4 w-1/3 rounded-button" />
                   </div>
                   <Skeleton className="h-8 w-8 rounded-full" />
                 </div>
                 <div className="space-y-2">
-                  <Skeleton className="h-3 w-full rounded-md" />
-                  <Skeleton className="h-3 w-4/5 rounded-md" />
+                  <Skeleton className="h-3 w-full rounded-button" />
+                  <Skeleton className="h-3 w-4/5 rounded-button" />
                 </div>
                 <div className="pt-4 flex items-center justify-between border-t border-border/10">
-                  <Skeleton className="h-3 w-24 rounded-md" />
+                  <Skeleton className="h-3 w-24 rounded-button" />
                   <div className="flex -space-x-1.5">
                     <Skeleton className="size-7 rounded-full border-2 border-background" />
                     <Skeleton className="size-7 rounded-full border-2 border-background" />
@@ -269,7 +269,7 @@ export default function ProjectsPage() {
         ) : null}
 
         {!projectsQuery.isLoading && rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/5 bg-white/3 px-6 py-16 text-center">
+          <div className="flex flex-col items-center justify-center gap-4 rounded-card border border-white/5 bg-white/3 px-6 py-16 text-center">
             <div className="flex size-14 items-center justify-center rounded-full border border-white/5 bg-white/5 text-muted-foreground">
               <Search className="size-5" />
             </div>
@@ -282,7 +282,7 @@ export default function ProjectsPage() {
               </p>
             </div>
             {canMutate ? (
-              <Button asChild className="h-10 rounded-xl" variant="secondary">
+              <Button asChild className="h-10 rounded-card" variant="secondary">
                  <Link href="/projects/create">Create Project</Link>
               </Button>
             ) : null}
@@ -309,7 +309,7 @@ export default function ProjectsPage() {
                     window.location.href = `/projects/${pid}`;
                   }}
                   className={cn(
-                    "group relative flex flex-col rounded-xl border border-border/60 bg-card p-4 shadow-sm transition-all duration-200 cursor-pointer",
+                    "group relative flex flex-col rounded-card border border-border/60 bg-card p-4 shadow-sm transition-all duration-200 cursor-pointer",
                     "hover:border-primary/40 hover:shadow-md dark:hover:bg-card/80 dark:shadow-none",
                     "active:scale-[0.98] md:active:scale-100", // Visual feedback on tap
                     "max-md:rounded-[20px] max-md:p-6 max-md:shadow-lg max-md:shadow-neutral-200/50 dark:max-md:shadow-none" // Professional mobile UI

@@ -92,7 +92,7 @@ export function ProjectForm({
                   <Folder className="size-3 md:size-3.5" />
                   <span>Primary Details</span>
                 </div>
-                <div className="space-y-4 bg-muted/20 p-4 rounded-md border border-border/40 shadow-sm">
+                <div className="space-y-4 bg-muted/20 p-4 rounded-button border border-border/40 shadow-sm">
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <div className="md:col-span-9">
                       <FormField
@@ -102,7 +102,7 @@ export function ProjectForm({
                           <FormItem>
                             <FormLabel className="text-xs font-semibold">Project Name</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="e.g. Phoenix Dashboard" className="h-9 rounded-sm text-sm" />
+                              <Input {...field} placeholder="e.g. Phoenix Dashboard" className="h-9 rounded-button text-sm" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -120,7 +120,7 @@ export function ProjectForm({
                               <Input 
                                 {...field} 
                                 placeholder="e.g. PHX" 
-                                className="h-9 rounded-sm text-sm uppercase font-mono" 
+                                className="h-9 rounded-button text-sm uppercase font-mono" 
                                 maxLength={10}
                               />
                             </FormControl>
@@ -143,7 +143,7 @@ export function ProjectForm({
                           <Textarea
                             {...field}
                             placeholder="What's the goal of this project?"
-                            className="rounded-sm resize-none min-h-[80px] md:min-h-[80px] text-sm"
+                            className="rounded-button resize-none min-h-[80px] md:min-h-[80px] text-sm"
                           />
                         </FormControl>
                         <FormMessage />
@@ -158,7 +158,7 @@ export function ProjectForm({
                   <Layers className="size-3" />
                   <span>Resources & Tech</span>
                 </div>
-                <div className="bg-muted/20 p-4 rounded-md border border-border/40 shadow-sm">
+                <div className="bg-muted/20 p-4 rounded-button border border-border/40 shadow-sm">
                   <FormField
                     control={form.control}
                     name="techStack"
@@ -187,7 +187,7 @@ export function ProjectForm({
                   <Calendar className="size-3" />
                   <span>Timeline</span>
                 </div>
-                <div className="bg-muted/20 p-4 rounded-md border border-border/40 space-y-4 shadow-sm">
+                <div className="bg-muted/20 p-4 rounded-button border border-border/40 space-y-4 shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-3">
                     <FormField
                       control={form.control}
@@ -232,7 +232,7 @@ export function ProjectForm({
                   <Users className="size-3" />
                   <span>Access Control</span>
                 </div>
-                <div className="bg-muted/20 p-4 rounded-md border border-border/40 space-y-6 shadow-sm">
+                <div className="bg-muted/20 p-4 rounded-button border border-border/40 space-y-6 shadow-sm">
                   <FormField
                     control={form.control}
                     name="members"
@@ -255,7 +255,7 @@ export function ProjectForm({
                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
                           <div
                             className={cn(
-                              "flex-1 p-2 rounded-sm border border-border/60 cursor-pointer transition-all hover:bg-muted/50 select-none",
+                              "flex-1 p-2 rounded-button border border-border/60 cursor-pointer transition-all hover:bg-muted/50 select-none",
                               field.value === 'public' && "border-primary bg-primary/5 ring-1 ring-primary"
                             )}
                             onClick={() => field.onChange('public')}
@@ -267,7 +267,7 @@ export function ProjectForm({
                           </div>
                           <div
                             className={cn(
-                              "flex-1 p-2 rounded-sm border border-border/60 cursor-pointer transition-all hover:bg-muted/50 select-none",
+                              "flex-1 p-2 rounded-button border border-border/60 cursor-pointer transition-all hover:bg-muted/50 select-none",
                               field.value === 'private' && "border-amber-500/50 bg-amber-500/5 ring-1 ring-amber-500/50"
                             )}
                             onClick={() => field.onChange('private')}
@@ -297,7 +297,7 @@ export function ProjectForm({
             <Button
               type="button"
               variant="ghost"
-              className="w-full sm:w-auto rounded-sm text-xs h-9 px-6 font-medium"
+              className="w-full sm:w-auto rounded-button text-xs h-9 px-6 font-medium"
               disabled={isSubmitting}
               onClick={() => router.push("/projects")}
             >
@@ -306,7 +306,7 @@ export function ProjectForm({
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full sm:w-auto rounded-sm h-9 px-10 shadow-lg shadow-primary/10 font-bold text-xs tracking-wide"
+              className="w-full sm:w-auto rounded-button h-9 px-10 shadow-lg shadow-primary/10 font-bold text-xs tracking-wide"
             >
               {isSubmitting ? "Creating..." : submitLabel}
             </Button>

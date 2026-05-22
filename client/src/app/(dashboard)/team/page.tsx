@@ -207,14 +207,14 @@ export default function TeamPage() {
     return (
       <div className="mx-auto w-full max-w-7xl space-y-4 animate-in fade-in duration-500">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-          <Skeleton className="h-10 w-64 rounded-xl" />
-          <Skeleton className="h-10 w-36 rounded-xl" />
-          <Skeleton className="h-10 w-36 rounded-xl" />
+          <Skeleton className="h-10 w-64 rounded-card" />
+          <Skeleton className="h-10 w-36 rounded-card" />
+          <Skeleton className="h-10 w-36 rounded-card" />
         </div>
-        <div className="rounded-xl border border-border/40 bg-card overflow-hidden">
+        <div className="rounded-card border border-border/40 bg-card overflow-hidden">
           <div className="h-12 bg-muted/20 border-b border-border/40 flex items-center px-4 gap-4">
              {Array.from({ length: 5 }).map((_, i) => (
-               <Skeleton key={i} className="h-4 w-24 rounded-md opacity-40" />
+               <Skeleton key={i} className="h-4 w-24 rounded-button opacity-40" />
              ))}
           </div>
           <div className="divide-y divide-border/10">
@@ -222,12 +222,12 @@ export default function TeamPage() {
               <div key={i} className="p-4 flex items-center gap-4">
                 <SkeletonAvatar className="size-10" />
                 <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-1/4 rounded-md" />
-                  <Skeleton className="h-3 w-1/3 rounded-md opacity-60" />
+                  <Skeleton className="h-4 w-1/4 rounded-button" />
+                  <Skeleton className="h-3 w-1/3 rounded-button opacity-60" />
                 </div>
                 <Skeleton className="h-6 w-20 rounded-full" />
                 <Skeleton className="h-6 w-16 rounded-full" />
-                <Skeleton className="h-4 w-24 rounded-md" />
+                <Skeleton className="h-4 w-24 rounded-button" />
               </div>
             ))}
           </div>
@@ -315,7 +315,7 @@ export default function TeamPage() {
 
       {/* ─── Table ─────────────────────────────────────────────────────────── */}
       {/* Desktop Table View */}
-      <div className="hidden lg:block rounded-xl border shadow-sm overflow-hidden bg-card">
+      <div className="hidden lg:block rounded-card border shadow-sm overflow-hidden bg-card">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -465,7 +465,7 @@ export default function TeamPage() {
           <div className="h-32 flex items-center justify-center text-muted-foreground">No members found</div>
         ) : (
           filteredUsers.map((user) => (
-            <div key={user.id} className="bg-card border rounded-xl p-4 shadow-sm">
+            <div key={user.id} className="bg-card border rounded-card p-4 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
                 <Avatar className="h-12 w-12 border shadow-sm">
                   <AvatarImage src={user.avatarUrl} />
@@ -489,7 +489,7 @@ export default function TeamPage() {
               <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t">
                 <Button 
                   variant="outline" 
-                  className="flex-1 min-h-[40px] gap-2 rounded-xl text-xs font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
+                  className="flex-1 min-h-[40px] gap-2 rounded-card text-xs font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
                   onClick={() => setSelectedUser(user)}
                 >
                   <Eye className="size-4" />
@@ -500,7 +500,7 @@ export default function TeamPage() {
                     <DropdownMenuTrigger asChild>
                       <Button 
                         variant="outline" 
-                        className="flex-1 min-h-[40px] gap-2 rounded-xl text-xs font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
+                        className="flex-1 min-h-[40px] gap-2 rounded-card text-xs font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
                       >
                         Actions
                       </Button>
@@ -738,7 +738,7 @@ function UserDetailsSheet({ selectedUser, onClose }: { selectedUser: TeamMember 
 
             {/* Quick Stats */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm hover:shadow-md transition-all group hover:-translate-y-1">
+              <div className="rounded-card border border-border/50 bg-card p-4 shadow-sm hover:shadow-md transition-all group hover:-translate-y-1">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Joined Organization</p>
                 {isLoading ? (
                   <Skeleton className="h-6 w-24 mt-2" />
@@ -748,7 +748,7 @@ function UserDetailsSheet({ selectedUser, onClose }: { selectedUser: TeamMember 
                   </p>
                 )}
               </div>
-              <div className="rounded-2xl border border-border/50 bg-card p-4 shadow-sm hover:shadow-md transition-all group hover:-translate-y-1">
+              <div className="rounded-card border border-border/50 bg-card p-4 shadow-sm hover:shadow-md transition-all group hover:-translate-y-1">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Tasks Completed</p>
                 {isLoading ? (
                   <Skeleton className="h-6 w-12 mt-2" />
@@ -770,7 +770,7 @@ function UserDetailsSheet({ selectedUser, onClose }: { selectedUser: TeamMember 
               <div className="space-y-3">
                 {isLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="flex gap-4 p-4 rounded-xl border border-border/40">
+                    <div key={i} className="flex gap-4 p-4 rounded-card border border-border/40">
                       <Skeleton className="size-8 rounded-full shrink-0" />
                       <div className="flex-1 space-y-2">
                         <Skeleton className="h-4 w-full" />
@@ -779,7 +779,7 @@ function UserDetailsSheet({ selectedUser, onClose }: { selectedUser: TeamMember 
                     </div>
                   ))
                 ) : !stats?.recentActivity || stats.recentActivity.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border/40 rounded-2xl bg-muted/5">
+                  <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border/40 rounded-card bg-muted/5">
                     <History className="h-8 w-8 text-muted-foreground/30 mb-2" />
                     <p className="text-xs font-medium text-muted-foreground">No recent activity</p>
                   </div>
@@ -787,7 +787,7 @@ function UserDetailsSheet({ selectedUser, onClose }: { selectedUser: TeamMember 
                   stats.recentActivity.map((log) => (
                     <div 
                       key={log.id} 
-                      className="group flex gap-4 text-sm p-4 rounded-xl border border-border/40 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all cursor-default"
+                      className="group flex gap-4 text-sm p-4 rounded-card border border-border/40 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all cursor-default"
                     >
                       <div className={cn("h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110", getActionBg(log.action))}>
                         {getActionIcon(log.action)}
@@ -818,7 +818,7 @@ function UserDetailsSheet({ selectedUser, onClose }: { selectedUser: TeamMember 
           {isAdmin && selectedUser && (
             <Button 
               variant="secondary" 
-              className="w-full h-11 rounded-xl font-bold text-xs uppercase tracking-widest gap-2 shadow-sm"
+              className="w-full h-11 rounded-card font-bold text-xs uppercase tracking-widest gap-2 shadow-sm"
               onClick={() => {
                 const userId = selectedUser.id;
                 onClose();
@@ -829,7 +829,7 @@ function UserDetailsSheet({ selectedUser, onClose }: { selectedUser: TeamMember 
               View Full Analytics
             </Button>
           )}
-          <Button variant="outline" className="w-full h-11 rounded-xl font-bold text-xs uppercase tracking-widest border-border/60" onClick={onClose}>
+          <Button variant="outline" className="w-full h-11 rounded-card font-bold text-xs uppercase tracking-widest border-border/60" onClick={onClose}>
             Close Detail
           </Button>
         </div>

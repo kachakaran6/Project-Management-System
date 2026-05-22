@@ -127,7 +127,7 @@ export default function AdminApiDebugPage() {
             Status: {debugMutation.data?.status ?? "-"} | Duration:{" "}
             {debugMutation.data?.durationMs ?? 0} ms
           </p>
-          <pre className="max-h-105 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs">
+          <pre className="max-h-105 overflow-auto rounded-button border border-border bg-muted/30 p-3 text-xs">
             {prettyResponse || "No response yet."}
           </pre>
           {debugMutation.error ? (

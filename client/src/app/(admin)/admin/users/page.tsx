@@ -262,7 +262,7 @@ function UserFormDialog({
               placeholder="Leave blank to auto-generate"
             />
           </div>
-          <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-4 py-3 sm:col-span-2">
+          <div className="flex items-center justify-between rounded-card border border-border bg-muted/30 px-4 py-3 sm:col-span-2">
             <div>
               <p className="text-sm font-medium">Active account</p>
               <p className="text-xs text-muted-foreground">
@@ -541,7 +541,7 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-linear-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-8 text-white shadow-[0_18px_70px_rgba(15,23,42,0.35)]">
+      <div className="relative overflow-hidden rounded-card border border-border bg-linear-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-8 text-white shadow-[0_18px_70px_rgba(15,23,42,0.35)]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.14),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.18),transparent_28%)]" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl space-y-3">
@@ -575,7 +575,7 @@ export default function AdminUsersPage() {
       </div>
 
       {notice ? (
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+        <div className="rounded-card border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
           {notice}
         </div>
       ) : null}
@@ -588,7 +588,7 @@ export default function AdminUsersPage() {
                 <p className="text-sm text-muted-foreground">{item.label}</p>
                 <p className="mt-2 text-3xl font-semibold">{item.value}</p>
               </div>
-              <div className={cn("rounded-2xl p-3", item.tone)}>{item.icon}</div>
+              <div className={cn("rounded-card p-3", item.tone)}>{item.icon}</div>
             </CardContent>
           </Card>
         ))}
@@ -857,7 +857,7 @@ export default function AdminUsersPage() {
             <CardContent className="space-y-3">
               {pendingAdminRows.length ? (
                 pendingAdminRows.map((request) => (
-                  <div key={request.id} className="rounded-2xl border border-border/70 bg-muted/25 p-4">
+                  <div key={request.id} className="rounded-card border border-border/70 bg-muted/25 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-medium">{`${request.firstName} ${request.lastName}`.trim()}</p>
@@ -888,7 +888,7 @@ export default function AdminUsersPage() {
                   </div>
                 ))
               ) : (
-                <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                <div className="rounded-card border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
                   No pending admin requests.
                 </div>
               )}
@@ -907,7 +907,7 @@ export default function AdminUsersPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {auditLogs.slice(0, 5).map((entry) => (
-                <div key={entry.id} className="rounded-2xl border border-border/70 px-4 py-3">
+                <div key={entry.id} className="rounded-card border border-border/70 px-4 py-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium">{entry.action}</p>
                     <Badge variant={entry.status === "SUCCESS" ? "default" : "destructive"}>
@@ -918,7 +918,7 @@ export default function AdminUsersPage() {
                 </div>
               ))}
               {auditLogs.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                <div className="rounded-card border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
                   No activity has been captured yet.
                 </div>
               ) : null}
@@ -983,7 +983,7 @@ export default function AdminUsersPage() {
                   <h3 className="text-base font-semibold">Activity</h3>
                   {selectedUserAuditLogs.length ? (
                     selectedUserAuditLogs.slice(0, 8).map((entry) => (
-                      <div key={entry.id} className="rounded-2xl border border-border/70 p-4">
+                      <div key={entry.id} className="rounded-card border border-border/70 p-4">
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-medium">{entry.action}</p>
                           <Badge variant={entry.status === "SUCCESS" ? "default" : "destructive"}>
@@ -995,7 +995,7 @@ export default function AdminUsersPage() {
                       </div>
                     ))
                   ) : (
-                    <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                    <div className="rounded-card border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
                       No activity entries found for this user.
                     </div>
                   )}
@@ -1005,7 +1005,7 @@ export default function AdminUsersPage() {
                   <h3 className="text-base font-semibold">Tasks</h3>
                   {selectedUserTasks.length ? (
                     selectedUserTasks.slice(0, 8).map((task) => (
-                      <div key={task.id} className="rounded-2xl border border-border/70 p-4">
+                      <div key={task.id} className="rounded-card border border-border/70 p-4">
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-medium">{task.title}</p>
                           <Badge variant="outline">{task.status}</Badge>
@@ -1014,7 +1014,7 @@ export default function AdminUsersPage() {
                       </div>
                     ))
                   ) : (
-                    <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                    <div className="rounded-card border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
                       No related tasks were found.
                     </div>
                   )}
@@ -1054,7 +1054,7 @@ export default function AdminUsersPage() {
 
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-muted/25 p-4">
+    <div className="rounded-card border border-border/70 bg-muted/25 p-4">
       <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <p className="mt-2 text-sm font-medium">{value}</p>
     </div>

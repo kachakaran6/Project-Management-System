@@ -134,7 +134,7 @@ function StatCard({
           <p className="mt-1 text-3xl font-semibold tabular-nums">{value}</p>
           <p className="mt-1 text-xs text-muted-foreground">{description}</p>
         </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <div className="flex h-12 w-12 items-center justify-center rounded-card bg-primary/10 text-primary">
           <Icon className="size-5" />
         </div>
       </CardContent>
@@ -385,13 +385,13 @@ export default function AdminApprovalsPage() {
             ) : null}
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-border">
+          <div className="overflow-hidden rounded-card border border-border">
             {pendingQuery.isLoading ? (
               <div className="space-y-2 p-4">
                 {Array.from({ length: 4 }).map((_, index) => (
                   <div
                     key={`approval-skeleton-${index}`}
-                    className="h-16 rounded-xl bg-muted/30"
+                    className="h-16 rounded-card bg-muted/30"
                   />
                 ))}
               </div>
@@ -583,7 +583,7 @@ export default function AdminApprovalsPage() {
 
           {detailTarget ? (
             <div className="space-y-5">
-              <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <div className="rounded-card border border-border bg-muted/30 p-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="size-12 border border-border/70">
                     <AvatarImage
