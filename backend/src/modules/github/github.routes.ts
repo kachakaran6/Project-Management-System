@@ -34,5 +34,13 @@ router.put('/settings/:projectId', githubController.updateProjectSettings);
 router.get('/activity/:projectId', githubController.getProjectGithubActivity);
 router.get('/full-activity/:projectId', githubController.getFullGithubActivity);
 
+// Proxy endpoints for GitHub API
+router.get('/repos/:owner/:repo/branches', githubController.getRepoBranches);
+router.get('/repos/:owner/:repo/commits', githubController.getRepoCommits);
+router.get('/repos/:owner/:repo/pulls', githubController.getRepoPullRequests);
+router.get('/repos/:owner/:repo/issues', githubController.getRepoIssues);
+router.get('/repos/:owner/:repo/git/trees/:sha', githubController.getRepoFileTree);
+router.get('/repos/:owner/:repo/contents/*', githubController.getRepoFileContent);
+router.get('/profile/:username', githubController.getProfileAnalytics);
 
 export default router;

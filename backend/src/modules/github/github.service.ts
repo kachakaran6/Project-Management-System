@@ -624,3 +624,69 @@ const getStatusFromMessage = async (message: string, organizationId: string) => 
 
   return null;
 };
+
+/**
+ * SECTION 4: GitHub API Proxies
+ * Used for fetching branches, commits, PRs, issues, and file trees dynamically.
+ */
+export const githubApiProxy = async (userId: string, path: string, params: any = {}) => {
+  const account = await GithubAccount.findOne({ userId });
+  if (!account) throw new Error('GitHub account not connected');
+  
+  const token = decrypt(account.accessToken);
+  
+  const url = new URL(`https://api.github.com${path}`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      url.searchParams.append(key, String(value));
+    }
+  });
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github.v3+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(`GitHub API Error: ${response.status} - ${errorBody.message || response.statusText}`);
+  }
+
+  return await response.json();
+};
+
+export const getRepoBranches = (userId: string, owner: string, repo: string, page = 1, perPage = 30) => {
+  return githubApiProxy(userId, `/repos/${owner}/${repo}/branches`, { page, per_page: perPage });
+};
+
+export const getRepoCommits = (userId: string, owner: string, repo: string, sha?: string, page = 1, perPage = 30) => {
+  return githubApiProxy(userId, `/repos/${owner}/${repo}/commits`, { sha, page, per_page: perPage });
+};
+
+export const getRepoPullRequests = (userId: string, owner: string, repo: string, state = 'all', page = 1, perPage = 30) => {
+  return githubApiProxy(userId, `/repos/${owner}/${repo}/pulls`, { state, page, per_page: perPage, sort: 'updated', direction: 'desc' });
+};
+
+export const getRepoIssues = (userId: string, owner: string, repo: string, state = 'all', page = 1, perPage = 30) => {
+  return githubApiProxy(userId, `/repos/${owner}/${repo}/issues`, { state, page, per_page: perPage, sort: 'updated', direction: 'desc' });
+};
+
+export const getRepoFileTree = (userId: string, owner: string, repo: string, sha: string) => {
+  return githubApiProxy(userId, `/repos/${owner}/${repo}/git/trees/${sha}`, { recursive: 1 });
+};
+
+export const getRepoFileContent = (userId: string, owner: string, repo: string, path: string, ref?: string) => {
+  return githubApiProxy(userId, `/repos/${owner}/${repo}/contents/${path}`, { ref });
+};
+
+export const getProfileAnalytics = async (userId: string, username: string) => {
+  const [profile, repos] = await Promise.all([
+    githubApiProxy(userId, `/users/${username}`),
+    githubApiProxy(userId, `/users/${username}/repos`, { sort: 'updated', per_page: 100 })
+  ]);
+  
+  return { profile, repos };
+};

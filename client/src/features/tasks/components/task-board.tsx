@@ -59,6 +59,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
+import { formatGitBranchCommand } from "@/features/tasks/utils/git-branch-formatter";
 
 import { Task, TaskStatus } from "@/types/task.types";
 import {
@@ -365,8 +366,8 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
               }
             }}
             className={cn(
-              "group relative flex flex-col gap-2 border bg-card mx-0.5 transition-all duration-300 ease-in-out select-none",
-              isEmbedded ? "rounded-sm p-4 border-border/10 shadow-sm" : "rounded-sm p-3 border-border/40 shadow-sm",
+              "group relative flex flex-col gap-1.5 border bg-card mx-0.5 transition-all duration-300 ease-in-out select-none",
+              isEmbedded ? "rounded-sm p-3 border-border/10 shadow-sm" : "rounded-sm p-2.5 border-border/40 shadow-sm",
               "hover:-translate-y-1 hover:bg-white/2 hover:shadow-md",
               snapshot.isDragging
                 ? "shadow-2xl border-primary/20 ring-1 ring-primary/10 scale-[1.02] z-50 bg-accent rounded-sm"
@@ -401,21 +402,21 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
             </div>
             {/* Title */}
             <p className={cn(
-              "leading-[1.4] text-foreground/90 line-clamp-2 tracking-tight",
-              isEmbedded ? "text-[14px] font-black" : "text-[13px] font-semibold"
+              "leading-[1.3] text-foreground/90 line-clamp-2 tracking-tight",
+              isEmbedded ? "text-[13px] font-black" : "text-xs font-semibold"
             )}>
               {task.title}
             </p>
 
             {/* Metadata Footer */}
             <div className={cn(
-              "flex items-center flex-wrap mt-2",
-              isEmbedded ? "gap-2.5" : "gap-2"
+              "flex items-center flex-wrap mt-1.5",
+              isEmbedded ? "gap-2" : "gap-1.5"
             )}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="shrink-0 cursor-default">
-                    <Avatar className="h-5 w-5 rounded-sm border border-border/20 shadow-sm opacity-80 hover:opacity-100 transition-opacity">
+                    <Avatar className="h-4 w-4 rounded-sm border border-border/20 shadow-sm opacity-80 hover:opacity-100 transition-opacity">
                       <AvatarImage src={createdByUser?.avatarUrl} alt={createdByName} />
                       <AvatarFallback className="text-[7px] bg-muted text-muted-foreground font-bold rounded-sm">
                         {createdByName.charAt(0)}
@@ -438,10 +439,10 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                     <button
                       onClick={(e) => e.stopPropagation()}
                       className={cn(
-                        "inline-flex items-center gap-1.5 transition-all",
+                        "inline-flex items-center gap-1 transition-all",
                         isEmbedded
-                          ? "px-2.5 py-1.5 rounded-sm text-[9px] font-black border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
-                          : "px-2 py-1 rounded-xs text-[10px] font-bold border border-border/40 bg-muted/50 text-muted-foreground hover:bg-muted/70"
+                          ? "px-2 py-1 rounded-sm text-[8px] font-black border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
+                          : "px-1.5 py-0.5 rounded-xs text-[9px] font-bold border border-border/40 bg-muted/50 text-muted-foreground hover:bg-muted/70"
                       )}
                     >
                       <div
@@ -480,13 +481,13 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                 open={openChip === "priority"}
                 onOpenChange={(open) => setOpenChip(open ? "priority" : null)}>
                 <DropdownMenuTrigger asChild>
-                  <button
+                    <button
                     onClick={(e) => e.stopPropagation()}
                     className={cn(
                       "flex items-center justify-center transition-all",
                       isEmbedded
-                        ? "p-2 rounded-sm border border-border/10 bg-muted/10 hover:bg-muted/20 active:scale-90"
-                        : "p-1.5 rounded-xs border border-border/20 bg-muted/30 hover:bg-muted/50",
+                        ? "p-1.5 rounded-sm border border-border/10 bg-muted/10 hover:bg-muted/20 active:scale-90"
+                        : "p-1 rounded-xs border border-border/20 bg-muted/30 hover:bg-muted/50",
                       priority.color,
                     )}
                   >
@@ -518,13 +519,13 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                 open={openChip === "date"}
                 onOpenChange={(open) => setOpenChip(open ? "date" : null)}>
                 <PopoverTrigger asChild>
-                  <button
+                    <button
                     onClick={(e) => e.stopPropagation()}
                     className={cn(
-                      "flex items-center gap-1.5 transition-all",
+                      "flex items-center gap-1 transition-all",
                       isEmbedded
-                        ? "text-[9px] font-black px-2.5 py-1.5 rounded-sm border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
-                        : "text-[10px] font-bold px-1.5 py-1 rounded-xs border border-border/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
+                        ? "text-[8px] font-black px-2 py-1 rounded-sm border border-border/10 bg-muted/10 text-muted-foreground/60 hover:bg-muted/20 hover:text-foreground uppercase tracking-wider"
+                        : "text-[9px] font-bold px-1.5 py-0.5 rounded-xs border border-border/20 bg-muted/20 text-muted-foreground hover:bg-muted/40",
                       isPastDue && (isEmbedded ? "text-rose-500 bg-rose-500/10 border-rose-500/20 shadow-[0_0_8px_rgba(244,63,94,0.1)]" : "text-rose-400 bg-rose-500/10"),
                     )}
                   >
@@ -552,21 +553,21 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                   if (!open) setAssigneeQuery("");
                 }}>
                 <PopoverTrigger asChild>
-                  <button
+                    <button
                     onClick={(e) => e.stopPropagation()}
                     className={cn(
-                      "ml-auto flex items-center gap-1.5 transition-all active:scale-95",
+                      "ml-auto flex items-center gap-1 transition-all active:scale-95",
                       isEmbedded
-                        ? "rounded-sm border border-border/10 bg-muted/10 px-2.5 py-1.5 hover:bg-muted/20 shadow-sm"
-                        : "rounded-sm border border-border/30 bg-muted/20 px-1.5 py-1 hover:bg-muted/40"
+                        ? "rounded-sm border border-border/10 bg-muted/10 px-2 py-1 hover:bg-muted/20 shadow-sm"
+                        : "rounded-sm border border-border/30 bg-muted/20 px-1.5 py-0.5 hover:bg-muted/40"
                     )}
                   >
                     {assignees.length > 0 ? (
-                      <div className="flex items-center -space-x-2 overflow-visible">
+                      <div className="flex items-center -space-x-1.5 overflow-visible">
                         {assignees.slice(0, 3).map((item) => (
-                          <Avatar key={item.id} className={cn("ring-background shadow-sm", isEmbedded ? "h-5 w-5 ring-2 border border-border/10 rounded-sm" : "h-5 w-5 ring-1 rounded-sm")}>
+                          <Avatar key={item.id} className={cn("ring-background shadow-sm", isEmbedded ? "h-4 w-4 ring-2 border border-border/10 rounded-sm" : "h-4 w-4 ring-1 rounded-sm")}>
                             <AvatarImage src={item.avatarUrl} alt={item.name} />
-                            <AvatarFallback className={cn("text-[8px] text-primary rounded-sm", isEmbedded ? "bg-primary/10 font-black" : "bg-primary/15 font-bold")}>
+                            <AvatarFallback className={cn("text-[7px] text-primary rounded-sm", isEmbedded ? "bg-primary/10 font-black" : "bg-primary/15 font-bold")}>
                               {item.name.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
@@ -912,6 +913,14 @@ export function TaskBoard({
     toast.success("Link copied to clipboard");
   };
 
+  const handleCopyBranch = (task: Task) => {
+    const rawId = String(task.id || (task as any)._id || "");
+    const taskCode = task.taskCode || (task as any).legacyId || `T-${rawId.slice(-4).toUpperCase()}`;
+    const cmd = formatGitBranchCommand(taskCode, task.title);
+    navigator.clipboard.writeText(cmd);
+    toast.success("Copied branch command to clipboard!");
+  };
+
   const handleDelete = (task: Task) => {
     setDeletingTask(task);
   };
@@ -1032,8 +1041,8 @@ export function TaskBoard({
       )}>
         <DragDropContext onDragEnd={onDragEnd}>
           <div className={cn(
-            "flex gap-4 h-full min-w-max",
-            isEmbedded ? "p-0 pt-4" : "p-4 pr-12"
+            "flex gap-3 h-full min-w-max",
+            isEmbedded ? "p-0 pt-4" : "p-3 pr-8"
           )}>
             {visibleColumns.map((col) => {
               return (
@@ -1064,6 +1073,7 @@ export function TaskBoard({
           onEdit={() => setEditingTask(contextMenu.task)}
           onDuplicate={() => handleDuplicate(contextMenu.task)}
           onCopyLink={handleCopyLink}
+          onCopyBranch={() => handleCopyBranch(contextMenu.task)}
           onDelete={() => handleDelete(contextMenu.task)}
         />
       )}
@@ -1142,14 +1152,14 @@ function KanbanColumn({
 
   return (
     <div className={cn(
-      "group flex flex-col w-80 shrink-0 rounded-md border h-full overflow-hidden transition-all duration-300 shadow-sm",
+      "group flex flex-col w-[280px] shrink-0 rounded-md border h-full overflow-hidden transition-all duration-300 shadow-sm",
       isEmbedded
         ? "bg-muted/5 border-border/20 ring-1 ring-border/5"
         : "bg-muted/10 border-border/50"
     )}>
       {/* Sticky Column Header */}
       <div className={cn(
-        "flex items-center justify-between px-5 py-3 shrink-0 border-b border-border/20",
+        "flex items-center justify-between px-3 py-2 shrink-0 border-b border-border/20",
         isEmbedded ? "bg-muted/10 backdrop-blur-sm" : "bg-muted/20"
       )}>
         <div className="flex items-center gap-3.5 min-w-0">
@@ -1185,11 +1195,11 @@ function KanbanColumn({
               "transition-colors duration-200",
               snapshot.isDraggingOver ? "bg-white/1" : "bg-transparent",
             )}>
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {isLoading ? (
                 <div className="flex flex-col gap-2 p-2">
-                  <div className="h-24 w-full bg-muted/40 animate-pulse rounded-md" />
-                  <div className="h-24 w-full bg-muted/40 animate-pulse rounded-md" />
+                  <div className="h-20 w-full bg-muted/40 animate-pulse rounded-md" />
+                  <div className="h-20 w-full bg-muted/40 animate-pulse rounded-md" />
                 </div>
               ) : tasks.length === 0 && !snapshot.isDraggingOver ? (
                 <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-white/2 py-12 opacity-20 mt-2 mx-1">
@@ -1237,13 +1247,13 @@ function KanbanColumn({
           <button
             onClick={() => setQuickAdd(true)}
             className={cn(
-              "group flex items-center justify-start gap-2.5 w-full h-10 px-4 rounded-lg transition-all duration-300",
+              "group flex items-center justify-start gap-2 w-full h-8 px-3 rounded-lg transition-all duration-300",
               "bg-primary/[0.03] border border-dashed border-primary/20 text-primary/60",
               "hover:bg-primary/10 hover:text-primary hover:border-primary/40 hover:shadow-[0_0_15px_rgba(var(--primary),0.1)]",
               "active:scale-[0.98]"
             )}>
-            <div className="flex items-center justify-center size-5 rounded-full bg-primary/10 text-primary transition-transform group-hover:rotate-90">
-              <Plus className="size-3.5" />
+            <div className="flex items-center justify-center size-4 rounded-full bg-primary/10 text-primary transition-transform group-hover:rotate-90">
+              <Plus className="size-3" />
             </div>
             <span className="text-[11px] font-bold tracking-wider uppercase">
               New work item

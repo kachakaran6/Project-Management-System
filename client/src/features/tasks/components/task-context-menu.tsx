@@ -7,6 +7,7 @@ import {
   Copy, 
   Link, 
   Trash2,
+  GitBranch,
   LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,7 @@ export interface TaskContextMenuProps {
   onEdit: (id: string) => void;
   onDuplicate: (id: string) => void;
   onCopyLink: (id: string) => void;
+  onCopyBranch: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
@@ -61,6 +63,7 @@ export const TaskContextMenu = ({
   onEdit,
   onDuplicate,
   onCopyLink,
+  onCopyBranch,
   onDelete
 }: TaskContextMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -131,6 +134,7 @@ export const TaskContextMenu = ({
         <Separator />
         
         <ContextMenuItem icon={Link} label="Copy Link" onClick={() => { onCopyLink(taskId); onClose(); }} />
+        <ContextMenuItem icon={GitBranch} label="Copy Git Branch" onClick={() => { onCopyBranch(taskId); onClose(); }} />
         
         <Separator />
         

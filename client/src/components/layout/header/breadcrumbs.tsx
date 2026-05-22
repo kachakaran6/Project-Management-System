@@ -33,11 +33,23 @@ export function Breadcrumbs() {
       if (index === 0 && segment.toLowerCase() === "dashboard") return;
       
       currentPath += `/${segment}`;
+      let targetHref = currentPath;
+
+      // If we are in /github/[owner]/[repo], clicking the owner should go to their profile analytics
+      if (segments[0].toLowerCase() === "github" && index === 1 && segment.toLowerCase() !== "profile") {
+        targetHref = `/github/profile/${segment}`;
+      }
+      
+      // Skip the "profile" routing namespace under "/github" so users don't see or click a dead page
+      if (segments[0].toLowerCase() === "github" && segment.toLowerCase() === "profile") {
+        return;
+      }
+      
       const isLast = index === segments.length - 1;
       
       parts.push({
         name: formatSegment(segment),
-        href: currentPath,
+        href: targetHref,
         current: isLast,
       });
     });

@@ -35,6 +35,7 @@ interface CreateTaskModalProps {
   trigger?: React.ReactNode;
   defaultProjectId?: string;
   onCreated?: () => void;
+  initialValuesOverride?: Partial<TaskFormValues>;
 }
 
 const createBaseValues = (defaultProjectId?: string, defaultAssigneeIds: string[] = [], defaultStatus?: string): TaskFormValues => ({
@@ -90,6 +91,7 @@ export function CreateTaskModal({
   trigger,
   defaultProjectId,
   onCreated,
+  initialValuesOverride,
 }: CreateTaskModalProps) {
   const [open, setOpen] = useState(false);
   const [resetKey, setResetKey] = useState(0);
@@ -203,7 +205,10 @@ export function CreateTaskModal({
       const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
       const resolvedDefaultStatus = statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
       
-      const nextBaseValues = createBaseValues(defaultProjectId, defaultAssigneeIds, resolvedDefaultStatus);
+      const nextBaseValues = {
+        ...createBaseValues(defaultProjectId, defaultAssigneeIds, resolvedDefaultStatus),
+        ...initialValuesOverride,
+      };
 
       setInitialValues(nextBaseValues);
       setDraftValues(nextBaseValues);
@@ -220,16 +225,24 @@ export function CreateTaskModal({
       const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
       const resolvedDefaultStatus = statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
       
-      const updatedValues = {
-        ...draftValues,
-        assigneeIds: draftValues.assigneeIds.length === 0 ? defaultAssigneeIds : draftValues.assigneeIds,
-        status: (draftValues.status === "TODO" || !draftValues.status) ? resolvedDefaultStatus : draftValues.status,
-      };
-      
-      setInitialValues(updatedValues);
-      setDraftValues(updatedValues);
+      const newAssigneeIds = draftValues.assigneeIds.length === 0 ? defaultAssigneeIds : draftValues.assigneeIds;
+      const newStatus = (draftValues.status === "TODO" || !draftValues.status) ? resolvedDefaultStatus : draftValues.status;
+
+      const needsAssigneeUpdate = draftValues.assigneeIds.length === 0 && defaultAssigneeIds.length > 0;
+      const needsStatusUpdate = (draftValues.status === "TODO" || !draftValues.status) && newStatus !== draftValues.status;
+
+      if (needsAssigneeUpdate || needsStatusUpdate) {
+        const updatedValues = {
+          ...draftValues,
+          assigneeIds: newAssigneeIds,
+          status: newStatus,
+        };
+        
+        setInitialValues(updatedValues);
+        setDraftValues(updatedValues);
+      }
     }
-  }, [defaultProjectId, open, settingsData, statusPreferenceData, defaultStatus, draftValues.title, draftValues.description]);
+  }, [defaultProjectId, open, settingsData, statusPreferenceData, defaultStatus, draftValues.title, draftValues.description, draftValues.assigneeIds, draftValues.status]);
 
 
   const syncDraftToServer = async (
