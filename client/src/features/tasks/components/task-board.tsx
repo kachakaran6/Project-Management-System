@@ -883,8 +883,12 @@ export function TaskBoard({
 
   // --- 3. APPLY VISIBILITY FILTER ---
   const visibleColumns = useMemo(() => {
-    return boardColumns;
-  }, [boardColumns]);
+    let cols = boardColumns;
+    if (filters?.status && filters.status !== "ALL") {
+      cols = cols.filter(c => c.id === filters.status || (c as any).value === filters.status);
+    }
+    return cols;
+  }, [boardColumns, filters?.status]);
 
   const changeStatus = useUpdateTaskStatusMutation();
   const updateTask = useUpdateTaskMutation();
