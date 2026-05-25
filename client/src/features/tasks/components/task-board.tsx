@@ -31,6 +31,7 @@ import {
   FileText,
   GripHorizontal,
   Sparkles,
+  ArrowUpDown,
 } from "lucide-react";
 import { GithubIcon as Github } from "@/components/icons/github-icon";
 
@@ -69,6 +70,7 @@ import {
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useInfiniteTasksQuery,
+  useSaveUserOrderMutation,
   tasksQueryKeys,
 } from "@/features/tasks/hooks/use-tasks-query";
 import { useQueryClient } from "@tanstack/react-query";
@@ -367,12 +369,12 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
               }
             }}
             className={cn(
-              "group relative flex flex-col gap-1.5 border bg-card mx-0.5 transition-all duration-300 ease-in-out select-none",
+              "group relative flex flex-col gap-1.5 border bg-card mx-0.5 ease-in-out select-none",
               isEmbedded ? "rounded-button p-3 border-border/10 shadow-sm" : "rounded-button p-2.5 border-border/40 shadow-sm",
-              "hover:-translate-y-1 hover:bg-white/2 hover:shadow-md",
+              "hover:bg-white/2 hover:shadow-md",
               snapshot.isDragging
-                ? "shadow-2xl border-primary/20 ring-1 ring-primary/10 scale-[1.02] z-50 bg-accent rounded-button"
-                : "cursor-grab active:cursor-grabbing",
+                ? "shadow-2xl border-primary/20 ring-1 ring-primary/10 scale-[1.02] z-50 bg-accent rounded-button cursor-grabbing"
+                : "cursor-grab transition-colors transition-shadow duration-200",
               (task as any).isOptimistic && "opacity-70 grayscale-[0.3] pointer-events-none animate-pulse"
             )}
             onClick={() => {
@@ -723,6 +725,13 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
       )}
     </>
   );
+}, (prevProps, nextProps) => {
+  return (
+    tid(prevProps.task) === tid(nextProps.task) &&
+    prevProps.task.updatedAt === nextProps.task.updatedAt &&
+    prevProps.index === nextProps.index &&
+    prevProps.canEdit === nextProps.canEdit
+  );
 });
 
 TaskCard.displayName = "TaskCard";
@@ -822,6 +831,9 @@ export function TaskBoard({
   const queryClient = useQueryClient();
   const { activeOrgId } = useAppSelector((state) => state.auth);
   const { data: dynamicStatuses, isLoading: isLoadingStatuses } = useStatusesQuery();
+
+  const [columnSortPrefs, setColumnSortPrefs] = useState<Record<string, { sortBy: string, sortOrder: "asc" | "desc" }>>({});
+  const saveUserOrder = useSaveUserOrderMutation();
 
   const boardColumns = useMemo(() => {
     if (!dynamicStatuses || dynamicStatuses.length === 0) {
@@ -955,8 +967,16 @@ export function TaskBoard({
     const sourceColId = source.droppableId;
     const destColId = destination.droppableId;
 
-    const sourceQueryKey = tasksQueryKeys.infinite({ ...filters, status: sourceColId }, activeOrgId);
-    const destQueryKey = tasksQueryKeys.infinite({ ...filters, status: destColId }, activeOrgId);
+    const getQueryFilters = (colId: string) => {
+      const sortPref = columnSortPrefs[colId] || { sortBy: 'newest', sortOrder: 'desc' };
+      if (sortPref.sortBy === "manual" || sortPref.sortBy === "position") {
+        return { ...filters, status: colId, sortBy: sortPref.sortBy, projectId };
+      }
+      return { ...filters, status: colId, sortBy: sortPref.sortBy, sortOrder: sortPref.sortOrder };
+    };
+
+    const sourceQueryKey = tasksQueryKeys.infinite(getQueryFilters(sourceColId), activeOrgId);
+    const destQueryKey = tasksQueryKeys.infinite(getQueryFilters(destColId), activeOrgId);
 
     let taskToMove: Task | null = null;
     const sourceData: any = queryClient.getQueryData(sourceQueryKey);
@@ -972,29 +992,59 @@ export function TaskBoard({
 
     if (!taskToMove) return;
 
+    let destItems: any[] = [];
+    const destData: any = queryClient.getQueryData(destQueryKey);
+    if (destData?.pages) {
+      destItems = destData.pages.flatMap((p: any) => p.data?.items || []);
+    }
+    const filteredDestItems = destItems.filter((t: any) => String(t.id || t._id) !== draggableId);
+
+    let newPosition = 0;
+    const destIndex = destination.index;
+    if (filteredDestItems.length === 0) {
+      newPosition = 1000;
+    } else if (destIndex === 0) {
+      newPosition = (filteredDestItems[0].position || 0) - 1000;
+    } else if (destIndex >= filteredDestItems.length) {
+      newPosition = (filteredDestItems[filteredDestItems.length - 1].position || 0) + 1000;
+    } else {
+      const prevPosition = filteredDestItems[destIndex - 1].position || 0;
+      const nextPosition = filteredDestItems[destIndex].position || 0;
+      newPosition = (prevPosition + nextPosition) / 2;
+    }
+
+    if (taskToMove) {
+      taskToMove = { ...taskToMove, position: newPosition };
+    }
+
     // Optimistic Update
     const removeTaskFromPages = (pages: any[]) => {
       return pages.map((p: any) => ({
         ...p,
         data: {
           ...p.data,
-          items: p.data?.items.filter((t: any) => String(t.id || t._id) !== draggableId)
+          items: (p.data?.items || []).filter((t: any) => String(t.id || t._id) !== draggableId)
         }
       }));
     };
 
     const addTaskToPages = (pages: any[], index: number, task: any) => {
       if (pages.length === 0) return pages;
-      const newPages = [...pages];
-      const newItems = [...(newPages[0].data?.items || [])];
-      newItems.splice(index, 0, task);
-      newPages[0] = { 
-        ...newPages[0], 
-        data: {
-          ...newPages[0].data,
-          items: newItems
+      let count = 0;
+      let inserted = false;
+      const newPages = pages.map((p: any) => {
+        const items = [...(p.data?.items || [])];
+        if (!inserted && index <= count + items.length) {
+          items.splice(index - count, 0, task);
+          inserted = true;
         }
-      };
+        count += (p.data?.items || []).length;
+        return { ...p, data: { ...p.data, items } };
+      });
+
+      if (!inserted && newPages.length > 0) {
+        newPages[newPages.length - 1].data.items.push(task);
+      }
       return newPages;
     };
 
@@ -1016,12 +1066,59 @@ export function TaskBoard({
     }
 
     try {
-      if (sourceColId === "DRAFT_COLUMN" && destColId !== "DRAFT_COLUMN") {
-        await updateTask.mutateAsync({ id: draggableId, data: { status: destColId as TaskStatus, isDraft: false, isPublic: true, position: destination.index } });
-      } else if (sourceColId !== "DRAFT_COLUMN" && destColId === "DRAFT_COLUMN") {
-        await updateTask.mutateAsync({ id: draggableId, data: { isDraft: true, isPublic: false, position: destination.index } });
+      let destSortPref = columnSortPrefs[destColId] || { sortBy: 'newest' };
+
+      // Auto-switch to manual if dragging into a strictly sorted column
+      if (destSortPref.sortBy !== 'manual' && destSortPref.sortBy !== 'position') {
+        setColumnSortPrefs((prev) => ({
+          ...prev,
+          [destColId]: { sortBy: 'manual', sortOrder: 'asc' }
+        }));
+        destSortPref = { sortBy: 'manual', sortOrder: 'asc' };
+        
+        // Ensure the newly active manual query key is instantly populated with our optimistic data
+        const manualQueryKey = tasksQueryKeys.infinite({ ...filters, status: destColId, sortBy: 'manual', projectId }, activeOrgId);
+        const optimDestData = queryClient.getQueryData(destQueryKey);
+        if (optimDestData) {
+          queryClient.setQueryData(manualQueryKey, optimDestData);
+        }
+      }
+
+      const isManualDest = destSortPref.sortBy === 'manual';
+
+      if (isManualDest) {
+        // Find the new order of tasks in the destination column
+        const activeDestKey = destSortPref.sortBy === 'manual' 
+          ? tasksQueryKeys.infinite({ ...filters, status: destColId, sortBy: 'manual', projectId }, activeOrgId)
+          : destQueryKey;
+          
+        const currentDestData: any = queryClient.getQueryData(activeDestKey);
+        let updatedDestItems: any[] = [];
+        if (currentDestData?.pages) {
+          updatedDestItems = currentDestData.pages.flatMap((p: any) => p.data?.items || []);
+        }
+        const newTaskIds = updatedDestItems.map((t: any) => String(t.id || t._id));
+        
+        await saveUserOrder.mutateAsync({ projectId: projectId || '', statusId: destColId, taskIds: newTaskIds });
+
+        // If it changed columns, we also need to update its status
+        if (sourceColId !== destColId) {
+          if (sourceColId === "draft" && destColId !== "draft") {
+            await updateTask.mutateAsync({ id: draggableId, data: { status: destColId as TaskStatus, isDraft: false, isPublic: true } });
+          } else if (sourceColId !== "draft" && destColId === "draft") {
+            await updateTask.mutateAsync({ id: draggableId, data: { isDraft: true, isPublic: false } });
+          } else {
+            await changeStatus.mutateAsync({ id: draggableId, status: destColId as TaskStatus });
+          }
+        }
       } else {
-        await changeStatus.mutateAsync({ id: draggableId, status: destColId as TaskStatus, position: destination.index });
+        if (sourceColId === "draft" && destColId !== "draft") {
+          await updateTask.mutateAsync({ id: draggableId, data: { status: destColId as TaskStatus, isDraft: false, isPublic: true, position: newPosition } });
+        } else if (sourceColId !== "draft" && destColId === "draft") {
+          await updateTask.mutateAsync({ id: draggableId, data: { isDraft: true, isPublic: false, position: newPosition } });
+        } else {
+          await changeStatus.mutateAsync({ id: draggableId, status: destColId as TaskStatus, position: newPosition });
+        }
       }
     } catch (err) {
       queryClient.invalidateQueries({ queryKey: tasksQueryKeys.infinite({ ...filters }, activeOrgId) });
@@ -1062,6 +1159,8 @@ export function TaskBoard({
                   onContextMenu={(e, task) => setContextMenu({ x: e.clientX, y: e.clientY, task })}
                   onDelete={handleDelete}
                   isEmbedded={isEmbedded}
+                  sortPref={columnSortPrefs[col.id] || { sortBy: 'newest', sortOrder: 'desc' }}
+                  onSortChange={(sortBy, sortOrder) => setColumnSortPrefs(prev => ({ ...prev, [col.id]: { sortBy, sortOrder } }))}
                 />
               );
             })}
@@ -1114,6 +1213,8 @@ function KanbanColumn({
   onContextMenu,
   onDelete,
   isEmbedded = false,
+  sortPref,
+  onSortChange,
 }: {
   col: ColumnDef;
   filters: any;
@@ -1122,12 +1223,21 @@ function KanbanColumn({
   onContextMenu: (e: React.MouseEvent, task: Task) => void;
   onDelete: (task: Task) => void;
   isEmbedded?: boolean;
+  sortPref: { sortBy: string, sortOrder: "asc" | "desc" };
+  onSortChange: (sortBy: string, sortOrder: "asc" | "desc") => void;
 }) {
   const [isQuickAdd, setQuickAdd] = useState(false);
   const observerTarget = useRef(null);
 
+  const sortFilters = useMemo(() => {
+    if (sortPref.sortBy === "manual" || sortPref.sortBy === "position") {
+      return { ...filters, status: col.id, sortBy: sortPref.sortBy, projectId };
+    }
+    return { ...filters, status: col.id, sortBy: sortPref.sortBy, sortOrder: sortPref.sortOrder };
+  }, [filters, col.id, sortPref, projectId]);
+
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteTasksQuery(
-    { ...filters, status: col.id },
+    sortFilters,
     { enabled: true }
   );
 
@@ -1183,6 +1293,48 @@ function KanbanColumn({
         </div>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="h-6 w-6 flex items-center justify-center rounded-button text-muted-foreground/30 hover:text-foreground hover:bg-muted transition-all">
+                <ArrowUpDown className="size-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => onSortChange("newest", "desc")}>
+                Newest First
+                {sortPref.sortBy === "newest" && <Check className="ml-auto size-3" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onSortChange("oldest", "asc")}>
+                Oldest First
+                {sortPref.sortBy === "oldest" && <Check className="ml-auto size-3" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onSortChange("priority", "desc")}>
+                Priority
+                {sortPref.sortBy === "priority" && <Check className="ml-auto size-3" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onSortChange("dueDate", "asc")}>
+                Due Date
+                {sortPref.sortBy === "dueDate" && <Check className="ml-auto size-3" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onSortChange("alphabetical", "asc")}>
+                Alphabetical
+                {sortPref.sortBy === "alphabetical" && <Check className="ml-auto size-3" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onSortChange("recentlyUpdated", "desc")}>
+                Recently Updated
+                {sortPref.sortBy === "recentlyUpdated" && <Check className="ml-auto size-3" />}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onSortChange("manual", "asc")}>
+                Manual Order (My View)
+                {sortPref.sortBy === "manual" && <Check className="ml-auto size-3" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onSortChange("position", "asc")}>
+                Team Order (Global)
+                {sortPref.sortBy === "position" && <Check className="ml-auto size-3" />}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button
             className="h-6 w-6 flex items-center justify-center rounded-button text-muted-foreground/30 hover:text-foreground hover:bg-muted transition-all"
             onClick={() => setQuickAdd(true)}>
@@ -1198,11 +1350,10 @@ function KanbanColumn({
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "flex-1 overflow-y-auto overflow-x-hidden px-2 pb-4 pt-3 custom-scrollbar scroll-smooth",
+              "flex flex-col gap-2 flex-1 overflow-y-auto overflow-x-hidden px-2 pb-4 pt-3 custom-scrollbar scroll-smooth min-h-[150px]",
               "transition-colors duration-200",
               snapshot.isDraggingOver ? "bg-white/1" : "bg-transparent",
             )}>
-            <div className="space-y-2">
               {isLoading ? (
                 <div className="flex flex-col gap-2 p-2">
                   <div className="h-20 w-full bg-muted/40 animate-pulse rounded-button" />
@@ -1227,7 +1378,6 @@ function KanbanColumn({
                   />
                 ))
               )}
-            </div>
 
             {provided.placeholder}
             

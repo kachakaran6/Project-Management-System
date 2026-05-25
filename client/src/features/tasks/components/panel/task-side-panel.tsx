@@ -77,7 +77,7 @@ export function TaskSidePanel() {
             </Badge>
           </div>
           <button
-            onClick={closePanel}
+            onClick={() => handleOpenChange(false)}
             className="p-2 hover:bg-accent rounded-button transition-all text-muted-foreground hover:text-foreground group">
             <X className="size-4.5 group-hover:rotate-90 transition-transform duration-300" />
           </button>
@@ -111,7 +111,7 @@ export function TaskSidePanel() {
                 to view it.
               </p>
               <button
-                onClick={closePanel}
+                onClick={() => handleOpenChange(false)}
                 className="text-primary text-sm font-medium hover:underline">
                 Go back
               </button>

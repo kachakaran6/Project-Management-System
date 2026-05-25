@@ -133,6 +133,11 @@ export const taskApi = {
     const response = await api.post(`/tasks/${taskId}/pages/create`, data);
     return response.data;
   },
+
+  saveUserOrder: async (projectId: string, statusId: string, taskIds: string[]): Promise<ApiResponse<null>> => {
+    const response = await api.post(`/tasks/user-order`, { projectId, statusId, taskIds });
+    return response.data;
+  },
 };
 
 

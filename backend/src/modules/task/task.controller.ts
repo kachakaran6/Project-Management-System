@@ -320,3 +320,16 @@ export const createAndAttachPage = asyncHandler(async (req, res) => {
   );
   return successResponse(res, result, 'Page created and attached successfully.', 201);
 });
+
+/**
+ * Controller: Save User Order for a specific status column
+ */
+export const saveUserOrder = asyncHandler(async (req, res) => {
+  const { projectId, statusId, taskIds } = req.body;
+  if (!statusId || !Array.isArray(taskIds)) {
+    return res.status(400).json({ success: false, message: 'Invalid data for saving user order.' });
+  }
+
+  await taskService.saveUserColumnOrder(req.user.id, projectId || null, statusId, taskIds);
+  return successResponse(res, null, 'User order saved successfully.');
+});

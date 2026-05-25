@@ -7,8 +7,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useBlocker } from "react-router-dom";
 import { taskApi } from "@/features/tasks/api/task.api";
 import { TaskForm } from "@/features/tasks/components/task-form";
+import { UnsavedChangesModal } from "@/features/tasks/components/unsaved-changes-modal";
 import { TaskFormValues } from "@/features/tasks/schemas/task.schema";
 import {
   useCreateTaskMutation,
@@ -18,7 +20,7 @@ import {
 } from "@/features/tasks/hooks/use-tasks-query";
 import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
 import { useAppSelector } from "@/hooks/useAppSelector";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { settingsApi } from "@/features/auth/api/settings.api";
 import { CreateTaskInput, Task } from "@/types/task.types";
 import {
@@ -50,6 +52,24 @@ const createBaseValues = (defaultProjectId?: string, defaultAssigneeIds: string[
   dueDate: "",
   tags: [],
 });
+
+const normalizeComparableValues = (values: Partial<TaskFormValues>) => {
+  const toSortedStringList = (items: unknown[]) =>
+    items.map((item) => String(item)).sort();
+
+  return {
+    title: String(values.title || "").trim(),
+    description: String(values.description || "").trim(),
+    status: String(values.status || "TODO"),
+    priority: String(values.priority || "MEDIUM"),
+    visibility: String(values.visibility || "PUBLIC"),
+    projectId: String(values.projectId || ""),
+    assigneeIds: toSortedStringList(Array.isArray(values.assigneeIds) ? values.assigneeIds : []),
+    dueDate: String(values.dueDate || ""),
+    tags: toSortedStringList(Array.isArray(values.tags) ? values.tags : []),
+    visibleToUsers: toSortedStringList(Array.isArray(values.visibleToUsers) ? values.visibleToUsers : []),
+  };
+};
 
 
 const pickLatestDraft = (
@@ -96,6 +116,7 @@ export function CreateTaskModal({
   const [open, setOpen] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const { activeOrgId, user } = useAppSelector((state) => state.auth);
+  const queryClient = useQueryClient();
   const defaultStatus = user?.settings?.defaultTaskStatus?.toUpperCase();
 
   const [initialValues, setInitialValues] = useState<TaskFormValues>(() =>
@@ -110,6 +131,8 @@ export function CreateTaskModal({
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isLocalSubmitting, setIsLocalSubmitting] = useState(false);
   const [createMore, setCreateMore] = useState(false);
+  const [wasRestored, setWasRestored] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const draftStorageKeyRef = useRef<string | null>(null);
   const lastSavedFingerprintRef = useRef<string>("");
@@ -122,11 +145,12 @@ export function CreateTaskModal({
 
   const userId = user?.id || "";
   const draftingEnabled = !!user?.settings?.taskDraftEnabled;
+  const isSubmitting = createTask.isPending || publishTaskDraft.isPending;
 
   const baseValues = useMemo(() => createBaseValues(defaultProjectId), [defaultProjectId]);
   
-  // Debounce for LOCAL storage save (Phase 3)
-  const debouncedLocalDraftValues = useDebounce(draftValues, 800);
+  // Debounce for LOCAL storage save
+  const debouncedLocalDraftValues = useDebounce(draftValues, 400);
   
   // Debounce for SERVER sync (Phase 4) - only when idle
   const debouncedServerDraftValues = useDebounce(draftValues, 3000);
@@ -135,6 +159,40 @@ export function CreateTaskModal({
     id: p.id || p._id,
     name: p.name,
   }));
+
+  const hasUnsavedChanges = useMemo(
+    () => JSON.stringify(normalizeComparableValues(draftValues)) !== JSON.stringify(normalizeComparableValues(initialValues)),
+    [draftValues, initialValues],
+  );
+
+  const shouldBlockNavigation = open && hasUnsavedChanges && !isLocalSubmitting && !isSubmitting;
+  const blocker = useBlocker(shouldBlockNavigation);
+
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      setShowConfirmModal(true);
+    }
+  }, [blocker.state]);
+
+  useEffect(() => {
+    if (!open) {
+      setShowConfirmModal(false);
+      if (blocker.state === "blocked") {
+        blocker.reset();
+      }
+    }
+  }, [blocker, open]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!shouldBlockNavigation) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [shouldBlockNavigation]);
 
   const persistLocalDraft = (values: TaskFormValues, nextDraftId?: string | null) => {
     if (!userId || !hasTaskDraftContent(values)) return;
@@ -210,9 +268,29 @@ export function CreateTaskModal({
         ...initialValuesOverride,
       };
 
-      setInitialValues(nextBaseValues);
-      setDraftValues(nextBaseValues);
-      setDraftId(null);
+      let finalValues = nextBaseValues;
+      let finalDraftId = null;
+      let restored = false;
+
+      if (userId && draftingEnabled) {
+        const localDraft = getLatestStoredTaskDraft(userId, defaultProjectId);
+        if (localDraft && localDraft.values && hasTaskDraftContent(localDraft.values as TaskFormValues)) {
+          finalValues = { ...nextBaseValues, ...localDraft.values } as TaskFormValues;
+          finalDraftId = localDraft.draftId || null;
+          restored = true;
+        }
+      }
+
+      setInitialValues(nextBaseValues); // Keep initial empty so we know it's dirty
+      setDraftValues(finalValues);
+      setDraftId(finalDraftId);
+      setWasRestored(restored);
+      
+      if (restored) {
+        // Reset the alert after 4 seconds
+        setTimeout(() => setWasRestored(false), 4000);
+      }
+      
       draftStorageKeyRef.current = null;
       lastSavedFingerprintRef.current = "";
       setResetKey((current) => current + 1);
@@ -247,9 +325,9 @@ export function CreateTaskModal({
 
   const syncDraftToServer = async (
     values: TaskFormValues,
-    options?: { force?: boolean; showErrors?: boolean; silent?: boolean },
+    options?: { force?: boolean; showErrors?: boolean; silent?: boolean; skipContentCheck?: boolean },
   ) => {
-    if (!userId || !draftingEnabled || !hasTaskDraftContent(values)) {
+    if (!userId || (!options?.force && !draftingEnabled) || (!options?.skipContentCheck && !hasTaskDraftContent(values))) {
       return null;
     }
 
@@ -264,6 +342,10 @@ export function CreateTaskModal({
     }
     
     try {
+      if (!options?.silent) {
+        toast.loading("Saving draft...", { id: "draft-sync" });
+      }
+      
       const response = await upsertTaskDraft.mutateAsync({
         id: draftId,
         data: buildTaskDraftInput(values, draftId),
@@ -275,8 +357,31 @@ export function CreateTaskModal({
       // Update local storage too to keep in sync
       persistLocalDraft(values, nextDraftId);
       
+      // Optimistically update React Query cache immediately
+      queryClient.setQueryData(["tasks", activeOrgId, "infinite"], (old: any) => {
+        if (!old?.pages) return old;
+        const newDraft = { ...response.data, isDraft: true };
+        // We only want to inject it if it doesn't already exist to prevent dupes
+        const exists = old.pages.some((p: any) => p.data?.items?.some((t: any) => t.id === nextDraftId || t._id === nextDraftId));
+        if (exists) return old;
+        
+        const newPages = [...old.pages];
+        if (newPages.length > 0) {
+          const newItems = [...(newPages[0].data?.items || [])];
+          newItems.unshift(newDraft); // Put it at the top
+          newPages[0] = { ...newPages[0], data: { ...newPages[0].data, items: newItems } };
+        }
+        return { ...old, pages: newPages };
+      });
+      
+      if (!options?.silent) {
+        toast.success("Draft saved.", { id: "draft-sync" });
+      }
       return nextDraftId;
     } catch (error) {
+      if (!options?.silent) {
+        toast.dismiss("draft-sync");
+      }
       if (options?.showErrors) {
         const apiError = error as AxiosError<{ message?: string; errors?: string[] }>;
         const message =
@@ -332,52 +437,65 @@ export function CreateTaskModal({
   const handleDiscard = async () => {
     const currentProjectId = draftValues.projectId || defaultProjectId;
 
+    setShowConfirmModal(false);
+
     try {
       if (draftId) {
-        await deleteTaskDraft.mutateAsync(draftId);
+        void deleteTaskDraft.mutateAsync(draftId).catch(() => undefined);
       }
 
       clearLocalDraft(currentProjectId, draftId);
       resetDraftState(createBaseValues(defaultProjectId));
       setOpen(false);
-      if (draftId || hasTaskDraftContent(draftValues)) {
-        toast.success("Draft discarded.");
+
+      if (blocker.state === "blocked") {
+        blocker.proceed();
       }
     } catch {
       toast.error("Failed to discard draft.");
     }
   };
 
-  const handleSaveDraft = async (values: TaskFormValues) => {
+  const handleAttemptClose = () => {
+    if (isSubmitting || isLocalSubmitting) {
+      return;
+    }
+
+    if (!hasUnsavedChanges) {
+      setShowConfirmModal(false);
+      if (blocker.state === "blocked") {
+        blocker.reset();
+      }
+      setOpen(false);
+      return;
+    }
+
+    setShowConfirmModal(true);
+  };
+
+  const finalizeClose = () => {
+    setShowConfirmModal(false);
+    setOpen(false);
+  };
+
+  const handleSaveDraft = (values: TaskFormValues) => {
     if (!hasTaskDraftContent(values)) {
       toast.info("Add something before saving a draft.");
       return;
     }
 
-    const savedDraftId = await syncDraftToServer(values, {
-      force: true,
-      showErrors: true,
-    });
-
-    if (!savedDraftId) return;
-
-    toast.success("Draft saved.");
-    setOpen(false);
-  };
-
-  const handleSilentSaveDraft = async (values: TaskFormValues) => {
-    if (!draftingEnabled || !hasTaskDraftContent(values)) {
-      setOpen(false);
-      return;
-    }
-
-    // Fire and forget sync on close
+    // Background sync, no await, instant close
     syncDraftToServer(values, {
       force: true,
-      showErrors: false,
+      showErrors: false, // Don't show blocking errors, just silent fail with local storage
+      silent: false
     });
 
-    setOpen(false);
+    if (blocker.state === "blocked") {
+      blocker.proceed();
+    }
+
+    finalizeClose();
   };
 
   const buildPublishPayload = (values: TaskFormValues): CreateTaskInput => {
@@ -400,7 +518,6 @@ export function CreateTaskModal({
     };
   };
 
-  const isSubmitting = createTask.isPending || publishTaskDraft.isPending;
 
   const handleSubmit = (values: TaskFormValues, createMoreArg?: boolean) => {
     if (isLocalSubmitting) return;
@@ -452,7 +569,15 @@ export function CreateTaskModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <>
+      <Dialog open={open} onOpenChange={(val) => {
+        if (val) {
+          setOpen(true);
+          return;
+        }
+
+        handleAttemptClose();
+      }}>
       <DialogTrigger asChild>
         {trigger ?? (
           <Button>
@@ -463,23 +588,38 @@ export function CreateTaskModal({
       </DialogTrigger>
       <DialogContent
         hideClose
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-        className="max-w-[640px] w-[95vw] md:w-full h-fit max-h-[90vh] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-modal gap-0 flex flex-col"
+        onPointerDownOutside={(e) => {
+          e.preventDefault();
+          handleAttemptClose();
+        }}
+        onEscapeKeyDown={(e) => {
+          e.preventDefault();
+          handleAttemptClose();
+        }}
+        className="max-w-160 w-[95vw] md:w-full h-fit max-h-[90vh] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-modal gap-0 flex flex-col"
       >
         {isCheckingDraft ? (
-          <div className="flex min-h-[320px] items-center justify-center text-sm text-muted-foreground">
+          <div className="flex min-h-80 items-center justify-center text-sm text-muted-foreground">
             Restoring draft...
           </div>
         ) : (
-          <TaskForm
+          <div className="relative flex flex-col h-full w-full">
+            {wasRestored && (
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
+                <div className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide flex items-center shadow-lg backdrop-blur-md">
+                  Restored unsaved draft
+                </div>
+              </div>
+            )}
+            <TaskForm
             key={resetKey}
             resetKey={resetKey}
             projects={projects}
             initialValues={initialValues}
             onDiscard={handleDiscard}
-            onSaveDraft={handleSilentSaveDraft}
+            onSaveDraft={handleSaveDraft}
             onValuesChange={handleValuesChange}
+            onCloseRequest={handleAttemptClose}
             onSubmit={(values, more) => handleSubmit(values, more)}
             isSubmitting={isSubmitting || isLocalSubmitting}
             isSavingDraft={isSavingDraft}
@@ -488,9 +628,23 @@ export function CreateTaskModal({
             onCreateMoreChange={setCreateMore}
             defaultStatus={statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase()}
           />
+          </div>
 
         )}
       </DialogContent>
-    </Dialog>
+      </Dialog>
+      <UnsavedChangesModal
+        open={showConfirmModal}
+        onOpenChange={(nextOpen) => {
+          setShowConfirmModal(nextOpen);
+          if (!nextOpen && blocker.state === "blocked") {
+            blocker.reset();
+          }
+        }}
+        onDiscard={handleDiscard}
+        onSaveDraft={() => handleSaveDraft(draftValues)}
+        isSaving={isSavingDraft}
+      />
+    </>
   );
 }

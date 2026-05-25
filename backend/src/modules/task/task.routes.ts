@@ -103,7 +103,12 @@ router.delete(
   taskController.removeVisibilityUsers,
 );
 
-export default router;
+// User Order Management
+router.post(
+  "/user-order",
+  requirePermission(PERMISSIONS.VIEW_TASK), // They only need view access to reorder their own view
+  taskController.saveUserOrder,
+);
 
 router.get(
   '/:id/status-history',
@@ -142,4 +147,6 @@ router.delete(
   requirePermission(PERMISSIONS.EDIT_TASK),
   taskController.detachPage,
 );
+
+export default router;
 
