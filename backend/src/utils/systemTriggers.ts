@@ -280,7 +280,7 @@ export const logActivity = async (params: ActivityParams) => {
           eventType: eventConfig.type,
           action: normalizedAction,
           message: tgMessage,
-          excludeUserId: userId,
+          excludeUserId: ['LOGINS', 'ACTIVITY'].includes(eventConfig.type) ? undefined : userId,
           eventContext
         });
       }
