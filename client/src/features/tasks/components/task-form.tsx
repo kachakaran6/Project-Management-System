@@ -69,6 +69,7 @@ interface TaskFormProps {
   onDiscard?: () => void;
   onSaveDraft?: (values: TaskFormValues) => Promise<void> | void;
   onValuesChange?: (values: TaskFormValues) => void;
+  onCloseRequest?: () => void;
   onCreated?: () => void;
   isSuccess?: boolean;
   isSubmitting?: boolean;
@@ -141,6 +142,7 @@ export function TaskForm({
   onDiscard,
   onSaveDraft,
   onValuesChange,
+  onCloseRequest,
   isSuccess,
   isSubmitting = false,
   isSavingDraft = false,
@@ -357,12 +359,14 @@ export function TaskForm({
               </p>
             )}
           </div>
-          {/* Close button that silently saves draft */}
+          {/* Close button that delegates to onCloseRequest if provided */}
           <Button
             variant="ghost"
             size="icon"
             onClick={() => {
-              if (onSaveDraft) {
+              if (onCloseRequest) {
+                onCloseRequest();
+              } else if (onSaveDraft) {
                 onSaveDraft(buildTaskFormDefaults(form.getValues(), isMemberOnlySelection, user?.id));
               } else if (onCancel) {
                 onCancel();

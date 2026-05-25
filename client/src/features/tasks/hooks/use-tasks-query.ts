@@ -1,6 +1,7 @@
 
 import { useMutation, useQuery, useQueryClient, useInfiniteQuery, InfiniteData } from "@tanstack/react-query";
 import { useAppSelector } from "@/hooks/useAppSelector";
+import { toast } from "sonner";
 
 import { taskApi } from "@/features/tasks/api/task.api";
 import {
@@ -157,8 +158,9 @@ export function useTaskDraftsQuery(
 
 }
 
-export function useUpsertTaskDraftMutation() {
+export function useUpsertTaskDraftMutation(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
+  const { activeOrgId, user } = useAppSelector((state) => state.auth);
 
   return useMutation({
     mutationFn: ({ id, data }: { id?: string | null; data: TaskDraftInput }) => {
@@ -167,9 +169,96 @@ export function useUpsertTaskDraftMutation() {
       }
       return taskApi.createDraft(data);
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    onMutate: async ({ id, data }) => {
+      if (!options?.silent) {
+        toast.loading("Saving draft...", { id: "draft-sync" });
+      }
+
+      await queryClient.cancelQueries({ queryKey: ["tasks", activeOrgId] });
+
+      const tempId = id || `temp-draft-${Date.now()}`;
+      
+      const tempDraft = {
+        id: tempId,
+        _id: tempId,
+        ...data,
+        isDraft: true,
+        creator: {
+          id: user?.id,
+          firstName: user?.firstName,
+          lastName: user?.lastName,
+          email: user?.email,
+          avatarUrl: user?.avatarUrl,
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Optimistically update infinite queries
+      queryClient.setQueriesData({ queryKey: ["tasks", activeOrgId, "infinite"] }, (old: any) => {
+        if (!old?.pages) return old;
+        
+        // Check if exists
+        const exists = old.pages.some((p: any) => p.data?.items?.some((t: any) => t.id === id || t._id === id));
+        if (exists) {
+          // Update existing
+          return {
+            ...old,
+            pages: old.pages.map((p: any) => ({
+              ...p,
+              data: {
+                ...p.data,
+                items: p.data?.items?.map((t: any) => (t.id === id || t._id === id ? { ...t, ...tempDraft } : t))
+              }
+            }))
+          };
+        }
+
+        // Insert new at the top
+        const newPages = [...old.pages];
+        if (newPages.length > 0) {
+          const newItems = [tempDraft, ...(newPages[0].data?.items || [])];
+          newPages[0] = { ...newPages[0], data: { ...newPages[0].data, items: newItems } };
+        }
+        return { ...old, pages: newPages };
+      });
+
+      return { tempId };
     },
+    onSuccess: async (response, variables, context) => {
+      if (!options?.silent) {
+        toast.success("Draft saved.", { id: "draft-sync" });
+      }
+      
+      const realId = response?.data?.id || (response?.data as any)?._id;
+      
+      // Replace temp id with real id if it was a create
+      if (!variables.id && realId) {
+        queryClient.setQueriesData({ queryKey: ["tasks", activeOrgId, "infinite"] }, (old: any) => {
+           if (!old?.pages) return old;
+           return {
+             ...old,
+             pages: old.pages.map((p: any) => ({
+               ...p,
+               data: {
+                 ...p.data,
+                 items: p.data?.items?.map((t: any) => (t.id === context?.tempId || t._id === context?.tempId ? { ...t, ...response.data, isDraft: true } : t))
+               }
+             }))
+           };
+        });
+      }
+      
+      // Invalidate just drafts to keep it fresh
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKeys.drafts({}, activeOrgId) });
+    },
+    onError: (err) => {
+      if (!options?.silent) {
+        toast.error("Failed to save draft.", { id: "draft-sync" });
+      }
+      // Revert optimism if needed
+      queryClient.invalidateQueries({ queryKey: ["tasks", activeOrgId] });
+    }
   });
 }
 
@@ -490,6 +579,20 @@ export function useBulkTaskStatusMutation() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
+    },
+  });
+}
+
+export function useSaveUserOrderMutation() {
+  const queryClient = useQueryClient();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
+
+  return useMutation({
+    mutationFn: ({ projectId, statusId, taskIds }: { projectId: string; statusId: string; taskIds: string[] }) =>
+      taskApi.saveUserOrder(projectId, statusId, taskIds),
+    onSuccess: () => {
+      // Don't invalidate, because this is an optimistic drag and drop operation and we already updated cache.
+      // queryClient.invalidateQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
     },
   });
 }

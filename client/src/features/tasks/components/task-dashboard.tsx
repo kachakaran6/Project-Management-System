@@ -413,6 +413,9 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     if (viewMode !== "list") return {};
     const groups: Record<string, Task[]> = {};
     
+    // Always initialize DRAFTS group first
+    groups["DRAFTS"] = [];
+
     // Initialize groups from dynamic statuses using NAMES
     dynamicStatuses.forEach(s => {
       groups[s.name.toUpperCase()] = [];
@@ -424,9 +427,15 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     }
     
     listRows.forEach(task => {
-      const resolved = resolveStatus(task, dynamicStatuses);
-      const statusName = resolved?.name || "TODO";
-      const normalizedName = statusName.toUpperCase();
+      let normalizedName = "TODO";
+      
+      if (task.isDraft) {
+        normalizedName = "DRAFTS";
+      } else {
+        const resolved = resolveStatus(task, dynamicStatuses);
+        const statusName = resolved?.name || "TODO";
+        normalizedName = statusName.toUpperCase();
+      }
       
       if (!groups[normalizedName]) groups[normalizedName] = [];
       groups[normalizedName].push(task);
@@ -926,9 +935,10 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                   {viewMode === "list" && (
                     <div className="flex flex-col gap-2 p-1.5">
                       {Object.entries(groupedTasks).map(([statusName, tasks]) => {
-                        const status = dynamicStatuses.find(s => s.name.toUpperCase() === statusName);
-                        const displayName = status?.name || statusName;
-                        const statusColor = status?.color || "#94a3b8";
+                        const isDraftGroup = statusName === "DRAFTS";
+                        const status = isDraftGroup ? null : dynamicStatuses.find(s => s.name.toUpperCase() === statusName);
+                        const displayName = isDraftGroup ? "Drafts" : (status?.name || statusName);
+                        const statusColor = isDraftGroup ? "#94a3b8" : (status?.color || "#94a3b8");
                         
                         if (tasks.length === 0) return null; // Only show non-empty groups in global view
 
@@ -980,11 +990,11 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                           variant="outline"
                                           className="h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight shrink-0 border-none"
                                           style={{ 
-                                            color: getStatusColor(task.status, dynamicStatuses), 
-                                            backgroundColor: `${getStatusColor(task.status, dynamicStatuses)}15` 
+                                            color: getStatusColor(task, dynamicStatuses), 
+                                            backgroundColor: `${getStatusColor(task, dynamicStatuses)}15` 
                                           }}
                                         >
-                                          {getStatusName(task.status, dynamicStatuses)}
+                                          {getStatusName(task, dynamicStatuses)}
                                         </Badge>
                                       </div>
                                     </div>
@@ -1685,17 +1695,21 @@ function AccordionSection({ title, color, count, children, defaultOpen = false }
   );
 }
 
-const getStatusName = (status: any, dynamicStatuses: any[]) => {
+const getStatusName = (task: any, dynamicStatuses: any[]) => {
+  if (task?.isDraft) return "Draft";
+  const status = task?.status;
   if (!status) return "Unknown";
-  const resolved = resolveStatus({ status }, dynamicStatuses);
+  const resolved = resolveStatus(task, dynamicStatuses);
   if (resolved) return resolved.name;
   if (typeof status === 'object') return (status as any).name || "Unknown";
-  return "Unknown";
+  return String(status);
 };
 
-const getStatusColor = (status: any, dynamicStatuses: any[]) => {
+const getStatusColor = (task: any, dynamicStatuses: any[]) => {
+  if (task?.isDraft) return "#94a3b8";
+  const status = task?.status;
   if (!status) return "#94a3b8";
-  const resolved = resolveStatus({ status }, dynamicStatuses);
+  const resolved = resolveStatus(task, dynamicStatuses);
   return resolved?.color || "#94a3b8";
 };
 
@@ -1755,11 +1769,11 @@ function TaskRow({
           variant="outline"
           className="h-5 px-2 rounded-full text-[9px] font-bold uppercase tracking-tight border-none"
           style={{ 
-            color: getStatusColor(task.status, dynamicStatuses), 
-            backgroundColor: `${getStatusColor(task.status, dynamicStatuses)}15` 
+            color: getStatusColor(task, dynamicStatuses), 
+            backgroundColor: `${getStatusColor(task, dynamicStatuses)}15` 
           }}
         >
-          {getStatusName(task.status, dynamicStatuses)}
+          {getStatusName(task, dynamicStatuses)}
         </Badge>
       </TableCell>
       <TableCell>

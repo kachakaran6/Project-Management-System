@@ -6,6 +6,7 @@ import TaskStatusHistory from '../../models/TaskStatusHistory.js';
 import Tag from '../../models/Tag.js';
 import TaskPage from '../../models/TaskPage.js';
 import Page from '../../models/Page.js';
+import UserColumnOrder from '../../models/UserColumnOrder.js';
 
 import Project from '../../models/Project.js';
 import Status from '../../models/Status.js';
@@ -65,14 +66,14 @@ const normalizeUser = (user: any) => {
   return { id, name, email: user.email || '', avatarUrl: user.avatarUrl };
 };
 
-const buildTaskSortStages = (filter: { sortBy?: string; sortOrder?: string }) => {
+const buildTaskSortStages = (filter: any) => {
   const sortOrder: 1 | -1 = filter.sortOrder === 'asc' ? 1 : -1;
   const sortParams: Record<string, 1 | -1> = {};
   const stages: any[] = [];
 
   if (!filter.sortBy) {
-    sortParams.createdAt = -1;
     sortParams.position = 1;
+    sortParams.createdAt = -1;
     return { stages, sortParams };
   }
 
@@ -170,11 +171,39 @@ const buildTaskSortStages = (filter: { sortBy?: string; sortOrder?: string }) =>
 
     sortParams.assigneeSortMissing = 1;
     sortParams.assigneeSortName = sortOrder;
+  } else if (filter.sortBy === 'manual' && filter.manualOrderTaskIds) {
+    stages.push({
+      $addFields: {
+        manualSortIndex: {
+          $indexOfArray: [filter.manualOrderTaskIds, '$_id']
+        }
+      }
+    });
+    // Tasks not in the array will have manualSortIndex = -1, we want them at the bottom
+    stages.push({
+      $addFields: {
+        manualSortIndexAdjusted: {
+          $cond: [{ $eq: ['$manualSortIndex', -1] }, 999999, '$manualSortIndex']
+        }
+      }
+    });
+    sortParams.manualSortIndexAdjusted = 1;
+    sortParams.position = 1;
+  } else if (filter.sortBy === 'newest') {
+    sortParams.createdAt = -1;
+  } else if (filter.sortBy === 'oldest') {
+    sortParams.createdAt = 1;
+  } else if (filter.sortBy === 'dueDate') {
+    sortParams.dueDate = sortOrder;
+  } else if (filter.sortBy === 'alphabetical') {
+    sortParams.title = sortOrder;
+  } else if (filter.sortBy === 'recentlyUpdated') {
+    sortParams.updatedAt = -1;
   } else {
     sortParams[filter.sortBy] = sortOrder;
   }
 
-  if (filter.sortBy !== 'position') sortParams.position = 1;
+  if (filter.sortBy !== 'position' && filter.sortBy !== 'manual') sortParams.position = 1;
 
   return { stages, sortParams };
 };
@@ -659,13 +688,37 @@ export const saveDraft = async (draftData: Record<string, any>, userId: string, 
         .session(session);
     }
 
+    let finalWorkspaceId = toObjectId(workspaceId);
+    let finalProjectId = toObjectId(projectId);
+
+    if (finalProjectId && !finalWorkspaceId) {
+      const Project = mongoose.model('Project');
+      const project = await Project.findOne({ _id: finalProjectId }).lean();
+      if (project) {
+        finalWorkspaceId = (project as any).workspaceId as mongoose.Types.ObjectId;
+      }
+    }
+
+    let finalStatusId = toObjectId(status) || toObjectId(draft?.status);
+    if (!finalStatusId) {
+      // Find a default status (e.g. "To Do")
+      const defaultStatus = await Status.findOne({ 
+        organizationId: toObjectId(organizationId), 
+        name: { $regex: /todo|to do/i } 
+      }).session(session);
+      
+      if (defaultStatus) {
+        finalStatusId = defaultStatus._id as mongoose.Types.ObjectId;
+      }
+    }
+
     const updatePayload: Record<string, any> = {
       title: String(title || '').trim(),
       description,
-      projectId: toObjectId(projectId),
-      workspaceId: toObjectId(workspaceId),
+      projectId: finalProjectId,
+      workspaceId: finalWorkspaceId,
       organizationId,
-      status: status || draft?.status || 'TODO',
+      status: finalStatusId,
       priority: priority || draft?.priority || 'MEDIUM',
       visibility: normalizedVisibility,
       isDraft: true,
@@ -970,31 +1023,35 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
   if (filter.workspaceId) query.workspaceId = toObjectId(filter.workspaceId);
   if (filter.projectId) query.projectId = toObjectId(filter.projectId);
   if (filter.status) {
-    const statusId = toObjectId(filter.status);
-    
-    // We want to be extremely robust: match ObjectId OR various string formats
-    const statusMatchTerms: any[] = [filter.status];
-    if (statusId) statusMatchTerms.push(statusId);
+    if (filter.status.toLowerCase() === 'draft') {
+      query.isDraft = true;
+    } else {
+      const statusId = toObjectId(filter.status);
+      
+      // We want to be extremely robust: match ObjectId OR various string formats
+      const statusMatchTerms: any[] = [filter.status];
+      if (statusId) statusMatchTerms.push(statusId);
 
-    // Try to find the dynamic status document to get its name and ID variations
-    const resolvedStatuses = await Status.find({ 
-      organizationId: orgId, 
-      $or: [
-        { name: new RegExp(`^${filter.status}$`, 'i') },
-        ...(statusId ? [{ _id: statusId }] : [])
-      ]
-    }).lean();
+      // Try to find the dynamic status document to get its name and ID variations
+      const resolvedStatuses = await Status.find({ 
+        organizationId: orgId, 
+        $or: [
+          { name: new RegExp(`^${filter.status}$`, 'i') },
+          ...(statusId ? [{ _id: statusId }] : [])
+        ]
+      }).lean();
 
-    resolvedStatuses.forEach(s => {
-      statusMatchTerms.push(s._id);
-      statusMatchTerms.push(s.name);
-      // Also match common legacy versions (e.g. "To Do" -> "TODO" or "TO_DO")
-      statusMatchTerms.push(s.name.toUpperCase().replace(/\s+/g, '_'));
-      statusMatchTerms.push(s.name.toUpperCase().replace(/\s+/g, ''));
-    });
+      resolvedStatuses.forEach(s => {
+        statusMatchTerms.push(s._id);
+        statusMatchTerms.push(s.name);
+        // Also match common legacy versions (e.g. "To Do" -> "TODO" or "TO_DO")
+        statusMatchTerms.push(s.name.toUpperCase().replace(/\s+/g, '_'));
+        statusMatchTerms.push(s.name.toUpperCase().replace(/\s+/g, ''));
+      });
 
-    // Deduplicate and apply to query
-    query.status = { $in: [...new Set(statusMatchTerms.map(t => t.toString())), ...statusMatchTerms.filter(t => t instanceof mongoose.Types.ObjectId)] };
+      // Deduplicate and apply to query
+      query.status = { $in: [...new Set(statusMatchTerms.map(t => t.toString())), ...statusMatchTerms.filter(t => t instanceof mongoose.Types.ObjectId)] };
+    }
   }
   if (filter.priority) query.priority = filter.priority;
   if (filter.visibility) query.visibility = filter.visibility;
@@ -1115,6 +1172,20 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
           ]
         }
       });
+    }
+
+    if (filter.sortBy === 'manual' && filter.status) {
+      const uco = await UserColumnOrder.findOne({
+        userId: toObjectId(userId),
+        projectId: toObjectId(filter.projectId) || null,
+        statusId: filter.status
+      }).lean();
+      
+      if (uco && uco.taskIds) {
+        filter.manualOrderTaskIds = uco.taskIds;
+      } else {
+        filter.manualOrderTaskIds = [];
+      }
     }
 
     const { stages: sortStages, sortParams } = buildTaskSortStages(filter);
@@ -1822,4 +1893,12 @@ export const createAndAttachPage = async (taskId: string, pageData: any, userId:
     owner: { id: userId, name: 'You' }, // Minimal placeholder
     linkedAt: taskPage.createdAt
   };
+};
+
+export const saveUserColumnOrder = async (userId: string, projectId: string | null, statusId: string, taskIds: string[]) => {
+  await UserColumnOrder.findOneAndUpdate(
+    { userId: toObjectId(userId), projectId: toObjectId(projectId), statusId },
+    { taskIds: taskIds.map(toObjectId) },
+    { upsert: true, new: true }
+  );
 };
