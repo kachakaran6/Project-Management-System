@@ -50,7 +50,7 @@ export function TaskSidePanel() {
       params.delete("taskId");
       closePanel();
     }
-    router.push(`${pathname}?${params.toString()}`);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const {data, isLoading, error} = useTaskQuery(selectedTaskId || "", isOpen);

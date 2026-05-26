@@ -37,7 +37,7 @@ import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { Task, TaskPriority } from "@/types/task.types";
 import { resolveStatus, filterVisibleTasks, normalizeId } from "@/features/tasks/utils/resolve-status";
 
-type WorkTab = "summary" | "assigned" | "created" | "activity" | "visualize";
+type WorkTab = "summary" | "assigned" | "created" | "activity" | "visualize" | "stats";
 
 const TAB_ITEMS: Array<{ id: WorkTab; label: string }> = [
   { id: "summary", label: "Summary" },
@@ -45,6 +45,7 @@ const TAB_ITEMS: Array<{ id: WorkTab; label: string }> = [
   { id: "created", label: "Created" },
   { id: "activity", label: "Activity" },
   { id: "visualize", label: "Visualize" },
+  { id: "stats", label: "Stats" },
 ];
 
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
@@ -823,188 +824,190 @@ export default function YourWorkPage() {
                 <div className="w-full">
                   <TaskUniverse tasks={derived.relevantTasks} />
                 </div>
-              ) : (
-                <>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <MetricCard
-                    label="Work items created"
-                    value={derived.created.length}
-                    icon={BriefcaseBusiness}
-                    description={
-                      viewingUserId === "me"
-                        ? "Tasks you opened or authored."
-                        : `Tasks created by ${selectedUser?.firstName || "this user"}.`
-                    }
-                  />
-                  <MetricCard
-                    label="Work items assigned"
-                    value={derived.assigned.length}
-                    icon={UserRoundCheck}
-                    description={
-                      viewingUserId === "me"
-                        ? "Tasks currently assigned to you."
-                        : `Tasks assigned to ${selectedUser?.firstName || "this user"}.`
-                    }
-                  />
-                </div>
+              ) : activeTab === "stats" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <MetricCard
+                      label="Work items created"
+                      value={derived.created.length}
+                      icon={BriefcaseBusiness}
+                      description={
+                        viewingUserId === "me"
+                          ? "Tasks you opened or authored."
+                          : `Tasks created by ${selectedUser?.firstName || "this user"}.`
+                      }
+                    />
+                    <MetricCard
+                      label="Work items assigned"
+                      value={derived.assigned.length}
+                      icon={UserRoundCheck}
+                      description={
+                        viewingUserId === "me"
+                          ? "Tasks currently assigned to you."
+                          : `Tasks assigned to ${selectedUser?.firstName || "this user"}.`
+                      }
+                    />
+                  </div>
 
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6">
-                  {derived.workloadItems.map((item) => (
-                    <Card
-                      key={item.id}
-                      className="border-border/60 bg-card/50 transition-colors hover:bg-card"
-                    >
-                      <CardContent className="flex h-full flex-col justify-center p-3 md:p-4">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="size-1.5 shrink-0 rounded-full md:size-2"
-                            style={{ backgroundColor: item.color }}
-                          />
-                          <p className="truncate text-[10px] font-medium text-muted-foreground md:text-[11px]">
-                            {item.name}
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6">
+                    {derived.workloadItems.map((item) => (
+                      <Card
+                        key={item.id}
+                        className="border-border/60 bg-card/50 transition-colors hover:bg-card"
+                      >
+                        <CardContent className="flex h-full flex-col justify-center p-3 md:p-4">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="size-1.5 shrink-0 rounded-full md:size-2"
+                              style={{ backgroundColor: item.color }}
+                            />
+                            <p className="truncate text-[10px] font-medium text-muted-foreground md:text-[11px]">
+                              {item.name}
+                            </p>
+                          </div>
+                          <p className="mt-1 text-lg font-bold text-foreground md:mt-2 md:text-2xl">
+                            {derived.rawStatusCounts.get(item.id) ?? 0}
                           </p>
-                        </div>
-                        <p className="mt-1 text-lg font-bold text-foreground md:mt-2 md:text-2xl">
-                          {derived.rawStatusCounts.get(item.id) ?? 0}
-                        </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <Card className="overflow-hidden">
+                      <CardHeader>
+                        <CardTitle className="text-base">
+                          Work items by Priority
+                        </CardTitle>
+                        <CardDescription>
+                          Distribution across your active workload.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="h-80">
+                        {derived.relevantTasks.length === 0 ? (
+                          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                            No personal work items found.
+                          </div>
+                        ) : (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={derived.priorityChartData}
+                              margin={{ top: 10, right: 8, left: -20, bottom: 0 }}
+                            >
+                              <CartesianGrid
+                                strokeDasharray="3 3"
+                                stroke="var(--border)"
+                              />
+                              <XAxis
+                                dataKey="name"
+                                tickLine={false}
+                                axisLine={false}
+                                tick={{
+                                  fill: "var(--muted-foreground)",
+                                  fontSize: 12,
+                                }}
+                              />
+                              <YAxis
+                                allowDecimals={false}
+                                tickLine={false}
+                                axisLine={false}
+                                tick={{
+                                  fill: "var(--muted-foreground)",
+                                  fontSize: 12,
+                                }}
+                              />
+                              <Tooltip
+                                cursor={{ fill: "transparent" }}
+                                content={
+                                  <CustomChartTooltip
+                                    total={derived.relevantTasks.length}
+                                  />
+                                }
+                                offset={12}
+                                allowEscapeViewBox={{ x: true, y: true }}
+                              />
+                              <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                                {derived.priorityChartData.map((entry) => (
+                                  <Cell key={entry.name} fill={entry.color} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        )}
                       </CardContent>
                     </Card>
-                  ))}
-                </div>
 
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <Card className="overflow-hidden">
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      Work items by Priority
-                    </CardTitle>
-                    <CardDescription>
-                      Distribution across your active workload.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="h-80">
-                    {derived.relevantTasks.length === 0 ? (
-                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        No personal work items found.
-                      </div>
-                    ) : (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={derived.priorityChartData}
-                          margin={{ top: 10, right: 8, left: -20, bottom: 0 }}
-                        >
-                          <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="var(--border)"
-                          />
-                          <XAxis
-                            dataKey="name"
-                            tickLine={false}
-                            axisLine={false}
-                            tick={{
-                              fill: "var(--muted-foreground)",
-                              fontSize: 12,
-                            }}
-                          />
-                          <YAxis
-                            allowDecimals={false}
-                            tickLine={false}
-                            axisLine={false}
-                            tick={{
-                              fill: "var(--muted-foreground)",
-                              fontSize: 12,
-                            }}
-                          />
-                            <Tooltip
-                              cursor={{ fill: "transparent" }}
-                              content={
-                                <CustomChartTooltip
-                                  total={derived.relevantTasks.length}
+                    <Card className="overflow-hidden">
+                      <CardHeader>
+                        <CardTitle className="text-base">
+                          Work items by State
+                        </CardTitle>
+                        <CardDescription>
+                          Current status split for your tasks.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-center">
+                        <div className="h-60">
+                          {derived.relevantTasks.length === 0 ? (
+                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                              No personal work items found.
+                            </div>
+                          ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={derived.statusChartData}
+                                  dataKey="value"
+                                  nameKey="name"
+                                  innerRadius={62}
+                                  outerRadius={92}
+                                  paddingAngle={3}
+                                >
+                                  {derived.statusChartData.map((entry) => (
+                                    <Cell key={entry.name} fill={entry.color} />
+                                  ))}
+                                </Pie>
+                                <Tooltip
+                                  content={
+                                    <CustomChartTooltip
+                                      total={derived.relevantTasks.length}
+                                    />
+                                  }
+                                  offset={12}
+                                  allowEscapeViewBox={{ x: true, y: true }}
                                 />
-                              }
-                              offset={12}
-                              allowEscapeViewBox={{ x: true, y: true }}
-                            />
-                          <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                            {derived.priorityChartData.map((entry) => (
-                              <Cell key={entry.name} fill={entry.color} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card className="overflow-hidden">
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      Work items by State
-                    </CardTitle>
-                    <CardDescription>
-                      Current status split for your tasks.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-center">
-                    <div className="h-60">
-                      {derived.relevantTasks.length === 0 ? (
-                        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                          No personal work items found.
+                              </PieChart>
+                            </ResponsiveContainer>
+                          )}
                         </div>
-                      ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={derived.statusChartData}
-                              dataKey="value"
-                              nameKey="name"
-                              innerRadius={62}
-                              outerRadius={92}
-                              paddingAngle={3}
+
+                        <div className="space-y-3">
+                          {derived.statusChartData.map((entry) => (
+                            <div
+                              key={entry.name}
+                              className="flex items-center justify-between gap-3 text-sm"
                             >
-                              {derived.statusChartData.map((entry) => (
-                                <Cell key={entry.name} fill={entry.color} />
-                              ))}
-                            </Pie>
-                            <Tooltip
-                              content={
-                                <CustomChartTooltip
-                                  total={derived.relevantTasks.length}
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="size-3 rounded-button"
+                                  style={{ backgroundColor: entry.color }}
                                 />
-                              }
-                              offset={12}
-                              allowEscapeViewBox={{ x: true, y: true }}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      )}
-                    </div>
-
-                    <div className="space-y-3">
-                      {derived.statusChartData.map((entry) => (
-                        <div
-                          key={entry.name}
-                          className="flex items-center justify-between gap-3 text-sm"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="size-3 rounded-button"
-                              style={{ backgroundColor: entry.color }}
-                            />
-                            <span className="text-muted-foreground">
-                              {entry.name}
-                            </span>
-                          </div>
-                          <span className="font-medium text-foreground">
-                            {entry.value}
-                          </span>
+                                <span className="text-muted-foreground">
+                                  {entry.name}
+                                </span>
+                              </div>
+                              <span className="font-medium text-foreground">
+                                {entry.value}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              ) : (
+                <>
               {activeTab === "summary" ? (
                 <Card>
                   <CardHeader>
@@ -1187,7 +1190,7 @@ export default function YourWorkPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4 px-3.5 pb-4 md:px-5 md:pb-6">
-            <div className="scrollbar-hide max-h-[400px] space-y-4 overflow-y-auto pr-1 xl:max-h-[500px]">
+            <div className="scrollbar-hide max-h-100 space-y-4 overflow-y-auto pr-1 xl:max-h-125">
               {derived.projectSummaries.length === 0 ? (
                 <div className="py-8 text-center">
                   <p className="text-xs italic text-muted-foreground">

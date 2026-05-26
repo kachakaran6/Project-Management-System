@@ -112,7 +112,6 @@ type SectionId =
   | "integrations"
   | "tags"
   | "workflow"
-  | "default_assignees"
   | "preferences"
   | "github";
 
@@ -145,7 +144,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: "integrations", label: "Integrations", icon: Puzzle },
   { id: "tags", label: "Tags", icon: Tag, managerPlus: true },
   { id: "workflow", label: "Workflow", icon: Workflow, managerPlus: true },
-  { id: "default_assignees", label: "Default Assignees", icon: UserPlus },
   { id: "preferences", label: "Preferences", icon: Settings2 },
   { id: "github", label: "GitHub Workflow", icon: GitBranch },
 
@@ -356,7 +354,7 @@ function ProfileSection() {
                 id="set-bio"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                className="resize-none text-sm min-h-[80px]"
+                className="resize-none text-sm min-h-20"
                 placeholder="Tell your team about yourself..."
               />
             </div>
@@ -369,7 +367,7 @@ function ProfileSection() {
                   Saved
                 </span>
               )}
-            <Button size="sm" onClick={handleSave} disabled={isSaving} className="min-w-[120px]">
+            <Button size="sm" onClick={handleSave} disabled={isSaving} className="min-w-30">
               {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Check className="size-4 mr-2" />}
               Save Changes
             </Button>
@@ -461,7 +459,7 @@ function AccountSection() {
           </div>
 
           <div className="flex justify-end border-t border-border/50 pt-4">
-            <Button size="sm" onClick={handleChangePassword} disabled={saving} className="min-w-[140px]">
+            <Button size="sm" onClick={handleChangePassword} disabled={saving} className="min-w-35">
               {saving ? <Loader2 className="size-4 animate-spin mr-2" /> : <KeyRound className="size-4 mr-2" />}
               Update Password
             </Button>
@@ -1025,7 +1023,7 @@ function WorkspaceSection() {
           </div>
         </div>
         <div className="flex justify-end border-t border-border/50 mt-4 pt-4">
-          <Button size="sm" onClick={handleSave} disabled={saving} className="min-w-[120px]">
+          <Button size="sm" onClick={handleSave} disabled={saving} className="min-w-30">
             {saving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Check className="size-4 mr-2" />}
             Save Workspace
           </Button>
@@ -1512,7 +1510,7 @@ function IntegrationsSection() {
               <MessageSquare className="size-6" />
             </div>
             <h4 className="text-sm font-bold">Connect Telegram</h4>
-            <p className="text-[11px] text-muted-foreground max-w-[240px] mt-1 mb-4">Stay updated with tasks directly on your phone.</p>
+            <p className="text-[11px] text-muted-foreground max-w-60 mt-1 mb-4">Stay updated with tasks directly on your phone.</p>
             {!connectionData ? (
               <Button onClick={handleConnect} disabled={connecting} size="sm" className="bg-sky-500 hover:bg-sky-600 text-white h-9 px-6 font-bold text-[11px]">
                 {connecting ? <Loader2 className="size-3.5 animate-spin mr-2" /> : <Zap className="size-3.5 mr-2" />}
@@ -1536,7 +1534,7 @@ function IntegrationsSection() {
                   </Button>
                 </div>
 
-                <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-px before:bg-border/60">
+                <div className="space-y-6 relative before:absolute before:left-2.75 before:top-2 before:bottom-2 before:w-px before:bg-border/60">
                   <div className="flex gap-4 relative">
                     <div className="z-10 size-6 shrink-0 rounded-full bg-sky-500 text-white flex items-center justify-center text-[11px] font-bold shadow-sm shadow-sky-500/20">1</div>
                     <div className="space-y-3 flex-1">
@@ -1772,8 +1770,6 @@ function renderSection(id: SectionId) {
       return <TagManagement />;
     case "workflow":
       return <StatusManagement />;
-    case "default_assignees":
-      return <DefaultAssigneesSection />;
     case "preferences":
       return <PreferencesSection />;
     case "github":
@@ -1783,61 +1779,6 @@ function renderSection(id: SectionId) {
 }
 
 
-
-// ─── 11. DEFAULT ASSIGNEES SECTION ───────────────────────────────────────────
-
-function DefaultAssigneesSection() {
-  const queryClient = useQueryClient();
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["settings", "default-assignees"],
-    queryFn: () => settingsApi.getDefaultAssignees(),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (ids: string[]) => settingsApi.updateDefaultAssignees(ids),
-    onSuccess: () => {
-      toast.success("Default assignees updated");
-      queryClient.invalidateQueries({ queryKey: ["settings", "default-assignees"] });
-    },
-  });
-
-  useEffect(() => {
-    if (data?.data?.defaultAssignees && !isInitialized) {
-      setSelectedIds(data.data.defaultAssignees.map((u: any) => u.id));
-      setIsInitialized(true);
-    }
-  }, [data, isInitialized]);
-
-  return (
-    <div className="space-y-4">
-      <SectionCard title="Auto-Assign Rules" description="Team members automatically assigned to your new tasks.">
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-[13px] font-medium">Primary Assignees</Label>
-            <MultiUserSelect value={selectedIds} onChange={setSelectedIds} prefilledUsers={data?.data?.defaultAssignees || []} placeholder="Search team members..." disabled={isLoading || updateMutation.isPending} />
-            <p className="text-[10px] text-muted-foreground px-1">Note: This only applies to tasks you create manually.</p>
-          </div>
-          <div className="flex justify-end pt-2 border-t border-border/40">
-            <Button onClick={() => updateMutation.mutate(selectedIds)} disabled={isLoading || updateMutation.isPending || !isInitialized} size="sm" className="min-w-[120px] h-9">
-              {updateMutation.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : <Check className="size-4 mr-2" />}
-              Save Rules
-            </Button>
-          </div>
-        </div>
-      </SectionCard>
-
-      <div className="p-3 rounded-card border border-primary/10 bg-primary/5 flex gap-3">
-        <Sparkles className="size-4 text-primary shrink-0" />
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
-          <span className="font-bold text-primary">Pro Tip:</span> Setting default assignees is great for recurring tasks or small teams where everyone is involved in every task.
-        </p>
-      </div>
-    </div>
-  );
-}
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
@@ -2014,7 +1955,6 @@ export default function SettingsPage() {
                 {activeSection === "integrations" && "Connect and manage third-party applications and API keys."}
                 {activeSection === "tags" && "Create and manage organization-wide labels for better organization."}
                 {activeSection === "workflow" && "Configure task lifecycles, statuses, and board automation."}
-                {activeSection === "default_assignees" && "Set up default users who are automatically assigned to new tasks."}
                 {activeSection === "preferences" && "Customize your personal workflow and productivity tools."}
                 {activeSection === "github" && "Manage GitHub repository links and automation workflows."}
               </p>

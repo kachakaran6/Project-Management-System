@@ -17,6 +17,7 @@ export interface PaginationMeta {
 export interface PaginatedResult<T> {
   items: T[];
   meta: PaginationMeta;
+  groupedStatusCounts?: Record<string, number>;
 }
 
 export interface QueryFilters {

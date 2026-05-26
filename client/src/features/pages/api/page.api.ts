@@ -218,8 +218,9 @@ export const pageApi = {
   async updatePage(
     id: string,
     data: UpdatePageInput,
+    config?: import("axios").AxiosRequestConfig
   ): Promise<ApiResponse<PageDoc>> {
-    const response = await api.patch<ApiResponse<unknown>>(`/pages/${id}`, data);
+    const response = await api.patch<ApiResponse<unknown>>(`/pages/${id}`, data, config);
     return {
       ...response.data,
       data: normalizeSinglePage(response.data.data),

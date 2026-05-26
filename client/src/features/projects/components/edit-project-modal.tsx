@@ -49,6 +49,7 @@ export function EditProjectModal({
           startDate: values.startDate instanceof Date ? values.startDate.toISOString() : undefined,
           endDate: values.endDate instanceof Date ? values.endDate.toISOString() : undefined,
           members: values.members,
+          defaultAssigneeId: values.defaultAssigneeId,
         },
       });
       toast.success(`Project "${values.name}" updated!`);
@@ -106,7 +107,14 @@ export function EditProjectModal({
                     members: project.members?.map((m: any) => {
                       return m.user?.id || m.user?._id || m.id || m._id || m;
                     }) || [],
+                    defaultAssigneeId: (project as any).defaultAssigneeId || null,
                   }}
+                  prefilledAssigneeUsers={(project.members || []).map((m: any) => ({
+                    id: m.user?.id || m.user?._id || m.id || m._id || m,
+                    name: [m.user?.firstName, m.user?.lastName].filter(Boolean).join(" ") || m.user?.name || m.name || "Member",
+                    avatarUrl: m.user?.avatarUrl,
+                    email: m.user?.email || "",
+                  }))}
                   onSubmit={handleSubmit}
                   isSubmitting={updateProject.isPending}
                   submitLabel="Save Changes"

@@ -9,7 +9,6 @@ import {
   History,
   LayoutDashboard,
   LineChart,
-  LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
@@ -20,7 +19,6 @@ import {
 } from "lucide-react";
 import { GithubIcon as Github } from "@/components/icons/github-icon";
 
-import { useRouter } from "next/navigation";
 import { SidebarGroup } from "@/components/layout/sidebar/sidebar-group";
 import { SidebarNavItem } from "@/components/layout/sidebar/sidebar-item";
 import { Button } from "@/components/ui/button";
@@ -164,9 +162,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ pathname, mobile = false }: SidebarProps) {
-  const { activeOrg, user, logout, userRole } = useAuth();
+  const { activeOrg, user, userRole } = useAuth();
   const { sidebarCollapsed, setSidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
-  const router = useRouter();
 
   // Persist sidebar state
   useEffect(() => {
@@ -180,14 +177,6 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
     const nextValue = !sidebarCollapsed;
     toggleSidebarCollapsed();
     localStorage.setItem("sidebarCollapsed", String(nextValue));
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.push("/login");
-    } catch (error) {
-    }
   };
 
   const role = (userRole ?? "MEMBER") as SidebarNavItem["roles"][number];
@@ -324,76 +313,24 @@ export function Sidebar({ pathname, mobile = false }: SidebarProps) {
         </div>
       </div>
 
-      {/* Footer - Pushed to bottom using mt-auto (flexbox) */}
-      <div className={cn(
-        "mt-auto transition-all duration-300",
-        // Desktop: standard spacing
-        "md:pt-4 md:space-y-4",
-        // Mobile: reduced spacing
-        mobile && "pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] space-y-3 border-t border-sidebar-border/50"
-      )}>
-        {/* Sign Out Button - Better touch target on mobile (44px min height) */}
-        <div className="px-2">
-          <Button
-            variant="ghost"
+      {/* Footer - collapsed indicator on desktop */}
+      {sidebarCollapsed && !mobile && (
+        <div className="mt-auto pt-4 flex justify-center">
+          <div
             className={cn(
-              "w-full justify-start gap-3 text-sidebar-foreground/80 hover:bg-red-500/10 hover:text-red-500 transition-colors",
-              // Desktop: standard padding
-              "md:px-3 md:py-2",
-              // Mobile: larger touch target (44px minimum)
-              mobile && "px-3 py-3 h-11 text-sm font-medium",
-              sidebarCollapsed && !mobile && "justify-center"
+              "size-8 rounded-button flex items-center justify-center transition-all duration-500 shadow-lg",
+              role === "SUPER_ADMIN" ? "bg-orange-500/20 text-orange-500 border border-orange-500/30 ring-1 ring-orange-500/10" :
+                role === "ADMIN" ? "bg-primary/20 text-primary border border-primary/30 ring-1 ring-primary/10" :
+                  role === "MANAGER" ? "bg-blue-500/20 text-blue-500 border border-blue-500/30 ring-1 ring-blue-500/10" :
+                    "bg-sidebar-foreground/10 text-sidebar-foreground/60 border border-sidebar-border/50"
             )}
-            onClick={handleLogout}
           >
-            <LogOut className="h-4 w-4 shrink-0" />
-            {!(sidebarCollapsed && !mobile) && <span>Sign Out</span>}
-          </Button>
+            <span className="text-[11px] font-black tracking-tighter">
+              {role === "SUPER_ADMIN" ? "SA" : role.charAt(0)}
+            </span>
+          </div>
         </div>
-
-        {/* User Role Badge - Desktop only (shown at top on mobile via user info section) */}
-        <div
-          className={cn(
-            "hidden md:block transition-all duration-300",
-            sidebarCollapsed && !mobile
-              ? "flex justify-center px-1"
-              : "rounded-button border border-sidebar-border bg-sidebar-accent/40 p-3 mx-1"
-          )}
-        >
-          {sidebarCollapsed && !mobile ? (
-            <div
-              className={cn(
-                "size-8 rounded-button flex items-center justify-center transition-all duration-500 shadow-lg",
-                role === "SUPER_ADMIN" ? "bg-orange-500/20 text-orange-500 border border-orange-500/30 ring-1 ring-orange-500/10" :
-                  role === "ADMIN" ? "bg-primary/20 text-primary border border-primary/30 ring-1 ring-primary/10" :
-                    role === "MANAGER" ? "bg-blue-500/20 text-blue-500 border border-blue-500/30 ring-1 ring-blue-500/10" :
-                      "bg-sidebar-foreground/10 text-sidebar-foreground/60 border border-sidebar-border/50"
-              )}
-            >
-              <span className="text-[11px] font-black tracking-tighter">
-                {role === "SUPER_ADMIN" ? "SA" : role.charAt(0)}
-              </span>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1.5 animate-in fade-in duration-500">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-sidebar-foreground/60">
-                  Account Role
-                </span>
-                <div className={cn(
-                  "size-1.5 rounded-full ring-2 ring-background shadow-sm animate-pulse",
-                  role === "SUPER_ADMIN" ? "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]" :
-                    role === "ADMIN" ? "bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]" :
-                      "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"
-                )} />
-              </div>
-              <p className="text-[13px] font-extrabold text-foreground tracking-tight flex items-center gap-2 capitalize">
-                {role.toLowerCase().replace("_", " ")}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </aside>
   );
 }

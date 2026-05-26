@@ -10,6 +10,7 @@ export const projectsQueryKeys = {
   all: (orgId?: string | null) => ["projects", orgId] as const,
   list: (filters: ProjectFilters, orgId?: string | null) => ["projects", orgId, filters] as const,
   detail: (id: string, orgId?: string | null) => ["projects", orgId, "detail", id] as const,
+  linkedPages: (id: string) => ["projects", "detail", id, "pages"] as const,
 };
 
 
@@ -71,6 +72,43 @@ export function useDeleteProjectMutation() {
     mutationFn: (id: string) => projectApi.deleteProject(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: projectsQueryKeys.all });
+    },
+  });
+}
+
+export function useProjectLinkedPagesQuery(projectId: string, enabled = true) {
+  return useQuery({
+    queryKey: projectsQueryKeys.linkedPages(projectId),
+    queryFn: () => projectApi.getLinkedPages(projectId),
+    enabled: enabled && Boolean(projectId),
+    staleTime: 10_000,
+  });
+}
+
+export function useAttachProjectPageMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ projectId, pageId }: { projectId: string; pageId: string }) =>
+      projectApi.attachPage(projectId, pageId),
+    onSuccess: async (_, { projectId }) => {
+      await queryClient.invalidateQueries({
+        queryKey: projectsQueryKeys.linkedPages(projectId),
+      });
+    },
+  });
+}
+
+export function useDetachProjectPageMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ projectId, pageId }: { projectId: string; pageId: string }) =>
+      projectApi.detachPage(projectId, pageId),
+    onSuccess: async (_, { projectId }) => {
+      await queryClient.invalidateQueries({
+        queryKey: projectsQueryKeys.linkedPages(projectId),
+      });
     },
   });
 }

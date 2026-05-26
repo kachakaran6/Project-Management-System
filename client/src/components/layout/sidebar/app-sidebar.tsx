@@ -4,7 +4,6 @@ import {
   FolderKanban,
   Home,
   LifeBuoy,
-  LogOut,
   Settings,
   Users2,
 } from "lucide-react";
@@ -16,7 +15,6 @@ import {
   type SidebarNavItem,
 } from "@/components/layout/sidebar/sidebar-nav";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useRouter } from "next/navigation";
 
 const navItems: SidebarNavItem[] = [
@@ -66,16 +64,7 @@ export function AppSidebar({
   role = "manager",
   pathname = "/",
 }: AppSidebarProps) {
-  const { logout } = useAuth();
   const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.push("/login");
-    } catch (error) {
-    }
-  };
 
   return (
     <aside
@@ -116,20 +105,6 @@ export function AppSidebar({
         currentPath={pathname}
         collapsed={collapsed}
       />
-
-      <div className="mt-auto border-t border-sidebar-border pt-4">
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start gap-3 px-3 py-2 text-sidebar-foreground/80 hover:bg-red-500/10 hover:text-red-500 transition-colors",
-            collapsed && "justify-center"
-          )}
-          onClick={handleLogout}
-        >
-          <LogOut className="h-5 w-5 shrink-0" />
-          {!collapsed && <span className="font-medium">Sign Out</span>}
-        </Button>
-      </div>
 
       <div className="mt-4 rounded-card border border-sidebar-border bg-sidebar-accent p-3">
         <p

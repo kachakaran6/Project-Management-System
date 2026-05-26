@@ -90,40 +90,55 @@ export function useCreateTaskMutation() {
         },
         createdAt: new Date().toISOString(),
         isOptimistic: true,
+        isDraft: false,
+        isPublic: true,
         assignees: [],
         assigneeUsers: [],
         tags: [],
       };
 
-      queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
-        if (!old) return old;
+      previousTasks.forEach(([queryKey, oldData]) => {
+        if (!oldData) return;
+
+        // Extract filters to check if this query list matches the temp task
+        const filters = queryKey.find((k) => typeof k === "object" && k !== null) as TaskFilters | undefined;
         
-        // Handle infinite queries
-        if (old.pages) {
-          const newPages = old.pages.map((page: any, i: number) => {
-            if (i === 0) {
-              return {
-                ...page,
-                data: {
-                  ...page.data,
-                  items: [tempTask, ...(page.data?.items || [])]
-                }
-              };
-            }
-            return page;
-          });
-          return { ...old, pages: newPages };
+        // If the query is filtered by a specific status, only inject if it matches our temp task status.
+        // E.g. we don't want to inject a TODO task into the DRAFT or DONE column.
+        if (filters?.status && filters.status !== "ALL" && filters.status !== tempTask.status) {
+          return;
         }
-        
-        // Handle regular queries
-        if (!old.data || !Array.isArray(old.data.items)) return old;
-        return {
-          ...old,
-          data: {
-            ...old.data,
-            items: [tempTask, ...old.data.items]
+
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old) return old;
+          
+          // Handle infinite queries
+          if (old.pages) {
+            const newPages = old.pages.map((page: any, i: number) => {
+              if (i === 0) {
+                return {
+                  ...page,
+                  data: {
+                    ...page.data,
+                    items: [tempTask, ...(page.data?.items || [])]
+                  }
+                };
+              }
+              return page;
+            });
+            return { ...old, pages: newPages };
           }
-        };
+          
+          // Handle regular queries
+          if (!old.data || !Array.isArray(old.data.items)) return old;
+          return {
+            ...old,
+            data: {
+              ...old.data,
+              items: [tempTask, ...old.data.items]
+            }
+          };
+        });
       });
 
       return { previousTasks };
@@ -163,11 +178,11 @@ export function useUpsertTaskDraftMutation(options?: { silent?: boolean }) {
   const { activeOrgId, user } = useAppSelector((state) => state.auth);
 
   return useMutation({
-    mutationFn: ({ id, data }: { id?: string | null; data: TaskDraftInput }) => {
+    mutationFn: ({ id, data, config }: { id?: string | null; data: TaskDraftInput; config?: import("axios").AxiosRequestConfig }) => {
       if (id) {
-        return taskApi.updateDraft(id, data);
+        return taskApi.updateDraft(id, data, config);
       }
-      return taskApi.createDraft(data);
+      return taskApi.createDraft(data, config);
     },
     onMutate: async ({ id, data }) => {
       if (!options?.silent) {
@@ -277,11 +292,13 @@ export function usePublishTaskDraftMutation() {
       const previousDrafts = queryClient.getQueriesData({ queryKey: tasksQueryKeys.drafts({}, activeOrgId) });
 
       const tempTask = {
-        id: `temp-pub-${Date.now()}`,
-        _id: `temp-pub-${Date.now()}`,
+        id: id,
+        _id: id,
         ...data,
         status: data.status || "TODO",
         priority: data.priority || "MEDIUM",
+        isDraft: false,
+        isPublic: true,
         creator: {
           id: user?.id,
           firstName: user?.firstName,
@@ -296,16 +313,62 @@ export function usePublishTaskDraftMutation() {
         tags: [],
       };
 
-      // Add to tasks list
+      // Add/Update tasks list (including infinite lists)
       queryClient.setQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) }, (old: any) => {
-        if (!old || !old.data || !Array.isArray(old.data.items)) return old;
-        return {
-          ...old,
-          data: {
-            ...old.data,
-            items: [tempTask, ...old.data.items]
+        if (!old) return old;
+
+        // Handle infinite queries
+        if (old.pages) {
+          const exists = old.pages.some((p: any) => p.data?.items?.some((t: any) => t.id === id || t._id === id));
+          if (exists) {
+            return {
+              ...old,
+              pages: old.pages.map((p: any) => ({
+                ...p,
+                data: {
+                  ...p.data,
+                  items: p.data?.items?.map((t: any) => 
+                    (t.id === id || t._id === id) 
+                      ? { ...t, ...tempTask, isDraft: false } 
+                      : t
+                  )
+                }
+              }))
+            };
+          } else {
+            const newPages = [...old.pages];
+            if (newPages.length > 0) {
+              const newItems = [tempTask, ...(newPages[0].data?.items || [])];
+              newPages[0] = { ...newPages[0], data: { ...newPages[0].data, items: newItems } };
+            }
+            return { ...old, pages: newPages };
           }
-        };
+        }
+
+        // Handle regular queries
+        if (!old.data || !Array.isArray(old.data.items)) return old;
+        const exists = old.data.items.some((t: any) => t.id === id || t._id === id);
+        if (exists) {
+          return {
+            ...old,
+            data: {
+              ...old.data,
+              items: old.data.items.map((t: any) => 
+                (t.id === id || t._id === id) 
+                  ? { ...t, ...tempTask, isDraft: false } 
+                  : t
+              )
+            }
+          };
+        } else {
+          return {
+            ...old,
+            data: {
+              ...old.data,
+              items: [tempTask, ...old.data.items]
+            }
+          };
+        }
       });
 
       // Remove from drafts list
@@ -596,3 +659,59 @@ export function useSaveUserOrderMutation() {
     },
   });
 }
+
+export function useSearchTaskByIdQuery(
+  taskId: string,
+  options?: {
+    enabled?: boolean;
+    staleTime?: number;
+  },
+) {
+  return useQuery({
+    queryKey: ["tasks", "by-id", taskId],
+    queryFn: () => taskApi.searchTaskById(taskId),
+    enabled: (options?.enabled ?? true) && !!taskId,
+    staleTime: options?.staleTime ?? 5000,
+    retry: false,
+  });
+}
+
+export function useProjectTasksInfiniteQuery(
+  projectId: string,
+  filters: TaskFilters = {},
+  options?: {
+    enabled?: boolean;
+    staleTime?: number;
+  },
+) {
+  const { activeOrgId } = useAppSelector((state) => state.auth);
+  return useInfiniteQuery({
+    queryKey: ["tasks", activeOrgId, "project-infinite", projectId, filters],
+    queryFn: ({ pageParam = 1 }) =>
+      taskApi.getTasksByProject(projectId, { ...filters, page: pageParam as number, limit: filters.limit || 20 }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.data?.meta?.hasNextPage ? allPages.length + 1 : undefined;
+    },
+    staleTime: options?.staleTime ?? 0,
+    enabled: (options?.enabled ?? true) && !!activeOrgId && !!projectId,
+  });
+}
+
+export function useSearchTasksQuery(
+  q: string,
+  filters: TaskFilters = {},
+  options?: {
+    enabled?: boolean;
+    staleTime?: number;
+  },
+) {
+  const { activeOrgId } = useAppSelector((state) => state.auth);
+  return useQuery({
+    queryKey: ["tasks", activeOrgId, "search", q, filters],
+    queryFn: () => taskApi.searchTasks(q, filters),
+    enabled: (options?.enabled ?? true) && !!activeOrgId && !!q,
+    staleTime: options?.staleTime ?? 5000,
+  });
+}
+

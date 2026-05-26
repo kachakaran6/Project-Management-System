@@ -6,8 +6,6 @@ const router = Router();
 
 router.use(requireAuth);
 
-router.get('/default-assignees', settingsController.getDefaultAssignees);
-router.put('/default-assignees', settingsController.updateDefaultAssignees);
 
 router.get('/default-status', settingsController.getDefaultStatus);
 router.put('/default-status', settingsController.updateDefaultStatus);

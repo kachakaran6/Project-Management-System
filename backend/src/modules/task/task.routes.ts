@@ -148,5 +148,24 @@ router.delete(
   taskController.detachPage,
 );
 
+// Advanced Task Search & Browsing routes
+router.get(
+  "/by-id/:taskId",
+  requirePermission(PERMISSIONS.VIEW_TASK),
+  taskController.getByStructuredId
+);
+
+router.get(
+  "/search/global",
+  requirePermission(PERMISSIONS.VIEW_TASK),
+  taskController.searchTasks
+);
+
+router.get(
+  "/project/:projectId",
+  requirePermission(PERMISSIONS.VIEW_TASK),
+  taskController.getByProjectId
+);
+
 export default router;
 
