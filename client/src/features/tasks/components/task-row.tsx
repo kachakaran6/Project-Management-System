@@ -140,14 +140,14 @@ export const TaskRow = ({
       <TableCell className="py-4 pl-6">
         <div className="flex flex-col gap-0.5 min-w-[140px]">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              const params = new URLSearchParams(searchParams.toString());
-              params.set("taskId", tid(task));
-              router.push(`${pathname}?${params.toString()}`, {scroll: false});
-              openPanel(tid(task), panelContext);
-            }}
+	            onClick={(e) => {
+	              e.stopPropagation();
+	              e.preventDefault();
+	              const params = new URLSearchParams(searchParams.toString());
+	              params.set("taskId", tid(task));
+	              openPanel(tid(task), panelContext);
+	              router.push(`${pathname}?${params.toString()}`, {scroll: false});
+	            }}
             className="font-semibold text-[14px] md:text-[15px] hover:text-primary transition-colors line-clamp-1 cursor-pointer text-left">
             <div className="flex items-center gap-2">
               {task.title}
@@ -345,13 +345,13 @@ export const TaskRow = ({
           <DropdownMenuContent align="end" className="w-48 rounded-button border-border/50 shadow-2xl p-1.5 slide-in-from-right-2">
             <DropdownMenuItem
               className="rounded-button px-3 py-2 cursor-pointer focus:bg-primary/10"
-              onClick={() => {
-                const params = new URLSearchParams(searchParams.toString());
-                params.set("taskId", tid(task));
-                router.push(`${pathname}?${params.toString()}`, {scroll: false});
-                openPanel(tid(task), panelContext);
-              }}
-            >
+	              onClick={() => {
+	                const params = new URLSearchParams(searchParams.toString());
+	                params.set("taskId", tid(task));
+	                openPanel(tid(task), panelContext);
+	                router.push(`${pathname}?${params.toString()}`, {scroll: false});
+	              }}
+	            >
               <Eye className="mr-2.5 size-4 text-muted-foreground" />
               <span className="text-sm font-medium">View Details</span>
             </DropdownMenuItem>

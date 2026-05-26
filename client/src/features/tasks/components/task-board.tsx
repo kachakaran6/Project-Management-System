@@ -385,8 +385,8 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
               params.set("taskId", tid(task));
-              router.push(`${pathname}?${params.toString()}`, { scroll: false });
               openPanel(tid(task), panelContext);
+              router.push(`${pathname}?${params.toString()}`, { scroll: false });
             }}>
             {/* Task ID Header */}
             <div className="flex items-center justify-between">
@@ -682,13 +682,13 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                 variant="outline"
                 size="sm"
                 className="flex-1 h-8 px-2 gap-1.5 rounded-button text-[10px] font-bold border-border/40 bg-muted/5 text-muted-foreground hover:bg-muted/10 hover:text-foreground active:scale-95 transition-all"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const params = new URLSearchParams(searchParams.toString());
-                  params.set("taskId", tid(task));
-                  router.push(`${pathname}?${params.toString()}`, { scroll: false });
-                  openPanel(tid(task), panelContext);
-                }}
+	                onClick={(e) => {
+	                  e.stopPropagation();
+	                  const params = new URLSearchParams(searchParams.toString());
+	                  params.set("taskId", tid(task));
+	                  openPanel(tid(task), panelContext);
+	                  router.push(`${pathname}?${params.toString()}`, { scroll: false });
+	                }}
               >
                 <Eye className="size-3.5" />
                 <span>View</span>
@@ -916,12 +916,12 @@ export function TaskBoard({
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTask, setDeletingTask] = useState<Task | null>(null);
 
-  const handleOpen = (id: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("taskId", id);
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
-    openPanel(id, contextMenu?.panelContext ?? null);
-  };
+	  const handleOpen = (id: string) => {
+	    const params = new URLSearchParams(searchParams.toString());
+	    params.set("taskId", id);
+	    openPanel(id, contextMenu?.panelContext ?? null);
+	    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+	  };
 
   const handleOpenNewTab = (id: string) => {
     window.open(`/tasks/${id}`, "_blank");

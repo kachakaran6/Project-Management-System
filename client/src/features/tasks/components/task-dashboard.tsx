@@ -1052,13 +1052,13 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                   <div
                                     key={taskId}
                                     className="rounded-button border border-border/10 bg-card/40 p-2.5 md:p-3 shadow-sm hover:border-primary/20 transition-all cursor-pointer"
-	                                    onClick={() => {
-	                                      const params = new URLSearchParams(searchParams.toString());
-	                                      params.set("taskId", taskId);
-	                                      router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
-	                                      openPanel(taskId, groupPanelContext);
-	                                    }}
-                                  >
+		                                    onClick={() => {
+		                                      const params = new URLSearchParams(searchParams.toString());
+		                                      params.set("taskId", taskId);
+		                                      openPanel(taskId, groupPanelContext);
+		                                      router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+		                                    }}
+	                                  >
                                     <div className="flex items-start justify-between gap-3 mb-1.5">
                                       <div className="min-w-0">
                                         <h4 className="font-bold text-[14px] hover:text-primary transition-colors block line-clamp-1 text-left w-full">

@@ -182,20 +182,20 @@ export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [] }: Project
   };
 
   const activeMobileStatus = groupedTasks.sortedStatuses.find(s => (s.id || (s as any)._id) === mobileActiveStatus) || groupedTasks.sortedStatuses[0];
-  const openTaskDetails = (task: Task, sourceLabel: string, scopeTasks: Task[]) => {
-    const taskId = String(task.id || (task as any)._id || "");
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("taskId", taskId);
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
-    openPanel(
-      taskId,
-      buildSnapshotTaskPanelContext({
-        sourceKey: `project-task-board:${projectId}:${sourceLabel}`,
-        sourceLabel,
-        tasks: scopeTasks,
-      }),
-    );
-  };
+	  const openTaskDetails = (task: Task, sourceLabel: string, scopeTasks: Task[]) => {
+	    const taskId = String(task.id || (task as any)._id || "");
+	    const params = new URLSearchParams(searchParams.toString());
+	    params.set("taskId", taskId);
+	    openPanel(
+	      taskId,
+	      buildSnapshotTaskPanelContext({
+	        sourceKey: `project-task-board:${projectId}:${sourceLabel}`,
+	        sourceLabel,
+	        tasks: scopeTasks,
+	      }),
+	    );
+	    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+	  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden gap-2 md:gap-4">
