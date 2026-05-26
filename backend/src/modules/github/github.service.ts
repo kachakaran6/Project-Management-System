@@ -8,6 +8,7 @@ import GithubRepository from '../../models/GithubRepository.js';
 import GithubActivity from '../../models/GithubActivity.js';
 import { env } from '../../config/env.js';
 import { encrypt, decrypt } from '../../utils/encryption.js';
+import { AppError } from '../../middlewares/errorHandler.js';
 import * as activityLog from '../../utils/systemTriggers.js';
 import { logStatusChange } from '../../utils/statusHistoryTriggers.js';
 import { emitToRoom } from '../../realtime/socket.server.js';
@@ -662,8 +663,10 @@ export const githubApiProxy = async (
   });
 
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(`GitHub API Error: ${response.status} - ${errorBody.message || response.statusText}`);
+    const errorBody = await response.json().catch(() => ({} as any));
+    const message = errorBody?.message || response.statusText || 'GitHub API request failed';
+    const errors = Array.isArray(errorBody?.errors) ? errorBody.errors : [];
+    throw new AppError(`GitHub API Error: ${message}`, response.status, errors);
   }
 
   return await response.json();
