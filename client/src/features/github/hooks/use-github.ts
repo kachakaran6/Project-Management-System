@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/axios-instance";
 
 export const useRepoBranches = (owner: string, repo: string, page = 1) => {
@@ -31,6 +31,57 @@ export const useRepoPullRequests = (owner: string, repo: string, state = "all", 
       return res.data.data;
     },
     enabled: !!owner && !!repo,
+  });
+};
+
+export const useRepoPullRequestDetail = (owner: string, repo: string, pullNumber: number) => {
+  return useQuery({
+    queryKey: ["github", owner, repo, "pulls", pullNumber, "detail"],
+    queryFn: async () => {
+      const res = await api.get(`/github/repos/${owner}/${repo}/pulls/${pullNumber}`);
+      return res.data.data;
+    },
+    enabled: !!owner && !!repo && !!pullNumber,
+  });
+};
+
+export const useCreatePullRequestReviewMutation = (owner: string, repo: string, pullNumber: number) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      event: "APPROVE" | "REQUEST_CHANGES" | "COMMENT";
+      body?: string;
+      comments?: Array<{ path: string; position?: number; line?: number; side?: "LEFT" | "RIGHT"; body: string }>;
+    }) => {
+      const res = await api.post(`/github/repos/${owner}/${repo}/pulls/${pullNumber}/reviews`, payload);
+      return res.data.data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["github", owner, repo, "pulls", pullNumber, "detail"] });
+      await queryClient.invalidateQueries({ queryKey: ["github", owner, repo, "pulls"] });
+    },
+  });
+};
+
+export const useMergePullRequestMutation = (owner: string, repo: string, pullNumber: number) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      merge_method?: "merge" | "squash" | "rebase";
+      commit_title?: string;
+      commit_message?: string;
+      sha?: string;
+      delete_branch_after_merge?: boolean;
+    }) => {
+      const res = await api.put(`/github/repos/${owner}/${repo}/pulls/${pullNumber}/merge`, payload);
+      return res.data.data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["github", owner, repo, "pulls", pullNumber, "detail"] });
+      await queryClient.invalidateQueries({ queryKey: ["github", owner, repo, "pulls"] });
+    },
   });
 };
 

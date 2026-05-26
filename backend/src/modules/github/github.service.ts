@@ -629,25 +629,36 @@ const getStatusFromMessage = async (message: string, organizationId: string) => 
  * SECTION 4: GitHub API Proxies
  * Used for fetching branches, commits, PRs, issues, and file trees dynamically.
  */
-export const githubApiProxy = async (userId: string, path: string, params: any = {}) => {
+export const githubApiProxy = async (
+  userId: string,
+  path: string,
+  params: any = {},
+  options: { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: any } = {},
+) => {
   const account = await GithubAccount.findOne({ userId });
   if (!account) throw new Error('GitHub account not connected');
   
   const token = decrypt(account.accessToken);
   
   const url = new URL(`https://api.github.com${path}`);
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      url.searchParams.append(key, String(value));
-    }
-  });
+
+  if ((options.method ?? 'GET') === 'GET') {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.append(key, String(value));
+      }
+    });
+  }
 
   const response = await fetch(url.toString(), {
+    method: options.method ?? 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github.v3+json',
       'X-GitHub-Api-Version': '2022-11-28'
-    }
+      ,...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {})
+    },
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
   if (!response.ok) {
@@ -668,6 +679,100 @@ export const getRepoCommits = (userId: string, owner: string, repo: string, sha?
 
 export const getRepoPullRequests = (userId: string, owner: string, repo: string, state = 'all', page = 1, perPage = 30) => {
   return githubApiProxy(userId, `/repos/${owner}/${repo}/pulls`, { state, page, per_page: perPage, sort: 'updated', direction: 'desc' });
+};
+
+export const getRepoPullRequestDetail = async (userId: string, owner: string, repo: string, pullNumber: number) => {
+  const [pullRequest, reviews, reviewComments, issueComments, files, commits] = await Promise.all([
+    githubApiProxy(userId, `/repos/${owner}/${repo}/pulls/${pullNumber}`),
+    githubApiProxy(userId, `/repos/${owner}/${repo}/pulls/${pullNumber}/reviews`, { per_page: 100 }),
+    githubApiProxy(userId, `/repos/${owner}/${repo}/pulls/${pullNumber}/comments`, { per_page: 100 }),
+    githubApiProxy(userId, `/repos/${owner}/${repo}/issues/${pullNumber}/comments`, { per_page: 100 }),
+    githubApiProxy(userId, `/repos/${owner}/${repo}/pulls/${pullNumber}/files`, { per_page: 100 }),
+    githubApiProxy(userId, `/repos/${owner}/${repo}/pulls/${pullNumber}/commits`, { per_page: 100 }),
+  ]);
+
+  const headSha = pullRequest?.head?.sha;
+  const [commitStatus, checkRuns] = headSha
+    ? await Promise.all([
+        githubApiProxy(userId, `/repos/${owner}/${repo}/commits/${headSha}/status`),
+        githubApiProxy(userId, `/repos/${owner}/${repo}/commits/${headSha}/check-runs`, { per_page: 100 }),
+      ])
+    : [null, null];
+
+  return {
+    pullRequest,
+    reviews,
+    reviewComments,
+    issueComments,
+    files,
+    commits,
+    checks: {
+      status: commitStatus,
+      checkRuns,
+    },
+  };
+};
+
+export const createRepoPullRequestReview = async (
+  userId: string,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  body: {
+    event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT';
+    body?: string;
+    comments?: Array<{ path: string; position?: number; line?: number; side?: 'LEFT' | 'RIGHT'; body: string }>;
+  },
+) => {
+  const payload: Record<string, unknown> = {
+    event: body.event,
+  };
+
+  if (body.body) {
+    payload.body = body.body;
+  }
+
+  if (body.comments?.length) {
+    payload.comments = body.comments;
+  }
+
+  return githubApiProxy(userId, `/repos/${owner}/${repo}/pulls/${pullNumber}/reviews`, {}, {
+    method: 'POST',
+    body: payload,
+  });
+};
+
+export const mergeRepoPullRequest = async (
+  userId: string,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  body: {
+    merge_method?: 'merge' | 'squash' | 'rebase';
+    commit_title?: string;
+    commit_message?: string;
+    sha?: string;
+    delete_branch_after_merge?: boolean;
+  },
+) => {
+  const pullRequest = await githubApiProxy(userId, `/repos/${owner}/${repo}/pulls/${pullNumber}`);
+  const deleteBranchAfterMerge = body.delete_branch_after_merge;
+  const { delete_branch_after_merge, ...mergePayload } = body;
+
+  const mergeResult = await githubApiProxy(userId, `/repos/${owner}/${repo}/pulls/${pullNumber}/merge`, {}, {
+    method: 'PUT',
+    body: mergePayload,
+  });
+
+  if (deleteBranchAfterMerge && mergeResult?.merged && pullRequest?.head?.ref) {
+    await githubApiProxy(userId, `/repos/${owner}/${repo}/git/refs/heads/${pullRequest.head.ref}`, {}, {
+      method: 'DELETE',
+    }).catch((error) => {
+      console.warn('Failed to delete branch after merge:', error?.message || error);
+    });
+  }
+
+  return mergeResult;
 };
 
 export const getRepoIssues = (userId: string, owner: string, repo: string, state = 'all', page = 1, perPage = 30) => {

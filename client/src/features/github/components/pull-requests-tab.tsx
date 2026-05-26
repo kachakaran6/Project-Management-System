@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { useRepoPullRequests } from "@/features/github/hooks/use-github";
 import { PRSkeleton } from "@/components/ui/loading-system";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -84,6 +85,9 @@ export const PullRequestsTab = ({ owner, repo }: { owner: string; repo: string }
   const getStatusBadge = (pr: any) => {
     if (pr.merged_at) return <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20 text-[10px] uppercase tracking-wider h-5">Merged</Badge>;
     if (pr.state === "closed") return <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/20 text-[10px] uppercase tracking-wider h-5">Declined</Badge>;
+    if (pr.draft) return <Badge variant="outline" className="bg-muted/60 text-muted-foreground border-border/40 text-[10px] uppercase tracking-wider h-5">Draft</Badge>;
+    if (pr.mergeable_state === "dirty") return <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/20 text-[10px] uppercase tracking-wider h-5">Conflicting</Badge>;
+    if (pr.mergeable_state === "behind") return <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] uppercase tracking-wider h-5">Outdated</Badge>;
     return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] uppercase tracking-wider h-5">Open</Badge>;
   };
 
@@ -118,7 +122,7 @@ export const PullRequestsTab = ({ owner, repo }: { owner: string; repo: string }
         </div>
         
         <div className="flex flex-wrap items-center gap-2">
-          <div className="w-[120px]">
+          <div className="w-30">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="h-9 border-border/50">
                 <SelectValue placeholder="Status" />
@@ -132,7 +136,7 @@ export const PullRequestsTab = ({ owner, repo }: { owner: string; repo: string }
             </Select>
           </div>
 
-          <div className="w-[140px]">
+          <div className="w-35">
             <Select value={authorFilter} onValueChange={setAuthorFilter}>
               <SelectTrigger className="h-9 border-border/50">
                 <SelectValue placeholder="Author" />
@@ -154,7 +158,7 @@ export const PullRequestsTab = ({ owner, repo }: { owner: string; repo: string }
             </Select>
           </div>
 
-          <div className="w-[150px]">
+          <div className="w-37.5">
             <Select value={reviewerFilter} onValueChange={setReviewerFilter}>
               <SelectTrigger className="h-9 border-border/50">
                 <SelectValue placeholder="Reviewer" />
@@ -212,9 +216,9 @@ export const PullRequestsTab = ({ owner, repo }: { owner: string; repo: string }
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-4">
-                    <h3 className="font-semibold text-foreground/90 text-[14px] leading-snug group-hover:text-primary transition-colors">
+                    <Link href={`/github/${owner}/${repo}/pulls/${pr.number}`} className="font-semibold text-foreground/90 text-[14px] leading-snug group-hover:text-primary transition-colors">
                       {pr.title}
-                    </h3>
+                    </Link>
                     <div className="shrink-0 pt-0.5">
                       {getStatusBadge(pr)}
                     </div>
@@ -260,6 +264,16 @@ export const PullRequestsTab = ({ owner, repo }: { owner: string; repo: string }
                       {pr.comments}
                     </div>
                   )}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-8 border-border/40 bg-transparent shadow-none"
+                    asChild
+                  >
+                    <Link href={`/github/${owner}/${repo}/pulls/${pr.number}`} aria-label="Open PR detail">
+                      <GitMerge className="size-3.5 text-muted-foreground" />
+                    </Link>
+                  </Button>
                   <Button
                     variant="outline"
                     size="icon"
