@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
 import { History, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +37,7 @@ import { TaskHeader } from "./task-header";
 import { TaskLinkedPages } from "./task-linked-pages";
 import { TaskMobileNavigation } from "./task-mobile-navigation";
 import { TaskProperties } from "./task-properties";
+import { cn } from "@/lib/utils";
 
 function getResponseTaskIds(response: any) {
   return (response?.data?.items ?? [])
@@ -52,6 +53,28 @@ function isInteractiveGestureTarget(target: EventTarget | null) {
     ),
   );
 }
+
+const TASK_SWIPE_TRIGGER = 84;
+const TASK_SWIPE_MAX = 280;
+const TASK_SWIPE_AXIS_THRESHOLD = 10;
+
+const taskDetailVariants = {
+  enter: (direction: -1 | 0 | 1) => ({
+    opacity: 0,
+    x: direction === 0 ? 0 : direction * 32,
+    scale: 0.985,
+  }),
+  center: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+  },
+  exit: (direction: -1 | 0 | 1) => ({
+    opacity: 0,
+    x: direction === 0 ? 0 : direction * -24,
+    scale: 0.985,
+  }),
+};
 
 export function TaskSidePanel() {
   const {
@@ -69,18 +92,25 @@ export function TaskSidePanel() {
   const queryClient = useQueryClient();
   const activeOrgId = useAppSelector((state) => state.auth.activeOrgId);
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const prefersReducedMotion = useReducedMotion();
   const urlTaskId = searchParams.get("taskId");
   const [navigationDirection, setNavigationDirection] = useState<-1 | 0 | 1>(0);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [gestureMode, setGestureMode] = useState<"idle" | "horizontal" | "vertical">("idle");
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const scrollPositionsRef = useRef<Record<string, number>>({});
   const previousTaskIdRef = useRef<string | null>(null);
-  const touchStateRef = useRef({
-    tracking: false,
+  const swipeX = useMotionValue(0);
+  const swipeScale = useTransform(swipeX, [-TASK_SWIPE_MAX, 0, TASK_SWIPE_MAX], [0.985, 1, 0.985]);
+  const swipeOpacity = useTransform(swipeX, [-TASK_SWIPE_MAX, 0, TASK_SWIPE_MAX], [0.92, 1, 0.92]);
+  const swipeGestureRef = useRef({
+    active: false,
+    pointerId: -1,
     startX: 0,
     startY: 0,
-    deltaX: 0,
-    deltaY: 0,
+    lastX: 0,
+    lastTime: 0,
+    axis: "idle" as "idle" | "horizontal" | "vertical",
   });
   const latestPanelStateRef = useRef({
     isOpen,
@@ -248,6 +278,31 @@ export function TaskSidePanel() {
     });
   }, [activeOrgId, isOpen, nextTaskId, previousTaskId, queryClient]);
 
+  // Prefetch a window of tasks around the currently selected task to ensure
+  // buttery swipe transitions. Fetch up to `prefetchRadius` tasks before and
+  // after the current index in the navigation context.
+  useEffect(() => {
+    if (!isOpen || !activeOrgId || !navigationContext || currentIndex === -1) return;
+
+    const prefetchRadius = 5;
+    const start = Math.max(0, currentIndex - prefetchRadius);
+    const end = Math.min(taskIds.length - 1, currentIndex + prefetchRadius);
+
+    for (let i = start; i <= end; i++) {
+      const id = taskIds[i];
+      if (!id || id === selectedTaskId) continue;
+
+      // Fire-and-forget prefetch to populate the cache; errors are non-fatal.
+      void queryClient.prefetchQuery({
+        queryKey: tasksQueryKeys.detail(id, activeOrgId),
+        queryFn: () => taskApi.getTask(id),
+        staleTime: 10_000,
+      }).catch(() => {
+        /* ignore individual prefetch failures */
+      });
+    }
+  }, [activeOrgId, isOpen, navigationContext, currentIndex, queryClient, selectedTaskId, taskIds]);
+
   useEffect(() => {
     if (
       !navigationContext ||
@@ -297,6 +352,7 @@ export function TaskSidePanel() {
       let nextContext = navigationContext;
       let targetId =
         currentIndex >= 0 ? taskIds[currentIndex + direction] : undefined;
+      const isImmediateSwitch = Boolean(targetId);
 
       if (
         !targetId &&
@@ -336,19 +392,23 @@ export function TaskSidePanel() {
       setIsNavigating(true);
 
       try {
-        if (activeOrgId) {
-          await queryClient.fetchQuery({
-            queryKey: tasksQueryKeys.detail(targetId, activeOrgId),
-            queryFn: () => taskApi.getTask(targetId as string),
-            staleTime: 10_000,
-          });
-        }
-
         setNavigationDirection(direction);
         if (nextContext !== navigationContext) {
           setNavigationContext(nextContext);
         }
         setSelectedTaskId(targetId);
+
+        if (activeOrgId) {
+          void queryClient.fetchQuery({
+            queryKey: tasksQueryKeys.detail(targetId, activeOrgId),
+            queryFn: () => taskApi.getTask(targetId as string),
+            staleTime: 10_000,
+          }).catch(() => {
+            if (isImmediateSwitch) {
+              toast.error("That task is no longer available");
+            }
+          });
+        }
       } catch {
         if (nextContext === navigationContext) {
           setNavigationContext({
@@ -358,7 +418,7 @@ export function TaskSidePanel() {
         }
         toast.error("That task is no longer available");
       } finally {
-        setIsNavigating(false);
+        requestAnimationFrame(() => setIsNavigating(false));
       }
     },
     [
@@ -402,44 +462,157 @@ export function TaskSidePanel() {
     });
   }, [selectedTaskId, task]);
 
-  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (!navigationEnabled || isInteractiveGestureTarget(event.target)) {
-      touchStateRef.current.tracking = false;
+  useEffect(() => {
+    if (gestureMode !== "horizontal") return;
+
+    const handleWindowPointerUp = () => {
+      setGestureMode("idle");
+      swipeGestureRef.current.axis = "idle";
+    };
+
+    window.addEventListener("pointerup", handleWindowPointerUp, { once: true });
+    window.addEventListener("pointercancel", handleWindowPointerUp, { once: true });
+
+    return () => {
+      window.removeEventListener("pointerup", handleWindowPointerUp);
+      window.removeEventListener("pointercancel", handleWindowPointerUp);
+    };
+  }, [gestureMode]);
+
+  const resetSwipeMotion = useCallback(() => {
+    animate(swipeX, 0, {
+      type: "spring",
+      stiffness: 360,
+      damping: 34,
+      mass: 0.82,
+    });
+  }, [swipeX]);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (
+      !navigationEnabled ||
+      prefersReducedMotion ||
+      isInteractiveGestureTarget(event.target) ||
+      event.pointerType === "mouse"
+    ) {
       return;
     }
 
-    const touch = event.changedTouches[0];
-    touchStateRef.current = {
-      tracking: true,
-      startX: touch.clientX,
-      startY: touch.clientY,
-      deltaX: 0,
-      deltaY: 0,
+    swipeGestureRef.current = {
+      active: true,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      lastTime: performance.now(),
+      axis: "idle",
     };
+
+    setGestureMode("idle");
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Best-effort only. Pointer capture is not available in every environment.
+    }
   };
 
-  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (!touchStateRef.current.tracking) return;
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const gesture = swipeGestureRef.current;
+    if (!gesture.active || gesture.pointerId !== event.pointerId) return;
 
-    const touch = event.changedTouches[0];
-    touchStateRef.current.deltaX = touch.clientX - touchStateRef.current.startX;
-    touchStateRef.current.deltaY = touch.clientY - touchStateRef.current.startY;
-  };
-
-  const handleTouchEnd = () => {
-    const { tracking, deltaX, deltaY } = touchStateRef.current;
-    touchStateRef.current.tracking = false;
-
-    if (!tracking) return;
-
+    const deltaX = event.clientX - gesture.startX;
+    const deltaY = event.clientY - gesture.startY;
     const absX = Math.abs(deltaX);
     const absY = Math.abs(deltaY);
-    if (absX < 72 || absX < absY * 1.35) return;
 
-    void navigateTask(deltaX < 0 ? 1 : -1);
+    if (gesture.axis === "idle") {
+      if (absX < TASK_SWIPE_AXIS_THRESHOLD && absY < TASK_SWIPE_AXIS_THRESHOLD) {
+        return;
+      }
+
+      if (absY > absX * 1.15) {
+        gesture.axis = "vertical";
+        setGestureMode("vertical");
+        return;
+      }
+
+      gesture.axis = "horizontal";
+      setGestureMode("horizontal");
+    }
+
+    if (gesture.axis !== "horizontal") return;
+
+    event.preventDefault();
+
+    const isAtEdge = deltaX > 0 ? !canGoPrevious : !canGoNext;
+    const resistance = isAtEdge ? 0.36 : 1;
+    const boundedDelta = Math.max(-TASK_SWIPE_MAX, Math.min(TASK_SWIPE_MAX, deltaX));
+    swipeX.set(boundedDelta * resistance);
+
+    gesture.lastX = event.clientX;
+    gesture.lastTime = performance.now();
+  };
+
+  const handlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    const gesture = swipeGestureRef.current;
+    if (!gesture.active || gesture.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - gesture.startX;
+    const deltaY = event.clientY - gesture.startY;
+    const now = performance.now();
+    const elapsed = Math.max(16, now - gesture.lastTime);
+    const velocityX = (event.clientX - gesture.lastX) / elapsed;
+    const projectedDeltaX = deltaX + velocityX * 220;
+    const wasHorizontal = gesture.axis === "horizontal";
+
+    gesture.active = false;
+    gesture.pointerId = -1;
+    gesture.axis = "idle";
+    setGestureMode("idle");
+
+    const absX = Math.abs(projectedDeltaX);
+    const absY = Math.abs(deltaY);
+    const shouldNavigate =
+      wasHorizontal &&
+      absX >= TASK_SWIPE_TRIGGER &&
+      absX > absY * 1.05 &&
+      ((projectedDeltaX < 0 && canGoNext) || (projectedDeltaX > 0 && canGoPrevious));
+
+    resetSwipeMotion();
+
+    if (shouldNavigate) {
+      const direction: -1 | 1 = projectedDeltaX < 0 ? 1 : -1;
+      setNavigationDirection(direction);
+      void navigateTask(direction);
+    }
+  };
+
+  const handlePointerCancel = () => {
+    const gesture = swipeGestureRef.current;
+    gesture.active = false;
+    gesture.pointerId = -1;
+    gesture.axis = "idle";
+    setGestureMode("idle");
+    resetSwipeMotion();
+  };
+
+  const handleKeyboardNavigation = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.defaultPrevented || isInteractiveGestureTarget(event.target)) return;
+
+    if (event.key === "ArrowLeft" && canGoPrevious && !isNavigating) {
+      event.preventDefault();
+      void navigateTask(-1);
+    }
+
+    if (event.key === "ArrowRight" && canGoNext && !isNavigating) {
+      event.preventDefault();
+      void navigateTask(1);
+    }
   };
 
   const taskDetailId = task?.id || (task as any)?._id || selectedTaskId || "";
+  const isTaskContentLoading = isLoading && !task;
 
   return (
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
@@ -481,7 +654,7 @@ export function TaskSidePanel() {
           </div>
 
           <div className="flex-1 overflow-hidden">
-            {isLoading ? (
+            {isTaskContentLoading ? (
               <div className="space-y-6 p-4 sm:p-8">
                 <Skeleton className="h-10 w-3/4" />
                 <div className="space-y-4">
@@ -516,75 +689,95 @@ export function TaskSidePanel() {
                 </button>
               </div>
             ) : task ? (
-              <div
-                ref={scrollContainerRef}
-                className="h-full overflow-y-auto px-4 pt-6 pb-8 sm:px-8 custom-scrollbar"
-                onScroll={handleScroll}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
+              <motion.div
+                className="h-full will-change-transform"
+                style={{
+                  x: swipeX,
+                  scale: swipeScale,
+                  opacity: swipeOpacity,
+                }}
               >
-                <div className="max-w-3xl mx-auto pb-28 sm:pb-4">
-                  <AnimatePresence initial={false} custom={navigationDirection} mode="wait">
-                    <motion.div
-                      key={selectedTaskId}
-                      custom={navigationDirection}
-                      initial={{
-                        opacity: 0,
-                        x: navigationDirection === 0 ? 0 : navigationDirection * 24,
-                      }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{
-                        opacity: 0,
-                        x: navigationDirection === 0 ? 0 : navigationDirection * -24,
-                      }}
-                      transition={{ duration: 0.18, ease: "easeOut" }}
-                      className="space-y-2"
-                    >
-                      <TaskHeader task={task} />
-                      <TaskProperties task={task} />
-                      <GithubLinkingGuidance
-                        taskCode={task.taskCode}
-                        projectId={
-                          typeof task.projectId === "string"
-                            ? task.projectId
-                            : (task.projectId as any)?.id ||
-                              (task.projectId as any)?._id
+                <div
+                  ref={scrollContainerRef}
+                  className={cn(
+                    "h-full overflow-y-auto px-4 pt-6 pb-8 sm:px-8 custom-scrollbar",
+                    gestureMode === "horizontal" && "select-none",
+                  )}
+                  style={{
+                    touchAction: gestureMode === "horizontal" ? "none" : "pan-y",
+                    overscrollBehavior: "contain",
+                  }}
+                  onScroll={handleScroll}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerEnd}
+                  onPointerCancel={handlePointerCancel}
+                  onKeyDownCapture={handleKeyboardNavigation}
+                  tabIndex={0}
+                  role="region"
+                  aria-label="Task details"
+                >
+                  <div className="max-w-3xl mx-auto pb-28 sm:pb-4">
+                    <AnimatePresence initial={false} custom={navigationDirection} mode="sync">
+                      <motion.div
+                        key={selectedTaskId}
+                        custom={navigationDirection}
+                        variants={taskDetailVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        transition={
+                          prefersReducedMotion
+                            ? { type: "tween", duration: 0.01 }
+                            : { type: "spring", stiffness: 360, damping: 32, mass: 0.9 }
                         }
-                        isProjectConnected={
-                          !!(task.projectId as any)?.githubSettings?.repoUrl ||
-                          !!(task as any).project?.githubSettings?.repoUrl
-                        }
-                      />
-                      <TaskDescription task={task} />
+                        className="space-y-2 will-change-transform"
+                      >
+                        <TaskHeader task={task} />
+                        <TaskProperties task={task} />
+                        <GithubLinkingGuidance
+                          taskCode={task.taskCode}
+                          projectId={
+                            typeof task.projectId === "string"
+                              ? task.projectId
+                              : (task.projectId as any)?.id ||
+                                (task.projectId as any)?._id
+                          }
+                          isProjectConnected={
+                            !!(task.projectId as any)?.githubSettings?.repoUrl ||
+                            !!(task as any).project?.githubSettings?.repoUrl
+                          }
+                        />
+                        <TaskDescription task={task} />
 
-                      <TaskLinkedPages taskId={taskDetailId} />
+                        <TaskLinkedPages taskId={taskDetailId} />
 
-                      <TaskGithubActivity links={task.githubLinks || []} />
+                        <TaskGithubActivity links={task.githubLinks || []} />
 
-                      <div className="pb-4 pt-8">
-                        <div className="mb-4 flex items-center gap-2">
-                          <div className="flex size-8 items-center justify-center rounded-button bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20">
-                            <History className="size-4" />
+                        <div className="pb-4 pt-8">
+                          <div className="mb-4 flex items-center gap-2">
+                            <div className="flex size-8 items-center justify-center rounded-button bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20">
+                              <History className="size-4" />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-black uppercase tracking-widest text-foreground/90">
+                                Status Timeline
+                              </h3>
+                              <p className="text-[10px] font-medium text-muted-foreground">
+                                Full audit trail of status changes
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="text-sm font-black uppercase tracking-widest text-foreground/90">
-                              Status Timeline
-                            </h3>
-                            <p className="text-[10px] font-medium text-muted-foreground">
-                              Full audit trail of status changes
-                            </p>
-                          </div>
+                          <TaskStatusHistory taskId={taskDetailId} />
                         </div>
-                        <TaskStatusHistory taskId={taskDetailId} />
-                      </div>
 
-                      <div className="border-t pt-2" />
-                      <TaskComments taskId={taskDetailId} />
-                    </motion.div>
-                  </AnimatePresence>
+                        <div className="border-t pt-2" />
+                        <TaskComments taskId={taskDetailId} />
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             ) : null}
           </div>
 
