@@ -109,7 +109,7 @@ function SortableStatusItem({
               <Input 
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="h-8 max-w-[200px]"
+                className="h-8 max-w-50"
                 autoFocus
               />
               <Input 
@@ -454,7 +454,7 @@ export function StatusManagement() {
             onValueChange={(val) => updateDefaultMutation.mutate(val === "none" ? null : val)}
             disabled={isSettingsLoading || updateDefaultMutation.isPending}
           >
-            <SelectTrigger className="w-full sm:w-[240px] h-10 bg-background rounded-button">
+            <SelectTrigger className="w-full sm:w-60 h-10 bg-background rounded-button">
               <SelectValue placeholder="Select a default status..." />
             </SelectTrigger>
             <SelectContent className="rounded-button">

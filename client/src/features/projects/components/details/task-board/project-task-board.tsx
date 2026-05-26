@@ -48,10 +48,11 @@ import { ProjectTaskCard } from "./project-task-card";
 
 interface ProjectTaskBoardProps {
   projectId: string;
+  defaultAssigneeIds?: string[];
   onTaskClick: (task: Task) => void;
 }
 
-export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardProps) {
+export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [], onTaskClick }: ProjectTaskBoardProps) {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"board" | "list" | "table">("board");
   const [hideEmptyColumns, setHideEmptyColumns] = useState(true);
@@ -132,8 +133,8 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
     const finalStatuses = hideEmptyColumns
       ? sortedStatuses.filter(s => {
         const id = s.id || (s as any)._id;
-        const hasTasks = groups[id]?.length > 0;
-        return hasTasks;
+        const totalCount = tasksResult?.data.groupedStatusCounts?.[id] || groups[id]?.length || 0;
+        return totalCount > 0;
       })
       : sortedStatuses;
 
@@ -193,6 +194,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
 
           <CreateTaskModal
             defaultProjectId={projectId}
+            defaultAssigneeIds={defaultAssigneeIds}
             trigger={
               <Button
                 size="sm"
@@ -233,7 +235,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent className="w-full sm:w-[540px]">
+            <SheetContent className="w-full sm:w-auto" style={{ width: 541 }}>
               <SheetHeader className="pb-4 border-b border-border/10">
                 <SheetTitle className="text-xl font-bold tracking-tight">Project Filters</SheetTitle>
                 <SheetDescription>Narrow down tasks in this project.</SheetDescription>
@@ -401,7 +403,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
                     {activeMobileStatus?.name.replace(/_/g, ' ') || "STAGE"}
                  </span>
                  <Badge variant="outline" className="h-4 px-1.5 text-[9px] font-bold border-primary/20 bg-primary/5 text-primary">
-                    {groupedTasks.groups[mobileActiveStatus]?.length || 0}
+                    {tasksResult?.data.groupedStatusCounts?.[mobileActiveStatus] || groupedTasks.groups[mobileActiveStatus]?.length || 0}
                  </Badge>
                </div>
 
@@ -415,7 +417,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
                  <DropdownMenuContent align="end" className="w-56 p-2 rounded-card">
                     {statuses.map(s => {
                       const id = s.id || (s as any)._id;
-                      const count = groupedTasks.groups[id]?.length || 0;
+                      const count = tasksResult?.data.groupedStatusCounts?.[id] || groupedTasks.groups[id]?.length || 0;
                       return (
                         <DropdownMenuItem 
                           key={id} 
@@ -460,7 +462,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
                     key={status.id || status._id}
                     id={status.id || status._id}
                     title={status.name.replace(/_/g, ' ')}
-                    count={groupedTasks.groups[status.id || (status as any)._id]?.length || 0}
+                    count={tasksResult?.data.groupedStatusCounts?.[status.id || (status as any)._id] || groupedTasks.groups[status.id || (status as any)._id]?.length || 0}
                     tasks={groupedTasks.groups[status.id || (status as any)._id] || []}
                     onTaskClick={onTaskClick}
                     canEdit={canEdit}
@@ -491,7 +493,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
                   key={statusId}
                   title={status.name.replace(/_/g, ' ')}
                   color={statusColor}
-                  count={groupTasks.length}
+                  count={tasksResult?.data.groupedStatusCounts?.[statusId] || groupTasks.length}
                   defaultOpen={!collapsedGroups.includes(statusId)}
                 >
                   <div className="grid gap-2 p-1.5 pt-1">
@@ -557,7 +559,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
                                 <User className="size-3 text-muted-foreground/40" />
                               </div>
                             )}
-                            <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[120px]">
+                            <span className="text-[11px] font-semibold text-muted-foreground truncate" style={{ maxWidth: 121 }}>
                               {(!task.assigneeUsers || task.assigneeUsers.length === 0)
                                 ? "Unassigned"
                                 : task.assigneeUsers.length === 1
@@ -607,7 +609,7 @@ export function ProjectTaskBoard({ projectId, onTaskClick }: ProjectTaskBoardPro
         </div>
       ) : (
         <div className="flex-1 overflow-auto bg-card/20 rounded-card border border-border/10 shadow-inner-sm custom-scrollbar">
-          <table className="w-full border-separate border-spacing-0 min-w-[800px]">
+          <table className="w-full border-separate border-spacing-0" style={{ minWidth: 801 }}>
              <thead className="sticky top-0 z-20 bg-background/95 backdrop-blur-md">
                 <tr>
                    <th className="py-3 pl-6 text-left text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 border-b border-border/10">Task</th>

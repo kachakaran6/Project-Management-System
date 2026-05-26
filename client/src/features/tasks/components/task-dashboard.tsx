@@ -127,10 +127,19 @@ import {
   writeTaskSortPreference,
 } from "@/features/tasks/utils/task-sort";
 import { TaskSortDirection, TaskSortField } from "@/types/task.types";
-const DEFAULT_PAGE_SIZE = 10;
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const DEFAULT_PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [20, 50, 100];
+const LIMIT_STORAGE_KEY = "tasks:load-limit";
 const VIEW_STORAGE_KEY = "tasks:view-mode";
 type TaskViewMode = "kanban" | "list" | "table";
+
+function getStoredLimit(): number {
+  if (typeof window === "undefined") return DEFAULT_PAGE_SIZE;
+  const stored = localStorage.getItem(LIMIT_STORAGE_KEY);
+  if (stored === "all") return 500;
+  const parsed = parseInt(stored || "", 10);
+  return PAGE_SIZE_OPTIONS.includes(parsed) ? parsed : DEFAULT_PAGE_SIZE;
+}
 
 const getInitialTaskSortState = (searchParams: { get: (key: string) => string | null }) => {
   const stored = readTaskSortPreference() ?? getDefaultTaskSortState();
@@ -206,7 +215,16 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   });
   const [limit, setLimit] = useState(() => {
     const l = searchParams.get("limit");
-    return l ? parseInt(l, 10) : DEFAULT_PAGE_SIZE;
+    if (l) {
+      const parsed = parseInt(l, 10);
+      if (PAGE_SIZE_OPTIONS.includes(parsed)) return parsed;
+      if (parsed >= 500) return 500;
+    }
+    return getStoredLimit();
+  });
+  const [limitIsAll, setLimitIsAll] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(LIMIT_STORAGE_KEY) === "all";
   });
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -362,15 +380,28 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   const listFilters = useMemo(
     () => ({
       ...sharedFilters,
-      page: viewMode === "list" ? 1 : page,
-      limit: viewMode === "list" ? 500 : limit,
+      page,
+      limit,
     }),
-    [sharedFilters, page, limit, viewMode],
+    [sharedFilters, page, limit],
   );
-    const selectedSortLabel = getTaskSortLabel(selectedSortField);
-    const isDefaultSort = selectedSortField === DEFAULT_TASK_SORT_FIELD && selectedSortDirection === DEFAULT_TASK_SORT_DIRECTION;
+  const selectedSortLabel = getTaskSortLabel(selectedSortField);
+  const isDefaultSort = selectedSortField === DEFAULT_TASK_SORT_FIELD && selectedSortDirection === DEFAULT_TASK_SORT_DIRECTION;
 
-    const handleSortFieldChange = (field: TaskSortField) => {
+  const handleLimitChange = (newLimit: number | "all") => {
+    if (newLimit === "all") {
+      setLimit(500);
+      setLimitIsAll(true);
+      localStorage.setItem(LIMIT_STORAGE_KEY, "all");
+    } else {
+      setLimit(newLimit);
+      setLimitIsAll(false);
+      localStorage.setItem(LIMIT_STORAGE_KEY, String(newLimit));
+    }
+    setPage(1);
+  };
+
+  const handleSortFieldChange = (field: TaskSortField) => {
       if (selectedSortField === field) {
         setSelectedSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
       } else {
@@ -396,8 +427,8 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
       setPage(1);
     };
   const kanbanFilters = useMemo(
-    () => ({ ...sharedFilters, page: 1, limit: 1000 }),
-    [sharedFilters],
+    () => ({ ...sharedFilters, page: 1, limit: limitIsAll ? 1000 : limit }),
+    [sharedFilters, limit, limitIsAll],
   );
 
   const listQuery = useTasksQuery(listFilters, {
@@ -630,7 +661,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                     <SlidersHorizontal className="size-3.5" />
                     <span>Filter</span>
                     {activeFilterCount > 0 && (
-                      <Badge className="h-4.5 min-w-[18px] px-1 ml-0.5 flex items-center justify-center text-[9px] bg-primary text-primary-foreground shadow-sm animate-in zoom-in-50">
+                      <Badge className="h-4.5 min-w-4.5 px-1 ml-0.5 flex items-center justify-center text-[9px] bg-primary text-primary-foreground shadow-sm animate-in zoom-in-50">
                         {activeFilterCount}
                       </Badge>
                     )}
@@ -785,6 +816,38 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               </Button>
             </div>
 
+            {/* Task Load Limit Selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-button px-3 gap-1.5 border-border/40 bg-muted/10 font-bold text-[11px] transition-all hover:bg-muted/20 hover:border-border/60 active:scale-95 hidden md:flex items-center"
+                >
+                  <span className="text-muted-foreground">Load:</span>
+                  <span>{limitIsAll ? "All" : limit}</span>
+                  <ChevronDown className="size-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-36 rounded-button border-border/40 p-1.5 shadow-2xl bg-card/95 backdrop-blur-xl">
+                {PAGE_SIZE_OPTIONS.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt}
+                    onClick={() => handleLimitChange(opt)}
+                    className={cn("rounded-button py-2 text-sm font-medium cursor-pointer", !limitIsAll && limit === opt && "bg-primary/10 text-primary")}
+                  >
+                    {opt} tasks
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleLimitChange("all")}
+                  className={cn("rounded-button py-2 text-sm font-medium cursor-pointer", limitIsAll && "bg-primary/10 text-primary")}
+                >
+                  All (max 500)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Export Menu */}
             <DropdownMenu>
               <Tooltip>
@@ -913,22 +976,22 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 </div>
               ) : listRows.length === 0 ? (
                 <div className="flex h-full items-center justify-center py-20 max-md:py-10">
-                  <EmptyState
-                    title="No tasks found"
-                    description="Try adjusting filters or create a task."
-                    action={
-                      canMutate ? (
-                        <CreateTaskModal
-                          defaultProjectId={projectId !== "ALL" ? projectId : undefined}
-                          trigger={
-                            <Button className="mt-4 rounded-button font-bold px-8">
-                              Create First Task
-                            </Button>
-                          }
-                        />
-                      ) : undefined
-                    }
-                  />
+                  <div className="flex flex-col items-center gap-4">
+                    <EmptyState
+                      title="No tasks found"
+                      description="Try adjusting filters or create a task."
+                    />
+                    {canMutate && (
+                      <CreateTaskModal
+                        defaultProjectId={projectId !== "ALL" ? projectId : undefined}
+                        trigger={
+                          <Button className="rounded-button font-bold px-8">
+                            Create First Task
+                          </Button>
+                        }
+                      />
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="min-w-full">
@@ -1006,7 +1069,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                               <Avatar key={a.id} className="h-6 w-6 ring-2 ring-background border border-border/10 shadow-sm">
                                                 <AvatarImage src={a.avatarUrl} />
                                                 <AvatarFallback className="text-[8px] bg-primary/10 text-primary uppercase flex items-center justify-center font-bold">
-                                                   {a.firstName?.[0] || a.name?.[0] || <User className="size-2.5" />}
+                                                  {a.name?.[0] || <User className="size-2.5" />}
                                                 </AvatarFallback>
                                               </Avatar>
                                             ))}
@@ -1021,7 +1084,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                             <User className="size-3 text-muted-foreground/40" />
                                           </div>
                                         )}
-                                        <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[120px]">
+                                        <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-30">
                                           {assignees.length === 0
                                             ? "Unassigned"
                                             : assignees.length === 1
@@ -1089,11 +1152,11 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
 
                   {viewMode === "table" && (
                     <div className="animate-in fade-in duration-500">
-                      <Table className="min-w-[1200px] border-separate border-spacing-0">
+                      <Table className="min-w-300 border-separate border-spacing-0">
                         <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur-md shadow-sm">
                           <TableRow className="hover:bg-transparent border-0">
                             <TableHead 
-                              className="py-4 pl-8 font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors group"
+                              className="py-4 pl-8 font-bold text-[10px] uppercase tracking-widest text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors group"
                               onClick={() => handleSortFieldChange("title")}
                             >
                               <div className="flex items-center gap-1.5">
@@ -1106,7 +1169,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                               </div>
                             </TableHead>
                             <TableHead 
-                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
                               onClick={() => handleSortFieldChange("assignee")}
                             >
                                <div className="flex items-center gap-1.5">
@@ -1119,7 +1182,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                               </div>
                             </TableHead>
                             <TableHead 
-                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
                               onClick={() => handleSortFieldChange("status")}
                             >
                               <div className="flex items-center gap-1.5">
@@ -1132,7 +1195,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                               </div>
                             </TableHead>
                             <TableHead 
-                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
                               onClick={() => handleSortFieldChange("priority")}
                             >
                               <div className="flex items-center gap-1.5">
@@ -1144,11 +1207,11 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                 )}
                               </div>
                             </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
+                            <TableHead className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground/50 border-b border-border/50">
                               Created By
                             </TableHead>
                             <TableHead 
-                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
                               onClick={() => handleSortFieldChange("createdAt")}
                             >
                               <div className="flex items-center gap-1.5">
@@ -1160,11 +1223,11 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                 )}
                               </div>
                             </TableHead>
-                            <TableHead className={cn("font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50", fixedProjectId && "hidden")}>
+                            <TableHead className={cn("font-bold text-[10px] uppercase tracking-widest text-muted-foreground/50 border-b border-border/50", fixedProjectId && "hidden")}>
                               Project
                             </TableHead>
                             <TableHead 
-                              className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
+                              className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors"
                               onClick={() => handleSortFieldChange("dueDate")}
                             >
                               <div className="flex items-center gap-1.5">
@@ -1176,7 +1239,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                 )}
                               </div>
                             </TableHead>
-                            <TableHead className="font-bold text-[10px] uppercase tracking-[0.1em] text-muted-foreground/50 border-b border-border/50">
+                            <TableHead className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground/50 border-b border-border/50">
                               Tags
                             </TableHead>
                             <TableHead className="w-16 border-b border-border/50"></TableHead>
@@ -1219,7 +1282,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                       setPage(1);
                     }}
                   >
-                    <SelectTrigger className="h-9 w-[105px] sm:w-28 rounded-button bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
+                    <SelectTrigger className="h-9 w-26.25 sm:w-28 rounded-button bg-muted/20 border-border/40 text-[10px] sm:text-[11px] font-bold shadow-sm">
                       <SelectValue placeholder="Limit" />
                     </SelectTrigger>
                     <SelectContent className="rounded-button border-border/40">
@@ -1254,7 +1317,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
         {viewMode === "kanban" && (
           <div className="flex-1 w-full overflow-hidden flex flex-col pt-0 animate-in fade-in zoom-in-95 duration-500">
             <TaskBoard
-              filters={sharedFilters}
+              filters={kanbanFilters}
               projectId={projectId !== "ALL" ? projectId : undefined}
               canEdit={canMutate}
               isEmbedded={isEmbedded}
@@ -1532,7 +1595,7 @@ function FilterContent({
   hideProjectFilter
 }: any) {
   return (
-    <div className={cn("flex flex-col h-full", !isMobileView && "max-h-[480px]")}>
+    <div className={cn("flex flex-col h-full", !isMobileView && "max-h-120")}>
       <div className={cn("flex-1 overflow-y-auto pr-1 space-y-4 pt-1 pb-4 custom-scrollbar")}>
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Status</label>
@@ -1730,7 +1793,7 @@ function TaskRow({
       key={taskId}
       className={cn(
         "group cursor-pointer border-border/40 hover:bg-muted/5 transition-colors",
-        isOverdue && "bg-rose-500/[0.02]"
+        isOverdue && "bg-rose-500/2"
       )}
       onClick={() => setSelectedTask(task)}
     >
@@ -1818,7 +1881,7 @@ function TaskRow({
             className="h-7 w-7 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              const rawId = tid(task);
+              const rawId = String(task.id || (task as any)._id || "");
               const taskCode = task.taskCode || (task as any).legacyId || `T-${rawId.slice(-4).toUpperCase()}`;
               const cmd = formatGitBranchCommand(taskCode, task.title);
               navigator.clipboard.writeText(cmd);

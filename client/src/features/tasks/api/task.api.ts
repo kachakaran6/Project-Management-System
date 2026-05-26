@@ -44,16 +44,17 @@ export const taskApi = {
     return response.data;
   },
 
-  createDraft: async (data: TaskDraftInput): Promise<ApiResponse<Task>> => {
-    const response = await api.post<ApiResponse<Task>>("/tasks/drafts", data);
+  createDraft: async (data: TaskDraftInput, config?: import("axios").AxiosRequestConfig): Promise<ApiResponse<Task>> => {
+    const response = await api.post<ApiResponse<Task>>("/tasks/drafts", data, config);
     return response.data;
   },
 
   updateDraft: async (
     id: string,
     data: TaskDraftInput,
+    config?: import("axios").AxiosRequestConfig
   ): Promise<ApiResponse<Task>> => {
-    const response = await api.patch<ApiResponse<Task>>(`/tasks/drafts/${id}`, data);
+    const response = await api.patch<ApiResponse<Task>>(`/tasks/drafts/${id}`, data, config);
     return response.data;
   },
 
@@ -136,6 +137,33 @@ export const taskApi = {
 
   saveUserOrder: async (projectId: string, statusId: string, taskIds: string[]): Promise<ApiResponse<null>> => {
     const response = await api.post(`/tasks/user-order`, { projectId, statusId, taskIds });
+    return response.data;
+  },
+
+  searchTaskById: async (taskId: string): Promise<ApiResponse<Task>> => {
+    const response = await api.get<ApiResponse<Task>>(`/tasks/by-id/${taskId}`);
+    return response.data;
+  },
+
+  getTasksByProject: async (
+    projectId: string,
+    filters: TaskFilters = {}
+  ): Promise<ApiResponse<PaginatedResult<Task>>> => {
+    const response = await api.get<ApiResponse<PaginatedResult<Task>>>(
+      `/tasks/project/${projectId}`,
+      { params: filters }
+    );
+    return response.data;
+  },
+
+  searchTasks: async (
+    q: string,
+    filters: TaskFilters = {}
+  ): Promise<ApiResponse<PaginatedResult<Task>>> => {
+    const response = await api.get<ApiResponse<PaginatedResult<Task>>>(
+      `/tasks/search/global`,
+      { params: { ...filters, q } }
+    );
     return response.data;
   },
 };

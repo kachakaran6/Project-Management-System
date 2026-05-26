@@ -87,11 +87,6 @@ const userSchema = new mongoose.Schema({
         own: { type: Boolean, default: true }
       }
     },
-    defaultAssignees: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      default: []
-    }],
     defaultTaskStatus: { 
       type: String, 
       default: null 

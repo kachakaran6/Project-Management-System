@@ -7,9 +7,9 @@ import { logInfo } from '../../services/logService.js';
  * Controller: Create Project
  */
 export const create = asyncHandler(async (req, res) => {
-  const { 
+  const {
     name, description, workspaceId, status, 
-    techStack, startDate, endDate, visibility, members, code
+    techStack, startDate, endDate, visibility, members, code, defaultAssigneeId
   } = req.body;
 
   const project = await projectService.createProject({
@@ -24,7 +24,8 @@ export const create = asyncHandler(async (req, res) => {
     visibility,
     members,
     status,
-    code
+    code,
+    defaultAssigneeId
   });
 
   // Structured Audit Log
@@ -111,3 +112,38 @@ export const remove = asyncHandler(async (req, res) => {
   await projectService.deleteProject(req.params.id, req.user.id, req.role);
   return successResponse(res, null, 'Project deleted successfully.');
 });
+
+/**
+ * Controller: Attach Page to Project
+ */
+export const attachPage = asyncHandler(async (req, res) => {
+  const projectPage = await projectService.attachPage(
+    req.params.id as string,
+    req.params.pageId as string,
+    req.user.id,
+    req.organizationId as string
+  );
+  return successResponse(res, projectPage, 'Page attached to project successfully.', 201);
+});
+
+/**
+ * Controller: Detach Page from Project
+ */
+export const detachPage = asyncHandler(async (req, res) => {
+  await projectService.detachPage(
+    req.params.id as string,
+    req.params.pageId as string,
+    req.user.id,
+    req.organizationId as string
+  );
+  return successResponse(res, null, 'Page detached from project successfully.');
+});
+
+/**
+ * Controller: Get Linked Pages for Project
+ */
+export const getLinkedPages = asyncHandler(async (req, res) => {
+  const pages = await projectService.getLinkedPages(req.params.id as string);
+  return successResponse(res, pages, 'Linked pages retrieved successfully.');
+});
+

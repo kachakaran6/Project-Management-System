@@ -14,6 +14,7 @@ import { ProjectHeader } from "@/features/projects/components/details/project-he
 import { ProjectTabsList } from "@/features/projects/components/details/project-tabs";
 import { ProjectSidebarPanel } from "@/features/projects/components/details/project-sidebar-panel";
 import { ProjectTaskBoard } from "@/features/projects/components/details/task-board/project-task-board";
+import { ProjectLinkedPages } from "@/features/projects/components/details/project-linked-pages";
 import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
 import { useProjectLayout } from "@/features/projects/hooks/use-project-layout";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -99,7 +100,7 @@ export default function ProjectDetailsPage() {
         <div className="flex-1 min-h-0 overflow-hidden">
           <div className={cn(
             "h-full mx-auto transition-all duration-300",
-            isFocusMode ? "max-w-none px-2" : "max-w-[1400px] px-4 md:px-6 py-6"
+            isFocusMode ? "max-w-none px-2" : "max-w-350 px-4 md:px-6 py-6"
           )}>
             <div className="flex flex-col lg:flex-row gap-8 h-full">
               {/* MAIN CONTENT */}
@@ -111,8 +112,15 @@ export default function ProjectDetailsPage() {
                 <TabsContent value="tasks" className="mt-0 outline-none h-full overflow-hidden">
                   <ProjectTaskBoard 
                     projectId={id as string} 
+                    defaultAssigneeIds={project.defaultAssigneeIds || []}
                     onTaskClick={(task) => openPanel(String(task.id || (task as any)._id))} 
                   />
+                </TabsContent>
+
+                <TabsContent value="pages" className="mt-0 outline-none h-full overflow-y-auto no-scrollbar">
+                  <div className="max-w-4xl mx-auto py-6">
+                    <ProjectLinkedPages projectId={id as string} />
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="vault" className="mt-0 outline-none h-full overflow-y-auto no-scrollbar">
@@ -167,7 +175,7 @@ function ProjectDetailsSkeleton() {
              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-card" />)}
           </div>
         </div>
-        <Skeleton className="h-[400px] w-full rounded-card" />
+        <Skeleton className="h-100 w-full rounded-card" />
       </div>
     </div>
   );

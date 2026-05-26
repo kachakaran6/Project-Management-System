@@ -117,7 +117,7 @@ export const getAll = asyncHandler(async (req, res) => {
     sortOrder: req.query.sortOrder
   };
 
-  const { tasks, totalCount } = await taskService.getTasks(
+  const { tasks, totalCount, groupedStatusCounts } = await taskService.getTasks(
     filter,
     { page, limit },
     req.user.id,
@@ -125,7 +125,7 @@ export const getAll = asyncHandler(async (req, res) => {
   );
   const paginatedResults = paginate(tasks, totalCount, page, limit);
 
-  return successResponse(res, paginatedResults, 'Tasks retrieved successfully.');
+  return successResponse(res, { ...paginatedResults, groupedStatusCounts }, 'Tasks retrieved successfully.');
 });
 
 /**
@@ -332,4 +332,73 @@ export const saveUserOrder = asyncHandler(async (req, res) => {
 
   await taskService.saveUserColumnOrder(req.user.id, projectId || null, statusId, taskIds);
   return successResponse(res, null, 'User order saved successfully.');
+});
+
+/**
+ * Controller: Get Task by Structured ID (taskCode, legacyId, _id)
+ */
+export const getByStructuredId = asyncHandler(async (req, res) => {
+  const task = await taskService.getTaskByStructuredId(
+    req.params.taskId as string,
+    req.user.id,
+    (req.role as string) || 'MEMBER',
+    req.organizationId as string
+  );
+  if (!task) {
+    return res.status(404).json({ success: false, message: 'Task not found.' });
+  }
+  return successResponse(res, task, 'Task details retrieved.');
+});
+
+/**
+ * Controller: Get Tasks by Project ID
+ */
+export const getByProjectId = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 10;
+  
+  const filter = {
+    organizationId: req.organizationId as string,
+    projectId: req.params.projectId as string,
+    status: req.query.status,
+    priority: req.query.priority,
+    search: req.query.search,
+    creatorId: req.query.creatorId,
+    assigneeId: req.query.assigneeId,
+  };
+
+  const { tasks, totalCount } = await taskService.getTasks(
+    filter,
+    { page, limit },
+    req.user.id,
+    (req.role as string) || 'MEMBER'
+  );
+
+  return successResponse(res, paginate(tasks, totalCount, page, limit), 'Project tasks retrieved.');
+});
+
+/**
+ * Controller: Search tasks across the organization
+ */
+export const searchTasks = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 10;
+  const query = req.query.q as string;
+
+  const filter = {
+    organizationId: req.organizationId as string,
+    search: query || undefined,
+    projectId: req.query.projectId,
+    status: req.query.status,
+    priority: req.query.priority,
+  };
+
+  const { tasks, totalCount } = await taskService.getTasks(
+    filter,
+    { page, limit },
+    req.user.id,
+    (req.role as string) || 'MEMBER'
+  );
+
+  return successResponse(res, paginate(tasks, totalCount, page, limit), 'Tasks searched successfully.');
 });

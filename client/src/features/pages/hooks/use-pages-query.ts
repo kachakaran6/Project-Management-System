@@ -57,8 +57,8 @@ export function useUpdatePageMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdatePageInput }) =>
-      pageApi.updatePage(id, data),
+    mutationFn: ({ id, data, config }: { id: string; data: UpdatePageInput; config?: import("axios").AxiosRequestConfig }) =>
+      pageApi.updatePage(id, data, config),
     onSuccess: async (updated, variables) => {
       queryClient.setQueryData(pagesQueryKeys.detail(variables.id), updated);
       await Promise.all([

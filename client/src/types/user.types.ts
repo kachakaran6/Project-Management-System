@@ -10,7 +10,6 @@ export interface User {
   status?: string;
   settings?: {
     defaultTaskStatus?: string;
-    defaultAssignees?: string[];
   };
   createdAt?: string;
 

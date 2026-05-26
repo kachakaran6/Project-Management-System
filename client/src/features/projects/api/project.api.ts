@@ -46,4 +46,19 @@ export const projectApi = {
     const response = await api.delete<ApiResponse<null>>(`/projects/${id}`);
     return response.data;
   },
+
+  getLinkedPages: async (projectId: string): Promise<ApiResponse<any[]>> => {
+    const response = await api.get(`/projects/${projectId}/pages`);
+    return response.data;
+  },
+
+  attachPage: async (projectId: string, pageId: string): Promise<ApiResponse<any>> => {
+    const response = await api.post(`/projects/${projectId}/pages/${pageId}`);
+    return response.data;
+  },
+
+  detachPage: async (projectId: string, pageId: string): Promise<ApiResponse<null>> => {
+    const response = await api.delete(`/projects/${projectId}/pages/${pageId}`);
+    return response.data;
+  },
 };

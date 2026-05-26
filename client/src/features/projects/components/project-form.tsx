@@ -35,10 +35,13 @@ import {
 import { TechStackSelector } from "./sections/tech-stack-selector";
 import { MemberSelector } from "./sections/member-selector";
 import { ResourceFieldArray } from "./sections/resource-field-array";
+import { SingleUserSelect } from "@/features/team/components/single-user-select";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ProjectFormProps {
   initialValues?: Partial<ProjectFormValues>;
+  prefilledAssigneeUsers?: Array<{ id: string; name: string; avatarUrl?: string; email?: string }>;
   onSubmit: (values: ProjectFormValues) => Promise<void> | void;
   isSubmitting?: boolean;
   submitLabel?: string;
@@ -46,6 +49,7 @@ interface ProjectFormProps {
 
 export function ProjectForm({
   initialValues,
+  prefilledAssigneeUsers = [],
   onSubmit,
   isSubmitting = false,
   submitLabel = "Save Project",
@@ -62,6 +66,7 @@ export function ProjectForm({
       startDate: initialValues?.startDate ? new Date(initialValues.startDate) : null,
       endDate: initialValues?.endDate ? new Date(initialValues.endDate) : null,
       members: initialValues?.members ?? [],
+      defaultAssigneeId: initialValues?.defaultAssigneeId ?? null,
       resources: initialValues?.resources ?? [],
       code: initialValues?.code ?? "",
     },
@@ -143,7 +148,8 @@ export function ProjectForm({
                           <Textarea
                             {...field}
                             placeholder="What's the goal of this project?"
-                            className="rounded-button resize-none min-h-[80px] md:min-h-[80px] text-sm"
+                            className="rounded-button resize-none text-sm"
+                            style={{ minHeight: "81px" }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -242,6 +248,27 @@ export function ProjectForm({
                         <FormControl>
                           <MemberSelector value={field.value} onChange={field.onChange} />
                         </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="defaultAssigneeId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Default Task Assignee</FormLabel>
+                        <FormControl>
+                          <SingleUserSelect
+                            value={field.value || null}
+                            onChange={field.onChange}
+                            placeholder="Choose default assignee for this project"
+                            prefilledUsers={prefilledAssigneeUsers}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-[10px]">
+                          New tasks created from this project will start with this assignee selected.
+                        </FormDescription>
                       </FormItem>
                     )}
                   />

@@ -10,6 +10,7 @@ export const projectFormSchema = z.object({
   startDate: z.date().optional().nullable(),
   endDate: z.date().optional().nullable(),
   members: z.array(z.string()).default([]),
+  defaultAssigneeId: z.string().nullable().optional(),
   resources: z.array(z.object({
     title: z.string().min(2, "Title is required"),
     type: z.enum(["link", "credential", "note"]),

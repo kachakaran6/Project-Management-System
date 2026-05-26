@@ -1249,6 +1249,9 @@ function KanbanColumn({
     return data?.pages.flatMap((page: any) => page.data?.items || []) || [];
   }, [data]);
 
+  // Use real total from backend meta, not just loaded count
+  const totalCount = data?.pages?.[0]?.data?.meta?.totalItems ?? tasks.length;
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -1292,7 +1295,7 @@ function KanbanColumn({
             {col.label}
           </h3>
           <Badge variant="outline" className="h-5 px-1.5 rounded-xs text-[10px] font-black bg-muted/20 border-border/20 text-muted-foreground/50">
-            {tasks.length}
+            {totalCount}
           </Badge>
         </div>
 
@@ -1385,8 +1388,15 @@ function KanbanColumn({
 
             {provided.placeholder}
             
+            {/* Loaded count vs Total count pagination display */}
+            {totalCount > 0 && (
+              <div className="text-[10px] text-muted-foreground/45 font-bold text-center mt-2 mb-1.5 uppercase tracking-wider">
+                Showing {tasks.length} of {totalCount} tasks
+              </div>
+            )}
+
             {/* Intersection Observer Target */}
-            <div ref={observerTarget} className="h-8 flex items-center justify-center mt-2">
+            <div ref={observerTarget} className="h-8 flex items-center justify-center mt-1">
               {isFetchingNextPage && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
             </div>
           </div>

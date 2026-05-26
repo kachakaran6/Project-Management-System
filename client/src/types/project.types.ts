@@ -35,6 +35,7 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   members?: any[]; // Populated members
+  defaultAssigneeIds?: string[];
   githubSettings?: {
     repoUrl?: string;
     isEnabled?: boolean;
@@ -52,6 +53,7 @@ export interface CreateProjectInput {
   startDate?: string;
   endDate?: string;
   members?: string[]; // Array of User IDs
+  defaultAssigneeIds?: string[];
 }
 
 export interface ProjectFilters {

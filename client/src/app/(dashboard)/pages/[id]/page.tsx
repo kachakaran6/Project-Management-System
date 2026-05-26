@@ -104,6 +104,7 @@ import {
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { useTasksQuery } from "@/features/tasks/hooks/use-tasks-query";
 import { PageDoc, PageVisibility } from "@/types/page.types";
+import { API_URL } from "@/lib/api/axios-instance";
 
 const lowlight = createLowlight(all);
 
@@ -161,6 +162,11 @@ export default function PageEditorPage() {
   const [coverUrl, setCoverUrl] = useState("");
   const [templateId, setTemplateId] = useState<PageTemplateId>("empty");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const saveStateRef = useRef<SaveState>("idle");
+  useEffect(() => {
+    saveStateRef.current = saveState;
+  }, [saveState]);
+
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashPos, setSlashPos] = useState({ top: 0, left: 0 });
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -172,6 +178,8 @@ export default function PageEditorPage() {
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedSnapshot = useRef("");
   const hydratedPageId = useRef("");
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const unmountDataRef = useRef({ pageId: "", title: "", visibility: "", content: "", isDirty: false });
 
   const page = pageQuery.data?.data;
   const canView = page ? canViewPage(page, currentUserId, currentRole) : false;
@@ -310,9 +318,35 @@ export default function PageEditorPage() {
   }, [editor, page]);
 
   useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (unmountDataRef.current.isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       if (autosaveTimer.current) {
         window.clearTimeout(autosaveTimer.current);
+      }
+      
+      const { pageId, title, visibility, content, isDirty } = unmountDataRef.current;
+      if (isDirty && pageId) {
+        fetch(`${API_URL}/pages/${pageId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: title.trim() || "Untitled",
+            visibility,
+            content,
+          }),
+          keepalive: true,
+        }).catch(() => {});
       }
     };
   }, []);
@@ -329,7 +363,7 @@ export default function PageEditorPage() {
         templateId,
       },
     });
-  }, [coverUrl, editor, icon, templateId, saveState]);
+  }, [coverUrl, editor, icon, templateId]);
 
   const currentSnapshot = useMemo(
     () =>
@@ -342,11 +376,21 @@ export default function PageEditorPage() {
   );
 
   useEffect(() => {
+    unmountDataRef.current = {
+      pageId: page?.id || "",
+      title,
+      visibility,
+      content: serializedContent,
+      isDirty: saveState === "dirty" || saveState === "saving",
+    };
+  }, [page?.id, title, visibility, serializedContent, saveState]);
+
+  useEffect(() => {
     if (!canEdit || !editor || !page) return;
     if (!serializedContent) return;
 
     if (currentSnapshot === lastSavedSnapshot.current) {
-      if (saveState !== "saved") {
+      if (saveStateRef.current !== "saved") {
         setSaveState("saved");
       }
       return;
@@ -362,6 +406,11 @@ export default function PageEditorPage() {
       try {
         setSaveState("saving");
 
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
         await updatePage.mutateAsync({
           id: page.id,
           data: {
@@ -369,6 +418,9 @@ export default function PageEditorPage() {
             visibility,
             content: serializedContent,
           },
+          config: {
+            signal: abortControllerRef.current.signal
+          }
         });
 
         lastSavedSnapshot.current = JSON.stringify({
@@ -377,7 +429,8 @@ export default function PageEditorPage() {
           content: serializedContent,
         });
         setSaveState("saved");
-      } catch {
+      } catch (err: any) {
+        if (err?.name === "CanceledError" || err?.name === "AbortError") return;
         setSaveState("error");
       }
     }, 500);
@@ -386,7 +439,6 @@ export default function PageEditorPage() {
     currentSnapshot,
     editor,
     page,
-    saveState,
     serializedContent,
     title,
     updatePage,

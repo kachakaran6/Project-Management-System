@@ -35,7 +35,8 @@ const projectSchema = new mongoose.Schema({
     accessToken: { type: String }, // PAT — never returned to client (excluded in controller)
     autoStatusUpdate: { type: Boolean, default: true },
     isEnabled: { type: Boolean, default: true }
-  }
+  },
+  defaultAssigneeId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

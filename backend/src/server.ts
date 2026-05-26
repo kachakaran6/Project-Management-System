@@ -7,6 +7,7 @@ import { initSocket } from './realtime/socket.server.js';
 import { logInfo, logError } from './services/logService.js';
 import { logger } from './utils/logger.js';
 import { startInviteExpiryJob, stopInviteExpiryJob } from './jobs/invite-expiry.job.js';
+import { startDraftCleanupJob, stopDraftCleanupJob } from './jobs/draft-cleanup.job.js';
 
 // ─── Crash Guards (register BEFORE anything async) ────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -37,6 +38,7 @@ const shutdown = async (signal: string) => {
   if (server) {
     server.close(async () => {
       stopInviteExpiryJob();
+      stopDraftCleanupJob();
       logger.info('🔒 HTTP server closed.');
       await disconnectDB();
       logger.info('👋 Process exiting cleanly.');
@@ -63,6 +65,7 @@ const start = async () => {
   // Initialize Socket.io
   initSocket(httpServer);
   startInviteExpiryJob();
+  startDraftCleanupJob();
 
   server = httpServer.listen(env.port, () => {
     logInfo('🚀 Server initialization complete', { 

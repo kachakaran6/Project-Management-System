@@ -1,7 +1,7 @@
 
 import React from "react";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, CheckSquare, Shield, History } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Shield, History, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ProjectTabsList() {
@@ -17,6 +17,10 @@ export function ProjectTabsList() {
         <TabsTrigger value="tasks" className={tabStyles}>
           <CheckSquare className="size-3.5" />
           Tasks
+        </TabsTrigger>
+        <TabsTrigger value="pages" className={tabStyles}>
+          <FileText className="size-3.5" />
+          Pages
         </TabsTrigger>
         <TabsTrigger value="vault" className={tabStyles}>
           <Shield className="size-3.5" />

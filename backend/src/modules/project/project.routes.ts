@@ -16,4 +16,9 @@ router.post('/:id/archive', projectController.archive);
 router.get('/:id', projectController.getById);
 router.delete('/:id', projectController.remove);
 
+// Project Pages
+router.post('/:id/pages/:pageId', projectController.attachPage);
+router.delete('/:id/pages/:pageId', projectController.detachPage);
+router.get('/:id/pages', projectController.getLinkedPages);
+
 export default router;

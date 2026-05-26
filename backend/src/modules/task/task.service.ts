@@ -425,7 +425,7 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
   const draftState = Boolean(isDraft || visibility === 'DRAFT');
   const normalizedVisibility = normalizeVisibility(visibility);
 
-  const normalizedAssignees = Array.from(new Set([
+  let normalizedAssignees = Array.from(new Set([
     ...(Array.isArray(assignees) ? assignees : []),
     ...(Array.isArray(assigneeIds) ? assigneeIds : []),
     assigneeId
@@ -469,6 +469,9 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
       if (project) {
         taskSequence = project.taskSequence;
         projectCode = project.code || 'TASK';
+        if (normalizedAssignees.length === 0 && project.defaultAssigneeId) {
+          normalizedAssignees.push(String(project.defaultAssigneeId));
+        }
       }
     }
 
@@ -1123,6 +1126,7 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
   // Apply visibility filtering
   let tasks: any[] = [];
   let totalCount: number = 0;
+  let groupedStatusCounts: Record<string, number> = {};
 
   if (userId) {
     // Use aggregation pipeline for visibility enforcement
@@ -1242,21 +1246,30 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
     );
 
     const skipIndex = pipeline.findIndex(p => '$skip' in p);
-    const countPipeline = skipIndex !== -1 ? pipeline.slice(0, skipIndex) : [...pipeline];
+    const basePipeline = skipIndex !== -1 ? pipeline.slice(0, skipIndex) : [...pipeline];
+    
+    const countPipeline = [...basePipeline];
     countPipeline.push({ $count: 'count' });
 
-    const [countResult, taskResults] = await Promise.all([
+    const statusCountsPipeline = [...basePipeline];
+    statusCountsPipeline.push({ $group: { _id: '$status', count: { $sum: 1 } } });
+
+    const [countResult, taskResults, statusCountsResult] = await Promise.all([
       Task.aggregate(countPipeline),
-      Task.aggregate(pipeline)
+      Task.aggregate(pipeline),
+      Task.aggregate(statusCountsPipeline)
     ]);
 
     totalCount = countResult[0]?.count || 0;
     tasks = taskResults;
+    statusCountsResult.forEach((sc: any) => {
+      if (sc._id) groupedStatusCounts[String(sc._id)] = sc.count;
+    });
   } else {
     // No user specified - return only public, non-draft tasks.
     query.$or = [{ visibility: 'PUBLIC' }, { visibility: { $exists: false } }];
     
-    const [fetchedTasks, count] = await Promise.all([
+    const [fetchedTasks, count, statusCountsResult] = await Promise.all([
       Task.find(query)
         .sort({ updatedAt: -1 })
         .populate('projectId', 'name')
@@ -1264,14 +1277,18 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
         .populate('creatorId', 'firstName lastName email avatarUrl')
         .populate('status')
         .lean(),
-      Task.countDocuments(query)
+      Task.countDocuments(query),
+      Task.aggregate([{ $match: query }, { $group: { _id: '$status', count: { $sum: 1 } } }])
     ]);
     
     tasks = fetchedTasks;
     totalCount = count;
+    statusCountsResult.forEach((sc: any) => {
+      if (sc._id) groupedStatusCounts[String(sc._id)] = sc.count;
+    });
   }
 
-  if (tasks.length === 0) return { tasks, totalCount };
+  if (tasks.length === 0) return { tasks, totalCount, groupedStatusCounts };
 
   const taskIds = tasks.map(t => t._id);
   const [assigneeRows, tagRows, pageRows] = await Promise.all([
@@ -1309,7 +1326,8 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
       visibility: t.visibility || 'PUBLIC',
       linkedPagesCount: pagesCountByTaskId.get(String(t._id)) || 0
     })),
-    totalCount
+    totalCount,
+    groupedStatusCounts
   };
 };
 
@@ -1902,3 +1920,77 @@ export const saveUserColumnOrder = async (userId: string, projectId: string | nu
     { upsert: true, new: true }
   );
 };
+
+export const deleteStaleDrafts = async () => {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const result = await Task.deleteMany({
+    isDraft: true,
+    updatedAt: { $lt: thirtyDaysAgo }
+  });
+
+  return result.deletedCount;
+};
+
+export const getTaskByStructuredId = async (
+  taskId: string,
+  userId: string,
+  userRole?: string | null,
+  organizationId?: string | null
+) => {
+  const query: Record<string, any> = { isActive: true };
+
+  if (mongoose.Types.ObjectId.isValid(taskId)) {
+    query._id = toObjectId(taskId);
+  } else {
+    query.$or = [
+      { taskCode: new RegExp(`^${taskId}$`, 'i') },
+      { legacyId: taskId }
+    ];
+  }
+
+  const task = await Task.findOne(query)
+    .populate('projectId', 'name githubSettings')
+    .populate('workspaceId', 'name')
+    .populate('creatorId', 'firstName lastName email avatarUrl')
+    .populate('status')
+    .lean();
+
+  if (!task) return null;
+
+  // Check visibility
+  if (userId) {
+    const hasAccess = await visibilityHelpers.canUserAccessTask(
+      task._id,
+      userId,
+      task.creatorId?._id || task.creatorId,
+      task.visibility,
+      userRole,
+      isTaskDraft(task)
+    );
+    if (!hasAccess) {
+      throw new AppError('Access denied to this task.', 403);
+    }
+  }
+
+  const [assignees, tags, visibilityUsers] = await Promise.all([
+    TaskAssignee.find({ taskId: task._id }).populate('userId', 'firstName lastName email avatarUrl').lean(),
+    TaskTag.find({ taskId: task._id }).populate('tagId').lean(),
+    task.visibility === 'PRIVATE' ? visibilityHelpers.getTaskVisibilityUsers(task._id, task.organizationId) : Promise.resolve([])
+  ]);
+
+  return {
+    ...enrichTaskWithAssignees(task, assignees),
+    creator: normalizeUser(task.creatorId),
+    tags: normalizeTags(tags),
+    visibility: task.visibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
+    visibilityUsers: visibilityUsers.map((vu: any) => ({
+      id: String(vu.userId?._id || vu.userId),
+      name: vu.userId?.firstName ? `${vu.userId.firstName} ${vu.userId.lastName || ''}`.trim() : 'Unknown',
+      email: vu.userId?.email,
+      avatarUrl: vu.userId?.avatarUrl
+    }))
+  };
+};
+

@@ -21,7 +21,7 @@ import {
 import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { settingsApi } from "@/features/auth/api/settings.api";
+
 import { CreateTaskInput, Task } from "@/types/task.types";
 import {
   buildTaskDraftInput,
@@ -36,6 +36,7 @@ import {
 interface CreateTaskModalProps {
   trigger?: React.ReactNode;
   defaultProjectId?: string;
+  defaultAssigneeIds?: string[];
   onCreated?: () => void;
   initialValuesOverride?: Partial<TaskFormValues>;
 }
@@ -110,6 +111,7 @@ const pickLatestDraft = (
 export function CreateTaskModal({
   trigger,
   defaultProjectId,
+  defaultAssigneeIds = [],
   onCreated,
   initialValuesOverride,
 }: CreateTaskModalProps) {
@@ -120,10 +122,10 @@ export function CreateTaskModal({
   const defaultStatus = user?.settings?.defaultTaskStatus?.toUpperCase();
 
   const [initialValues, setInitialValues] = useState<TaskFormValues>(() =>
-    createBaseValues(defaultProjectId, [], defaultStatus),
+    createBaseValues(defaultProjectId, defaultAssigneeIds, defaultStatus),
   );
   const [draftValues, setDraftValues] = useState<TaskFormValues>(() =>
-    createBaseValues(defaultProjectId, [], defaultStatus),
+    createBaseValues(defaultProjectId, defaultAssigneeIds, defaultStatus),
   );
 
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -136,6 +138,7 @@ export function CreateTaskModal({
 
   const draftStorageKeyRef = useRef<string | null>(null);
   const lastSavedFingerprintRef = useRef<string>("");
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const createTask = useCreateTaskMutation();
   const publishTaskDraft = usePublishTaskDraftMutation();
@@ -147,13 +150,10 @@ export function CreateTaskModal({
   const draftingEnabled = !!user?.settings?.taskDraftEnabled;
   const isSubmitting = createTask.isPending || publishTaskDraft.isPending;
 
-  const baseValues = useMemo(() => createBaseValues(defaultProjectId), [defaultProjectId]);
+  const baseValues = useMemo(() => createBaseValues(defaultProjectId, defaultAssigneeIds), [defaultProjectId, defaultAssigneeIds]);
   
   // Debounce for LOCAL storage save
   const debouncedLocalDraftValues = useDebounce(draftValues, 400);
-  
-  // Debounce for SERVER sync (Phase 4) - only when idle
-  const debouncedServerDraftValues = useDebounce(draftValues, 3000);
 
   const projects = (projectsQuery.data?.data.items ?? []).map((p: any) => ({
     id: p.id || p._id,
@@ -194,6 +194,31 @@ export function CreateTaskModal({
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [shouldBlockNavigation]);
 
+  useEffect(() => {
+    if (!open || !userId) return;
+
+    const handleStorage = (event: StorageEvent) => {
+      if (
+        event.key &&
+        draftStorageKeyRef.current &&
+        event.key === draftStorageKeyRef.current &&
+        event.newValue !== event.oldValue
+      ) {
+        try {
+          const parsed = JSON.parse(event.newValue || "");
+          if (parsed && parsed.values) {
+            setDraftValues((currentValues) => ({ ...currentValues, ...parsed.values }));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [open, userId]);
+
   const persistLocalDraft = (values: TaskFormValues, nextDraftId?: string | null) => {
     if (!userId || !hasTaskDraftContent(values)) return;
 
@@ -232,12 +257,6 @@ export function CreateTaskModal({
     setResetKey((current) => current + 1);
   };
 
-  const { data: settingsData } = useQuery({
-    queryKey: ["settings", "default-assignees"],
-    queryFn: () => settingsApi.getDefaultAssignees(),
-    enabled: open,
-    staleTime: 5 * 60 * 1000,
-  });
 
   const { data: statusPreferenceData } = useQuery({
     queryKey: ["settings", "default-status"],
@@ -249,7 +268,7 @@ export function CreateTaskModal({
   useEffect(() => {
     if (open) {
     }
-  }, [open, settingsData, statusPreferenceData, user]);
+  }, [open, statusPreferenceData, user]);
 
   const hasInitializedRef = useRef(false);
 
@@ -260,7 +279,6 @@ export function CreateTaskModal({
     }
     
     if (!hasInitializedRef.current) {
-      const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
       const resolvedDefaultStatus = statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
       
       const nextBaseValues = {
@@ -299,28 +317,7 @@ export function CreateTaskModal({
       
       hasInitializedRef.current = true;
     } 
-    else if (!draftValues.title && !draftValues.description) {
-      const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
-      const resolvedDefaultStatus = statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
-      
-      const newAssigneeIds = draftValues.assigneeIds.length === 0 ? defaultAssigneeIds : draftValues.assigneeIds;
-      const newStatus = (draftValues.status === "TODO" || !draftValues.status) ? resolvedDefaultStatus : draftValues.status;
-
-      const needsAssigneeUpdate = draftValues.assigneeIds.length === 0 && defaultAssigneeIds.length > 0;
-      const needsStatusUpdate = (draftValues.status === "TODO" || !draftValues.status) && newStatus !== draftValues.status;
-
-      if (needsAssigneeUpdate || needsStatusUpdate) {
-        const updatedValues = {
-          ...draftValues,
-          assigneeIds: newAssigneeIds,
-          status: newStatus,
-        };
-        
-        setInitialValues(updatedValues);
-        setDraftValues(updatedValues);
-      }
-    }
-  }, [defaultProjectId, open, settingsData, statusPreferenceData, defaultStatus, draftValues.title, draftValues.description, draftValues.assigneeIds, draftValues.status]);
+  }, [defaultProjectId, defaultAssigneeIds, open, statusPreferenceData, defaultStatus, draftValues.title, draftValues.description, draftValues.status]);
 
 
   const syncDraftToServer = async (
@@ -346,9 +343,15 @@ export function CreateTaskModal({
         toast.loading("Saving draft...", { id: "draft-sync" });
       }
       
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+
       const response = await upsertTaskDraft.mutateAsync({
         id: draftId,
         data: buildTaskDraftInput(values, draftId),
+        config: { signal: abortControllerRef.current.signal }
       });
       const nextDraftId = response.data.id || (response.data as any)._id;
       setDraftId(nextDraftId);
@@ -378,12 +381,15 @@ export function CreateTaskModal({
         toast.success("Draft saved.", { id: "draft-sync" });
       }
       return nextDraftId;
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === "CanceledError" || error?.name === "AbortError") {
+        return null;
+      }
       if (!options?.silent) {
         toast.dismiss("draft-sync");
       }
       if (options?.showErrors) {
-        const apiError = error as AxiosError<{ message?: string; errors?: string[] }>;
+        const apiError = error as import("axios").AxiosError<{ message?: string; errors?: string[] }>;
         const message =
           apiError.response?.data?.errors?.[0] ||
           apiError.response?.data?.message ||
@@ -411,20 +417,7 @@ export function CreateTaskModal({
     persistLocalDraft(debouncedLocalDraftValues);
   }, [debouncedLocalDraftValues, open, draftingEnabled]);
 
-  useEffect(() => {
-    if (
-      !open || 
-      !draftingEnabled ||
-      isCheckingDraft || 
-      isSubmittingRef.current ||
-      !hasTaskDraftContent(debouncedServerDraftValues)
-    ) {
-      return;
-    }
 
-    // Background sync to server
-    void syncDraftToServer(debouncedServerDraftValues, { showErrors: false });
-  }, [debouncedServerDraftValues, isCheckingDraft, open, draftingEnabled]);
 
   const handleValuesChange = (values: TaskFormValues) => {
     setDraftValues(values);
@@ -445,7 +438,7 @@ export function CreateTaskModal({
       }
 
       clearLocalDraft(currentProjectId, draftId);
-      resetDraftState(createBaseValues(defaultProjectId));
+      resetDraftState(createBaseValues(defaultProjectId, defaultAssigneeIds));
       setOpen(false);
 
       if (blocker.state === "blocked") {
@@ -525,25 +518,22 @@ export function CreateTaskModal({
     const publishPayload = buildPublishPayload(values);
     const currentDraftId = draftId;
     const taskTitle = values.title;
-    
-    // Cleanup local state immediately for instant feedback
-    clearLocalDraft(values.projectId, currentDraftId);
-    setDraftId(null);
-    lastSavedFingerprintRef.current = "";
-
-    if (!createMoreArg) {
-      setOpen(false);
-    } else {
-      // If create more is checked, reset the form immediately so they can start typing the next one
-      const defaultAssigneeIds = settingsData?.data?.defaultAssignees?.map((u: any) => u.id) || [];
-      resetDraftState(createBaseValues(values.projectId || defaultProjectId, defaultAssigneeIds, defaultStatus));
-    }
 
     // Trigger mutation with callbacks for background success/error handling
     const mutationCallbacks = {
       onSuccess: () => {
+        clearLocalDraft(values.projectId, currentDraftId);
+        setDraftId(null);
+        lastSavedFingerprintRef.current = "";
+
         toast.success(`Task "${taskTitle}" created!`);
         onCreated?.();
+        // Only close/reset AFTER confirmed success
+        if (!createMoreArg) {
+          setOpen(false);
+        } else {
+          resetDraftState(createBaseValues(values.projectId || defaultProjectId, defaultAssigneeIds, defaultStatus));
+        }
       },
       onError: (error: any) => {
         const apiError = error as AxiosError<{ message?: string; errors?: string[] }>;
@@ -552,6 +542,7 @@ export function CreateTaskModal({
           apiError.response?.data?.message ||
           "Failed to create task. Please try again.";
         toast.error(message);
+        // DO NOT close modal — user keeps their typed content
       }
     };
 

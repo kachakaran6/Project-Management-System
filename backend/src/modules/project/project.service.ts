@@ -3,6 +3,7 @@ import Project from '../../models/Project.js';
 import Task from '../../models/Task.js';
 import ProjectMember from '../../models/ProjectMember.js';
 import OrganizationMember from '../../models/OrganizationMember.js';
+import ProjectPage from '../../models/ProjectPage.js';
 import { AppError } from '../../middlewares/errorHandler.js';
 import Status from '../../models/Status.js';
 import * as activityLog from '../../utils/systemTriggers.js';
@@ -14,7 +15,7 @@ import { ROLES } from '../../constants/index.js';
 export const createProject = async (projectData: Record<string, any>) => {
   const { 
     name, description, workspaceId, organizationId, ownerId, 
-    techStack, startDate, endDate, visibility, members, code 
+    techStack, startDate, endDate, visibility, members, code, defaultAssigneeId
   } = projectData;
 
   if (!name) throw new AppError('Project name is required.', 400);
@@ -70,6 +71,7 @@ export const createProject = async (projectData: Record<string, any>) => {
       organizationId,
       ownerId,
       techStack: techStack || [],
+      defaultAssigneeId: defaultAssigneeId || null,
       startDate,
       endDate,
       visibility: visibility || 'public',
@@ -444,3 +446,65 @@ export const deleteProject = async (projectId: any, userId: any, userRole?: stri
     metadata: { name: project.name }
   });
 };
+
+/**
+ * Attach a page to a project
+ */
+export const attachPage = async (projectId: string, pageId: string, userId: string, organizationId: string) => {
+  const existing = await ProjectPage.findOne({ projectId, pageId });
+  if (existing) {
+    throw new AppError('Page is already attached to this project', 400);
+  }
+
+  const projectPage = await ProjectPage.create({
+    projectId,
+    pageId,
+    linkedBy: userId
+  });
+
+  await activityLog.logActivity({
+    userId,
+    organizationId,
+    resourceId: projectId,
+    resourceType: 'Project',
+    action: 'UPDATE_PROJECT',
+    metadata: { action: 'ATTACH_PAGE', pageId }
+  });
+
+  return projectPage;
+};
+
+/**
+ * Detach a page from a project
+ */
+export const detachPage = async (projectId: string, pageId: string, userId: string, organizationId: string) => {
+  const result = await ProjectPage.findOneAndDelete({ projectId, pageId });
+  
+  if (result) {
+    await activityLog.logActivity({
+      userId,
+      organizationId,
+      resourceId: projectId,
+      resourceType: 'Project',
+      action: 'UPDATE_PROJECT',
+      metadata: { action: 'DETACH_PAGE', pageId }
+    });
+  }
+};
+
+/**
+ * Get linked pages for a project
+ */
+export const getLinkedPages = async (projectId: string) => {
+  const links = await ProjectPage.find({ projectId }).populate({
+    path: 'pageId',
+    select: 'title content updatedAt creatorId isPrivate',
+    populate: { path: 'creatorId', select: 'firstName lastName avatarUrl' }
+  }).lean();
+
+  return links.map(link => ({
+    ...link,
+    page: link.pageId
+  }));
+};
+
