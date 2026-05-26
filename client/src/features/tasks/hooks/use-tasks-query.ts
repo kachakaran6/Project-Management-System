@@ -1,5 +1,5 @@
 
-import { useMutation, useQuery, useQueryClient, useInfiniteQuery, InfiniteData } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient, useInfiniteQuery, InfiniteData } from "@tanstack/react-query";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import { toast } from "sonner";
 
@@ -516,6 +516,7 @@ export function useTaskQuery(id: string, enabled = true) {
     enabled: enabled && Boolean(id) && !!activeOrgId,
     staleTime: 0,
     refetchOnMount: true,
+    placeholderData: keepPreviousData,
   });
 
 }
