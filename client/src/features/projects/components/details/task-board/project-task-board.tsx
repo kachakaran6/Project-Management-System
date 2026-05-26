@@ -45,14 +45,16 @@ import { useTagsQuery } from "@/features/tags/hooks/use-tags";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { ProjectTaskCard } from "./project-task-card";
+import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
+import { usePathname, useRouter, useSearchParams } from "@/lib/next-navigation";
+import { buildSnapshotTaskPanelContext } from "@/features/tasks/utils/task-panel-navigation";
 
 interface ProjectTaskBoardProps {
   projectId: string;
   defaultAssigneeIds?: string[];
-  onTaskClick: (task: Task) => void;
 }
 
-export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [], onTaskClick }: ProjectTaskBoardProps) {
+export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [] }: ProjectTaskBoardProps) {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"board" | "list" | "table">("board");
   const [hideEmptyColumns, setHideEmptyColumns] = useState(true);
@@ -76,6 +78,10 @@ export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [], onTaskCli
 
   const { activeOrg, activeOrgId } = useAuth();
   const canEdit = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN" || activeOrg?.role === "MANAGER";
+  const { openPanel } = useTaskPanelStore();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const { data: tasksResult, isLoading } = useTasksQuery({
     projectId,
@@ -176,6 +182,20 @@ export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [], onTaskCli
   };
 
   const activeMobileStatus = groupedTasks.sortedStatuses.find(s => (s.id || (s as any)._id) === mobileActiveStatus) || groupedTasks.sortedStatuses[0];
+  const openTaskDetails = (task: Task, sourceLabel: string, scopeTasks: Task[]) => {
+    const taskId = String(task.id || (task as any)._id || "");
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("taskId", taskId);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    openPanel(
+      taskId,
+      buildSnapshotTaskPanelContext({
+        sourceKey: `project-task-board:${projectId}:${sourceLabel}`,
+        sourceLabel,
+        tasks: scopeTasks,
+      }),
+    );
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden gap-2 md:gap-4">
@@ -433,17 +453,23 @@ export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [], onTaskCli
                </DropdownMenu>
              </div>
 
-             {/* Mobile Task List */}
-             <div className="flex-1 overflow-y-auto p-3 space-y-3 no-scrollbar pb-20">
-                {groupedTasks.groups[mobileActiveStatus]?.map((task) => (
-                   <ProjectTaskCard 
-                      key={task.id} 
-                      task={task} 
-                      index={0}
-                      onClick={onTaskClick} 
-                      canEdit={canEdit}
-                      isDraggable={false}
-                   />
+	             {/* Mobile Task List */}
+	             <div className="flex-1 overflow-y-auto p-3 space-y-3 no-scrollbar pb-20">
+	                {groupedTasks.groups[mobileActiveStatus]?.map((task) => (
+	                   <ProjectTaskCard 
+	                      key={task.id} 
+	                      task={task} 
+	                      index={0}
+	                      onClick={(currentTask) =>
+                            openTaskDetails(
+                              currentTask,
+                              activeMobileStatus?.name?.replace(/_/g, " ") || "Stage",
+                              groupedTasks.groups[mobileActiveStatus] || [],
+                            )
+                          }
+	                      canEdit={canEdit}
+	                      isDraggable={false}
+	                   />
                 ))}
                 {(!groupedTasks.groups[mobileActiveStatus] || groupedTasks.groups[mobileActiveStatus].length === 0) && (
                    <div className="h-40 flex flex-col items-center justify-center gap-3 border border-dashed border-border/10 rounded-card bg-muted/5">
@@ -461,12 +487,18 @@ export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [], onTaskCli
                   <ProjectTaskColumn
                     key={status.id || status._id}
                     id={status.id || status._id}
-                    title={status.name.replace(/_/g, ' ')}
-                    count={tasksResult?.data.groupedStatusCounts?.[status.id || (status as any)._id] || groupedTasks.groups[status.id || (status as any)._id]?.length || 0}
-                    tasks={groupedTasks.groups[status.id || (status as any)._id] || []}
-                    onTaskClick={onTaskClick}
-                    canEdit={canEdit}
-                  />
+	                    title={status.name.replace(/_/g, ' ')}
+	                    count={tasksResult?.data.groupedStatusCounts?.[status.id || (status as any)._id] || groupedTasks.groups[status.id || (status as any)._id]?.length || 0}
+	                    tasks={groupedTasks.groups[status.id || (status as any)._id] || []}
+	                    onTaskClick={(task) =>
+                          openTaskDetails(
+                            task,
+                            status.name.replace(/_/g, " "),
+                            groupedTasks.groups[status.id || (status as any)._id] || [],
+                          )
+                        }
+	                    canEdit={canEdit}
+	                  />
                 ))}
                 {groupedTasks.sortedStatuses.length === 0 && !isLoading && (
                   <div className="flex-1 flex flex-col items-center justify-center bg-muted/5 rounded-card border border-dashed border-border/10 h-full">
@@ -497,12 +529,12 @@ export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [], onTaskCli
                   defaultOpen={!collapsedGroups.includes(statusId)}
                 >
                   <div className="grid gap-2 p-1.5 pt-1">
-                    {groupTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="rounded-button border border-border/10 bg-card/40 p-2.5 md:p-3 shadow-sm hover:border-primary/20 transition-all cursor-pointer group/card"
-                        onClick={() => onTaskClick(task)}
-                      >
+	                    {groupTasks.map((task) => (
+	                      <div
+	                        key={task.id}
+	                        className="rounded-button border border-border/10 bg-card/40 p-2.5 md:p-3 shadow-sm hover:border-primary/20 transition-all cursor-pointer group/card"
+	                        onClick={() => openTaskDetails(task, status.name.replace(/_/g, " "), groupTasks)}
+	                      >
                         <div className="flex items-start justify-between gap-3 mb-1.5">
                           <div className="min-w-0">
                             <h4 className="font-bold text-[14px] hover:text-primary transition-colors block line-clamp-1 text-left w-full">
@@ -572,11 +604,11 @@ export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [], onTaskCli
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onTaskClick(task);
-                              }}
-                            >
+	                              onClick={(e) => {
+	                                e.stopPropagation();
+	                                openTaskDetails(task, status.name.replace(/_/g, " "), groupTasks);
+	                              }}
+	                            >
                               <Pencil className="size-3.5" />
                             </Button>
                             {canEdit && (
@@ -621,15 +653,15 @@ export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [], onTaskCli
                 </tr>
              </thead>
              <tbody>
-                {tasks.map((task) => {
-                  const statusObj = resolveStatus(task, statuses);
-                  const statusColor = statusObj?.color || "#94a3b8";
-                  return (
-                    <tr 
-                      key={task.id} 
-                      className="group hover:bg-muted/5 cursor-pointer transition-colors"
-                      onClick={() => onTaskClick(task)}
-                    >
+	                {tasks.map((task) => {
+	                  const statusObj = resolveStatus(task, statuses);
+	                  const statusColor = statusObj?.color || "#94a3b8";
+	                  return (
+	                    <tr 
+	                      key={task.id} 
+	                      className="group hover:bg-muted/5 cursor-pointer transition-colors"
+	                      onClick={() => openTaskDetails(task, "Filtered project tasks", tasks)}
+	                    >
                       <td className="py-3 pl-6 border-b border-border/5">
                          <div className="flex flex-col">
                             <span className="text-sm font-medium text-foreground">{task.title}</span>

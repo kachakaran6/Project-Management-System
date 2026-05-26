@@ -19,7 +19,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import Link from "next/link";
 import { useSearchTaskByIdQuery, useProjectTasksInfiniteQuery } from "@/features/tasks/hooks/use-tasks-query";
 import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
@@ -28,6 +27,9 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
+import { buildSnapshotTaskPanelContext } from "@/features/tasks/utils/task-panel-navigation";
+import { usePathname, useRouter, useSearchParams } from "@/lib/next-navigation";
 
 interface PageLinkedTasksProps {
   pageId: string;
@@ -37,6 +39,10 @@ interface PageLinkedTasksProps {
 export function PageLinkedTasks({ pageId, canEdit }: PageLinkedTasksProps) {
   const queryClient = useQueryClient();
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
+  const { openPanel } = useTaskPanelStore();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const { data, isLoading } = useQuery({
     queryKey: ["page-tasks", pageId],
@@ -44,6 +50,15 @@ export function PageLinkedTasks({ pageId, canEdit }: PageLinkedTasksProps) {
   });
 
   const tasks: PageTaskLink[] = data?.data || [];
+  const linkedTaskPanelContext = useMemo(
+    () =>
+      buildSnapshotTaskPanelContext({
+        sourceKey: `page-linked-tasks:${pageId}`,
+        sourceLabel: "Linked tasks",
+        tasks,
+      }),
+    [pageId, tasks],
+  );
 
   const detachMutation = useMutation({
     mutationFn: (taskId: string) => taskApi.detachPage(taskId, pageId),
@@ -90,20 +105,26 @@ export function PageLinkedTasks({ pageId, canEdit }: PageLinkedTasksProps) {
           <p className="text-[11px] text-muted-foreground">No linked tasks.</p>
         ) : (
           tasks.map((task) => (
-            <div
-              key={task.id}
-              className="group relative flex flex-col gap-1 rounded-card border border-border/40 p-2 hover:bg-muted/50"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <Link
-                  href={`/tasks?taskId=${task.id}`}
-                  className="flex items-start gap-1.5 min-w-0 flex-1"
-                >
-                  <CheckSquare className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                  <span className="text-[12px] font-medium leading-tight truncate hover:text-primary transition-colors">
-                    {task.title}
-                  </span>
-                </Link>
+	            <div
+	              key={task.id}
+	              className="group relative flex flex-col gap-1 rounded-card border border-border/40 p-2 hover:bg-muted/50"
+	            >
+	              <div className="flex items-start justify-between gap-2">
+	                <button
+                      type="button"
+                      onClick={() => {
+                        const params = new URLSearchParams(searchParams.toString());
+                        params.set("taskId", task.id);
+                        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+                        openPanel(task.id, linkedTaskPanelContext);
+                      }}
+	                  className="flex items-start gap-1.5 min-w-0 flex-1"
+	                >
+	                  <CheckSquare className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
+	                  <span className="text-[12px] font-medium leading-tight truncate hover:text-primary transition-colors">
+	                    {task.title}
+	                  </span>
+	                </button>
                 {canEdit && (
                   <button
                     onClick={(e) => {

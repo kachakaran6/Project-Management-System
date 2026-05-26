@@ -165,6 +165,8 @@ export function TaskDescriptionEditor({
         blockquote: false,
         horizontalRule: false,
         strike: false,
+        link: false,
+        underline: false,
       }),
       Underline,
       Link.configure({
