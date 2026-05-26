@@ -112,12 +112,12 @@ export function PageLinkedTasks({ pageId, canEdit }: PageLinkedTasksProps) {
 	              <div className="flex items-start justify-between gap-2">
 	                <button
                       type="button"
-                      onClick={() => {
-                        const params = new URLSearchParams(searchParams.toString());
-                        params.set("taskId", task.id);
-                        router.push(`${pathname}?${params.toString()}`, { scroll: false });
-                        openPanel(task.id, linkedTaskPanelContext);
-                      }}
+	                      onClick={() => {
+	                        const params = new URLSearchParams(searchParams.toString());
+	                        params.set("taskId", task.id);
+	                        openPanel(task.id, linkedTaskPanelContext);
+	                        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+	                      }}
 	                  className="flex items-start gap-1.5 min-w-0 flex-1"
 	                >
 	                  <CheckSquare className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />

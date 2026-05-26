@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AxiosError } from "axios";
 import { SquarePen } from "lucide-react";
 import { toast } from "sonner";
@@ -39,6 +39,44 @@ interface CreateTaskModalProps {
   defaultAssigneeIds?: string[];
   onCreated?: () => void;
   initialValuesOverride?: Partial<TaskFormValues>;
+}
+
+type BlockerState = "unblocked" | "blocked" | "proceeding";
+
+interface BlockerController {
+  proceed: () => void;
+  reset: () => void;
+  state: BlockerState;
+}
+
+interface CreateTaskRouteBlockerProps {
+  shouldBlock: boolean;
+  onBlocked: () => void;
+  onStateChange: (controller: BlockerController) => void;
+}
+
+function CreateTaskRouteBlocker({
+  shouldBlock,
+  onBlocked,
+  onStateChange,
+}: CreateTaskRouteBlockerProps) {
+  const blocker = useBlocker(shouldBlock);
+
+  useEffect(() => {
+    onStateChange({
+      proceed: blocker.proceed,
+      reset: blocker.reset,
+      state: blocker.state as BlockerState,
+    });
+  }, [blocker.proceed, blocker.reset, blocker.state, onStateChange]);
+
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      onBlocked();
+    }
+  }, [blocker.state, onBlocked]);
+
+  return null;
 }
 
 const createBaseValues = (defaultProjectId?: string, defaultAssigneeIds: string[] = [], defaultStatus?: string): TaskFormValues => ({
@@ -135,10 +173,13 @@ export function CreateTaskModal({
   const [createMore, setCreateMore] = useState(false);
   const [wasRestored, setWasRestored] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [blockerState, setBlockerState] = useState<BlockerState>("unblocked");
 
   const draftStorageKeyRef = useRef<string | null>(null);
   const lastSavedFingerprintRef = useRef<string>("");
   const abortControllerRef = useRef<AbortController | null>(null);
+  const blockerProceedRef = useRef<(() => void) | null>(null);
+  const blockerResetRef = useRef<(() => void) | null>(null);
 
   const createTask = useCreateTaskMutation();
   const publishTaskDraft = usePublishTaskDraftMutation();
@@ -166,22 +207,20 @@ export function CreateTaskModal({
   );
 
   const shouldBlockNavigation = open && hasUnsavedChanges && !isLocalSubmitting && !isSubmitting;
-  const blocker = useBlocker(shouldBlockNavigation);
-
-  useEffect(() => {
-    if (blocker.state === "blocked") {
-      setShowConfirmModal(true);
-    }
-  }, [blocker.state]);
+  const handleBlockerStateChange = useCallback((controller: BlockerController) => {
+    blockerProceedRef.current = controller.proceed;
+    blockerResetRef.current = controller.reset;
+    setBlockerState(controller.state);
+  }, []);
 
   useEffect(() => {
     if (!open) {
       setShowConfirmModal(false);
-      if (blocker.state === "blocked") {
-        blocker.reset();
-      }
+      setBlockerState("unblocked");
+      blockerProceedRef.current = null;
+      blockerResetRef.current = null;
     }
-  }, [blocker, open]);
+  }, [open]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -441,8 +480,8 @@ export function CreateTaskModal({
       resetDraftState(createBaseValues(defaultProjectId, defaultAssigneeIds));
       setOpen(false);
 
-      if (blocker.state === "blocked") {
-        blocker.proceed();
+      if (blockerState === "blocked") {
+        blockerProceedRef.current?.();
       }
     } catch {
       toast.error("Failed to discard draft.");
@@ -456,8 +495,8 @@ export function CreateTaskModal({
 
     if (!hasUnsavedChanges) {
       setShowConfirmModal(false);
-      if (blocker.state === "blocked") {
-        blocker.reset();
+      if (blockerState === "blocked") {
+        blockerResetRef.current?.();
       }
       setOpen(false);
       return;
@@ -484,8 +523,8 @@ export function CreateTaskModal({
       silent: false
     });
 
-    if (blocker.state === "blocked") {
-      blocker.proceed();
+    if (blockerState === "blocked") {
+      blockerProceedRef.current?.();
     }
 
     finalizeClose();
@@ -561,6 +600,13 @@ export function CreateTaskModal({
 
   return (
     <>
+      {open ? (
+        <CreateTaskRouteBlocker
+          shouldBlock={shouldBlockNavigation}
+          onBlocked={() => setShowConfirmModal(true)}
+          onStateChange={handleBlockerStateChange}
+        />
+      ) : null}
       <Dialog open={open} onOpenChange={(val) => {
         if (val) {
           setOpen(true);
@@ -603,22 +649,22 @@ export function CreateTaskModal({
               </div>
             )}
             <TaskForm
-            key={resetKey}
-            resetKey={resetKey}
-            projects={projects}
-            initialValues={initialValues}
-            onDiscard={handleDiscard}
-            onSaveDraft={handleSaveDraft}
-            onValuesChange={handleValuesChange}
-            onCloseRequest={handleAttemptClose}
-            onSubmit={(values, more) => handleSubmit(values, more)}
-            isSubmitting={isSubmitting || isLocalSubmitting}
-            isSavingDraft={isSavingDraft}
-            submitLabel="Create Task"
-            createMore={createMore}
-            onCreateMoreChange={setCreateMore}
-            defaultStatus={statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase()}
-          />
+              key={resetKey}
+              resetKey={resetKey}
+              projects={projects}
+              initialValues={initialValues}
+              onDiscard={handleDiscard}
+              onSaveDraft={handleSaveDraft}
+              onValuesChange={handleValuesChange}
+              onCloseRequest={handleAttemptClose}
+              onSubmit={(values, more) => handleSubmit(values, more)}
+              isSubmitting={isSubmitting || isLocalSubmitting}
+              isSavingDraft={isSavingDraft}
+              submitLabel="Create Task"
+              createMore={createMore}
+              onCreateMoreChange={setCreateMore}
+              defaultStatus={statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase()}
+            />
           </div>
 
         )}
@@ -628,8 +674,8 @@ export function CreateTaskModal({
         open={showConfirmModal}
         onOpenChange={(nextOpen) => {
           setShowConfirmModal(nextOpen);
-          if (!nextOpen && blocker.state === "blocked") {
-            blocker.reset();
+          if (!nextOpen && blockerState === "blocked") {
+            blockerResetRef.current?.();
           }
         }}
         onDiscard={handleDiscard}

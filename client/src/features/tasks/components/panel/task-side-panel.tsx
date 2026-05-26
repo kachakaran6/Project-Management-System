@@ -82,14 +82,54 @@ export function TaskSidePanel() {
     deltaX: 0,
     deltaY: 0,
   });
+  const latestPanelStateRef = useRef({
+    isOpen,
+    selectedTaskId,
+    navigationContext,
+  });
 
   useEffect(() => {
-    if (urlTaskId) {
-      openPanel(urlTaskId);
-    } else {
-      closePanel();
+    latestPanelStateRef.current = {
+      isOpen,
+      selectedTaskId,
+      navigationContext,
+    };
+  }, [isOpen, navigationContext, selectedTaskId]);
+
+  useEffect(() => {
+    const currentState = latestPanelStateRef.current;
+
+    if (!urlTaskId) {
+      if (currentState.isOpen || currentState.selectedTaskId) {
+        closePanel();
+      }
+      return;
     }
-  }, [closePanel, openPanel, urlTaskId]);
+
+    if (!currentState.isOpen) {
+      openPanel(
+        urlTaskId,
+        currentState.selectedTaskId === urlTaskId
+          ? currentState.navigationContext
+          : null,
+      );
+      return;
+    }
+
+    if (currentState.selectedTaskId === urlTaskId) {
+      return;
+    }
+
+    const isTaskInCurrentContext = Boolean(
+      currentState.navigationContext?.taskIds.includes(urlTaskId),
+    );
+
+    if (isTaskInCurrentContext) {
+      setSelectedTaskId(urlTaskId);
+    } else {
+      openPanel(urlTaskId, null);
+    }
+  }, [closePanel, openPanel, setSelectedTaskId, urlTaskId]);
 
   useEffect(() => {
     if (!isOpen || !selectedTaskId) return;
