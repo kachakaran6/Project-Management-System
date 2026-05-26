@@ -233,6 +233,27 @@ export const getRepoPullRequests = asyncHandler(async (req: Request, res: Respon
   return res.status(200).json({ success: true, data });
 });
 
+export const getRepoPullRequestDetail = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { owner, repo, pullNumber } = req.params;
+  const data = await githubService.getRepoPullRequestDetail(userId, owner as string, repo as string, Number(pullNumber));
+  return res.status(200).json({ success: true, data });
+});
+
+export const createRepoPullRequestReview = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { owner, repo, pullNumber } = req.params;
+  const data = await githubService.createRepoPullRequestReview(userId, owner as string, repo as string, Number(pullNumber), req.body);
+  return res.status(200).json({ success: true, data });
+});
+
+export const mergeRepoPullRequest = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { owner, repo, pullNumber } = req.params;
+  const data = await githubService.mergeRepoPullRequest(userId, owner as string, repo as string, Number(pullNumber), req.body);
+  return res.status(200).json({ success: true, data });
+});
+
 export const getRepoIssues = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).user.id;
   const { owner, repo } = req.params;
