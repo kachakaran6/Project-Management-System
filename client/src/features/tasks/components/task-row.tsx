@@ -37,6 +37,7 @@ import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { resolveStatus } from "../utils/resolve-status";
+import type { TaskPanelNavigationContext } from "@/features/tasks/utils/task-panel-navigation";
 
 export const TaskRow = ({
   taskId,
@@ -48,6 +49,7 @@ export const TaskRow = ({
   setSelectedTask,
   setDeleteId,
   hideProject = false,
+  panelContext,
 }: {
   taskId: string;
   idx: number;
@@ -58,6 +60,7 @@ export const TaskRow = ({
   setSelectedTask: Dispatch<SetStateAction<Task | null>>;
   setDeleteId: Dispatch<SetStateAction<string | null>>;
   hideProject?: boolean;
+  panelContext: TaskPanelNavigationContext;
 }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -143,7 +146,7 @@ export const TaskRow = ({
               const params = new URLSearchParams(searchParams.toString());
               params.set("taskId", tid(task));
               router.push(`${pathname}?${params.toString()}`, {scroll: false});
-              openPanel(tid(task));
+              openPanel(tid(task), panelContext);
             }}
             className="font-semibold text-[14px] md:text-[15px] hover:text-primary transition-colors line-clamp-1 cursor-pointer text-left">
             <div className="flex items-center gap-2">
@@ -340,7 +343,15 @@ export const TaskRow = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48 rounded-button border-border/50 shadow-2xl p-1.5 slide-in-from-right-2">
-            <DropdownMenuItem className="rounded-button px-3 py-2 cursor-pointer focus:bg-primary/10" onClick={() => openPanel(tid(task))}>
+            <DropdownMenuItem
+              className="rounded-button px-3 py-2 cursor-pointer focus:bg-primary/10"
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.set("taskId", tid(task));
+                router.push(`${pathname}?${params.toString()}`, {scroll: false});
+                openPanel(tid(task), panelContext);
+              }}
+            >
               <Eye className="mr-2.5 size-4 text-muted-foreground" />
               <span className="text-sm font-medium">View Details</span>
             </DropdownMenuItem>

@@ -83,6 +83,10 @@ import { cn } from "@/lib/utils";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { resolveStatus, normalizeId } from "@/features/tasks/utils/resolve-status";
+import {
+  buildSnapshotTaskPanelContext,
+  type TaskPanelNavigationContext,
+} from "@/features/tasks/utils/task-panel-navigation";
 
 // --- Column definitions --------------------------------------------------------
 
@@ -181,12 +185,13 @@ interface TaskCardProps {
   task: Task;
   index: number;
   canEdit?: boolean;
-  onContextMenu: (e: React.MouseEvent, taskId: string) => void;
+  onContextMenu: (e: React.MouseEvent, task: Task) => void;
   onDelete: (id: string) => void;
   isEmbedded?: boolean;
+  panelContext: TaskPanelNavigationContext;
 }
 
-const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDelete, isEmbedded = false }: TaskCardProps) => {
+const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDelete, isEmbedded = false, panelContext }: TaskCardProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -381,7 +386,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
               const params = new URLSearchParams(searchParams.toString());
               params.set("taskId", tid(task));
               router.push(`${pathname}?${params.toString()}`, { scroll: false });
-              openPanel(tid(task));
+              openPanel(tid(task), panelContext);
             }}>
             {/* Task ID Header */}
             <div className="flex items-center justify-between">
@@ -682,7 +687,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
                   const params = new URLSearchParams(searchParams.toString());
                   params.set("taskId", tid(task));
                   router.push(`${pathname}?${params.toString()}`, { scroll: false });
-                  openPanel(tid(task));
+                  openPanel(tid(task), panelContext);
                 }}
               >
                 <Eye className="size-3.5" />
@@ -730,7 +735,8 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
     tid(prevProps.task) === tid(nextProps.task) &&
     prevProps.task.updatedAt === nextProps.task.updatedAt &&
     prevProps.index === nextProps.index &&
-    prevProps.canEdit === nextProps.canEdit
+    prevProps.canEdit === nextProps.canEdit &&
+    prevProps.panelContext === nextProps.panelContext
   );
 });
 
@@ -901,7 +907,12 @@ export function TaskBoard({
   const { openPanel } = useTaskPanelStore();
 
   const [isSyncing, setIsSyncing] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; task: Task } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    task: Task;
+    panelContext: TaskPanelNavigationContext;
+  } | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTask, setDeletingTask] = useState<Task | null>(null);
 
@@ -909,7 +920,7 @@ export function TaskBoard({
     const params = new URLSearchParams(searchParams.toString());
     params.set("taskId", id);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-    openPanel(id);
+    openPanel(id, contextMenu?.panelContext ?? null);
   };
 
   const handleOpenNewTab = (id: string) => {
@@ -1160,7 +1171,7 @@ export function TaskBoard({
                   filters={filters}
                   canEdit={canEdit}
                   projectId={projectId}
-                  onContextMenu={(e, task) => setContextMenu({ x: e.clientX, y: e.clientY, task })}
+                  onContextMenu={(e, task, panelContext) => setContextMenu({ x: e.clientX, y: e.clientY, task, panelContext })}
                   onDelete={handleDelete}
                   isEmbedded={isEmbedded}
                   sortPref={columnSortPrefs[col.id] || { sortBy: 'newest', sortOrder: 'desc' }}
@@ -1224,7 +1235,7 @@ function KanbanColumn({
   filters: any;
   canEdit: boolean;
   projectId?: string;
-  onContextMenu: (e: React.MouseEvent, task: Task) => void;
+  onContextMenu: (e: React.MouseEvent, task: Task, panelContext: TaskPanelNavigationContext) => void;
   onDelete: (task: Task) => void;
   isEmbedded?: boolean;
   sortPref: { sortBy: string, sortOrder: "asc" | "desc" };
@@ -1248,6 +1259,15 @@ function KanbanColumn({
   const tasks = useMemo(() => {
     return data?.pages.flatMap((page: any) => page.data?.items || []) || [];
   }, [data]);
+  const columnPanelContext = useMemo(
+    () =>
+      buildSnapshotTaskPanelContext({
+        sourceKey: `task-board:${col.id}:${sortPref.sortBy}:${sortPref.sortOrder}`,
+        sourceLabel: col.label,
+        tasks,
+      }),
+    [col.id, col.label, sortPref.sortBy, sortPref.sortOrder, tasks],
+  );
 
   // Use real total from backend meta, not just loaded count
   const totalCount = data?.pages?.[0]?.data?.meta?.totalItems ?? tasks.length;
@@ -1379,10 +1399,11 @@ function KanbanColumn({
                     task={task}
                     index={index}
                     canEdit={canEdit}
-                    onContextMenu={onContextMenu}
-                    onDelete={onDelete}
-                    isEmbedded={isEmbedded}
-                  />
+	                    onContextMenu={(event, task) => onContextMenu(event, task, columnPanelContext)}
+	                    onDelete={onDelete}
+	                    isEmbedded={isEmbedded}
+                        panelContext={columnPanelContext}
+	                  />
                 ))
               )}
 

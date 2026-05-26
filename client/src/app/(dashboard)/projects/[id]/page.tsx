@@ -15,7 +15,6 @@ import { ProjectTabsList } from "@/features/projects/components/details/project-
 import { ProjectSidebarPanel } from "@/features/projects/components/details/project-sidebar-panel";
 import { ProjectTaskBoard } from "@/features/projects/components/details/task-board/project-task-board";
 import { ProjectLinkedPages } from "@/features/projects/components/details/project-linked-pages";
-import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
 import { useProjectLayout } from "@/features/projects/hooks/use-project-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -31,7 +30,6 @@ export default function ProjectDetailsPage() {
   
   const { isFocusMode, toggleFocusMode } = useProjectLayout();
   const { activeOrg } = useAuth();
-  const { openPanel } = useTaskPanelStore();
 
   const canEdit = activeOrg?.role === "OWNER" || activeOrg?.role === "ADMIN" || activeOrg?.role === "MANAGER";
 
@@ -113,7 +111,6 @@ export default function ProjectDetailsPage() {
                   <ProjectTaskBoard 
                     projectId={id as string} 
                     defaultAssigneeIds={project.defaultAssigneeIds || []}
-                    onTaskClick={(task) => openPanel(String(task.id || (task as any)._id))} 
                   />
                 </TabsContent>
 

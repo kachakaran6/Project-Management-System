@@ -11,7 +11,12 @@ import { JsonViewer } from "@/features/admin/components/json-viewer";
 import { TaskComments } from "@/features/comments/components/TaskComments";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
+import { TaskCopyButton } from "@/features/tasks/components/panel/task-copy-button";
 import { useTaskQuery } from "@/features/tasks/hooks/use-tasks-query";
+import {
+  formatTaskDescriptionForClipboard,
+  getTaskClipboardId,
+} from "@/features/tasks/utils/task-panel-navigation";
 import type { Task } from "@/types/task.types";
 import { Skeleton, SkeletonAvatar } from "@/components/ui/skeleton";
 import type { OrganizationMemberRecord } from "@/features/organization/api/organization-members.api";
@@ -185,12 +190,31 @@ export default function TaskDetailsPage() {
 
   const task = taskQuery.data.data;
   const creator = getTaskCreator(task, membersQuery.data?.data.members ?? []);
+  const taskClipboardId = getTaskClipboardId(task as Task & { _id?: string });
+  const descriptionText = formatTaskDescriptionForClipboard(task.description || "");
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-3xl font-semibold">{task.title}</h1>
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-start gap-3">
+            <h1 className="font-heading text-3xl font-semibold">{task.title}</h1>
+            <TaskCopyButton
+              value={task.title?.trim() || ""}
+              ariaLabel="Copy task title"
+              successMessage="Task title copied"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="font-mono">
+              {taskClipboardId}
+            </Badge>
+            <TaskCopyButton
+              value={taskClipboardId}
+              ariaLabel="Copy task ID"
+              successMessage="Task ID copied"
+            />
+          </div>
           <p className="text-muted-foreground mt-1">
             Full task details with activity and debug context.
           </p>
@@ -246,7 +270,16 @@ export default function TaskDetailsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Task Overview</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-base">Task Overview</CardTitle>
+            {descriptionText ? (
+              <TaskCopyButton
+                value={descriptionText}
+                ariaLabel="Copy task description"
+                successMessage="Task description copied"
+              />
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p>

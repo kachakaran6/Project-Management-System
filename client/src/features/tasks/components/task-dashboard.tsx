@@ -113,6 +113,10 @@ import { TaskListSkeleton, TaskBoardSkeleton, TaskTableSkeleton } from "@/featur
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { resolveStatus, filterVisibleTasks, normalizeId } from "@/features/tasks/utils/resolve-status";
 import { useTaskPanelStore } from "@/features/tasks/store/task-panel-store";
+import {
+  buildPaginatedTaskPanelContext,
+  buildSnapshotTaskPanelContext,
+} from "@/features/tasks/utils/task-panel-navigation";
 
 // Pagination Constants
 import {
@@ -477,6 +481,28 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
 
   const getTaskId = (task: Task) => String(task.id || (task as any)._id || "");
   const getAssignees = (task: Task) => task.assigneeUsers ?? [];
+  const tablePanelContext = useMemo(
+    () =>
+      buildPaginatedTaskPanelContext({
+        sourceKey: `task-dashboard:table:${page}:${projectId}:${selectedSortField}:${selectedSortDirection}`,
+        sourceLabel: page > 1 ? `Filtered tasks page ${page}` : "Filtered tasks",
+        tasks: listRows,
+        filters: listFilters,
+        page,
+        limit,
+        totalPages,
+      }),
+    [
+      limit,
+      listFilters,
+      listRows,
+      page,
+      projectId,
+      selectedSortDirection,
+      selectedSortField,
+      totalPages,
+    ],
+  );
 
   const tasks = listQuery.data?.data?.items ?? [];
   const deletingTask = tasks.find((t) => (t.id || (t as any)._id) === deleteId);
@@ -997,13 +1023,18 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 <div className="min-w-full">
                   {viewMode === "list" && (
                     <div className="flex flex-col gap-2 p-1.5">
-                      {Object.entries(groupedTasks).map(([statusName, tasks]) => {
-                        const isDraftGroup = statusName === "DRAFTS";
-                        const status = isDraftGroup ? null : dynamicStatuses.find(s => s.name.toUpperCase() === statusName);
-                        const displayName = isDraftGroup ? "Drafts" : (status?.name || statusName);
-                        const statusColor = isDraftGroup ? "#94a3b8" : (status?.color || "#94a3b8");
-                        
-                        if (tasks.length === 0) return null; // Only show non-empty groups in global view
+	                      {Object.entries(groupedTasks).map(([statusName, tasks]) => {
+	                        const isDraftGroup = statusName === "DRAFTS";
+	                        const status = isDraftGroup ? null : dynamicStatuses.find(s => s.name.toUpperCase() === statusName);
+	                        const displayName = isDraftGroup ? "Drafts" : (status?.name || statusName);
+	                        const statusColor = isDraftGroup ? "#94a3b8" : (status?.color || "#94a3b8");
+                          const groupPanelContext = buildSnapshotTaskPanelContext({
+                            sourceKey: `task-dashboard:list:${statusName}:${page}`,
+                            sourceLabel: displayName,
+                            tasks,
+                          });
+	                        
+	                        if (tasks.length === 0) return null; // Only show non-empty groups in global view
 
                         return (
                           <AccordionSection 
@@ -1021,12 +1052,12 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                   <div
                                     key={taskId}
                                     className="rounded-button border border-border/10 bg-card/40 p-2.5 md:p-3 shadow-sm hover:border-primary/20 transition-all cursor-pointer"
-                                    onClick={() => {
-                                      const params = new URLSearchParams(searchParams.toString());
-                                      params.set("taskId", taskId);
-                                      router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
-                                      openPanel(taskId);
-                                    }}
+	                                    onClick={() => {
+	                                      const params = new URLSearchParams(searchParams.toString());
+	                                      params.set("taskId", taskId);
+	                                      router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+	                                      openPanel(taskId, groupPanelContext);
+	                                    }}
                                   >
                                     <div className="flex items-start justify-between gap-3 mb-1.5">
                                       <div className="min-w-0">
@@ -1258,12 +1289,13 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                 new Date(task.dueDate) < new Date() &&
                                 getStatusName(task.status, dynamicStatuses).toUpperCase() !== "DONE"
                               }
-                              canMutate={canMutate}
-                              setSelectedTask={setSelectedTask}
-                              setDeleteId={setDeleteId}
-                              hideProject={Boolean(fixedProjectId)}
-                              dynamicStatuses={dynamicStatuses}
-                            />
+	                              canMutate={canMutate}
+	                              setSelectedTask={setSelectedTask}
+	                              setDeleteId={setDeleteId}
+	                              hideProject={Boolean(fixedProjectId)}
+	                              dynamicStatuses={dynamicStatuses}
+                                panelContext={tablePanelContext}
+	                            />
                           ))}
                         </TableBody>
                       </Table>
