@@ -1,4 +1,5 @@
 import React, {
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -6,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
+import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
 import { History, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,6 +39,8 @@ import { TaskLinkedPages } from "./task-linked-pages";
 import { TaskMobileNavigation } from "./task-mobile-navigation";
 import { TaskProperties } from "./task-properties";
 import { cn } from "@/lib/utils";
+import type { TaskPanelNavigationContext } from "@/features/tasks/utils/task-panel-navigation";
+import type { Task } from "@/types/task.types";
 
 function getResponseTaskIds(response: any) {
   return (response?.data?.items ?? [])
@@ -58,23 +61,126 @@ const TASK_SWIPE_TRIGGER = 84;
 const TASK_SWIPE_MAX = 280;
 const TASK_SWIPE_AXIS_THRESHOLD = 10;
 
-const taskDetailVariants = {
-  enter: (direction: -1 | 0 | 1) => ({
-    opacity: 0,
-    x: direction === 0 ? 0 : direction * 32,
-    scale: 0.985,
-  }),
-  center: {
-    opacity: 1,
-    x: 0,
-    scale: 1,
-  },
-  exit: (direction: -1 | 0 | 1) => ({
-    opacity: 0,
-    x: direction === 0 ? 0 : direction * -24,
-    scale: 0.985,
-  }),
+type SwipeDirection = -1 | 1;
+
+type PendingNavigation = {
+  direction: SwipeDirection;
+  targetTaskId: string;
+  nextContext: TaskPanelNavigationContext;
 };
+
+interface TaskDetailBodyProps {
+  task: Task;
+  taskDetailId: string;
+}
+
+interface TaskDetailLayerProps {
+  task: Task;
+  taskDetailId: string;
+  isActive: boolean;
+  scrollPosition: number;
+  onScrollPositionChange: (taskId: string, scrollTop: number) => void;
+}
+
+const TaskDetailBody = memo(function TaskDetailBody({
+  task,
+  taskDetailId,
+}: TaskDetailBodyProps) {
+  return (
+    <div className="max-w-3xl mx-auto pb-28 sm:pb-4">
+      <div className="space-y-2 will-change-transform">
+        <TaskHeader task={task} />
+        <TaskProperties task={task} />
+        <GithubLinkingGuidance
+          taskCode={task.taskCode}
+          projectId={
+            typeof task.projectId === "string"
+              ? task.projectId
+              : (task.projectId as any)?.id ||
+                (task.projectId as any)?._id
+          }
+          isProjectConnected={
+            !!(task.projectId as any)?.githubSettings?.repoUrl ||
+            !!(task as any).project?.githubSettings?.repoUrl
+          }
+        />
+        <TaskDescription task={task} />
+
+        <TaskLinkedPages taskId={taskDetailId} />
+
+        <TaskGithubActivity links={task.githubLinks || []} />
+
+        <div className="pb-4 pt-8">
+          <div className="mb-4 flex items-center gap-2">
+            <div className="flex size-8 items-center justify-center rounded-button bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20">
+              <History className="size-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-widest text-foreground/90">
+                Status Timeline
+              </h3>
+              <p className="text-[10px] font-medium text-muted-foreground">
+                Full audit trail of status changes
+              </p>
+            </div>
+          </div>
+          <TaskStatusHistory taskId={taskDetailId} />
+        </div>
+
+        <div className="border-t pt-2" />
+        <TaskComments taskId={taskDetailId} />
+      </div>
+    </div>
+  );
+});
+
+const TaskDetailLayer = memo(function TaskDetailLayer({
+  task,
+  taskDetailId,
+  isActive,
+  scrollPosition,
+  onScrollPositionChange,
+}: TaskDetailLayerProps) {
+  const layerScrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const container = layerScrollRef.current;
+    if (!container) return;
+    container.scrollTo({ top: scrollPosition, behavior: "auto" });
+  }, [scrollPosition, taskDetailId]);
+
+  const handleScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      onScrollPositionChange(taskDetailId, event.currentTarget.scrollTop);
+    },
+    [onScrollPositionChange, taskDetailId],
+  );
+
+  return (
+    <div
+      className={cn(
+        "h-full w-full shrink-0 overflow-hidden bg-background",
+        !isActive && "pointer-events-none",
+      )}
+      aria-hidden={!isActive}
+    >
+      <div
+        ref={layerScrollRef}
+        className={cn(
+          "h-full overflow-y-auto px-4 pt-6 pb-8 sm:px-8 custom-scrollbar",
+          !isActive && "select-none",
+        )}
+        style={{ overscrollBehavior: "contain" }}
+        onScroll={handleScroll}
+        tabIndex={isActive ? 0 : -1}
+        role="region"
+        aria-label="Task details"
+      >
+        <TaskDetailBody task={task} taskDetailId={taskDetailId} />
+      </div>
+    </div>
+  );
+});
 
 export function TaskSidePanel() {
   const {
@@ -94,15 +200,36 @@ export function TaskSidePanel() {
   const isMobile = useMediaQuery("(max-width: 767px)");
   const prefersReducedMotion = useReducedMotion();
   const urlTaskId = searchParams.get("taskId");
-  const [navigationDirection, setNavigationDirection] = useState<-1 | 0 | 1>(0);
   const [isNavigating, setIsNavigating] = useState(false);
-  const [gestureMode, setGestureMode] = useState<"idle" | "horizontal" | "vertical">("idle");
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const scrollPositionsRef = useRef<Record<string, number>>({});
   const previousTaskIdRef = useRef<string | null>(null);
+  const gestureModeRef = useRef<"idle" | "horizontal" | "vertical">("idle");
   const swipeX = useMotionValue(0);
-  const swipeScale = useTransform(swipeX, [-TASK_SWIPE_MAX, 0, TASK_SWIPE_MAX], [0.985, 1, 0.985]);
-  const swipeOpacity = useTransform(swipeX, [-TASK_SWIPE_MAX, 0, TASK_SWIPE_MAX], [0.92, 1, 0.92]);
+  const [panelWidth, setPanelWidth] = useState(0);
+  const panelTransitionWidth = panelWidth || 800; // Fallback width
+
+  // Current Layer (z-10)
+  // When swiping left (next): Moves to -width*0.25, scales to 0.96, dims to 0.4.
+  // When swiping right (prev): Moves to width, stays scale 1, no dimming.
+  const currentX = useTransform(swipeX, [-panelTransitionWidth, 0, panelTransitionWidth], [-panelTransitionWidth * 0.25, 0, panelTransitionWidth]);
+  const currentScale = useTransform(swipeX, [-panelTransitionWidth, 0, panelTransitionWidth], [0.96, 1, 1]);
+  const currentDimming = useTransform(swipeX, [-panelTransitionWidth, 0, panelTransitionWidth], [0.4, 0, 0]);
+
+  // Previous Layer (z-0)
+  // Only matters when swiping right (prev). Comes from -width*0.25, scales 0.96->1, dimming 0.4->0.
+  const previousX = useTransform(swipeX, [0, panelTransitionWidth], [-panelTransitionWidth * 0.25, 0]);
+  const previousScale = useTransform(swipeX, [0, panelTransitionWidth], [0.96, 1]);
+  const previousDimming = useTransform(swipeX, [0, panelTransitionWidth], [0.4, 0]);
+
+  // Next Layer (z-20)
+  // Only matters when swiping left (next). Comes from width->0, scales 0.985->1, content opacity 0.92->1.
+  const nextX = useTransform(swipeX, [-panelTransitionWidth, 0], [0, panelTransitionWidth]);
+  const nextScale = useTransform(swipeX, [-panelTransitionWidth, 0], [1, 0.985]);
+  const nextContentOpacity = useTransform(swipeX, [-panelTransitionWidth, 0], [1, 0.92]);
+
+  const [gesturePreviewDirection, setGesturePreviewDirection] = useState<SwipeDirection | null>(null);
+  const [pendingNavigation, setPendingNavigation] = useState<PendingNavigation | null>(null);
   const swipeGestureRef = useRef({
     active: false,
     pointerId: -1,
@@ -111,6 +238,7 @@ export function TaskSidePanel() {
     lastX: 0,
     lastTime: 0,
     axis: "idle" as "idle" | "horizontal" | "vertical",
+    direction: 0 as SwipeDirection | 0,
   });
   const latestPanelStateRef = useRef({
     isOpen,
@@ -227,6 +355,32 @@ export function TaskSidePanel() {
     currentIndex >= 0 && currentIndex < taskIds.length - 1
       ? taskIds[currentIndex + 1]
       : null;
+
+  const navigationPreviewTaskId = useMemo(() => {
+    if (gesturePreviewDirection === 1) return nextTaskId;
+    if (gesturePreviewDirection === -1) return previousTaskId;
+    return null;
+  }, [gesturePreviewDirection, nextTaskId, previousTaskId]);
+
+  const pendingTaskQuery = useTaskQuery(
+    pendingNavigation?.targetTaskId || "",
+    isOpen && !!pendingNavigation?.targetTaskId
+  );
+  const previousTaskQuery = useTaskQuery(
+    previousTaskId || "",
+    isOpen && !!previousTaskId
+  );
+  const nextTaskQuery = useTaskQuery(
+    nextTaskId || "",
+    isOpen && !!nextTaskId
+  );
+
+  const pendingTask = pendingTaskQuery.data?.data;
+  const previousTask = previousTaskQuery.data?.data || (pendingNavigation?.direction === -1 ? pendingTask : null);
+  const nextTask = nextTaskQuery.data?.data || (pendingNavigation?.direction === 1 ? pendingTask : null);
+
+  const activePreviousId = pendingNavigation?.direction === -1 ? pendingNavigation.targetTaskId : previousTaskId;
+  const activeNextId = pendingNavigation?.direction === 1 ? pendingNavigation.targetTaskId : nextTaskId;
 
   const positionLabel = useMemo(() => {
     if (!navigationContext) return "";
@@ -345,13 +499,120 @@ export function TaskSidePanel() {
     }
   }, [activeOrgId, currentIndex, navigationContext, queryClient, taskIds.length]);
 
-  const navigateTask = useCallback(
-    async (direction: -1 | 1) => {
-      if (!selectedTaskId || !navigationContext || isNavigating) return;
+  useEffect(() => {
+    const previousTaskId = previousTaskIdRef.current;
+    if (previousTaskId && viewportRef.current) {
+      scrollPositionsRef.current[previousTaskId] = viewportRef.current.scrollTop;
+    }
+
+    previousTaskIdRef.current = selectedTaskId;
+  }, [selectedTaskId]);
+
+  useEffect(() => {
+    if (!selectedTaskId || !task || !viewportRef.current) return;
+
+    const nextScrollTop = scrollPositionsRef.current[selectedTaskId] ?? 0;
+    requestAnimationFrame(() => {
+      viewportRef.current?.scrollTo({ top: nextScrollTop, behavior: "auto" });
+    });
+  }, [selectedTaskId, task]);
+
+  useEffect(() => {
+    const container = viewportRef.current;
+    if (!container) return;
+
+    container.style.touchAction = "pan-y";
+  }, []);
+
+  useEffect(() => {
+    const container = viewportRef.current;
+    if (!container) return;
+
+    const updateWidth = () => setPanelWidth(container.clientWidth);
+    updateWidth();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateWidth);
+      return () => window.removeEventListener("resize", updateWidth);
+    }
+
+    const observer = new ResizeObserver(() => updateWidth());
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const clearGesturePreview = useCallback(() => {
+    setGesturePreviewDirection(null);
+    if (viewportRef.current) {
+      viewportRef.current.style.touchAction = "pan-y";
+      viewportRef.current.classList.remove("select-none");
+    }
+    gestureModeRef.current = "idle";
+  }, []);
+
+  const setGestureMode = useCallback((mode: "idle" | "horizontal" | "vertical") => {
+    gestureModeRef.current = mode;
+    const container = viewportRef.current;
+    if (!container) return;
+
+    if (mode === "horizontal") {
+      container.style.touchAction = "none";
+      container.classList.add("select-none");
+    } else {
+      container.style.touchAction = "pan-y";
+      container.classList.remove("select-none");
+    }
+  }, []);
+
+  const completeTaskTransition = useCallback((completedNavigation: PendingNavigation) => {
+    swipeX.set(0);
+    setSelectedTaskId(completedNavigation.targetTaskId);
+    setNavigationContext(completedNavigation.nextContext);
+    setPendingNavigation(null);
+    setIsNavigating(false);
+    clearGesturePreview();
+  }, [clearGesturePreview, setNavigationContext, setSelectedTaskId, swipeX]);
+
+  const animateSwipeMotion = useCallback(
+    (targetX: number, onComplete?: () => void) => {
+      animate(swipeX, targetX, {
+        type: "spring",
+        stiffness: 360,
+        damping: 34,
+        mass: 0.82,
+        onComplete,
+      });
+    },
+    [swipeX],
+  );
+
+  const resetSwipeMotion = useCallback(() => {
+    animateSwipeMotion(0, () => {
+      setPendingNavigation(null);
+      setIsNavigating(false);
+      clearGesturePreview();
+    });
+  }, [animateSwipeMotion, clearGesturePreview]);
+
+  const prefetchAdjacentTasks = useCallback(() => {
+    if (!isOpen || !activeOrgId) return;
+
+    [previousTaskId, nextTaskId].filter(Boolean).forEach((taskId) => {
+      queryClient.prefetchQuery({
+        queryKey: tasksQueryKeys.detail(taskId as string, activeOrgId),
+        queryFn: () => taskApi.getTask(taskId as string),
+        staleTime: 10_000,
+      });
+    });
+  }, [activeOrgId, isOpen, nextTaskId, previousTaskId, queryClient]);
+
+  const startTaskTransition = useCallback(
+    async (direction: SwipeDirection, immediateSnap = false) => {
+      if (!selectedTaskId || !navigationContext || isNavigating || pendingNavigation) return;
 
       let nextContext = navigationContext;
-      let targetId =
-        currentIndex >= 0 ? taskIds[currentIndex + direction] : undefined;
+      let targetId = currentIndex >= 0 ? taskIds[currentIndex + direction] : undefined;
       const isImmediateSwitch = Boolean(targetId);
 
       if (
@@ -390,103 +651,87 @@ export function TaskSidePanel() {
       }
 
       setIsNavigating(true);
+      const targetX = direction === 1 ? -panelTransitionWidth : panelTransitionWidth;
 
-      try {
-        setNavigationDirection(direction);
+      if (immediateSnap) {
         if (nextContext !== navigationContext) {
           setNavigationContext(nextContext);
         }
-        setSelectedTaskId(targetId);
 
+        const newPending: PendingNavigation = {
+          direction,
+          targetTaskId: targetId,
+          nextContext,
+        };
+        setPendingNavigation(newPending);
+        setGesturePreviewDirection(direction);
+        animateSwipeMotion(targetX, () => completeTaskTransition(newPending));
+
+        // Fire-and-forget fetch since the user already committed to the gesture
         if (activeOrgId) {
-          void queryClient.fetchQuery({
+          queryClient.fetchQuery({
             queryKey: tasksQueryKeys.detail(targetId, activeOrgId),
             queryFn: () => taskApi.getTask(targetId as string),
             staleTime: 10_000,
-          }).catch(() => {
-            if (isImmediateSwitch) {
-              toast.error("That task is no longer available");
-            }
-          });
+          }).catch(() => {});
         }
-      } catch {
-        if (nextContext === navigationContext) {
-          setNavigationContext({
-            ...navigationContext,
-            taskIds: navigationContext.taskIds.filter((id) => id !== targetId),
-          });
+      } else {
+        try {
+          if (nextContext !== navigationContext) {
+            setNavigationContext(nextContext);
+          }
+
+          if (activeOrgId) {
+            await queryClient.fetchQuery({
+              queryKey: tasksQueryKeys.detail(targetId, activeOrgId),
+              queryFn: () => taskApi.getTask(targetId as string),
+              staleTime: 10_000,
+            });
+          }
+
+          const newPending: PendingNavigation = {
+            direction,
+            targetTaskId: targetId,
+            nextContext,
+          };
+          setPendingNavigation(newPending);
+          setGesturePreviewDirection(direction);
+
+          animateSwipeMotion(targetX, () => completeTaskTransition(newPending));
+        } catch {
+          if (nextContext === navigationContext) {
+            setNavigationContext({
+              ...navigationContext,
+              taskIds: navigationContext.taskIds.filter((id) => id !== targetId),
+            });
+          }
+          if (isImmediateSwitch) {
+            toast.error("That task is no longer available");
+          }
+          setIsNavigating(false);
+          setPendingNavigation(null);
+          clearGesturePreview();
+          animateSwipeMotion(0);
         }
-        toast.error("That task is no longer available");
-      } finally {
-        requestAnimationFrame(() => setIsNavigating(false));
       }
     },
     [
       activeOrgId,
+      animateSwipeMotion,
+      completeTaskTransition,
       currentIndex,
       fetchContextPage,
       isNavigating,
       navigationContext,
+      panelTransitionWidth,
+      pendingNavigation,
       queryClient,
       selectedTaskId,
       setNavigationContext,
-      setSelectedTaskId,
       taskIds,
+      clearGesturePreview,
     ],
   );
-
-  const handleScroll = useCallback(
-    (event: React.UIEvent<HTMLDivElement>) => {
-      if (!selectedTaskId) return;
-      scrollPositionsRef.current[selectedTaskId] = event.currentTarget.scrollTop;
-    },
-    [selectedTaskId],
-  );
-
-  useEffect(() => {
-    const previousTaskId = previousTaskIdRef.current;
-    if (previousTaskId && scrollContainerRef.current) {
-      scrollPositionsRef.current[previousTaskId] =
-        scrollContainerRef.current.scrollTop;
-    }
-
-    previousTaskIdRef.current = selectedTaskId;
-  }, [selectedTaskId]);
-
-  useEffect(() => {
-    if (!selectedTaskId || !task || !scrollContainerRef.current) return;
-
-    const nextScrollTop = scrollPositionsRef.current[selectedTaskId] ?? 0;
-    requestAnimationFrame(() => {
-      scrollContainerRef.current?.scrollTo({ top: nextScrollTop, behavior: "auto" });
-    });
-  }, [selectedTaskId, task]);
-
-  useEffect(() => {
-    if (gestureMode !== "horizontal") return;
-
-    const handleWindowPointerUp = () => {
-      setGestureMode("idle");
-      swipeGestureRef.current.axis = "idle";
-    };
-
-    window.addEventListener("pointerup", handleWindowPointerUp, { once: true });
-    window.addEventListener("pointercancel", handleWindowPointerUp, { once: true });
-
-    return () => {
-      window.removeEventListener("pointerup", handleWindowPointerUp);
-      window.removeEventListener("pointercancel", handleWindowPointerUp);
-    };
-  }, [gestureMode]);
-
-  const resetSwipeMotion = useCallback(() => {
-    animate(swipeX, 0, {
-      type: "spring",
-      stiffness: 360,
-      damping: 34,
-      mass: 0.82,
-    });
-  }, [swipeX]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (
@@ -506,9 +751,11 @@ export function TaskSidePanel() {
       lastX: event.clientX,
       lastTime: performance.now(),
       axis: "idle",
+      direction: 0,
     };
 
     setGestureMode("idle");
+    prefetchAdjacentTasks();
 
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -539,15 +786,30 @@ export function TaskSidePanel() {
 
       gesture.axis = "horizontal";
       setGestureMode("horizontal");
+      const nextDirection: SwipeDirection = deltaX < 0 ? 1 : -1;
+      gesture.direction = nextDirection;
+      if (nextDirection === 1 ? nextTaskId : previousTaskId) {
+        setGesturePreviewDirection(nextDirection);
+      }
     }
 
     if (gesture.axis !== "horizontal") return;
 
     event.preventDefault();
 
-    const isAtEdge = deltaX > 0 ? !canGoPrevious : !canGoNext;
-    const resistance = isAtEdge ? 0.36 : 1;
-    const boundedDelta = Math.max(-TASK_SWIPE_MAX, Math.min(TASK_SWIPE_MAX, deltaX));
+    const nextDirection: SwipeDirection = deltaX < 0 ? 1 : -1;
+    if (gesture.direction !== nextDirection) {
+      gesture.direction = nextDirection;
+      if ((nextDirection === 1 && nextTaskId) || (nextDirection === -1 && previousTaskId)) {
+        setGesturePreviewDirection(nextDirection);
+      }
+    }
+
+    const isAtLeftEdge = !canGoPrevious || !previousTask;
+    const isAtRightEdge = !canGoNext || (!nextTask && !pendingNavigation);
+    const isAtEdge = deltaX > 0 ? isAtLeftEdge : isAtRightEdge;
+    const resistance = isAtEdge ? 0.15 : 1;
+    const boundedDelta = Math.max(-panelTransitionWidth, Math.min(panelTransitionWidth, deltaX));
     swipeX.set(boundedDelta * resistance);
 
     gesture.lastX = event.clientX;
@@ -569,23 +831,28 @@ export function TaskSidePanel() {
     gesture.active = false;
     gesture.pointerId = -1;
     gesture.axis = "idle";
+    gesture.direction = 0;
     setGestureMode("idle");
 
     const absX = Math.abs(projectedDeltaX);
     const absY = Math.abs(deltaY);
+
+    const isAtLeftEdge = !canGoPrevious || !previousTask;
+    const isAtRightEdge = !canGoNext || (!nextTask && !pendingNavigation);
+
     const shouldNavigate =
       wasHorizontal &&
       absX >= TASK_SWIPE_TRIGGER &&
       absX > absY * 1.05 &&
-      ((projectedDeltaX < 0 && canGoNext) || (projectedDeltaX > 0 && canGoPrevious));
-
-    resetSwipeMotion();
+      ((projectedDeltaX < 0 && !isAtRightEdge) || (projectedDeltaX > 0 && !isAtLeftEdge));
 
     if (shouldNavigate) {
-      const direction: -1 | 1 = projectedDeltaX < 0 ? 1 : -1;
-      setNavigationDirection(direction);
-      void navigateTask(direction);
+      const direction: SwipeDirection = projectedDeltaX < 0 ? 1 : -1;
+      void startTaskTransition(direction, true); // True for immediate snap
+      return;
     }
+
+    resetSwipeMotion();
   };
 
   const handlePointerCancel = () => {
@@ -593,6 +860,7 @@ export function TaskSidePanel() {
     gesture.active = false;
     gesture.pointerId = -1;
     gesture.axis = "idle";
+    gesture.direction = 0;
     setGestureMode("idle");
     resetSwipeMotion();
   };
@@ -602,17 +870,18 @@ export function TaskSidePanel() {
 
     if (event.key === "ArrowLeft" && canGoPrevious && !isNavigating) {
       event.preventDefault();
-      void navigateTask(-1);
+      void startTaskTransition(-1);
     }
 
     if (event.key === "ArrowRight" && canGoNext && !isNavigating) {
       event.preventDefault();
-      void navigateTask(1);
+      void startTaskTransition(1);
     }
   };
 
   const taskDetailId = task?.id || (task as any)?._id || selectedTaskId || "";
   const isTaskContentLoading = isLoading && !task;
+  const isTransitionActive = Boolean(pendingNavigation);
 
   return (
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
@@ -653,7 +922,10 @@ export function TaskSidePanel() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-hidden">
+          <div
+            ref={viewportRef}
+            className="relative flex-1 overflow-hidden"
+          >
             {isTaskContentLoading ? (
               <div className="space-y-6 p-4 sm:p-8">
                 <Skeleton className="h-10 w-3/4" />
@@ -689,95 +961,91 @@ export function TaskSidePanel() {
                 </button>
               </div>
             ) : task ? (
-              <motion.div
-                className="h-full will-change-transform"
-                style={{
-                  x: swipeX,
-                  scale: swipeScale,
-                  opacity: swipeOpacity,
-                }}
+              <div
+                className="relative h-full w-full overflow-hidden bg-black" // Solid black background for physical depth recess
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerEnd}
+                onPointerCancel={handlePointerCancel}
+                onKeyDownCapture={handleKeyboardNavigation}
+                tabIndex={0}
+                role="region"
+                aria-label="Task details swipe container"
+                style={{ touchAction: "none" }}
               >
-                <div
-                  ref={scrollContainerRef}
-                  className={cn(
-                    "h-full overflow-y-auto px-4 pt-6 pb-8 sm:px-8 custom-scrollbar",
-                    gestureMode === "horizontal" && "select-none",
-                  )}
+                {/* PREVIOUS TASK */}
+                {previousTask && activePreviousId && (
+                  <motion.div
+                    className="absolute inset-0 z-0 bg-background"
+                    style={{
+                      x: previousX,
+                      scale: previousScale,
+                      pointerEvents: swipeX.get() > 0 ? "auto" : "none",
+                    }}
+                  >
+                    <TaskDetailLayer
+                      task={previousTask}
+                      taskDetailId={activePreviousId}
+                      isActive={false}
+                      scrollPosition={scrollPositionsRef.current[activePreviousId] ?? 0}
+                      onScrollPositionChange={(taskId, scrollTop) => {
+                        scrollPositionsRef.current[taskId] = scrollTop;
+                      }}
+                    />
+                    <motion.div 
+                      className="absolute inset-0 bg-black pointer-events-none" 
+                      style={{ opacity: previousDimming }} 
+                    />
+                  </motion.div>
+                )}
+
+                {/* CURRENT TASK */}
+                <motion.div
+                  className="absolute inset-0 z-10 bg-background shadow-[0_0_40px_rgba(0,0,0,0.2)]"
                   style={{
-                    touchAction: gestureMode === "horizontal" ? "none" : "pan-y",
-                    overscrollBehavior: "contain",
+                    x: currentX,
+                    scale: currentScale,
                   }}
-                  onScroll={handleScroll}
-                  onPointerDown={handlePointerDown}
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerEnd}
-                  onPointerCancel={handlePointerCancel}
-                  onKeyDownCapture={handleKeyboardNavigation}
-                  tabIndex={0}
-                  role="region"
-                  aria-label="Task details"
                 >
-                  <div className="max-w-3xl mx-auto pb-28 sm:pb-4">
-                    <AnimatePresence initial={false} custom={navigationDirection} mode="sync">
-                      <motion.div
-                        key={selectedTaskId}
-                        custom={navigationDirection}
-                        variants={taskDetailVariants}
-                        initial="enter"
-                        animate="center"
-                        exit="exit"
-                        transition={
-                          prefersReducedMotion
-                            ? { type: "tween", duration: 0.01 }
-                            : { type: "spring", stiffness: 360, damping: 32, mass: 0.9 }
-                        }
-                        className="space-y-2 will-change-transform"
-                      >
-                        <TaskHeader task={task} />
-                        <TaskProperties task={task} />
-                        <GithubLinkingGuidance
-                          taskCode={task.taskCode}
-                          projectId={
-                            typeof task.projectId === "string"
-                              ? task.projectId
-                              : (task.projectId as any)?.id ||
-                                (task.projectId as any)?._id
-                          }
-                          isProjectConnected={
-                            !!(task.projectId as any)?.githubSettings?.repoUrl ||
-                            !!(task as any).project?.githubSettings?.repoUrl
-                          }
-                        />
-                        <TaskDescription task={task} />
+                  <TaskDetailLayer
+                    task={task}
+                    taskDetailId={taskDetailId}
+                    isActive={!isTransitionActive}
+                    scrollPosition={scrollPositionsRef.current[selectedTaskId || taskDetailId] ?? 0}
+                    onScrollPositionChange={(taskId, scrollTop) => {
+                      scrollPositionsRef.current[taskId] = scrollTop;
+                    }}
+                  />
+                  <motion.div 
+                    className="absolute inset-0 bg-black pointer-events-none" 
+                    style={{ opacity: currentDimming }} 
+                  />
+                </motion.div>
 
-                        <TaskLinkedPages taskId={taskDetailId} />
-
-                        <TaskGithubActivity links={task.githubLinks || []} />
-
-                        <div className="pb-4 pt-8">
-                          <div className="mb-4 flex items-center gap-2">
-                            <div className="flex size-8 items-center justify-center rounded-button bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20">
-                              <History className="size-4" />
-                            </div>
-                            <div>
-                              <h3 className="text-sm font-black uppercase tracking-widest text-foreground/90">
-                                Status Timeline
-                              </h3>
-                              <p className="text-[10px] font-medium text-muted-foreground">
-                                Full audit trail of status changes
-                              </p>
-                            </div>
-                          </div>
-                          <TaskStatusHistory taskId={taskDetailId} />
-                        </div>
-
-                        <div className="border-t pt-2" />
-                        <TaskComments taskId={taskDetailId} />
-                      </motion.div>
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </motion.div>
+                {/* NEXT TASK */}
+                {nextTask && activeNextId && (
+                  <motion.div
+                    className="absolute inset-0 z-20 bg-background shadow-[-20px_0_40px_rgba(0,0,0,0.2)]"
+                    style={{
+                      x: nextX,
+                      scale: nextScale,
+                      pointerEvents: swipeX.get() < 0 ? "auto" : "none",
+                    }}
+                  >
+                    <motion.div className="h-full w-full" style={{ opacity: nextContentOpacity }}>
+                      <TaskDetailLayer
+                        task={nextTask}
+                        taskDetailId={activeNextId}
+                        isActive={false}
+                        scrollPosition={scrollPositionsRef.current[activeNextId] ?? 0}
+                        onScrollPositionChange={(taskId, scrollTop) => {
+                          scrollPositionsRef.current[taskId] = scrollTop;
+                        }}
+                      />
+                    </motion.div>
+                  </motion.div>
+                )}
+              </div>
             ) : null}
           </div>
 
@@ -792,8 +1060,8 @@ export function TaskSidePanel() {
                 canGoPrevious={canGoPrevious}
                 canGoNext={canGoNext}
                 isNavigating={isNavigating}
-                onPrevious={() => void navigateTask(-1)}
-                onNext={() => void navigateTask(1)}
+                onPrevious={() => void startTaskTransition(-1)}
+                onNext={() => void startTaskTransition(1)}
               />
             </>
           ) : null}

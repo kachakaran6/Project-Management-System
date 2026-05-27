@@ -514,8 +514,8 @@ export function useTaskQuery(id: string, enabled = true) {
     queryKey: tasksQueryKeys.detail(id, activeOrgId),
     queryFn: () => taskApi.getTask(id),
     enabled: enabled && Boolean(id) && !!activeOrgId,
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 15_000,
+    refetchOnMount: false,
     placeholderData: keepPreviousData,
   });
 
