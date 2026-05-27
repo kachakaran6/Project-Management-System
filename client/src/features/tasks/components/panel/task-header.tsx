@@ -16,7 +16,7 @@ export function TaskHeader({ task }: TaskHeaderProps) {
   const taskClipboardId = getTaskClipboardId(task as Task & { _id?: string });
 
   return (
-    <div className="space-y-4 pt-6 pb-2">
+    <div className="space-y-4 pb-2 pt-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-[13px] text-muted-foreground/70 font-medium">
           <Hash className="size-3.5" />

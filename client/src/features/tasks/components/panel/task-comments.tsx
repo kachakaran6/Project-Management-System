@@ -20,7 +20,7 @@ interface TaskCommentsProps {
 export function TaskComments({ taskId }: TaskCommentsProps) {
   const [content, setContent] = useState("");
   const { data, isLoading } = useTaskCommentsQuery(taskId, {
-    refetchInterval: 5000, // Faster refresh for "real-time" feel
+    refetchInterval: 15000,
   });
   const createCommentMutation = useCreateTaskCommentMutation(taskId);
   const deleteCommentMutation = useDeleteCommentMutation(taskId);
@@ -59,7 +59,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
         </span>
       </div>
 
-      <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+      <div className="space-y-6 max-h-125 overflow-y-auto pr-2 custom-scrollbar">
         {isLoading && comments.length === 0 ? (
           <div className="space-y-6">
             <div className="flex gap-3">
@@ -75,7 +75,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
             No discussion yet. Be the first to chime in!
           </div>
         ) : (
-          <div className="space-y-6 flex flex-col-reverse"> {/* Newest at bottom visually? No, usually Notion is newest at top or bottom. I'll stick to top-down but newest at top is common in panels. */}
+          <div className="space-y-6 flex flex-col-reverse">
             {comments.map((comment, index) => {
               const author = getAuthorInfo(comment.userId);
               const isOptimistic = String(comment.id).startsWith("optimistic-");
@@ -145,7 +145,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Discuss this task..."
-            className="w-full min-h-[100px] p-4 text-sm bg-accent/10 border-border/40 border-2 rounded-button focus:outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/5 transition-all resize-none placeholder:text-muted-foreground/40"
+            className="w-full min-h-25 p-4 text-sm bg-accent/10 border-border/40 border-2 rounded-button focus:outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/5 transition-all resize-none placeholder:text-muted-foreground/40"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();

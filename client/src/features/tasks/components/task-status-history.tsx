@@ -1,7 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowRight, 
   History, 
@@ -73,13 +72,9 @@ export const TaskStatusHistory: React.FC<TaskStatusHistoryProps> = ({ taskId }) 
       <div className="absolute left-4 top-2 bottom-0 w-[1.5px] bg-border/40" />
 
       <div className="space-y-5 relative">
-        <AnimatePresence mode="popLayout">
-          {history.map((item, index) => (
-            <motion.div
+        {history.map((item, index) => (
+            <div
               key={item.id}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
               className="group relative flex gap-3 items-center"
             >
               {/* Avatar Container */}
@@ -102,7 +97,7 @@ export const TaskStatusHistory: React.FC<TaskStatusHistoryProps> = ({ taskId }) 
               {/* In-line Content */}
               <div className="flex-1 min-w-0 flex items-center justify-between gap-3 py-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 overflow-hidden">
-                  <span className="text-[13px] font-bold text-foreground/90 truncate max-w-[120px]">
+                  <span className="text-[13px] font-bold text-foreground/90 truncate max-w-30">
                     {item.changedByName}
                   </span>
                   
@@ -148,9 +143,8 @@ export const TaskStatusHistory: React.FC<TaskStatusHistoryProps> = ({ taskId }) 
                   </span>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
-        </AnimatePresence>
       </div>
     </div>
   );
