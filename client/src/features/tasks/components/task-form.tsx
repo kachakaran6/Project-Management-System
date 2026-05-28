@@ -55,6 +55,7 @@ import { useMemberSearch } from "@/features/team/hooks/use-member-search";
 interface ProjectOption {
   id: string;
   name: string;
+  defaultAssigneeIds?: string[];
 }
 
 interface TaskFormProps {
@@ -282,6 +283,19 @@ export function TaskForm({
       }
     }
   }, [dynamicStatuses, statusValue, form, user]);
+
+
+  useEffect(() => {
+    if (projectIdValue) {
+      const project = projects.find(p => p.id === projectIdValue);
+      if (project && project.defaultAssigneeIds && project.defaultAssigneeIds.length > 0) {
+        const currentAssignees = form.getValues("assigneeIds") || [];
+        if (currentAssignees.length === 0) {
+          form.setValue("assigneeIds", project.defaultAssigneeIds, { shouldValidate: true });
+        }
+      }
+    }
+  }, [projectIdValue, projects, form]);
 
 
   useEffect(() => {

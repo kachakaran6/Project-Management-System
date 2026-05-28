@@ -115,6 +115,29 @@ export function EditableMultiUserSelect({
           <CommandList>
             <CommandEmpty>No member found.</CommandEmpty>
             <CommandGroup heading="Project Members">
+              {options.length > 1 && !searchQuery && (
+                <CommandItem
+                  onSelect={() => {
+                    if (selectedIds.length === options.length) {
+                      onChange([]);
+                    } else {
+                      onChange(options.map(u => u.id));
+                    }
+                  }}
+                  className="flex items-center gap-2 px-2 py-2 cursor-pointer font-medium text-primary"
+                >
+                  <div className="relative">
+                    <div className="size-7 flex items-center justify-center border-2 border-primary/30 rounded-full bg-primary/10">
+                      {selectedIds.length === options.length && (
+                        <Check className="size-3 text-primary stroke-[3]" />
+                      )}
+                    </div>
+                  </div>
+                  <span>
+                    {selectedIds.length === options.length ? "Deselect All" : "Select All"}
+                  </span>
+                </CommandItem>
+              )}
               {options
                 .filter(user => 
                   user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 

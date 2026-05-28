@@ -19,6 +19,7 @@ import { emitToRoom, emitToUsers } from '../../realtime/socket.server.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../realtime/socket.events.js';
 import { ROLES } from '../../constants/index.js';
 import { logStatusChange } from '../../utils/statusHistoryTriggers.js';
+import { broadcastToOrg } from '../notification/telegram.service.js';
 
 
 const ADMIN_ROLES = new Set(['OWNER', 'ADMIN', 'SUPER_ADMIN']);
@@ -408,6 +409,93 @@ const enrichTaskWithAssignees = (task: any, assignees: any[] = []) => {
   };
 };
 
+const checkProjectAutoCompletion = async (projectId: any, organizationId: any, actorId: any) => {
+  if (!projectId || !organizationId) return;
+  try {
+    const project = await Project.findById(projectId);
+    if (!project) return;
+
+    const doneStatuses = await Status.find({
+      organizationId,
+      name: { $regex: /done|completed|resolved/i }
+    }).select('_id');
+    const doneStatusIds = doneStatuses.map(s => s._id);
+
+    if (doneStatusIds.length === 0) return;
+
+    const allActiveTasks = await Task.find({
+      projectId,
+      isActive: true,
+      isDraft: false
+    }).select('status');
+
+    if (allActiveTasks.length === 0) return;
+
+    const allTasksCount = allActiveTasks.length;
+    const completedTasksCount = allActiveTasks.filter(t => 
+      doneStatusIds.some(ds => ds.equals(t.status as mongoose.Types.ObjectId))
+    ).length;
+
+    const isCurrentlyCompleted = project.status === 'completed';
+    const shouldBeCompleted = allTasksCount > 0 && completedTasksCount === allTasksCount;
+
+    if (shouldBeCompleted && !isCurrentlyCompleted) {
+      project.status = 'completed';
+      await project.save();
+
+      activityLog.logActivity({
+        userId: actorId, organizationId, workspaceId: project.workspaceId, projectId,
+        resourceId: projectId, resourceType: 'Project', action: 'UPDATE',
+        metadata: {
+          title: project.name,
+          changedFields: ['status'],
+          oldStatus: 'active',
+          newStatus: 'completed',
+          autoCompleted: true,
+          timestamp: new Date(),
+        }
+      });
+
+      await broadcastToOrg({
+        organizationId,
+        eventType: 'TASKS',
+        message: `✅ *Project Completed*\n━━━━━━━━━━━━━━━\n*Project:* ${project.name}\n\nAll tasks inside this project are now marked as DONE.\nThe project status has been automatically updated to COMPLETED.\n\n*Tasks Completed:* ${allTasksCount}\n*Time:* ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}`,
+        eventContext: { type: 'PROJECT', createdBy: actorId }
+      });
+
+      emitToRoom(SOCKET_ROOMS.WORKSPACE(project.workspaceId), SOCKET_EVENTS.PROJECT_STATUS_CHANGED, {
+        projectId,
+        status: 'completed'
+      });
+
+    } else if (!shouldBeCompleted && isCurrentlyCompleted) {
+      project.status = 'active';
+      await project.save();
+
+      activityLog.logActivity({
+        userId: actorId, organizationId, workspaceId: project.workspaceId, projectId,
+        resourceId: projectId, resourceType: 'Project', action: 'UPDATE',
+        metadata: {
+          title: project.name,
+          changedFields: ['status'],
+          oldStatus: 'completed',
+          newStatus: 'active',
+          autoReopened: true,
+          timestamp: new Date(),
+        }
+      });
+
+      emitToRoom(SOCKET_ROOMS.WORKSPACE(project.workspaceId), SOCKET_EVENTS.PROJECT_STATUS_CHANGED, {
+        projectId,
+        status: 'active'
+      });
+    }
+  } catch (error) {
+    console.error('[AUTO_COMPLETION_ERROR]', error);
+  }
+};
+
+
 /**
  * Create a new task
  */
@@ -469,8 +557,8 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
       if (project) {
         taskSequence = project.taskSequence;
         projectCode = project.code || 'TASK';
-        if (normalizedAssignees.length === 0 && project.defaultAssigneeId) {
-          normalizedAssignees.push(String(project.defaultAssigneeId));
+        if (normalizedAssignees.length === 0 && project.defaultAssigneeIds?.length) {
+          normalizedAssignees.push(...project.defaultAssigneeIds.map(String));
         }
       }
     }
@@ -552,6 +640,10 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
       } catch (err) {
         console.error("[TASK_CREATE_BACKGROUND_ERROR]", err);
       }
+    });
+
+    setImmediate(() => {
+      checkProjectAutoCompletion(task.projectId, task.organizationId, userId);
     });
 
     return getTaskById(task._id, userId, role);
@@ -1476,6 +1568,14 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
     });
   }
 
+  setImmediate(() => {
+    checkProjectAutoCompletion(task.projectId, task.organizationId, userId);
+    // If project changed, check old project as well
+    if (previousTask.projectId && String(previousTask.projectId) !== String(task.projectId)) {
+      checkProjectAutoCompletion(previousTask.projectId, task.organizationId, userId);
+    }
+  });
+
   return getTaskById(taskId, userId, role);
 };
 
@@ -1559,6 +1659,10 @@ export const deleteTask = async (taskId: any, userId: any) => {
     SOCKET_EVENTS.TASK_DELETED,
     { taskId: task._id }
   );
+
+  setImmediate(() => {
+    checkProjectAutoCompletion(task.projectId, task.organizationId, userId);
+  });
 };
 
 export const changeStatus = async (taskId: any, newStatus: any, userId: any) => {
@@ -1600,6 +1704,10 @@ export const changeStatus = async (taskId: any, newStatus: any, userId: any) => 
     fromStatus: previousTask.status,
     toStatus: finalStatusId,
     organizationId: task.organizationId
+  });
+
+  setImmediate(() => {
+    checkProjectAutoCompletion(task.projectId, task.organizationId, userId);
   });
 
   return task;

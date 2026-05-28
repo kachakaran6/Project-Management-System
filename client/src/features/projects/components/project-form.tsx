@@ -35,7 +35,7 @@ import {
 import { TechStackSelector } from "./sections/tech-stack-selector";
 import { MemberSelector } from "./sections/member-selector";
 import { ResourceFieldArray } from "./sections/resource-field-array";
-import { SingleUserSelect } from "@/features/team/components/single-user-select";
+import { EditableMultiUserSelect } from "@/components/editable/EditableMultiUserSelect";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -66,7 +66,7 @@ export function ProjectForm({
       startDate: initialValues?.startDate ? new Date(initialValues.startDate) : null,
       endDate: initialValues?.endDate ? new Date(initialValues.endDate) : null,
       members: initialValues?.members ?? [],
-      defaultAssigneeId: initialValues?.defaultAssigneeId ?? null,
+      defaultAssigneeIds: initialValues?.defaultAssigneeIds ?? [],
       resources: initialValues?.resources ?? [],
       code: initialValues?.code ?? "",
     },
@@ -254,20 +254,22 @@ export function ProjectForm({
 
                   <FormField
                     control={form.control}
-                    name="defaultAssigneeId"
+                    name="defaultAssigneeIds"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-semibold">Default Task Assignee</FormLabel>
+                        <FormLabel className="text-xs font-semibold">Default Task Assignees</FormLabel>
                         <FormControl>
-                          <SingleUserSelect
-                            value={field.value || null}
-                            onChange={field.onChange}
-                            placeholder="Choose default assignee for this project"
-                            prefilledUsers={prefilledAssigneeUsers}
+                          <EditableMultiUserSelect
+                            value={(field.value || []).map((id: string) => 
+                              prefilledAssigneeUsers?.find(u => u.id === id) || { id, name: "Unknown", email: "" }
+                            )}
+                            onChange={(vals) => field.onChange(vals)}
+                            placeholder="Choose default assignees for this project"
+                            options={prefilledAssigneeUsers as any}
                           />
                         </FormControl>
                         <FormDescription className="text-[10px]">
-                          New tasks created from this project will start with this assignee selected.
+                          New tasks created from this project will start with these assignees selected.
                         </FormDescription>
                       </FormItem>
                     )}

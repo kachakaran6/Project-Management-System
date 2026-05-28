@@ -14,10 +14,8 @@ import { useUpdateProjectMutation } from "@/features/projects/hooks/use-projects
 import { Project } from "@/types/project.types";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProjectGithubSettings } from "@/features/projects/components/project-github-settings";
-import { useSearchParams } from "next/navigation";
-import { Settings2 } from "lucide-react";
-import { GithubIcon as Github } from "@/components/icons/github-icon";
+import { useSearchParams } from "@/lib/next-navigation";
+
 
 interface EditProjectModalProps {
   project: Project;
@@ -48,8 +46,9 @@ export function EditProjectModal({
           techStack: values.techStack,
           startDate: values.startDate instanceof Date ? values.startDate.toISOString() : undefined,
           endDate: values.endDate instanceof Date ? values.endDate.toISOString() : undefined,
+          code: values.code || undefined,
           members: values.members,
-          defaultAssigneeId: values.defaultAssigneeId,
+          defaultAssigneeIds: values.defaultAssigneeIds,
         },
       });
       toast.success(`Project "${values.name}" updated!`);
@@ -80,15 +79,7 @@ export function EditProjectModal({
                   value="general" 
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-[11px] font-black uppercase tracking-widest transition-all gap-2"
                 >
-                  <Settings2 className="size-3.5" />
                   General
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="github" 
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-[11px] font-black uppercase tracking-widest transition-all gap-2"
-                >
-                  <Github className="size-3.5" />
-                  GitHub Integration
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -104,10 +95,11 @@ export function EditProjectModal({
                     techStack: project.techStack,
                     startDate: project.startDate ? new Date(project.startDate) : undefined,
                     endDate: project.endDate ? new Date(project.endDate) : undefined,
+                    code: project.code || "",
                     members: project.members?.map((m: any) => {
                       return m.user?.id || m.user?._id || m.id || m._id || m;
                     }) || [],
-                    defaultAssigneeId: (project as any).defaultAssigneeId || null,
+                    defaultAssigneeIds: ((project as any).defaultAssigneeIds || []).map((a: any) => a?.id || a?._id || a),
                   }}
                   prefilledAssigneeUsers={(project.members || []).map((m: any) => ({
                     id: m.user?.id || m.user?._id || m.id || m._id || m,
@@ -119,9 +111,6 @@ export function EditProjectModal({
                   isSubmitting={updateProject.isPending}
                   submitLabel="Save Changes"
                 />
-              </TabsContent>
-              <TabsContent value="github" className="m-0 p-6 md:p-8 outline-none">
-                <ProjectGithubSettings projectId={projectId} />
               </TabsContent>
             </div>
           </Tabs>

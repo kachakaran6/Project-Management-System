@@ -10,12 +10,14 @@ import { ProjectVault } from "@/features/projects/components/vault/project-vault
 import { ProjectActivityFeed } from "@/features/projects/components/project-activity-feed";
 import { EditProjectModal } from "@/features/projects/components/edit-project-modal";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+
 import { ProjectHeader } from "@/features/projects/components/details/project-header";
 import { ProjectTabsList } from "@/features/projects/components/details/project-tabs";
 import { ProjectSidebarPanel } from "@/features/projects/components/details/project-sidebar-panel";
 import { ProjectTaskBoard } from "@/features/projects/components/details/task-board/project-task-board";
 import { ProjectLinkedPages } from "@/features/projects/components/details/project-linked-pages";
 import { useProjectLayout } from "@/features/projects/hooks/use-project-layout";
+import { useProjectAutoComplete } from "@/features/projects/hooks/use-project-auto-complete";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +25,9 @@ export default function ProjectDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  
+  // Listen for auto-completion socket events
+  useProjectAutoComplete();
   
   const initialTab = searchParams.get("tab") || "overview";
   const [activeTab, setActiveTab] = useState(initialTab);

@@ -15,7 +15,7 @@ import { ROLES } from '../../constants/index.js';
 export const createProject = async (projectData: Record<string, any>) => {
   const { 
     name, description, workspaceId, organizationId, ownerId, 
-    techStack, startDate, endDate, visibility, members, code, defaultAssigneeId
+    techStack, startDate, endDate, visibility, members, code, defaultAssigneeIds
   } = projectData;
 
   if (!name) throw new AppError('Project name is required.', 400);
@@ -71,7 +71,7 @@ export const createProject = async (projectData: Record<string, any>) => {
       organizationId,
       ownerId,
       techStack: techStack || [],
-      defaultAssigneeId: defaultAssigneeId || null,
+      defaultAssigneeIds: defaultAssigneeIds || [],
       startDate,
       endDate,
       visibility: visibility || 'public',

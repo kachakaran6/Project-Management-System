@@ -191,6 +191,7 @@ export function CreateTaskModal({
   const draftingEnabled = !!user?.settings?.taskDraftEnabled;
   const isSubmitting = createTask.isPending || publishTaskDraft.isPending;
 
+
   const baseValues = useMemo(() => createBaseValues(defaultProjectId, defaultAssigneeIds), [defaultProjectId, defaultAssigneeIds]);
   
   // Debounce for LOCAL storage save
@@ -199,6 +200,7 @@ export function CreateTaskModal({
   const projects = (projectsQuery.data?.data.items ?? []).map((p: any) => ({
     id: p.id || p._id,
     name: p.name,
+    defaultAssigneeIds: p.defaultAssigneeIds || [],
   }));
 
   const hasUnsavedChanges = useMemo(
