@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Users, UserPlus, BookOpen, Star, Building2, MapPin, Link as LinkIcon, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
+import { GithubAnalyticsDashboard } from "@/features/github/components/analytics/github-analytics-dashboard";
 
 export default function ProfileAnalyticsPage() {
   const params = useParams();
@@ -147,8 +148,15 @@ export default function ProfileAnalyticsPage() {
             </h3>
             <div className="z-10 w-full flex justify-center min-h-[150px]">
               <img 
-                src={`https://github-readme-stats.vercel.app/api?username=${username}&show_icons=true&hide_border=true&bg_color=00000000&title_color=${isDark ? "ffffff" : "0f172a"}&text_color=${isDark ? "cbd5e1" : "475569"}&icon_color=${isDark ? "8b5cf6" : "6366f1"}`} 
+                src={`https://github-readme-stats-eight-theta.vercel.app/api?username=${username}&show_icons=true&hide_border=true&hide_bg=true&title_color=${isDark ? "ffffff" : "0f172a"}&text_color=${isDark ? "cbd5e1" : "475569"}&icon_color=${isDark ? "8b5cf6" : "6366f1"}`} 
                 alt={`${username} GitHub Stats`} 
+                onError={(e) => {
+                  if (e.currentTarget.src.includes('eight-theta')) {
+                    e.currentTarget.src = `https://github-readme-stats.vercel.app/api?username=${username}&show_icons=true&hide_border=true&hide_bg=true&title_color=${isDark ? "ffffff" : "0f172a"}&text_color=${isDark ? "cbd5e1" : "475569"}&icon_color=${isDark ? "8b5cf6" : "6366f1"}`;
+                  } else {
+                    e.currentTarget.style.display = 'none';
+                  }
+                }}
                 className="w-full max-w-[450px] object-contain transition-transform group-hover:scale-[1.02] duration-500 drop-shadow-sm" 
               />
             </div>
@@ -162,75 +170,18 @@ export default function ProfileAnalyticsPage() {
             </h3>
             <div className="z-10 w-full flex justify-center min-h-[150px]">
               <img 
-                src={`https://github-readme-streak-stats.herokuapp.com/?user=${username}&hide_border=true&background=00000000&title_color=${isDark ? "ffffff" : "0f172a"}&text_color=${isDark ? "cbd5e1" : "475569"}&sideNums=${isDark ? "ffffff" : "0f172a"}&sideLabels=${isDark ? "94a3b8" : "64748b"}&ring=${isDark ? "10b981" : "059669"}&fire=${isDark ? "10b981" : "059669"}&currStreakNum=${isDark ? "ffffff" : "0f172a"}`} 
+                src={`https://github-readme-streak-stats.herokuapp.com/?user=${username}&hide_border=true&background=transparent&title_color=${isDark ? "ffffff" : "0f172a"}&text_color=${isDark ? "cbd5e1" : "475569"}&sideNums=${isDark ? "ffffff" : "0f172a"}&sideLabels=${isDark ? "94a3b8" : "64748b"}&ring=${isDark ? "10b981" : "059669"}&fire=${isDark ? "10b981" : "059669"}&currStreakNum=${isDark ? "ffffff" : "0f172a"}`} 
                 alt={`${username} GitHub Streak`} 
+                onError={(e) => e.currentTarget.style.display = 'none'}
                 className="w-full max-w-[450px] object-contain transition-transform group-hover:scale-[1.02] duration-500 drop-shadow-sm" 
               />
             </div>
           </div>
         </div>
 
-        {/* Charts & Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          <div className="p-6 border border-border/40 bg-card rounded-card flex flex-col hover:border-primary/40 transition-colors">
-            <h3 className="text-lg font-bold mb-6">Top Languages</h3>
-            {languageData.length > 0 ? (
-              <div className="flex-1 min-h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={languageData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#94a3b8" }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#94a3b8" }} />
-                    <Tooltip 
-                      cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} 
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px' }}
-                    />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                      {languageData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                Not enough data to generate chart.
-              </div>
-            )}
-          </div>
+        {/* Main Charts & Analytics Dashboard */}
+        <GithubAnalyticsDashboard repos={repos} />
 
-          <div className="p-6 border border-border/40 bg-card rounded-card flex flex-col hover:border-primary/40 transition-colors">
-            <h3 className="text-lg font-bold mb-4">Recent Repositories</h3>
-            <div className="space-y-3 overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
-              {repos.slice(0, 10).map((repo: any) => (
-                <div 
-                  key={repo.id} 
-                  className="p-3 border border-border/20 rounded-button hover:bg-muted/10 transition-colors flex justify-between items-center cursor-pointer"
-                  onClick={() => router.push(`/github/${repo.owner.login}/${repo.name}`)}
-                >
-                  <div className="min-w-0 flex-1 pr-4">
-                    <h4 className="font-semibold text-sm truncate text-foreground/90">{repo.name}</h4>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">{repo.description || "No description provided."}</p>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    {repo.language && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-primary/10 text-primary rounded-xs uppercase">
-                        {repo.language}
-                      </span>
-                    )}
-                    <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-                      <Star className="size-3" />
-                      {repo.stargazers_count}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
       </div>
     </div>
   );

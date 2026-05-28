@@ -22,7 +22,7 @@ export const CommitsTab = ({ owner, repo }: { owner: string; repo: string }) => 
     }
   }, [branches, selectedBranch]);
 
-  const { data: commits, isLoading: commitsLoading, error } = useRepoCommits(owner, repo, selectedBranch || undefined);
+  const { data: commits, isLoading: commitsLoading, error } = useRepoCommits(owner, repo, { sha: selectedBranch || undefined });
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
