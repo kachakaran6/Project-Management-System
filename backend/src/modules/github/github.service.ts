@@ -669,15 +669,16 @@ export const githubApiProxy = async (
     throw new AppError(`GitHub API Error: ${message}`, response.status, errors);
   }
 
-  return await response.json();
+  const text = await response.text();
+  return text ? JSON.parse(text) : {};
 };
 
 export const getRepoBranches = (userId: string, owner: string, repo: string, page = 1, perPage = 30) => {
   return githubApiProxy(userId, `/repos/${owner}/${repo}/branches`, { page, per_page: perPage });
 };
 
-export const getRepoCommits = (userId: string, owner: string, repo: string, sha?: string, page = 1, perPage = 30) => {
-  return githubApiProxy(userId, `/repos/${owner}/${repo}/commits`, { sha, page, per_page: perPage });
+export const getRepoCommits = (userId: string, owner: string, repo: string, sha?: string, page = 1, perPage = 30, since?: string, until?: string) => {
+  return githubApiProxy(userId, `/repos/${owner}/${repo}/commits`, { sha, page, per_page: perPage, since, until });
 };
 
 export const getRepoPullRequests = (userId: string, owner: string, repo: string, state = 'all', page = 1, perPage = 30) => {
@@ -790,6 +791,36 @@ export const getRepoFileContent = (userId: string, owner: string, repo: string, 
   return githubApiProxy(userId, `/repos/${owner}/${repo}/contents/${path}`, { ref });
 };
 
+export const getRepoTotalCommits = async (userId: string, owner: string, repo: string) => {
+  const account = await GithubAccount.findOne({ userId });
+  if (!account) throw new Error('GitHub account not connected');
+  
+  const token = decrypt(account.accessToken);
+  
+  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=1`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github.v3+json'
+    }
+  });
+
+  if (!response.ok) return 0;
+  
+  const link = response.headers.get('link');
+  if (link) {
+    // Link header looks like: <https://api.github.com/repositories/ID/commits?per_page=1&page=2>; rel="next", <https://api.github.com/repositories/ID/commits?per_page=1&page=12482>; rel="last"
+    const match = link.match(/&page=(\d+)>; rel="last"/);
+    if (match) {
+      return parseInt(match[1], 10);
+    }
+  }
+  
+  // If no link header, there's only 1 page of 1 item (so either 1 or 0 commits)
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : [];
+  return Array.isArray(data) ? data.length : 0;
+};
+
 export const getProfileAnalytics = async (userId: string, username: string) => {
   const [profile, repos] = await Promise.all([
     githubApiProxy(userId, `/users/${username}`),
@@ -797,4 +828,9 @@ export const getProfileAnalytics = async (userId: string, username: string) => {
   ]);
   
   return { profile, repos };
+};
+
+export const getRepoCommitStats = (userId: string, owner: string, repo: string) => {
+  // Use the statistics API to get the last 52 weeks of commit activity
+  return githubApiProxy(userId, `/repos/${owner}/${repo}/stats/commit_activity`);
 };

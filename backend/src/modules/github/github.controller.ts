@@ -220,9 +220,16 @@ export const getRepoBranches = asyncHandler(async (req: Request, res: Response) 
 export const getRepoCommits = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).user.id;
   const { owner, repo } = req.params;
-  const { sha, page = 1, per_page = 30 } = req.query;
-  const data = await githubService.getRepoCommits(userId, owner as string, repo as string, sha as string, Number(page), Number(per_page));
+  const { sha, page = 1, per_page = 100, since, until } = req.query;
+  const data = await githubService.getRepoCommits(userId, owner as string, repo as string, sha as string, Number(page), Number(per_page), since as string, until as string);
   return res.status(200).json({ success: true, data });
+});
+
+export const getRepoTotalCommits = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { owner, repo } = req.params;
+  const total = await githubService.getRepoTotalCommits(userId, owner as string, repo as string);
+  return res.status(200).json({ success: true, data: total });
 });
 
 export const getRepoPullRequests = asyncHandler(async (req: Request, res: Response) => {
@@ -282,5 +289,12 @@ export const getProfileAnalytics = asyncHandler(async (req: Request, res: Respon
   const userId = (req as any).user.id;
   const { username } = req.params;
   const data = await githubService.getProfileAnalytics(userId, username as string);
+  return res.status(200).json({ success: true, data });
+});
+
+export const getRepoCommitStats = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { owner, repo } = req.params;
+  const data = await githubService.getRepoCommitStats(userId, owner as string, repo as string);
   return res.status(200).json({ success: true, data });
 });
