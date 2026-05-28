@@ -57,15 +57,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
 
 const STATUS_STYLES: Record<string, string> = {
-  ACTIVE: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  INACTIVE: "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400",
-  PLANNED: "border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
-  ON_HOLD: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  COMPLETED: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  ARCHIVED: "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400",
+  ACTIVE: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-[#10B981] dark:shadow-[0_0_12px_rgba(16,185,129,0.15)]",
+  INACTIVE: "border-slate-500/20 bg-slate-500/10 text-slate-600 dark:text-slate-400",
+  PLANNED: "border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-[#A855F7] dark:shadow-[0_0_12px_rgba(168,85,247,0.15)]",
+  ON_HOLD: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-[#F59E0B] dark:shadow-[0_0_12px_rgba(245,158,11,0.15)]",
+  COMPLETED: "border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-[#3B82F6] dark:shadow-[0_0_12px_rgba(59,130,246,0.15)]",
+  ARCHIVED: "border-slate-500/20 bg-slate-500/10 text-slate-600 dark:text-slate-400",
 };
 
 function getProjectStatusLabel(status: string) {
@@ -104,9 +104,11 @@ function ProjectActionButton({
   tone?: "default" | "danger";
 }) {
   const baseClasses = cn(
-    "inline-flex items-center justify-center size-8 rounded-card text-xs transition-all duration-200 active:scale-95 touch-none shadow-sm",
-    "border border-border bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground",
-    tone === "danger" && "text-red-500 border-red-200/50 hover:bg-red-500/10 hover:text-red-600 dark:border-red-500/20"
+    "inline-flex items-center justify-center size-8 rounded-full transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] backdrop-blur-md border",
+    "bg-white/10 dark:bg-white/5 border-neutral-200/50 dark:border-white/10 text-neutral-600 dark:text-[#94A3B8] hover:scale-110 shadow-sm",
+    tone === "danger" 
+      ? "hover:bg-red-500/10 hover:text-[#EF4444] hover:border-red-500/30 hover:shadow-[0_0_12px_rgba(239,68,68,0.2)]" 
+      : "hover:bg-white/50 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-[#F8FAFC] hover:border-neutral-300 dark:hover:border-white/30 hover:shadow-[0_0_12px_rgba(255,255,255,0.1)]"
   );
 
   const content = (
@@ -305,128 +307,129 @@ export default function ProjectsPage() {
                 <div
                   key={pid}
                   onClick={() => {
-                    // Navigate to project details
                     window.location.href = `/projects/${pid}`;
                   }}
-                  className={cn(
-                    "group relative flex flex-col rounded-card border border-border/60 bg-card p-4 shadow-sm transition-all duration-200 cursor-pointer",
-                    "hover:border-primary/40 hover:shadow-md dark:hover:bg-card/80 dark:shadow-none",
-                    "active:scale-[0.98] md:active:scale-100", // Visual feedback on tap
-                    "max-md:rounded-[20px] max-md:p-6 max-md:shadow-lg max-md:shadow-neutral-200/50 dark:max-md:shadow-none" // Professional mobile UI
-                  )}
+                  className="group relative w-full pt-8 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] cursor-pointer hover:-translate-y-2 mt-4"
                 >
-                  {/* HEADER SECTION */}
-                  <div className="flex items-start justify-between gap-3 mb-3 max-md:mb-4">
-                    <div className="flex flex-col gap-2 min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-foreground leading-tight line-clamp-2 group-hover:text-primary transition-colors max-md:text-lg">
-                          {project.name}
-                        </h3>
-                        {isPrivate && <Lock className="size-3.5 text-amber-500/80 shrink-0" />}
-                      </div>
-                      
-                      <div
-                        className={cn(
-                          "w-fit h-5 px-2.5 text-[9px] uppercase font-black tracking-widest rounded-full border transition-all flex items-center gap-1 max-md:h-6 max-md:text-[10px] max-md:px-3",
-                          getProjectStatusClass(project.status)
-                        )}
-                      >
-                        {getProjectStatusLabel(project.status)}
-                      </div>
-                    </div>
-
-                    {/* ACTIONS - HIDDEN ON MOBILE (Since card is clickable), SHOWN ON HOVER DESKTOP */}
-                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 -mr-1 -mt-1 scale-95 group-hover:scale-100 max-md:hidden">
-                       <ProjectActionButton
-                          href={`/projects/${pid}`}
-                          label="View"
-                          icon={Eye}
-                        />
-                        {canMutate && (
-                          <>
-                            <ProjectActionButton
-                              label="Edit"
-                              icon={PencilLine}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingProject(project);
-                              }}
-                            />
-                             <ProjectActionButton
-                              label="Delete"
-                              icon={Trash2}
-                              tone="danger"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteId(pid);
-                              }}
-                            />
-                          </>
-                        )}
+                  {/* PREMIUM FOLDER TAB (Back Layer) */}
+                  <div className="absolute top-0 left-0 w-[45%] max-w-[160px] h-12 bg-gradient-to-b from-slate-200 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-t-xl z-0 flex items-start pt-2.5 px-4 shadow-sm border border-slate-300/50 dark:border-slate-700/50 border-b-0 transition-all duration-300 group-hover:from-slate-300 group-hover:to-slate-200 dark:group-hover:from-slate-700 dark:group-hover:to-slate-800">
+                    <div className="flex items-center gap-2 w-full">
+                      <span className="text-[12px] font-semibold truncate tracking-wide text-slate-700 dark:text-slate-300">{project.name}</span>
+                      {isPrivate && <Lock className="size-3 text-slate-500 dark:text-slate-400 shrink-0" />}
                     </div>
                   </div>
 
-                  {/* CONTENT SECTION */}
-                  <div className="space-y-4 mb-6 max-md:mb-8">
-                    {project.description ? (
-                      <p className="text-sm text-foreground/80 line-clamp-2 leading-relaxed font-medium max-md:text-neutral-600 max-md:line-clamp-3">
-                        {project.description}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-neutral-500 italic font-medium dark:text-muted-foreground/50">
-                        Description will be available soon
-                      </p>
-                    )}
+                  {/* PREMIUM FOLDER BODY (Front Layer) */}
+                  <div className="relative z-10 w-full flex flex-col rounded-2xl rounded-tl-none shadow-[0_8px_30px_rgba(0,0,0,0.06)] group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] dark:group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)] transition-all duration-300 border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#0f172a] overflow-hidden min-h-[180px]">
+                     
+                     {/* Inner Highlight for Depth */}
+                     <div className="absolute inset-0 pointer-events-none rounded-2xl rounded-tl-none ring-1 ring-inset ring-white/60 dark:ring-white/5 transition-all duration-300 group-hover:ring-white/80 dark:group-hover:ring-white/10"></div>
 
-                    <div className="flex items-center gap-4 text-[11px] text-neutral-600 font-semibold dark:text-muted-foreground/80 max-md:text-[12px] max-md:gap-6">
-                       <div className="flex items-center gap-1.5">
-                         <CalendarDays className="size-3.5 text-primary max-md:size-4" />
-                         <span>{project.createdAt ? format(new Date(project.createdAt), "MMM d, yyyy") : "Date N/A"}</span>
+                     {/* HEADER inside body */}
+                     <div className="p-6 pb-2 flex items-start justify-between gap-4 relative z-10">
+                       <div
+                         className={cn(
+                           "w-fit h-6 px-2.5 text-[10px] uppercase font-bold tracking-wider rounded-md border transition-all flex items-center gap-1",
+                           getProjectStatusClass(project.status)
+                         )}
+                       >
+                         {getProjectStatusLabel(project.status)}
                        </div>
-                       <div className="flex items-center gap-1.5">
-                         <Users className="size-3.5 text-primary/40 max-md:size-4" />
-                         <span>{members.length} {members.length === 1 ? "Member" : "Members"}</span>
+
+                       {/* Action Buttons */}
+                       <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 -mr-2">
+                          <ProjectActionButton
+                             href={`/projects/${pid}`}
+                             label="View"
+                             icon={Eye}
+                           />
+                           {canMutate && (
+                             <>
+                               <ProjectActionButton
+                                 label="Edit"
+                                 icon={PencilLine}
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   setEditingProject(project);
+                                 }}
+                               />
+                                <ProjectActionButton
+                                 label="Delete"
+                                 icon={Trash2}
+                                 tone="danger"
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   setDeleteId(pid);
+                                 }}
+                               />
+                             </>
+                           )}
                        </div>
-                    </div>
-                  </div>
+                     </div>
 
-                  {/* FOOTER SECTION */}
-                  <div className="mt-auto">
-                    <div className="pt-3 border-t border-border/40 flex items-center justify-between max-md:pt-4">
-                      <div className="flex items-center gap-2">
-                         <div className="flex -space-x-1.5">
-                          {members.slice(0, 3).map((user: any) => (
-                            <Avatar key={user.id || user._id} className="size-7 border-2 border-white dark:border-neutral-900 ring-1 ring-border/10 max-md:size-8">
-                              <AvatarImage src={user.avatarUrl} />
-                              <AvatarFallback className="text-[9px] bg-primary/5 text-primary font-bold">
-                                {user.firstName?.[0]}{user.lastName?.[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                          ))}
-                          {members.length > 3 && (
-                            <div className="flex size-7 items-center justify-center rounded-full border-2 border-white dark:border-neutral-900 bg-muted text-[10px] font-bold text-muted-foreground max-md:size-8 max-md:text-[11px]">
-                              +{members.length - 3}
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest ml-1 dark:text-muted-foreground/60 max-md:text-[11px]">Team</span>
-                      </div>
+                     {/* CONTENT SECTION */}
+                     <div className="px-6 py-3 flex-1 relative z-10 space-y-4">
+                       <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                         {project.name}
+                       </h3>
+                       {project.description ? (
+                         <p className="text-[13px] text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                           {project.description}
+                         </p>
+                       ) : (
+                         <p className="text-[13px] text-slate-400 italic dark:text-slate-500">
+                           No description provided
+                         </p>
+                       )}
 
-                      <div className="flex items-center gap-2 text-[11px] font-bold text-neutral-500 dark:text-muted-foreground max-md:text-[12px]">
-                         <span className="text-black dark:text-primary">{project.taskStats?.completed || 0}</span>
-                         <span className="text-neutral-300 font-normal dark:text-muted-foreground/30">/</span>
-                         <span className="text-black dark:text-foreground/80">{project.taskStats?.total || 0}</span>
-                         <span className="text-[10px] font-bold text-neutral-600 ml-0.5 dark:text-muted-foreground/60 max-md:text-[11px]">Tasks</span>
-                      </div>
-                    </div>
-                  </div>
+                       <div className="flex items-center gap-4 text-[12px] text-slate-500 dark:text-slate-400 font-medium pt-1">
+                          <div className="flex items-center gap-1.5">
+                            <CalendarDays className="size-3.5 text-slate-400" />
+                            <span>{project.createdAt ? format(new Date(project.createdAt), "MMM d, yyyy") : "N/A"}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Users className="size-3.5 text-slate-400" />
+                            <span>{members.length} {members.length === 1 ? "Member" : "Members"}</span>
+                          </div>
+                       </div>
+                     </div>
 
-                  {/* PROGRESS BAR (DEEP BOTTOM) */}
-                  <div className="absolute bottom-0 left-0 h-0.5 bg-muted/40 w-full overflow-hidden max-md:h-1">
-                     <div 
-                      className="h-full bg-primary/60 transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(var(--primary),0.4)]" 
-                      style={{ width: `${project.taskStats?.percent || 0}%` }}
-                    ></div>
+                     {/* FOOTER SECTION */}
+                     <div className="mt-auto relative z-10 px-6 pb-6">
+                       <div className="pt-4 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                            <div className="flex -space-x-2">
+                             {members.slice(0, 4).map((user: any) => (
+                               <Avatar key={user.id || user._id} className="size-7 border-2 border-white dark:border-[#0f172a] shadow-sm relative z-10 transition-transform hover:scale-110 hover:z-20">
+                                 <AvatarImage src={user.avatarUrl} />
+                                 <AvatarFallback className="text-[9px] bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 font-semibold">
+                                   {user.firstName?.[0]}{user.lastName?.[0]}
+                                 </AvatarFallback>
+                               </Avatar>
+                             ))}
+                             {members.length > 4 && (
+                               <div className="flex size-7 items-center justify-center rounded-full border-2 border-white dark:border-[#0f172a] bg-slate-50 dark:bg-slate-800 text-[10px] font-semibold text-slate-600 dark:text-slate-400 shadow-sm relative z-0">
+                                 +{members.length - 4}
+                               </div>
+                             )}
+                           </div>
+                         </div>
+
+                         <div className="flex items-baseline gap-1 text-right">
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">{project.taskStats?.completed || 0}</span>
+                            <span className="text-xs text-slate-400 font-medium">/</span>
+                            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">{project.taskStats?.total || 0} tasks</span>
+                         </div>
+                       </div>
+                     </div>
+
+                     {/* PREMIUM PROGRESS BAR */}
+                     <div className="absolute bottom-0 left-0 h-1.5 bg-slate-100 dark:bg-slate-800 w-full overflow-hidden">
+                        <div 
+                         className="h-full bg-blue-600 dark:bg-blue-500 transition-all duration-1000 ease-out" 
+                         style={{ width: `${project.taskStats?.percent || 0}%` }}
+                       ></div>
+                     </div>
                   </div>
                 </div>
               );

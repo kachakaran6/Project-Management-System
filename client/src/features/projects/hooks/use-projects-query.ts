@@ -27,12 +27,13 @@ export function useProjectsQuery(filters: ProjectFilters = {}) {
 
 export function useCreateProjectMutation() {
   const queryClient = useQueryClient();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
 
   return useMutation({
     mutationFn: (payload: CreateProjectInput) =>
       projectApi.createProject(payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: projectsQueryKeys.all });
+      await queryClient.invalidateQueries({ queryKey: projectsQueryKeys.all(activeOrgId) });
     },
   });
 }
@@ -50,15 +51,16 @@ export function useProjectQuery(id: string, enabled = true) {
 
 export function useUpdateProjectMutation() {
   const queryClient = useQueryClient();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<CreateProjectInput> }) =>
       projectApi.updateProject(id, data),
     onSuccess: async (_, variables) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: projectsQueryKeys.all }),
+        queryClient.invalidateQueries({ queryKey: projectsQueryKeys.all(activeOrgId) }),
         queryClient.invalidateQueries({
-          queryKey: projectsQueryKeys.detail(variables.id),
+          queryKey: projectsQueryKeys.detail(variables.id, activeOrgId),
         }),
       ]);
     },
@@ -67,11 +69,12 @@ export function useUpdateProjectMutation() {
 
 export function useDeleteProjectMutation() {
   const queryClient = useQueryClient();
+  const { activeOrgId } = useAppSelector((state) => state.auth);
 
   return useMutation({
     mutationFn: (id: string) => projectApi.deleteProject(id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: projectsQueryKeys.all });
+      await queryClient.invalidateQueries({ queryKey: projectsQueryKeys.all(activeOrgId) });
     },
   });
 }

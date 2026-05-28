@@ -16,13 +16,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { CreateOrgModal } from "@/features/organization/components/create-org-modal";
-import { cn } from "@/lib/utils";
+import { useApplyTheme } from "@/providers/theme-provider";
 
 export function HeaderUserMenu() {
   const { user, isAdmin, logout } = useAuth();
   const router = useRouter();
   const [createOrgOpen, setCreateOrgOpen] = useState(false);
-  const { resolvedTheme, setTheme } = useTheme();
+  const { mode, changeMode } = useApplyTheme();
+  const { resolvedTheme } = useTheme();
+
+  const effectiveTheme = resolvedTheme ?? (mode === "system" ? "light" : mode);
+  const nextTheme = effectiveTheme === "dark" ? "light" : "dark";
 
   const fullName =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Account";
@@ -38,10 +42,8 @@ export function HeaderUserMenu() {
     }
   };
 
-  const nextTheme =
-    resolvedTheme === "dark" ? "light" : "dark";
   const themeIcon =
-    resolvedTheme === "dark" ? (
+    effectiveTheme === "dark" ? (
       <Sun className="size-4 text-muted-foreground" />
     ) : (
       <Moon className="size-4 text-muted-foreground" />
@@ -114,7 +116,7 @@ export function HeaderUserMenu() {
               className="gap-3 rounded-dropdown px-3 py-2.5 focus:bg-primary/10 cursor-pointer"
               onSelect={(event) => {
                 event.preventDefault();
-                setTheme(nextTheme);
+                changeMode(nextTheme);
               }}
             >
               {themeIcon}

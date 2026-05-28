@@ -16,6 +16,9 @@ export const SOCKET_EVENTS = {
   TASK_DELETED: 'task:deleted',
   TASK_ASSIGNED: 'task:assigned',
   
+  // Projects
+  PROJECT_STATUS_CHANGED: 'project:status_changed',
+  
   // Comments
   COMMENT_ADDED: 'comment:added',
   COMMENT_UPDATED: 'comment:updated',

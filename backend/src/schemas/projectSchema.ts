@@ -36,7 +36,7 @@ const projectSchema = new mongoose.Schema({
     autoStatusUpdate: { type: Boolean, default: true },
     isEnabled: { type: Boolean, default: true }
   },
-  defaultAssigneeId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
+  defaultAssigneeIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
