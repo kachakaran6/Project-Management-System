@@ -62,10 +62,12 @@ const taskSchema = new mongoose.Schema({
       hash: String,
       createdAt: { type: Date, default: Date.now }
     }
-  ]
+  ],
+  images: [{ type: String }]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
+
   toObject: { virtuals: true }
 });
 

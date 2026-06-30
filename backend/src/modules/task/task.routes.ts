@@ -5,6 +5,8 @@ import { requireAuth } from "../../middlewares/auth.middleware.js";
 import { requirePermission } from "../../middlewares/permission.middleware.js";
 import { PERMISSIONS } from "../../constants/index.js";
 
+import { upload } from "../../middlewares/upload.middleware.js";
+
 const router = express.Router();
 
 router.use(requireAuth);
@@ -18,6 +20,7 @@ router.get(
 router.post(
   "/",
   requirePermission(PERMISSIONS.CREATE_TASK),
+  upload.array("images", 10),
   taskController.create,
 );
 router.get(
@@ -38,6 +41,7 @@ router.patch(
 router.post(
   "/drafts/:id/publish",
   requirePermission(PERMISSIONS.CREATE_TASK),
+  upload.array("images", 10),
   taskController.publishDraft,
 );
 router.delete(
@@ -48,6 +52,7 @@ router.delete(
 router.patch(
   "/:id",
   requirePermission(PERMISSIONS.EDIT_TASK),
+  upload.array("images", 10),
   taskController.update,
 );
 router.post(

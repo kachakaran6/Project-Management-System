@@ -1,13 +1,26 @@
 import * as taskService from './task.service.js';
 import { asyncHandler } from '../../middlewares/asyncHandler.js';
 import { paginate, successResponse } from '../../utils/apiResponse.js';
+import { compressImage } from '../../utils/imageCompressor.js';
+import path from 'path';
 
 /**
  * Controller: Create Task
  */
 export const create = asyncHandler(async (req, res) => {
+  const images: string[] = [];
+
+  if (req.files && Array.isArray(req.files)) {
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    for (const file of req.files) {
+      const filename = await compressImage(file, uploadDir);
+      images.push(`/uploads/${filename}`);
+    }
+  }
+
   const task = await taskService.createTask({
     ...req.body,
+    images,
     organizationId: req.organizationId as string // Still pass if exists, but not forced
   }, req.user.id, (req.role as string) || 'MEMBER');
 
@@ -65,10 +78,21 @@ export const updateDraft = asyncHandler(async (req, res) => {
  * Controller: Publish task draft
  */
 export const publishDraft = asyncHandler(async (req, res) => {
+  const images: string[] = [];
+
+  if (req.files && Array.isArray(req.files)) {
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    for (const file of req.files) {
+      const filename = await compressImage(file, uploadDir);
+      images.push(`/uploads/${filename}`);
+    }
+  }
+
   const task = await taskService.publishDraft(
     req.params.id as string,
     {
       ...req.body,
+      images,
       organizationId: req.organizationId as string
     },
     req.user.id,
@@ -132,9 +156,24 @@ export const getAll = asyncHandler(async (req, res) => {
  * Controller: Update Task
  */
 export const update = asyncHandler(async (req, res) => {
+  const images: string[] = [];
+
+  if (req.files && Array.isArray(req.files)) {
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    for (const file of req.files) {
+      const filename = await compressImage(file, uploadDir);
+      images.push(`/uploads/${filename}`);
+    }
+  }
+
+  const updateData = { ...req.body };
+  if (images.length > 0) {
+    updateData.images = images;
+  }
+
   const task = await taskService.updateTask(
     req.params.id as string,
-    req.body,
+    updateData,
     req.user.id,
     (req.role as string) || 'MEMBER'
   );

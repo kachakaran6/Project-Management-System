@@ -1,0 +1,850 @@
+/* ==========================================================================
+   PMS Orbit — Professional Documentation Editor Styles
+   ========================================================================== */
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Base Editor Container
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--foreground);
+  caret-color: var(--primary);
+  outline: none;
+  max-width: 100%;
+}
+
+.page-editor .ProseMirror {
+  outline: none;
+  min-height: 520px;
+}
+
+.page-editor .ProseMirror > * + * {
+  margin-top: 0.5em;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Placeholder
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor .ProseMirror p.is-editor-empty:first-child::before,
+.page-editor p.is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: color-mix(in srgb, var(--muted-foreground) 45%, transparent);
+  pointer-events: none;
+  height: 0;
+  font-style: italic;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Headings
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor h1 {
+  font-size: 2em;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 1.5em 0 0.5em;
+  color: var(--foreground);
+  letter-spacing: -0.025em;
+}
+.page-editor h2 {
+  font-size: 1.5em;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.3em 0 0.45em;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
+}
+.page-editor h3 {
+  font-size: 1.25em;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 1.1em 0 0.4em;
+  color: var(--foreground);
+}
+.page-editor h4 {
+  font-size: 1.1em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 1em 0 0.35em;
+  color: var(--foreground);
+}
+.page-editor h5 {
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 0.9em 0 0.3em;
+  color: var(--foreground);
+}
+.page-editor h6 {
+  font-size: 0.9em;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0.8em 0 0.25em;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* First heading — no top margin */
+.page-editor > h1:first-child,
+.page-editor > h2:first-child,
+.page-editor > h3:first-child,
+.page-editor .ProseMirror > h1:first-child,
+.page-editor .ProseMirror > h2:first-child,
+.page-editor .ProseMirror > h3:first-child {
+  margin-top: 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Paragraphs & Text Marks
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor p {
+  margin: 0.4em 0;
+  line-height: 1.75;
+}
+
+.page-editor strong {
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.page-editor em {
+  font-style: italic;
+  color: var(--foreground);
+}
+
+.page-editor u {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.page-editor s {
+  text-decoration: line-through;
+  color: var(--muted-foreground);
+}
+
+.page-editor mark {
+  background-color: #fef08a; /* yellow-200 */
+  color: #1c1917;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+.dark .page-editor mark {
+  background-color: #a16207; /* yellow-700 */
+  color: #fefce8;
+}
+
+.page-editor sup {
+  font-size: 0.75em;
+  vertical-align: super;
+}
+
+.page-editor sub {
+  font-size: 0.75em;
+  vertical-align: sub;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Inline Code
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor code {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.875em;
+  background-color: color-mix(in srgb, var(--muted) 60%, transparent);
+  color: #3b82f6; /* blue-500 */
+  border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-weight: 500;
+}
+
+.dark .page-editor code {
+  color: #60a5fa; /* blue-400 */
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Code Blocks
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor pre {
+  background: #0f172a; /* slate-900 */
+  color: #f8fafc; /* slate-50 */
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.875em;
+  line-height: 1.7;
+  border-radius: 8px;
+  padding: 1.2em 1.4em;
+  margin: 1em 0;
+  overflow-x: auto;
+  tab-size: 2;
+  border: 1px solid #1e293b; /* slate-800 */
+  position: relative;
+}
+
+.dark .page-editor pre {
+  background: #020617; /* slate-950 */
+  border-color: #0f172a; /* slate-900 */
+}
+
+.page-editor pre code {
+  background: none;
+  color: inherit;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  font-weight: 400;
+}
+
+/* Syntax highlights (lowlight) */
+.page-editor pre .hljs-keyword,
+.page-editor pre .hljs-tag { color: #c084fc; } /* purple-400 */
+.page-editor pre .hljs-string,
+.page-editor pre .hljs-attr { color: #86efac; } /* green-300 */
+.page-editor pre .hljs-comment,
+.page-editor pre .hljs-quote { color: #64748b; font-style: italic; } /* slate-500 */
+.page-editor pre .hljs-number,
+.page-editor pre .hljs-literal { color: #fdba74; } /* orange-300 */
+.page-editor pre .hljs-function,
+.page-editor pre .hljs-title { color: #7dd3fc; } /* sky-300 */
+.page-editor pre .hljs-variable { color: #fca5a5; } /* red-300 */
+.page-editor pre .hljs-type { color: #fde047; } /* yellow-300 */
+.page-editor pre .hljs-built_in { color: #7dd3fc; } /* sky-300 */
+.page-editor pre .hljs-operator { color: #f8fafc; } /* slate-50 */
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Blockquote
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor blockquote {
+  border-left: 3px solid color-mix(in srgb, var(--primary) 60%, transparent);
+  background-color: color-mix(in srgb, var(--muted) 30%, transparent);
+  border-radius: 0 6px 6px 0;
+  padding: 0.75em 1.25em;
+  margin: 1em 0;
+  color: color-mix(in srgb, var(--foreground) 80%, transparent);
+  font-style: italic;
+}
+
+.page-editor blockquote p {
+  margin: 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Lists
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor ul,
+.page-editor ol {
+  margin: 0.6em 0;
+  padding-left: 1.5em;
+}
+
+.page-editor li {
+  margin: 0.2em 0;
+  line-height: 1.7;
+}
+
+.page-editor ul li {
+  list-style-type: disc;
+}
+
+.page-editor ol li {
+  list-style-type: decimal;
+}
+
+.page-editor li p {
+  margin: 0;
+}
+
+.page-editor ul ul,
+.page-editor ol ol,
+.page-editor ul ol,
+.page-editor ol ul {
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Task / Checklist List
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.6em 0;
+}
+
+.page-editor li[data-type='taskItem'] {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6em;
+  padding: 0.15em 0;
+}
+
+.page-editor li[data-type='taskItem'] > label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-top: 0.2em;
+  flex-shrink: 0;
+}
+
+.page-editor li[data-type='taskItem'] > label input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.page-editor li[data-type='taskItem'] > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-editor li[data-type='taskItem'][data-checked='true'] > div > p {
+  text-decoration: line-through;
+  color: var(--muted-foreground);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Images
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1em 0;
+  display: block;
+  border: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
+}
+
+.page-editor img.ProseMirror-selectednode {
+  outline: 2px solid var(--primary);
+  border-radius: 8px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Horizontal Rule / Divider
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2em 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   TABLES — Fixed for light + dark mode
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1.2em 0;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.925em;
+}
+
+.page-editor table td,
+.page-editor table th {
+  min-width: 1em;
+  border: 1px solid var(--border);
+  padding: 0.6em 0.85em;
+  vertical-align: top;
+  text-align: left;
+  background-color: var(--card);
+  color: var(--foreground);
+  word-break: break-word;
+  box-sizing: border-box;
+}
+
+.page-editor table th {
+  font-weight: 600;
+  font-size: 0.85em;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background-color: color-mix(in srgb, var(--muted) 50%, transparent);
+  color: var(--muted-foreground);
+}
+
+.page-editor table tr:hover td {
+  background-color: color-mix(in srgb, var(--muted) 25%, transparent);
+}
+
+/* Selected cells */
+.page-editor .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: '';
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  pointer-events: none;
+}
+
+.page-editor .selectedCell {
+  position: relative;
+}
+
+/* Column resize handle */
+.page-editor .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: color-mix(in srgb, var(--primary) 50%, transparent);
+  pointer-events: none;
+  cursor: col-resize;
+  border-radius: 2px;
+}
+
+.page-editor .tableWrapper {
+  overflow-x: auto;
+  border-radius: 6px;
+  margin: 1.2em 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page-editor .resize-cursor {
+  cursor: col-resize;
+}
+
+/* Dark mode table overrides — explicit, no ambiguity */
+.dark .page-editor table {
+  border-color: var(--border);
+}
+
+.dark .page-editor table td,
+.dark .page-editor table th {
+  border-color: var(--border);
+  background-color: var(--card);
+  color: var(--foreground);
+}
+
+.dark .page-editor table th {
+  background-color: var(--muted);
+}
+
+.dark .page-editor table tr:hover td {
+  background-color: color-mix(in srgb, var(--muted) 40%, transparent);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Callout Blocks
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor [data-type='callout'] {
+  display: flex;
+  gap: 0.85em;
+  align-items: flex-start;
+  border-radius: 8px;
+  padding: 0.9em 1.1em;
+  margin: 1em 0;
+  border-left: 3.5px solid;
+}
+
+.page-editor [data-type='callout'][data-callout-type='info'] {
+  background-color: color-mix(in srgb, #3b82f6 7%, transparent); /* blue-500 */
+  border-color: #3b82f6;
+}
+.page-editor [data-type='callout'][data-callout-type='warning'] {
+  background-color: color-mix(in srgb, #f59e0b 9%, transparent); /* amber-500 */
+  border-color: #f59e0b;
+}
+.page-editor [data-type='callout'][data-callout-type='success'] {
+  background-color: color-mix(in srgb, #22c55e 8%, transparent); /* green-500 */
+  border-color: #22c55e;
+}
+.page-editor [data-type='callout'][data-callout-type='error'] {
+  background-color: color-mix(in srgb, #ef4444 8%, transparent); /* red-500 */
+  border-color: #ef4444;
+}
+.page-editor [data-type='callout'][data-callout-type='note'] {
+  background-color: color-mix(in srgb, #a855f7 8%, transparent); /* purple-500 */
+  border-color: #a855f7;
+}
+
+.page-editor [data-type='callout'] .callout-icon {
+  font-size: 1.1em;
+  line-height: 1.75;
+  flex-shrink: 0;
+  margin-top: 0.05em;
+}
+
+.page-editor [data-type='callout'] .callout-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-editor [data-type='callout'] .callout-content p {
+  margin: 0;
+}
+
+/* Dark mode callouts */
+.dark .page-editor [data-type='callout'][data-callout-type='info'] {
+  background-color: color-mix(in srgb, #3b82f6 10%, transparent);
+}
+.dark .page-editor [data-type='callout'][data-callout-type='warning'] {
+  background-color: color-mix(in srgb, #f59e0b 12%, transparent);
+}
+.dark .page-editor [data-type='callout'][data-callout-type='success'] {
+  background-color: color-mix(in srgb, #22c55e 10%, transparent);
+}
+.dark .page-editor [data-type='callout'][data-callout-type='error'] {
+  background-color: color-mix(in srgb, #ef4444 12%, transparent);
+}
+.dark .page-editor [data-type='callout'][data-callout-type='note'] {
+  background-color: color-mix(in srgb, #a855f7 10%, transparent);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Toggle / Details Block
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor details {
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 8px;
+  padding: 0.6em 1em;
+  margin: 0.8em 0;
+  background-color: var(--card);
+}
+
+.page-editor details > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--foreground);
+  user-select: none;
+  padding: 0.2em 0;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.page-editor details > summary::before {
+  content: '▶';
+  font-size: 0.65em;
+  transition: transform 0.15s;
+  color: var(--muted-foreground);
+}
+
+.page-editor details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.page-editor details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.page-editor details > :not(summary) {
+  margin-top: 0.5em;
+  padding-top: 0.5em;
+  border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Links
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  transition: text-decoration-color 0.15s;
+}
+
+.page-editor a:hover {
+  text-decoration-color: var(--primary);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Mentions
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor span[data-type='mention'] {
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-weight: 500;
+  font-size: 0.9em;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Selection
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor ::selection {
+  background-color: color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Focus Ring (ProseMirror selected node)
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor .ProseMirror-selectednode {
+  outline: 2px solid color-mix(in srgb, var(--primary) 50%, transparent);
+  border-radius: 4px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Gapcursor
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor .ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+}
+
+.page-editor .ProseMirror-gapcursor:after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid var(--foreground);
+  animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes ProseMirror-cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.page-editor .ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Heading Anchor IDs (for TOC)
+   ────────────────────────────────────────────────────────────────────────── */
+.page-editor h1[id],
+.page-editor h2[id],
+.page-editor h3[id],
+.page-editor h4[id],
+.page-editor h5[id],
+.page-editor h6[id] {
+  scroll-margin-top: 80px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Drag Handle (block menu)
+   ────────────────────────────────────────────────────────────────────────── */
+.drag-handle {
+  position: absolute;
+  left: -2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  cursor: grab;
+  color: color-mix(in srgb, var(--muted-foreground) 60%, transparent);
+  border-radius: 4px;
+}
+
+.drag-handle:hover {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+.page-editor:hover .drag-handle {
+  opacity: 1;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Toolbar Active States
+   ────────────────────────────────────────────────────────────────────────── */
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--foreground) 75%, transparent);
+  cursor: pointer;
+  transition: background-color 0.1s, color 0.1s;
+  flex-shrink: 0;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+.toolbar-btn.is-active {
+  background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Slash Command Palette
+   ────────────────────────────────────────────────────────────────────────── */
+.slash-palette {
+  position: fixed;
+  z-index: 9999;
+  width: 300px;
+  max-height: 380px;
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0, 0.18), 0 2px 8px rgba(0,0,0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+}
+
+.slash-palette-search {
+  padding: 8px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.slash-palette-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--foreground);
+  font-family: inherit;
+}
+
+.slash-palette-search input::placeholder {
+  color: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
+}
+
+.slash-palette-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.slash-palette-group-label {
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--muted-foreground) 55%, transparent);
+  margin-top: 4px;
+}
+
+.slash-palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+  user-select: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.slash-palette-item:hover,
+.slash-palette-item.is-highlighted {
+  background-color: var(--muted);
+}
+
+.slash-palette-item.is-highlighted {
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.slash-palette-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+
+.slash-palette-item.is-highlighted .slash-palette-item-icon {
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  color: var(--primary);
+}
+
+.slash-palette-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.slash-palette-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+
+.slash-palette-item.is-highlighted .slash-palette-item-title {
+  color: var(--primary);
+}
+
+.slash-palette-item-hint {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  line-height: 1.2;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Table Toolbar (Floating/Context)
+   ────────────────────────────────────────────────────────────────────────── */
+.table-toolbar {
+  display: inline-flex;
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  gap: 2px;
+  box-shadow: 0 4px 12px rgba(0,0,0, 0.1);
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.table-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  height: 28px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--foreground);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.table-toolbar-btn:hover {
+  background: var(--muted);
+}

@@ -80,6 +80,7 @@ export interface Task {
     isEnabled?: boolean;
   };
   linkedPagesCount?: number;
+  images?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -100,6 +101,7 @@ export interface CreateTaskInput {
   position?: number;
   isDraft?: boolean;
   isPublic?: boolean;
+  images?: string[];
 }
 
 export interface UpdateTaskInput extends Partial<CreateTaskInput> {
@@ -111,6 +113,7 @@ export interface UpdateTaskInput extends Partial<CreateTaskInput> {
   position?: number;
   isDraft?: boolean;
   isPublic?: boolean;
+  images?: string[];
 }
 
 export interface TaskDraftInput {
@@ -131,6 +134,7 @@ export interface TaskDraftInput {
   position?: number;
   isDraft?: boolean;
   isPublic?: boolean;
+  images?: string[];
 }
 
 export interface TaskDraftFilters {

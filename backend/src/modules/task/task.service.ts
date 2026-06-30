@@ -502,7 +502,7 @@ const checkProjectAutoCompletion = async (projectId: any, organizationId: any, a
 export const createTask = async (taskData: Record<string, any>, userId: string, role?: string | null) => {
   const { 
     title, description, projectId, workspaceId, organizationId, 
-    status, priority, dueDate,
+    status, priority, dueDate, images = [],
     assignees = [], assigneeId, assigneeIds = [],
     tags = [],
     visibility = 'PUBLIC',
@@ -572,6 +572,7 @@ export const createTask = async (taskData: Record<string, any>, userId: string, 
       status: finalStatusId,
       priority: priority || 'MEDIUM',
       dueDate,
+      images,
       creatorId: userId,
       visibility: normalizedVisibility,
       isDraft: draftState,
@@ -819,6 +820,11 @@ export const saveDraft = async (draftData: Record<string, any>, userId: string, 
       isDraft: true,
       isPublic: false
     };
+
+    if (draftData.images && Array.isArray(draftData.images)) {
+      updatePayload.images = draftData.images;
+    }
+
     const unsetPayload: Record<string, any> = {};
 
     if (dueDate) {
@@ -933,6 +939,10 @@ export const publishDraft = async (
       isPublic: true
     };
     const unsetPayload: Record<string, any> = {};
+
+    if (publishData.images && Array.isArray(publishData.images)) {
+      updatePayload.images = publishData.images;
+    }
 
     if (dueDate) {
       updatePayload.dueDate = dueDate;
@@ -1474,6 +1484,12 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
     unsetPayload.dueDate = 1;
     delete updatePayload.dueDate;
   }
+
+  if (otherData.images && Array.isArray(otherData.images)) {
+    // Append new images to existing ones, filter out duplicates
+    const existingImages = Array.isArray(previousTask.images) ? previousTask.images : [];
+    updatePayload.images = Array.from(new Set([...existingImages, ...otherData.images]));
+  }
   const task = await Task.findOneAndUpdate(
     { _id: taskId, isActive: true },
     {
@@ -1514,13 +1530,20 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
   const shouldSyncAssignees =
     Array.isArray(assigneeIds) || Object.prototype.hasOwnProperty.call(updateData, 'assigneeId');
 
+  let newAssigneeIds: string[] = [];
+
   if (shouldSyncAssignees) {
+    // Only notify new assignees, not existing ones
+    const existingAssignees = await TaskAssignee.find({ taskId: toObjectId(taskId) }).select('userId').lean();
+    const existingAssigneeIds = existingAssignees.map((a: any) => String(a.userId));
+    newAssigneeIds = normalizedAssigneeIds.filter(id => !existingAssigneeIds.includes(id));
+
     await syncTaskAssignees(taskId, normalizedAssigneeIds, task.organizationId, userId);
   }
 
-  if (!draftState && normalizedAssigneeIds.length > 0) {
+  if (!draftState && newAssigneeIds.length > 0) {
     activityLog.triggerNotification({
-      userIds: normalizedAssigneeIds,
+      userIds: newAssigneeIds,
       organizationId: task.organizationId,
       actorId: userId,
       type: 'TASK_ASSIGNED',

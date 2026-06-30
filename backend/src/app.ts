@@ -42,7 +42,7 @@ const isOriginAllowed = (origin: string): boolean => {
 };
 
 // ─── Security ─────────────────────────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(requestIdMiddleware);
 app.use(requestLogger);
 
@@ -84,10 +84,16 @@ import githubRoutes from "./modules/github/github.routes.js";
 app.use("/api/v1/billing", billingRoutes);
 app.use("/api/v1/github", githubRoutes);
 
+import path from "path";
+
 // ─── Request Parsing ───────────────────────────────────────────────────────────
 app.use(express.json({ limit: "500kb" }));
 app.use(express.urlencoded({ extended: true, limit: "500kb" }));
 app.use(cookieParser());
+
+// ─── Static Files ──────────────────────────────────────────────────────────────
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
 
 // ─── HTTP Logging ──────────────────────────────────────────────────────────────
 const morganFormat = env.isProduction ? "combined" : "dev";

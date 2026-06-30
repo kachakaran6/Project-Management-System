@@ -440,15 +440,17 @@ export const broadcastToOrg = async ({
     }
 
     // Send messages in parallel (Fire and forget)
+    const uniqueChatIds = Array.from(new Set(chatIds));
+
     if (TELEGRAM_DEBUG) {
       console.log("[TELEGRAM DEBUG]", {
         step: "FINAL_SUMMARY_PRE_SEND",
-        totalRecipients: chatIds.length,
+        totalRecipients: uniqueChatIds.length,
         timestamp: new Date().toISOString()
       });
     }
 
-    chatIds.forEach((chatId: string) => {
+    uniqueChatIds.forEach((chatId: string) => {
       if (TELEGRAM_DEBUG) {
         console.log("[TELEGRAM DEBUG]", {
           step: "API_REQUEST",

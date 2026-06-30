@@ -12,6 +12,7 @@ import { TaskComments } from "@/features/comments/components/TaskComments";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { TaskCopyButton } from "@/features/tasks/components/panel/task-copy-button";
+import { TaskAttachments } from "@/features/tasks/components/panel/task-attachments";
 import { useTaskQuery } from "@/features/tasks/hooks/use-tasks-query";
 import {
   formatTaskDescriptionForClipboard,
@@ -310,6 +311,19 @@ export default function TaskDetailsPage() {
               ? new Date(task.dueDate).toLocaleDateString()
               : "Not set"}
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Attachments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {task.images && task.images.length > 0 ? (
+            <TaskAttachments task={task as any} />
+          ) : (
+            <p className="text-sm text-muted-foreground">No images attached to this task.</p>
+          )}
         </CardContent>
       </Card>
 

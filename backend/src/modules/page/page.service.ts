@@ -578,7 +578,18 @@ export const renderPagePdf = async (input: {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
 
     const safeTitle = input.title.trim() || 'Untitled Page';
-    const plainText = stripHtml(input.content || '');
+    
+    let rawContent = input.content || '';
+    try {
+      const parsed = JSON.parse(rawContent);
+      if (parsed && typeof parsed === 'object' && parsed.format === 'tiptap-json') {
+        rawContent = parsed.html || '';
+      }
+    } catch (e) {
+      // Content is not JSON, use as-is
+    }
+    
+    const plainText = stripHtml(rawContent);
 
     doc.fontSize(22).text(safeTitle, { align: 'left' });
     doc.moveDown(0.6);

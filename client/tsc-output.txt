@@ -1,0 +1,5 @@
+﻿src/app/types.ts(4,20): error TS1005: '>' expected.
+src/app/types.ts(4,22): error TS1005: ';' expected.
+src/app/types.ts(4,36): error TS1005: ';' expected.
+src/app/types.ts(4,45): error TS1109: Expression expected.
+src/app/types.ts(4,46): error TS1109: Expression expected.

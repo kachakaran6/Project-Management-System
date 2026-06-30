@@ -59,12 +59,29 @@ export function EditTaskModal({
         visibleToUsers: values.visibility === "PRIVATE" ? (values.visibleToUsers || []) : undefined,
       };
 
+      let finalData: UpdateTaskInput | FormData = data;
+
+      if (values.images && values.images.length > 0) {
+        const formData = new FormData();
+        Object.keys(data).forEach((key) => {
+          if ((data as any)[key] !== undefined) {
+            if (Array.isArray((data as any)[key])) {
+              (data as any)[key].forEach((item: any) => formData.append(key, item));
+            } else {
+              formData.append(key, (data as any)[key]);
+            }
+          }
+        });
+        values.images.forEach((file: File) => formData.append("images", file));
+        finalData = formData;
+      }
+
       if (!taskId) {
         toast.error("Invalid task ID.");
         return;
       }
 
-      await updateTask.mutateAsync({ id: taskId, data });
+      await updateTask.mutateAsync({ id: taskId, data: finalData });
       toast.success("Task updated successfully!");
       handleOpenChange(false);
     } catch (err: any) {
