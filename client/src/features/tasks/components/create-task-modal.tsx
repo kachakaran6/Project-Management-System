@@ -647,7 +647,7 @@ export function CreateTaskModal({
           e.preventDefault();
           handleAttemptClose();
         }}
-        className="max-w-160 w-[95vw] md:w-full h-fit max-h-[90vh] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-modal gap-0 flex flex-col"
+        className="max-w-3xl lg:max-w-4xl w-[95vw] md:w-full h-fit max-h-[90vh] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-modal gap-0 flex flex-col"
       >
         {isCheckingDraft ? (
           <div className="flex min-h-80 items-center justify-center text-sm text-muted-foreground">
