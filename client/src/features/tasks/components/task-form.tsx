@@ -39,6 +39,7 @@ import {
 } from "@/features/tasks/schemas/task.schema";
 import {MultiUserSelect} from "@/features/team/components/multi-user-select";
 import {TaskDescriptionEditor} from "./task-description-editor";
+import { ImageUploadField } from "./image-upload-field";
 import {useAppSelector} from "@/hooks/useAppSelector";
 import {cn} from "@/lib/utils";
 import {Switch} from "@/components/ui/switch";
@@ -131,6 +132,7 @@ function buildTaskFormDefaults(
           : [],
     dueDate: initialValues?.dueDate ?? "",
     tags: initialValues?.tags ?? [],
+    images: initialValues?.images ?? [],
   };
 }
 
@@ -361,7 +363,7 @@ export function TaskForm({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden rounded-card border border-border shadow-2xl">
+    <div className="flex flex-col flex-1 min-h-0 bg-background text-foreground overflow-hidden rounded-card border border-border shadow-2xl">
       {/* Header Area */}
       <div className="pt-6 pb-2 px-6 shrink-0 space-y-3">
         <div className="flex items-center justify-between">
@@ -518,6 +520,18 @@ export function TaskForm({
               placeholder="Click to add description..."
               alwaysEditing={true}
               className="min-h-[160px]"
+            />
+          )}
+        />
+
+        {/* Attachment Area */}
+        <Controller
+          name="images"
+          control={form.control}
+          render={({field}) => (
+            <ImageUploadField
+              value={field.value || []}
+              onChange={field.onChange}
             />
           )}
         />

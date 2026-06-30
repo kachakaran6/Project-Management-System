@@ -38,6 +38,7 @@ import { TaskHeader } from "./task-header";
 import { TaskLinkedPages } from "./task-linked-pages";
 import { TaskMobileNavigation } from "./task-mobile-navigation";
 import { TaskProperties } from "./task-properties";
+import { TaskAttachments } from "./task-attachments";
 import { cn } from "@/lib/utils";
 import type { TaskPanelNavigationContext } from "@/features/tasks/utils/task-panel-navigation";
 import type { Task } from "@/types/task.types";
@@ -105,6 +106,8 @@ const TaskDetailBody = memo(function TaskDetailBody({
           }
         />
         <TaskDescription task={task} />
+        
+        <TaskAttachments task={task} />
 
         <TaskLinkedPages taskId={taskDetailId} />
 

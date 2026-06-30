@@ -29,7 +29,8 @@ export const taskApi = {
     return response.data;
   },
 
-  createTask: async (data: CreateTaskInput): Promise<ApiResponse<Task>> => {
+  createTask: async (data: CreateTaskInput | FormData): Promise<ApiResponse<Task>> => {
+    // Axios automatically sets multipart/form-data with the correct boundary when passing FormData
     const response = await api.post<ApiResponse<Task>>("/tasks", data);
     return response.data;
   },

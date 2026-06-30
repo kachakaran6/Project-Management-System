@@ -11,6 +11,7 @@ export const taskFormSchema = z.object({
   assigneeIds: z.array(z.string()).optional(),
   dueDate: z.string().optional().or(z.literal("")),
   tags: z.array(z.string()).optional(),
+  images: z.array(z.any()).optional(),
 });
 
 export type TaskFormValues = z.infer<typeof taskFormSchema>;

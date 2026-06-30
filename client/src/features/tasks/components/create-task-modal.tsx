@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AxiosError } from "axios";
 import { SquarePen } from "lucide-react";
@@ -90,6 +89,7 @@ const createBaseValues = (defaultProjectId?: string, defaultAssigneeIds: string[
   assigneeIds: defaultAssigneeIds,
   dueDate: "",
   tags: [],
+  images: [],
 });
 
 const normalizeComparableValues = (values: Partial<TaskFormValues>) => {
@@ -109,7 +109,6 @@ const normalizeComparableValues = (values: Partial<TaskFormValues>) => {
     visibleToUsers: toSortedStringList(Array.isArray(values.visibleToUsers) ? values.visibleToUsers : []),
   };
 };
-
 
 const pickLatestDraft = (
   localDraft: ReturnType<typeof getLatestStoredTaskDraft>,
@@ -301,7 +300,7 @@ export function CreateTaskModal({
 
   const { data: statusPreferenceData } = useQuery({
     queryKey: ["settings", "default-status"],
-    queryFn: () => settingsApi.getDefaultStatus(),
+    queryFn: () => taskApi.getDefaultStatus?.() || { data: {} },
     enabled: open,
     staleTime: 5 * 60 * 1000,
   });
@@ -521,7 +520,7 @@ export function CreateTaskModal({
     // Background sync, no await, instant close
     syncDraftToServer(values, {
       force: true,
-      showErrors: false, // Don't show blocking errors, just silent fail with local storage
+      showErrors: false,
       silent: false
     });
 
@@ -532,11 +531,11 @@ export function CreateTaskModal({
     finalizeClose();
   };
 
-  const buildPublishPayload = (values: TaskFormValues): CreateTaskInput => {
+  const buildPublishPayload = (values: TaskFormValues): CreateTaskInput | FormData => {
     const assigneeIds = values.assigneeIds || [];
     const canSendAssignees = Boolean(activeOrgId);
 
-    return {
+    const payloadObj: any = {
       title: values.title.trim(),
       projectId: values.projectId,
       status: values.status,
@@ -550,8 +549,24 @@ export function CreateTaskModal({
       assignees: canSendAssignees ? assigneeIds : undefined,
       assigneeId: canSendAssignees ? assigneeIds[0] || undefined : undefined,
     };
-  };
 
+    if (values.images && values.images.length > 0) {
+      const formData = new FormData();
+      Object.keys(payloadObj).forEach((key) => {
+        if (payloadObj[key] !== undefined) {
+          if (Array.isArray(payloadObj[key])) {
+            payloadObj[key].forEach((item: any) => formData.append(key, item));
+          } else {
+            formData.append(key, payloadObj[key]);
+          }
+        }
+      });
+      values.images.forEach((file: File) => formData.append("images", file));
+      return formData;
+    }
+
+    return payloadObj as CreateTaskInput;
+  };
 
   const handleSubmit = (values: TaskFormValues, createMoreArg?: boolean) => {
     if (isLocalSubmitting) return;
@@ -590,13 +605,10 @@ export function CreateTaskModal({
     if (userId && currentDraftId) {
       publishTaskDraft.mutate({
         id: currentDraftId,
-        data: publishPayload,
+        data: publishPayload as any, // Need to cast since we might pass FormData but publishDraft expects CreateTaskInput right now
       }, mutationCallbacks);
     } else {
-      createTask.mutate({
-        ...publishPayload,
-        dueDate: values.dueDate || undefined,
-      }, mutationCallbacks);
+      createTask.mutate(publishPayload, mutationCallbacks);
     }
   };
 
@@ -642,7 +654,7 @@ export function CreateTaskModal({
             Restoring draft...
           </div>
         ) : (
-          <div className="relative flex flex-col h-full w-full">
+          <div className="relative flex flex-col flex-1 min-h-0 w-full">
             {wasRestored && (
               <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
                 <div className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide flex items-center shadow-lg backdrop-blur-md">

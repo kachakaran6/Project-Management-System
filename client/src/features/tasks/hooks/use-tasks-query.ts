@@ -69,17 +69,28 @@ export function useCreateTaskMutation() {
   const { activeOrgId, user } = useAppSelector((state) => state.auth);
 
   return useMutation({
-    mutationFn: (payload: CreateTaskInput) => taskApi.createTask(payload),
+    mutationFn: (payload: CreateTaskInput | FormData) => taskApi.createTask(payload),
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: tasksQueryKeys.all(activeOrgId) });
       const previousTasks = queryClient.getQueriesData({ queryKey: tasksQueryKeys.all(activeOrgId) });
 
+      let parsedPayload: any = payload;
+      if (payload instanceof FormData) {
+        parsedPayload = {
+          title: payload.get("title"),
+          description: payload.get("description"),
+          status: payload.get("status"),
+          priority: payload.get("priority"),
+          projectId: payload.get("projectId"),
+        };
+      }
+
       const tempTask = {
         id: `temp-${Date.now()}`,
         _id: `temp-${Date.now()}`,
-        ...payload,
-        status: payload.status || "TODO",
-        priority: payload.priority || "MEDIUM",
+        ...parsedPayload,
+        status: parsedPayload.status || "TODO",
+        priority: parsedPayload.priority || "MEDIUM",
         creatorId: user,
         creator: {
           id: user?.id,
