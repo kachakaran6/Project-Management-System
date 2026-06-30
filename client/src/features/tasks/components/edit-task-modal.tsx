@@ -93,7 +93,7 @@ export function EditTaskModal({
   return (
     <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent hideClose className="max-w-[640px] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-modal gap-0">
+      <DialogContent hideClose className="max-w-3xl lg:max-w-4xl w-[95vw] md:w-full h-fit max-h-[90vh] p-0 overflow-hidden border-border/10 bg-background backdrop-blur-xl shadow-2xl rounded-modal gap-0 flex flex-col">
         <TaskForm
           isEdit={true}
           projects={projects}

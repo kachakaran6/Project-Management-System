@@ -188,7 +188,6 @@ export function TaskDescriptionEditor({
         class: cn(
           "ProseMirror w-full bg-transparent text-[15px] leading-relaxed text-foreground outline-none transition-all duration-200",
           !value && !isFocused ? "min-h-[12px]" : "min-h-[140px]",
-          "md:max-h-[500px] max-h-[220px] overflow-y-auto",
           alwaysEditing && "py-0"
         ),
       },
@@ -287,16 +286,20 @@ export function TaskDescriptionEditor({
     <div 
       ref={containerRef} 
       className={cn(
-        "relative flex flex-col rounded-button border bg-background transition-all duration-300",
+        "relative flex flex-col rounded-button border bg-background transition-all duration-300 cursor-text",
         isFocused ? "border-primary/40 ring-4 ring-primary/5 bg-background" : "border-border/40 bg-muted/5",
         !value && !isFocused && alwaysEditing && "border-dashed",
         className
       )}
+      onClick={(e) => {
+        // Only focus if the click wasn't on a button in the toolbar
+        if (editor && !isFocused && !(e.target as HTMLElement).closest('button')) {
+          editor.commands.focus("end");
+        }
+      }}
     >
-      {/* Notion-style minimal toolbar - only show when focused or has content or not in alwaysEditing mode */}
       <div className={cn(
-        "flex items-center gap-0.5 border-b bg-muted/5 p-1 transition-all duration-200",
-        alwaysEditing && !isFocused && !value && "h-0 p-0 border-none opacity-0 overflow-hidden"
+        "flex items-center gap-0.5 border-b bg-muted/5 p-1 transition-all duration-200"
       )}>
         <ToolbarButton
           ariaLabel="Bold"
