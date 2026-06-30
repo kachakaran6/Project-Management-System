@@ -52,6 +52,7 @@ router.delete(
 router.patch(
   "/:id",
   requirePermission(PERMISSIONS.EDIT_TASK),
+  upload.array("images", 10),
   taskController.update,
 );
 router.post(

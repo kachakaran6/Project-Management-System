@@ -156,9 +156,24 @@ export const getAll = asyncHandler(async (req, res) => {
  * Controller: Update Task
  */
 export const update = asyncHandler(async (req, res) => {
+  const images: string[] = [];
+
+  if (req.files && Array.isArray(req.files)) {
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    for (const file of req.files) {
+      const filename = await compressImage(file, uploadDir);
+      images.push(`/uploads/${filename}`);
+    }
+  }
+
+  const updateData = { ...req.body };
+  if (images.length > 0) {
+    updateData.images = images;
+  }
+
   const task = await taskService.updateTask(
     req.params.id as string,
-    req.body,
+    updateData,
     req.user.id,
     (req.role as string) || 'MEMBER'
   );

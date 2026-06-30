@@ -30,8 +30,8 @@ export const taskApi = {
   },
 
   createTask: async (data: CreateTaskInput | FormData): Promise<ApiResponse<Task>> => {
-    // Axios automatically sets multipart/form-data with the correct boundary when passing FormData
-    const response = await api.post<ApiResponse<Task>>("/tasks", data);
+    const config = data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined;
+    const response = await api.post<ApiResponse<Task>>("/tasks", data, config);
     return response.data;
   },
 
@@ -61,9 +61,10 @@ export const taskApi = {
 
   publishDraft: async (
     id: string,
-    data: CreateTaskInput,
+    data: CreateTaskInput | FormData,
   ): Promise<ApiResponse<Task>> => {
-    const response = await api.post<ApiResponse<Task>>(`/tasks/drafts/${id}/publish`, data);
+    const config = data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined;
+    const response = await api.post<ApiResponse<Task>>(`/tasks/drafts/${id}/publish`, data, config);
     return response.data;
   },
 
@@ -74,9 +75,10 @@ export const taskApi = {
 
   updateTask: async (
     id: string,
-    data: UpdateTaskInput,
+    data: UpdateTaskInput | FormData,
   ): Promise<ApiResponse<Task>> => {
-    const response = await api.patch<ApiResponse<Task>>(`/tasks/${id}`, data);
+    const config = data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined;
+    const response = await api.patch<ApiResponse<Task>>(`/tasks/${id}`, data, config);
     return response.data;
   },
 

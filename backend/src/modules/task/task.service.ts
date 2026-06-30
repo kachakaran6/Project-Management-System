@@ -1484,6 +1484,12 @@ export const updateTask = async (taskId: any, updateData: Record<string, any>, u
     unsetPayload.dueDate = 1;
     delete updatePayload.dueDate;
   }
+
+  if (otherData.images && Array.isArray(otherData.images)) {
+    // Append new images to existing ones, filter out duplicates
+    const existingImages = Array.isArray(previousTask.images) ? previousTask.images : [];
+    updatePayload.images = Array.from(new Set([...existingImages, ...otherData.images]));
+  }
   const task = await Task.findOneAndUpdate(
     { _id: taskId, isActive: true },
     {

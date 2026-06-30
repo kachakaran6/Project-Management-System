@@ -42,7 +42,7 @@ const isOriginAllowed = (origin: string): boolean => {
 };
 
 // ─── Security ─────────────────────────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(requestIdMiddleware);
 app.use(requestLogger);
 
