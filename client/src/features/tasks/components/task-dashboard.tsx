@@ -68,6 +68,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
@@ -89,6 +90,7 @@ import { TaskBoard } from "@/features/tasks/components/task-board";
 import { EditTaskModal } from "@/features/tasks/components/edit-task-modal";
 import { CreateTaskModal } from "@/features/tasks/components/create-task-modal";
 import { DeleteTaskModal } from "@/features/tasks/components/delete-task-modal";
+import { ExportTasksModal } from "@/features/tasks/components/export-tasks-modal";
 import { useOrganizationMembersQuery } from "@/features/organization/hooks/use-organization-members";
 import { Task, TaskStatus, TaskPriority } from "@/types/task.types";
 import { cn } from "@/lib/utils";
@@ -239,6 +241,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   const [selectedSortField, setSelectedSortField] = useState<TaskSortField>(initialSort.field);
   const [selectedSortDirection, setSelectedSortDirection] = useState<TaskSortDirection>(initialSort.direction);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
 
   const { activeOrg, activeOrgId } = useAuth();
   const membersQuery = useOrganizationMembersQuery(activeOrgId || "");
@@ -892,9 +895,29 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 <TooltipContent side="bottom" className="text-[10px] font-bold">Export Data</TooltipContent>
               </Tooltip>
               <DropdownMenuContent align="end" className="w-48 rounded-button border-border/40 shadow-2xl p-1.5 bg-card/95 backdrop-blur-xl">
-                <DropdownMenuItem className="rounded-button py-2 cursor-pointer font-medium" disabled={isExporting} onClick={() => handleExport("pdf")}>
-                  <FileText className="mr-2.5 size-4 opacity-70" /> Export as PDF
-                </DropdownMenuItem>
+                <ExportTasksModal
+                  selectedTaskIds={selectedTaskIds}
+                  currentTasks={listRows}
+                  filters={{
+                    status: status,
+                    priority: priority,
+                    search: debouncedSearch,
+                    assignee: assigneeId,
+                    dueDate: dueDate
+                  }}
+                  projectId={projectId}
+                  projectName={activeOrg?.name || "Current Workspace"}
+                  boardName={status === "ALL" ? "All Boards" : (dynamicStatuses.find((s: any) => String(s.id || s._id) === status)?.name || "Main Kanban Board")}
+                  trigger={
+                    <DropdownMenuItem 
+                      className="rounded-button py-2 cursor-pointer font-medium animate-in fade-in duration-350"
+                      disabled={isExporting}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      <FileText className="mr-2.5 size-4 opacity-70" /> Export as PDF
+                    </DropdownMenuItem>
+                  }
+                />
                 <DropdownMenuItem className="rounded-button py-2 cursor-pointer font-medium" disabled={isExporting} onClick={() => handleExport("excel")}>
                   <FileSpreadsheet className="mr-2.5 size-4 opacity-70" /> Export as Excel
                 </DropdownMenuItem>
@@ -1186,8 +1209,22 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                       <Table className="min-w-300 border-separate border-spacing-0">
                         <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur-md shadow-sm">
                           <TableRow className="hover:bg-transparent border-0">
+                            <TableHead className="w-12 pl-4 border-b border-border/50">
+                              <Checkbox
+                                checked={listRows.length > 0 && listRows.every(r => selectedTaskIds.includes(getTaskId(r)))}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    const idsToAdd = listRows.map(r => getTaskId(r));
+                                    setSelectedTaskIds(prev => Array.from(new Set([...prev, ...idsToAdd])));
+                                  } else {
+                                    const idsToRemove = listRows.map(r => getTaskId(r));
+                                    setSelectedTaskIds(prev => prev.filter(id => !idsToRemove.includes(id)));
+                                  }
+                                }}
+                              />
+                            </TableHead>
                             <TableHead 
-                              className="py-4 pl-8 font-bold text-[10px] uppercase tracking-widest text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors group"
+                              className="py-4 pl-4 font-bold text-[10px] uppercase tracking-widest text-muted-foreground/50 border-b border-border/50 cursor-pointer hover:text-primary transition-colors group"
                               onClick={() => handleSortFieldChange("title")}
                             >
                               <div className="flex items-center gap-1.5">
@@ -1289,13 +1326,15 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                                 new Date(task.dueDate) < new Date() &&
                                 getStatusName(task.status, dynamicStatuses).toUpperCase() !== "DONE"
                               }
-	                              canMutate={canMutate}
-	                              setSelectedTask={setSelectedTask}
-	                              setDeleteId={setDeleteId}
-	                              hideProject={Boolean(fixedProjectId)}
-	                              dynamicStatuses={dynamicStatuses}
-                                panelContext={tablePanelContext}
-	                            />
+                              canMutate={canMutate}
+                              setSelectedTask={setSelectedTask}
+                              setDeleteId={setDeleteId}
+                              hideProject={Boolean(fixedProjectId)}
+                              dynamicStatuses={dynamicStatuses}
+                              panelContext={tablePanelContext}
+                              selectedTaskIds={selectedTaskIds}
+                              setSelectedTaskIds={setSelectedTaskIds}
+                            />
                           ))}
                         </TableBody>
                       </Table>

@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {TableCell, TableRow} from "@/components/ui/table";
+import {Checkbox} from "@/components/ui/checkbox";
 import {Badge} from "@/components/ui/badge";
 import {
   Tooltip,
@@ -50,6 +51,8 @@ export const TaskRow = ({
   setDeleteId,
   hideProject = false,
   panelContext,
+  selectedTaskIds = [],
+  setSelectedTaskIds,
 }: {
   taskId: string;
   idx: number;
@@ -61,6 +64,8 @@ export const TaskRow = ({
   setDeleteId: Dispatch<SetStateAction<string | null>>;
   hideProject?: boolean;
   panelContext: TaskPanelNavigationContext;
+  selectedTaskIds?: string[];
+  setSelectedTaskIds: Dispatch<SetStateAction<string[]>>;
 }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -137,7 +142,19 @@ export const TaskRow = ({
         "group border-b border-border/30 last:border-0 hover:bg-muted/5 transition-all h-16",
         (task as any).isOptimistic && "opacity-60 grayscale-[0.5] pointer-events-none animate-pulse"
       )}>
-      <TableCell className="py-4 pl-6">
+      <TableCell className="w-12 pl-4 pr-0">
+        <Checkbox
+          checked={selectedTaskIds.includes(taskId)}
+          onCheckedChange={(checked) => {
+            if (checked) {
+              setSelectedTaskIds((prev) => [...prev, taskId]);
+            } else {
+              setSelectedTaskIds((prev) => prev.filter((id) => id !== taskId));
+            }
+          }}
+        />
+      </TableCell>
+      <TableCell className="py-4 pl-4">
         <div className="flex flex-col gap-0.5 min-w-[140px]">
           <button
 	            onClick={(e) => {
