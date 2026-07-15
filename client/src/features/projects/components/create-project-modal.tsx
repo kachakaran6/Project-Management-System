@@ -16,6 +16,7 @@ import { ProjectForm } from "@/features/projects/components/project-form";
 import { ProjectFormValues } from "@/features/projects/schemas/project.schema";
 import { useCreateProjectMutation } from "@/features/projects/hooks/use-projects-query";
 import { projectResourcesApi } from "@/features/projects/api/project-resources.api";
+import { api } from "@/lib/api/axios-instance";
 
 
 interface CreateProjectModalProps {
@@ -44,17 +45,25 @@ export function CreateProjectModal({
         code: values.code || undefined,
       });
 
+      const newProjectId = result.data?.id || (result.data as any)?._id;
+
       // Handle resource creation if any were added
-      if (values.resources && values.resources.length > 0) {
-        const newProjectId = result.data?.id || (result.data as any)?._id;
-        if (newProjectId) {
-          await Promise.all(
-            values.resources.map((res) => {
-              const { id: _, ...resData } = res as any;
-              return projectResourcesApi.createResource(newProjectId, resData);
-            })
-          );
-        }
+      if (values.resources && values.resources.length > 0 && newProjectId) {
+        await Promise.all(
+          values.resources.map((res) => {
+            const { id: _, ...resData } = res as any;
+            return projectResourcesApi.createResource(newProjectId, resData);
+          })
+        );
+      }
+
+      // Link GitHub Repository if selected
+      if (values.githubRepoId && values.githubRepoId !== "none" && values.githubRepoId !== "" && newProjectId) {
+        await api.put(`/github/repos/${values.githubRepoId}`, {
+          projectId: newProjectId,
+          branch: "main",
+          permissions: "read"
+        });
       }
 
       toast.success(`Project "${values.name}" created!`);

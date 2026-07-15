@@ -119,13 +119,13 @@ export const getRepositories = asyncHandler(async (req: Request, res: Response) 
 
 export const linkRepository = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).user.id;
-  const { workspaceId, repo } = req.body;
+  const { workspaceId, repo, projectId, branch, permissions } = req.body;
 
   if (!workspaceId || !repo) {
     throw new AppError('Workspace ID and Repo data are required', 400);
   }
 
-  const linkedRepo = await githubService.linkRepository(userId, workspaceId, repo);
+  const linkedRepo = await githubService.linkRepository(userId, workspaceId, repo, projectId, branch, permissions);
   return res.status(200).json({ success: true, data: linkedRepo });
 });
 
@@ -140,6 +140,32 @@ export const unlinkRepository = asyncHandler(async (req: Request, res: Response)
   const repoId = req.params.repoId as string;
   await githubService.unlinkRepository(userId, repoId);
   return res.status(200).json({ success: true, message: 'Repository unlinked' });
+});
+
+export const updateRepositorySettings = asyncHandler(async (req: Request, res: Response) => {
+  const repoId = req.params.repoId as string;
+  const { projectId, branch, permissions, settings } = req.body;
+
+  const repo = await GithubRepository.findById(repoId);
+  if (!repo) throw new AppError('Repository link not found', 404);
+
+  if (projectId !== undefined) repo.projectId = projectId || undefined;
+  if (branch !== undefined) repo.branch = branch;
+  if (permissions !== undefined) repo.permissions = permissions;
+  if (settings !== undefined) repo.settings = { ...repo.settings, ...settings };
+
+  await repo.save();
+  return res.status(200).json({ success: true, data: repo });
+});
+
+export const getRepositoryLinkage = asyncHandler(async (req: Request, res: Response) => {
+  const { owner, repo: repoName } = req.params;
+  
+  const linkedRepo = await GithubRepository.findOne({ 
+    fullName: new RegExp(`^${owner}/${repoName}$`, 'i') 
+  }).populate('projectId', 'name code');
+
+  return res.status(200).json({ success: true, data: linkedRepo });
 });
 
 /**
@@ -209,6 +235,13 @@ export const getFullGithubActivity = asyncHandler(async (req: Request, res: Resp
 /**
  * SECTION 6: GitHub API Proxies for Repository Details
  */
+export const getRepoDetails = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { owner, repo } = req.params;
+  const data = await githubService.getRepoDetails(userId, owner as string, repo as string);
+  return res.status(200).json({ success: true, data });
+});
+
 export const getRepoBranches = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).user.id;
   const { owner, repo } = req.params;

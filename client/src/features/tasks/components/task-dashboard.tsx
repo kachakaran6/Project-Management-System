@@ -237,6 +237,9 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
   const [tagIds, setTagIds] = useState<string[]>(
     searchParams.get("tagIds")?.split(",").filter(Boolean) || [],
   );
+  const [boardIds, setBoardIds] = useState<string[]>(
+    searchParams.get("boardIds")?.split(",").filter(Boolean) || [],
+  );
   const initialSort = useMemo(() => getInitialTaskSortState(searchParams), [searchParams]);
   const [selectedSortField, setSelectedSortField] = useState<TaskSortField>(initialSort.field);
   const [selectedSortDirection, setSelectedSortDirection] = useState<TaskSortDirection>(initialSort.direction);
@@ -309,6 +312,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     if (creatorId !== "ALL") params.set("creatorId", creatorId); else params.delete("creatorId");
     if (dueDate) params.set("dueDate", dueDate); else params.delete("dueDate");
     if (tagIds.length > 0) params.set("tagIds", tagIds.join(",")); else params.delete("tagIds");
+    if (boardIds.length > 0) params.set("boardIds", boardIds.join(",")); else params.delete("boardIds");
 
     if (page > 1) params.set("page", page.toString()); else params.delete("page");
     
@@ -335,6 +339,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     creatorId,
     dueDate,
     tagIds,
+    boardIds,
     page,
     limit,
     pathname,
@@ -378,10 +383,11 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
       creatorId: creatorId === "ALL" || !creatorId ? undefined : creatorId,
       dueDate: dueDate || undefined,
       tagIds: tagIds.length > 0 ? tagIds : undefined,
+      boardIds: boardIds.length > 0 ? boardIds : undefined,
       sortBy: viewMode === "kanban" ? "position" : selectedSortField,
       sortOrder: viewMode === "kanban" ? "asc" : selectedSortDirection,
     }),
-    [debouncedSearch, status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, selectedSortField, selectedSortDirection, viewMode],
+    [debouncedSearch, status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, boardIds, selectedSortField, selectedSortDirection, viewMode],
   );
 
   const listFilters = useMemo(
@@ -520,8 +526,9 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     if (creatorId !== "ALL") count++;
     if (dueDate) count++;
     if (tagIds.length > 0) count += tagIds.length;
+    if (boardIds.length > 0) count += boardIds.length;
     return count;
-  }, [status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, fixedProjectId]);
+  }, [status, priority, projectId, assigneeId, creatorId, dueDate, tagIds, boardIds, fixedProjectId]);
 
   const clearFilters = () => {
     setPage(1);
@@ -533,6 +540,7 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
     setCreatorId("ALL");
     setDueDate("");
     setTagIds([]);
+    setBoardIds([]);
     router.push("?");
   };
 
@@ -811,7 +819,13 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
                 <Button
                   variant={viewMode === "kanban" ? "secondary" : "ghost"}
                   size="sm"
-                  onClick={() => setViewMode("kanban")}
+                  onClick={() => {
+                    if (viewMode !== "kanban") {
+                      setViewMode("kanban");
+                      setPage(1);
+                      setSelectedTaskIds([]);
+                    }
+                  }}
                   className={cn(
                     "h-8 px-4 rounded-button text-[11px] gap-1.5 font-black transition-all shrink-0 flex-1 md:flex-none max-md:h-9",
                     viewMode === "kanban" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
@@ -823,7 +837,13 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               <Button
                 variant={viewMode === "list" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => setViewMode("list")}
+                onClick={() => {
+                  if (viewMode !== "list") {
+                    setViewMode("list");
+                    setPage(1);
+                    setSelectedTaskIds([]);
+                  }
+                }}
                 className={cn(
                   "h-8 px-4 rounded-button text-[11px] gap-1.5 font-black transition-all shrink-0 flex-1 md:flex-none max-md:h-9",
                   viewMode === "list" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
@@ -835,7 +855,13 @@ export function TaskDashboard({ fixedProjectId, isEmbedded = false }: TaskDashbo
               <Button
                 variant={viewMode === "table" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => setViewMode("table")}
+                onClick={() => {
+                  if (viewMode !== "table") {
+                    setViewMode("table");
+                    setPage(1);
+                    setSelectedTaskIds([]);
+                  }
+                }}
                 className={cn(
                   "h-8 px-4 rounded-button text-[11px] gap-1.5 font-black transition-all shrink-0 flex-1 md:flex-none max-md:h-9",
                   viewMode === "table" ? "bg-background shadow-premium-sm text-foreground" : "text-muted-foreground hover:text-foreground"
@@ -1451,6 +1477,8 @@ function FilterDrawer({
   creatorId, setCreatorId,
   dueDate, setDueDate,
   tagIds, setTagIds,
+  boardIds, setBoardIds,
+  viewMode,
   activeFilterCount,
   membersQuery,
   projectsQuery,
@@ -1467,6 +1495,7 @@ function FilterDrawer({
     setCreatorId("ALL");
     setDueDate("");
     setTagIds([]);
+    setBoardIds([]);
   };
 
   return (
@@ -1483,13 +1512,24 @@ function FilterDrawer({
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-6 space-y-6">
-          <FilterSelect label="Status" value={status} onChange={setStatus} options={[
-            { v: "ALL", l: "All Statuses" },
-            ...(dynamicStatuses || []).map((s: any) => ({
-              v: s.id || s._id,
-              l: s.name
-            }))
-          ]} />
+          {viewMode === "kanban" ? (
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Visible Boards</label>
+              <BoardSelect
+                selectedBoardIds={boardIds}
+                onChange={setBoardIds}
+                dynamicStatuses={dynamicStatuses}
+              />
+            </div>
+          ) : (
+            <FilterSelect label="Status" value={status} onChange={setStatus} options={[
+              { v: "ALL", l: "All Statuses" },
+              ...(dynamicStatuses || []).map((s: any) => ({
+                v: s.id || s._id,
+                l: s.name
+              }))
+            ]} />
+          )}
 
           <FilterSelect label="Priority" value={priority} onChange={setPriority} options={[
             { v: "ALL", l: "All Priorities" },
@@ -1604,6 +1644,52 @@ function FilterSelect({ label, value, onChange, options }: any) {
   );
 }
 
+function BoardSelect({ selectedBoardIds, onChange, dynamicStatuses }: { selectedBoardIds: string[], onChange: (ids: string[]) => void, dynamicStatuses: any[] }) {
+  const toggleBoard = (id: string) => {
+    if (selectedBoardIds.includes(id)) {
+      onChange(selectedBoardIds.filter(b => b !== id));
+    } else {
+      onChange([...selectedBoardIds, id]);
+    }
+  };
+
+  const isAllSelected = selectedBoardIds.length === 0;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        onClick={() => onChange([])}
+        className={cn(
+          "flex items-center justify-between w-full h-10 px-3 rounded-button border text-sm transition-colors",
+          isAllSelected ? "bg-primary/10 border-primary/30 text-primary" : "bg-muted/10 border-border/40 hover:bg-muted/20"
+        )}
+      >
+        <span className="font-medium">All Boards</span>
+        {isAllSelected && <Check className="size-4" />}
+      </button>
+      <div className="flex flex-col gap-1.5 mt-1">
+        {dynamicStatuses.map(s => {
+          const id = s.id || s._id;
+          const isSelected = selectedBoardIds.includes(id);
+          return (
+            <button
+              key={id}
+              onClick={() => toggleBoard(id)}
+              className={cn(
+                "flex items-center justify-between w-full h-9 px-3 rounded-button border text-[13px] transition-colors",
+                isSelected ? "bg-primary/5 border-primary/20 text-primary" : "bg-transparent border-transparent hover:bg-muted/10"
+              )}
+            >
+              <span>{s.name}</span>
+              {isSelected && <Check className="size-3.5" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PaginationMeta({
   page,
   totalPages,
@@ -1659,6 +1745,7 @@ function FilterContent({
   creatorId, setCreatorId,
   dueDate, setDueDate,
   tagIds, setTagIds,
+  boardIds, setBoardIds,
   clearFilters,
   projectsQuery,
   membersQuery,
@@ -1668,22 +1755,33 @@ function FilterContent({
   return (
     <div className={cn("flex flex-col h-full", !isMobileView && "max-h-120")}>
       <div className={cn("flex-1 overflow-y-auto pr-1 space-y-4 pt-1 pb-4 custom-scrollbar")}>
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Status</label>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="h-9 rounded-button bg-muted/20 border-border/40 focus:ring-0 text-xs">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent className="rounded-button border-border/40">
-              <SelectItem value="ALL">All Statuses</SelectItem>
-              {dynamicStatuses.map((s: any) => (
-                <SelectItem key={s.id || s._id} value={s.id || s._id}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {isMobileView && viewMode === "kanban" ? (
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Visible Boards</label>
+            <BoardSelect
+              selectedBoardIds={boardIds}
+              onChange={setBoardIds}
+              dynamicStatuses={dynamicStatuses}
+            />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Status</label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="h-9 rounded-button bg-muted/20 border-border/40 focus:ring-0 text-xs">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent className="rounded-button border-border/40">
+                <SelectItem value="ALL">All Statuses</SelectItem>
+                {dynamicStatuses.map((s: any) => (
+                  <SelectItem key={s.id || s._id} value={s.id || s._id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Priority</label>
@@ -1924,7 +2022,9 @@ function TaskRow({
         )}
       </TableCell>
       <TableCell>
-        <span className="text-[11px] text-muted-foreground font-medium">{task.creatorName || "Unknown"}</span>
+        <span className="text-[11px] text-muted-foreground font-medium">
+          {(task as any).creator?.name || (task as any).creator?.email || "System"}
+        </span>
       </TableCell>
       <TableCell>
         <span className="text-[11px] text-muted-foreground font-medium">

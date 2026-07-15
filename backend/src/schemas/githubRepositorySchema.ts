@@ -17,6 +17,8 @@ const githubRepositorySchema = new mongoose.Schema({
   repoName: { type: String, required: true },
   fullName: { type: String, required: true },
   owner: { type: String, required: true },
+  branch: { type: String, default: 'main' },
+  permissions: { type: String, enum: ['read', 'write'], default: 'read' },
   webhookId: { type: String },
   webhookSecret: { type: String },
   isWebhookActive: { type: Boolean, default: false },

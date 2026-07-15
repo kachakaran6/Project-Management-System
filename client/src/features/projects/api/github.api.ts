@@ -73,4 +73,20 @@ export const githubApi = {
     const response = await api.get(`/github/full-activity/${projectId}`, { params });
     return response.data;
   },
+  getRepositoryLinkage: async (owner: string, repo: string) => {
+    const response = await api.get(`/github/repos/${owner}/${repo}/linkage`);
+    return response.data;
+  },
+  updateRepositorySettings: async (repoId: string, data: { projectId?: string | null; branch?: string; permissions?: string }) => {
+    const response = await api.put(`/github/repos/${repoId}`, data);
+    return response.data;
+  },
+  linkRepository: async (data: { workspaceId: string; repo: any; projectId?: string; branch?: string; permissions?: string }) => {
+    const response = await api.post("/github/repos/link", data);
+    return response.data;
+  },
+  getRepositoryDetails: async (owner: string, repo: string) => {
+    const response = await api.get(`/github/repos/${owner}/${repo}`);
+    return response.data;
+  },
 };

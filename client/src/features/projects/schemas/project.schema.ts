@@ -11,6 +11,7 @@ export const projectFormSchema = z.object({
   endDate: z.date().optional().nullable(),
   members: z.array(z.string()).default([]),
   defaultAssigneeIds: z.array(z.string()).default([]),
+  githubRepoId: z.string().optional().or(z.literal("")),
   resources: z.array(z.object({
     title: z.string().min(2, "Title is required"),
     type: z.enum(["link", "credential", "note"]),

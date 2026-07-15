@@ -1158,6 +1158,39 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
       query.status = { $in: [...new Set(statusMatchTerms.map(t => t.toString())), ...statusMatchTerms.filter(t => t instanceof mongoose.Types.ObjectId)] };
     }
   }
+  
+  if (filter.boardIds) {
+    let bIds = filter.boardIds;
+    if (typeof bIds === 'string') {
+      bIds = bIds.split(',').filter(Boolean);
+    }
+    if (Array.isArray(bIds) && bIds.length > 0) {
+      const matchTerms: any[] = [];
+      let includeDraft = false;
+      
+      bIds.forEach((b: string) => {
+        if (b.toLowerCase() === 'draft') {
+          includeDraft = true;
+        } else {
+          matchTerms.push(b);
+          const objId = toObjectId(b);
+          if (objId) matchTerms.push(objId);
+        }
+      });
+      
+      if (includeDraft) {
+        andConditions.push({
+          $or: [
+            { isDraft: true },
+            { status: { $in: matchTerms } }
+          ]
+        });
+      } else {
+        query.status = { $in: matchTerms };
+      }
+    }
+  }
+
   if (filter.priority) query.priority = filter.priority;
   if (filter.visibility) query.visibility = filter.visibility;
   if (filter.creatorId) query.creatorId = toObjectId(filter.creatorId);
@@ -1424,6 +1457,7 @@ export const getTasks = async (filter: Record<string, any>, { page = 1, limit = 
     tasks: tasks.map(t => ({
       ...enrichTaskWithAssignees(t, assigneesByTaskId.get(String(t._id))),
       creator: normalizeUser(t.creatorId),
+      creatorName: t.creatorId ? `${t.creatorId.firstName || ''} ${t.creatorId.lastName || ''}`.trim() || t.creatorId.email || 'System' : 'System',
       tags: tagsByTaskId.get(String(t._id)) || [],
       visibility: t.visibility || 'PUBLIC',
       linkedPagesCount: pagesCountByTaskId.get(String(t._id)) || 0
