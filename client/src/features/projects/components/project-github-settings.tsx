@@ -1,15 +1,18 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { githubApi, GithubSettings } from "../api/github.api";
+import { api } from "@/lib/api/axios-instance";
+import { githubApi } from "../api/github.api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Copy, Check, ExternalLink, Info } from "lucide-react";
+import { Loader2, ExternalLink, Link2, Unlink, CheckCircle2, AlertCircle, RefreshCw, GitBranch, ShieldAlert } from "lucide-react";
 import { GithubIcon as Github } from "@/components/icons/github-icon";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { formatDistanceToNow } from "date-fns";
+import Link from "@/lib/next-link";
 
 interface ProjectGithubSettingsProps {
   projectId: string;
@@ -17,54 +20,99 @@ interface ProjectGithubSettingsProps {
 
 export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps) {
   const queryClient = useQueryClient();
-  const [copied, setCopied] = useState(false);
+  const { activeOrg } = useAuth();
   
-  const { data: settingsResult, isLoading } = useQuery({
-    queryKey: ["project-github-settings", projectId],
-    queryFn: () => githubApi.getSettings(projectId),
-    enabled: !!projectId
+  const [selectedRepoId, setSelectedRepoId] = useState<string>("");
+  const [selectedBranch, setSelectedBranch] = useState<string>("main");
+  const [selectedPermissions, setSelectedPermissions] = useState<string>("read");
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Fetch all repositories linked to the workspace
+  const { data: workspaceRepos = [], isLoading: isLoadingRepos, refetch } = useQuery<any[]>({
+    queryKey: ["github", "workspace-repos", activeOrg?.id],
+    queryFn: async () => {
+      const res = await api.get(`/github/workspace-repos/${activeOrg?.id}`);
+      return res.data.data || [];
+    },
+    enabled: !!activeOrg?.id
   });
 
-  const [formData, setFormData] = useState<GithubSettings & { accessToken?: string }>({
-    repoUrl: "",
-    webhookSecret: "",
-    autoStatusUpdate: false,
-    isEnabled: false,
-    hasAccessToken: false,
-  });
+  // Find the repository linked to THIS project
+  const linkedRepo = workspaceRepos.find(
+    (r) => r.projectId === projectId || r.projectId?._id === projectId
+  );
 
-  useEffect(() => {
-    if (settingsResult?.data) {
-      setFormData(settingsResult.data);
-    }
-  }, [settingsResult]);
+  // List of available repositories to link (either unlinked or linked to this project)
+  const availableRepos = workspaceRepos.filter(
+    (r) => !r.projectId || r.projectId === projectId || r.projectId?._id === projectId
+  );
 
-  const updateMutation = useMutation({
-    mutationFn: (data: GithubSettings) => githubApi.updateSettings(projectId, data),
+  const linkMutation = useMutation({
+    mutationFn: async ({ repoId, data }: { repoId: string; data: any }) => {
+      const res = await api.put(`/github/repos/${repoId}`, data);
+      return res.data;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project-github-settings", projectId] });
-      toast.success("GitHub settings updated successfully!");
+      queryClient.invalidateQueries({ queryKey: ["github", "workspace-repos", activeOrg?.id] });
+      toast.success("GitHub repository linked successfully!");
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to update GitHub settings");
+      toast.error(err?.response?.data?.message || "Failed to link repository");
     }
   });
 
-  const handleCopyWebhookUrl = () => {
-    const baseUrl = window.location.origin.replace(":3000", ":5000"); // Crude hack for dev
-    const url = `${baseUrl}/api/v1/github/webhook`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast.success("Webhook URL copied to clipboard!");
+  const updateMutation = useMutation({
+    mutationFn: async ({ repoId, data }: { repoId: string; data: any }) => {
+      const res = await api.put(`/github/repos/${repoId}`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["github", "workspace-repos", activeOrg?.id] });
+      toast.success("Repository settings updated successfully!");
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || "Failed to update settings");
+    }
+  });
+
+  const handleLink = () => {
+    if (!selectedRepoId) {
+      toast.error("Please select a repository to link");
+      return;
+    }
+    linkMutation.mutate({
+      repoId: selectedRepoId,
+      data: {
+        projectId,
+        branch: selectedBranch,
+        permissions: selectedPermissions,
+      }
+    });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateMutation.mutate(formData);
+  const handleUnlink = (repoId: string) => {
+    if (confirm("Are you sure you want to unlink this repository from the project? Webhook activity will no longer update this project.")) {
+      updateMutation.mutate({
+        repoId,
+        data: {
+          projectId: null
+        }
+      });
+    }
   };
 
-  if (isLoading) {
+  const handleToggleAutoUpdate = (repoId: string, enabled: boolean) => {
+    updateMutation.mutate({
+      repoId,
+      data: {
+        settings: {
+          autoStatusUpdate: enabled
+        }
+      }
+    });
+  };
+
+  if (isLoadingRepos) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="size-8 animate-spin text-primary" />
@@ -72,150 +120,240 @@ export function ProjectGithubSettings({ projectId }: ProjectGithubSettingsProps)
     );
   }
 
-  return (
-    <div className="space-y-6">
+  // If no repositories linked to the workspace, redirect to Global Integrations
+  if (workspaceRepos.length === 0) {
+    return (
       <Card className="border-border/40 bg-card/50 overflow-hidden rounded-button">
-        <CardHeader className="bg-primary/5 border-b border-border/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-foreground text-background rounded-button">
-              <Github className="size-5" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">GitHub Integration</CardTitle>
-              <CardDescription className="text-xs">
-                Link your GitHub repository to track commits and PRs directly in tasks.
-              </CardDescription>
-            </div>
+        <CardContent className="pt-8 pb-8 flex flex-col items-center justify-center text-center space-y-4">
+          <div className="size-12 rounded-full bg-primary/5 flex items-center justify-center border border-border/60">
+            <Github className="size-6 text-muted-foreground" />
           </div>
-        </CardHeader>
-        <CardContent className="pt-6 space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="flex items-center justify-between p-4 bg-muted/5 rounded-button border border-border/40">
-              <div className="space-y-0.5">
-                <Label className="text-sm font-bold">Enable Integration</Label>
-                <p className="text-[11px] text-muted-foreground">Activate GitHub webhook processing for this project.</p>
-              </div>
-              <Switch 
-                checked={formData.isEnabled} 
-                onCheckedChange={(val) => setFormData(prev => ({ ...prev, isEnabled: val }))} 
-              />
-            </div>
-
-            {formData.isEnabled && (
-              <>
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Repository URL</Label>
-                    <Input 
-                      placeholder="https://github.com/user/repo" 
-                      value={formData.repoUrl}
-                      onChange={(e) => setFormData(prev => ({ ...prev, repoUrl: e.target.value }))}
-                      className="rounded-button bg-muted/10 border-border/40 h-11"
-                    />
-                    <p className="text-[10px] text-muted-foreground px-1">Must match the URL GitHub sends in the webhook payload.</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Webhook Secret</Label>
-                    <Input 
-                      type="password"
-                      placeholder="Your GitHub Webhook Secret" 
-                      value={formData.webhookSecret}
-                      onChange={(e) => setFormData(prev => ({ ...prev, webhookSecret: e.target.value }))}
-                      className="rounded-button bg-muted/10 border-border/40 h-11"
-                    />
-                    <p className="text-[10px] text-muted-foreground px-1">Highly recommended for security. Set this in your GitHub Repo Settings &rarr; Webhooks.</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Personal Access Token (PAT)
-                    </Label>
-                    <Input 
-                      type="password"
-                      placeholder={formData.hasAccessToken ? "••••••••  (token already saved — leave blank to keep)" : "ghp_xxxxxxxxxxxx"}
-                      onChange={(e) => setFormData(prev => ({ ...prev, accessToken: e.target.value }))}
-                      className="rounded-button bg-muted/10 border-border/40 h-11"
-                    />
-                    <p className="text-[10px] text-muted-foreground px-1">
-                      Required for the <strong>Full Activity Feed</strong> (5,000 req/hr). 
-                      Generate at <strong>GitHub → Settings → Developer settings → Personal access tokens</strong>.
-                      Needs <code className="bg-muted/30 px-1 rounded-xs">repo</code> scope for private repos.
-                    </p>
-                    {formData.hasAccessToken && (
-                      <p className="text-[10px] text-emerald-600 font-bold px-1">✓ A token is currently saved for this project.</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-primary/5 rounded-button border border-primary/10">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-bold">Auto Status Updates</Label>
-                    <p className="text-[11px] text-muted-foreground">Automatically move tasks to "In Progress" or "Done" based on keywords in commit messages.</p>
-                  </div>
-                  <Switch 
-                    checked={formData.autoStatusUpdate} 
-                    onCheckedChange={(val) => setFormData(prev => ({ ...prev, autoStatusUpdate: val }))} 
-                  />
-                </div>
-
-                <div className="p-4 bg-blue-500/5 rounded-button border border-blue-500/10 space-y-3">
-                  <div className="flex items-center gap-2 text-blue-500">
-                    <Info className="size-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">How to Setup</span>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      1. Go to your GitHub Repository Settings.
-                      <br />
-                      2. Navigate to <strong>Webhooks</strong> and click <strong>Add webhook</strong>.
-                      <br />
-                      3. Paste the Payload URL below.
-                      <br />
-                      4. Set Content type to <strong>application/json</strong>.
-                      <br />
-                      5. Choose <strong>Let me select individual events</strong>: check Pushes and Pull Requests.
-                    </p>
-                    
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className="flex-1 bg-muted/20 rounded-button px-3 py-2 text-[10px] font-mono truncate border border-border/20">
-                        {window.location.origin.replace(":3000", ":5000")}/api/v1/github/webhook
-                      </div>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        className="size-8 rounded-button"
-                        onClick={handleCopyWebhookUrl}
-                      >
-                        {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="flex justify-end pt-2">
-              <Button 
-                type="submit" 
-                disabled={updateMutation.isPending}
-                className="rounded-button h-11 px-8 font-bold gap-2 min-w-[140px]"
-              >
-                {updateMutation.isPending && <Loader2 className="size-4 animate-spin" />}
-                Save Configuration
-              </Button>
-            </div>
-          </form>
+          <div className="space-y-1.5 max-w-sm">
+            <h3 className="font-bold text-sm">No connected repositories</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Connect your GitHub account and link repositories to the workspace in Global Integrations before linking them to projects.
+            </p>
+          </div>
+          <Link href="/github">
+            <Button size="sm" className="rounded-button text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 mt-2">
+              Go to Global Integrations <ExternalLink className="size-3.5" />
+            </Button>
+          </Link>
         </CardContent>
       </Card>
-      
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {linkedRepo ? (
+        /* CONNECTED STATE */
+        <Card className="border-border/40 bg-card/50 overflow-hidden rounded-button shadow-premium">
+          <CardHeader className="bg-primary/5 border-b border-border/10">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-foreground text-background rounded-button">
+                  <Github className="size-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-bold flex items-center gap-2">
+                    {linkedRepo.owner} / {linkedRepo.repoName}
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Linked to this project
+                  </CardDescription>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-button text-[10px] uppercase font-black tracking-widest text-destructive hover:bg-destructive/10 border-destructive/20 gap-1.5"
+                onClick={() => handleUnlink(linkedRepo._id)}
+                disabled={updateMutation.isPending}
+              >
+                <Unlink className="size-3.5" />
+                Unlink Project
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-6">
+            {/* Sync & Webhook Status Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-button border border-border/40 bg-background/30 flex items-center gap-3">
+                {linkedRepo.isWebhookActive ? (
+                  <CheckCircle2 className="size-5 text-emerald-500 shrink-0" />
+                ) : (
+                  <AlertCircle className="size-5 text-amber-500 shrink-0" />
+                )}
+                <div>
+                  <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest block">Webhook Status</span>
+                  <span className="text-xs font-bold text-foreground">
+                    {linkedRepo.isWebhookActive ? "Active & Healthy" : "Offline / Check Settings"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-button border border-border/40 bg-background/30 flex items-center gap-3">
+                <GitBranch className="size-5 text-blue-500 shrink-0" />
+                <div>
+                  <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest block">Monitored Branch</span>
+                  <span className="text-xs font-bold text-foreground">{linkedRepo.branch || "main"}</span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-button border border-border/40 bg-background/30 flex items-center gap-3">
+                <RefreshCw className="size-5 text-purple-500 shrink-0" />
+                <div>
+                  <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest block">Last Synced</span>
+                  <span className="text-xs font-bold text-foreground">
+                    {linkedRepo.lastSyncAt ? formatDistanceToNow(new Date(linkedRepo.lastSyncAt)) + " ago" : "Never"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Settings */}
+            <div className="space-y-4 pt-4 border-t border-border/10">
+              <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground/80">Integration Options</h4>
+
+              <div className="flex items-center justify-between p-4 bg-muted/5 rounded-button border border-border/40">
+                <div className="space-y-0.5 max-w-xl">
+                  <Label className="text-xs font-bold">Auto Status Updates</Label>
+                  <p className="text-[10px] text-muted-foreground">Automatically update task workflow columns (e.g. In Progress, Done) based on commit keywords (e.g. "fix TASK-123").</p>
+                </div>
+                <Switch 
+                  checked={linkedRepo.settings?.autoStatusUpdate} 
+                  onCheckedChange={(checked) => handleToggleAutoUpdate(linkedRepo._id, checked)}
+                  disabled={updateMutation.isPending}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Change Monitored Branch</Label>
+                  <Select
+                    defaultValue={linkedRepo.branch || "main"}
+                    onValueChange={(val) => updateMutation.mutate({ repoId: linkedRepo._id, data: { branch: val } })}
+                    disabled={updateMutation.isPending}
+                  >
+                    <SelectTrigger className="h-10 rounded-button bg-muted/10 border-border/40 text-xs">
+                      <SelectValue placeholder="Select Branch" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-button border-border/40">
+                      <SelectItem value="main">main</SelectItem>
+                      <SelectItem value="master">master</SelectItem>
+                      <SelectItem value="develop">develop</SelectItem>
+                      <SelectItem value="staging">staging</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Sync Permissions</Label>
+                  <Select
+                    defaultValue={linkedRepo.permissions || "read"}
+                    onValueChange={(val) => updateMutation.mutate({ repoId: linkedRepo._id, data: { permissions: val } })}
+                    disabled={updateMutation.isPending}
+                  >
+                    <SelectTrigger className="h-10 rounded-button bg-muted/10 border-border/40 text-xs">
+                      <SelectValue placeholder="Select Permissions" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-button border-border/40">
+                      <SelectItem value="read">Read Only (Pull Commits & PRs)</SelectItem>
+                      <SelectItem value="write">Read & Write (Sync comments back to GitHub)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        /* UNCONNECTED / LINKING STATE */
+        <Card className="border-border/40 bg-card/50 overflow-hidden rounded-button shadow-premium">
+          <CardHeader className="bg-primary/5 border-b border-border/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-foreground text-background rounded-button">
+                <Github className="size-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-bold">Link GitHub Repository</CardTitle>
+                <CardDescription className="text-xs">
+                  Connect a workspace repository to this project to enable automation.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Select Repository</Label>
+              <Select value={selectedRepoId} onValueChange={setSelectedRepoId}>
+                <SelectTrigger className="h-11 rounded-button bg-muted/10 border-border/40 text-sm">
+                  <SelectValue placeholder="Choose a repository connected to workspace..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-button border-border/40">
+                  {availableRepos.map((repo) => (
+                    <SelectItem key={repo._id} value={repo._id}>
+                      {repo.fullName}
+                    </SelectItem>
+                  ))}
+                  {availableRepos.length === 0 && (
+                    <SelectItem value="none" disabled>All workspace repositories are linked</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Track Branch</Label>
+                <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                  <SelectTrigger className="h-10 rounded-button bg-muted/10 border-border/40 text-xs">
+                    <SelectValue placeholder="Branch" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-button border-border/40">
+                    <SelectItem value="main">main</SelectItem>
+                    <SelectItem value="master">master</SelectItem>
+                    <SelectItem value="develop">develop</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Permissions Mode</Label>
+                <Select value={selectedPermissions} onValueChange={setSelectedPermissions}>
+                  <SelectTrigger className="h-10 rounded-button bg-muted/10 border-border/40 text-xs">
+                    <SelectValue placeholder="Permissions" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-button border-border/40">
+                    <SelectItem value="read">Read Only</SelectItem>
+                    <SelectItem value="write">Read & Write</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-border/10 mt-6">
+              <Button
+                onClick={handleLink}
+                disabled={linkMutation.isPending || !selectedRepoId}
+                className="rounded-button h-11 px-8 font-bold gap-2 min-w-[140px]"
+              >
+                {linkMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : <Link2 className="size-4" />}
+                Link Repository
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Developer instructions card */}
       <div className="p-4 rounded-button bg-amber-500/5 border border-amber-500/10 flex gap-3">
         <ExternalLink className="size-4 text-amber-500 shrink-0 mt-0.5" />
         <p className="text-[11px] text-muted-foreground leading-relaxed">
           <strong className="text-amber-600 block mb-1">Developer Guidelines</strong>
-          Include the Task ID (e.g. <strong>PMS-123</strong>) in your commit messages, PR titles, or branch names.
-          Use keywords like <strong>"fix PMS-123"</strong> to automatically mark the task as done.
+          Include the Task ID (e.g. <strong>PHX-123</strong>) in your commit messages, PR titles, or branch names.
+          Use keywords like <strong>"fix PHX-123"</strong> to automatically mark the task as done.
         </p>
       </div>
     </div>

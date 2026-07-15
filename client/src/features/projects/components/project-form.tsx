@@ -38,6 +38,10 @@ import { ResourceFieldArray } from "./sections/resource-field-array";
 import { EditableMultiUserSelect } from "@/components/editable/EditableMultiUserSelect";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api/axios-instance";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ProjectFormProps {
   initialValues?: Partial<ProjectFormValues>;
@@ -55,6 +59,24 @@ export function ProjectForm({
   submitLabel = "Save Project",
 }: ProjectFormProps) {
   const router = useRouter();
+  const { activeOrg } = useAuth();
+  
+  // Fetch workspace repos
+  const { data: workspaceRepos = [], isLoading: isLoadingRepos } = useQuery<any[]>({
+    queryKey: ["github", "workspace-repos", activeOrg?.id],
+    queryFn: async () => {
+      const res = await api.get(`/github/workspace-repos/${activeOrg?.id}`);
+      return res.data.data || [];
+    },
+    enabled: !!activeOrg?.id
+  });
+
+  const availableRepos = workspaceRepos.filter(
+    (repo: any) => !repo.projectId || repo.projectId === initialValues?.githubRepoId
+  );
+
+  const isCreateMode = !initialValues?.name;
+
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
@@ -67,6 +89,7 @@ export function ProjectForm({
       endDate: initialValues?.endDate ? new Date(initialValues.endDate) : null,
       members: initialValues?.members ?? [],
       defaultAssigneeIds: initialValues?.defaultAssigneeIds ?? [],
+      githubRepoId: initialValues?.githubRepoId ?? "",
       resources: initialValues?.resources ?? [],
       code: initialValues?.code ?? "",
     },
@@ -156,6 +179,40 @@ export function ProjectForm({
                       </FormItem>
                     )}
                   />
+                  {isCreateMode && (
+                    <FormField
+                      control={form.control}
+                      name="githubRepoId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold">GitHub Repository (Optional)</FormLabel>
+                          <Select 
+                            value={field.value} 
+                            onValueChange={field.onChange}
+                            disabled={isLoadingRepos}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-9 rounded-button text-sm bg-muted/10 border-border/40">
+                                <SelectValue placeholder={isLoadingRepos ? "Loading repos..." : "Link a repository immediately..."} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="rounded-button border-border/40">
+                              <SelectItem value="none">None (Skip)</SelectItem>
+                              {availableRepos.map((repo: any) => (
+                                <SelectItem key={repo._id} value={repo._id}>
+                                  {repo.fullName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription className="text-[9px] leading-tight">
+                            Only lists repositories officially connected to your workspace.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </div>
 

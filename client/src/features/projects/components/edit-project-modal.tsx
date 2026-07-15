@@ -12,6 +12,7 @@ import { ProjectForm } from "@/features/projects/components/project-form";
 import { ProjectFormValues } from "@/features/projects/schemas/project.schema";
 import { useUpdateProjectMutation } from "@/features/projects/hooks/use-projects-query";
 import { Project } from "@/types/project.types";
+import { ProjectGithubSettings } from "./project-github-settings";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "@/lib/next-navigation";
@@ -81,9 +82,15 @@ export function EditProjectModal({
                 >
                   General
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="github" 
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 text-[11px] font-black uppercase tracking-widest transition-all gap-2"
+                >
+                  GitHub
+                </TabsTrigger>
               </TabsList>
             </div>
-
+ 
             <div className="flex-1 overflow-y-auto min-h-0">
               <TabsContent value="general" className="m-0 p-6 md:p-8 outline-none">
                 <ProjectForm
@@ -111,6 +118,10 @@ export function EditProjectModal({
                   isSubmitting={updateProject.isPending}
                   submitLabel="Save Changes"
                 />
+              </TabsContent>
+
+              <TabsContent value="github" className="m-0 p-6 md:p-8 outline-none">
+                <ProjectGithubSettings projectId={projectId} />
               </TabsContent>
             </div>
           </Tabs>

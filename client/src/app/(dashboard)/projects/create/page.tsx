@@ -9,6 +9,7 @@ import { useCreateProjectMutation } from "@/features/projects/hooks/use-projects
 import { ProjectFormValues } from "@/features/projects/schemas/project.schema";
 import { projectResourcesApi } from "@/features/projects/api/project-resources.api";
 import Link from "next/link";
+import { api } from "@/lib/api/axios-instance";
 
 export default function CreateProjectPage() {
   const router = useRouter();
@@ -27,12 +28,9 @@ export default function CreateProjectPage() {
         <Alert variant="destructive" className="rounded-card border-destructive/20 bg-destructive/5 p-6">
           <AlertTitle className="text-lg font-bold">Access Denied</AlertTitle>
           <AlertDescription className="text-sm opacity-90 mt-1">
-            You don't have the necessary permissions to create projects in this organization.
+            You don't have the necessary permissions to create projects.
           </AlertDescription>
         </Alert>
-        <Button variant="ghost" className="mt-4 rounded-card" asChild>
-          <Link href="/projects">Go back to projects</Link>
-        </Button>
       </div>
     );
   }
@@ -51,17 +49,25 @@ export default function CreateProjectPage() {
         code: values.code || undefined,
       });
 
+      const newProjectId = result.data?.id || (result.data as any)?._id;
+
       // Handle resource creation if any were added
-      if (values.resources && values.resources.length > 0) {
-        const newProjectId = result.data?.id || (result.data as any)?._id;
-        if (newProjectId) {
-          await Promise.all(
-            values.resources.map((res) => {
-              const { id: _, ...resData } = res as any;
-              return projectResourcesApi.createResource(newProjectId, resData);
-            })
-          );
-        }
+      if (values.resources && values.resources.length > 0 && newProjectId) {
+        await Promise.all(
+          values.resources.map((res) => {
+            const { id: _, ...resData } = res as any;
+            return projectResourcesApi.createResource(newProjectId, resData);
+          })
+        );
+      }
+
+      // Link GitHub Repository if selected
+      if (values.githubRepoId && values.githubRepoId !== "none" && values.githubRepoId !== "" && newProjectId) {
+        await api.put(`/github/repos/${values.githubRepoId}`, {
+          projectId: newProjectId,
+          branch: "main",
+          permissions: "read"
+        });
       }
 
       toast.success(`Project "${values.name}" created!`);

@@ -133,7 +133,14 @@ export const listUserRepositories = async (userId: string) => {
   return await response.json();
 };
 
-export const linkRepository = async (userId: string, workspaceId: string, repoData: any) => {
+export const linkRepository = async (
+  userId: string, 
+  workspaceId: string, 
+  repoData: any,
+  projectId?: string,
+  branch?: string,
+  permissions?: string
+) => {
   const account = await GithubAccount.findOne({ userId });
   if (!account) throw new Error('GitHub account not connected');
 
@@ -199,7 +206,10 @@ export const linkRepository = async (userId: string, workspaceId: string, repoDa
       webhookId: webhook.id.toString(),
       webhookSecret: webhookSecret,
       isWebhookActive: true,
-      lastSyncAt: new Date()
+      lastSyncAt: new Date(),
+      projectId: projectId || undefined,
+      branch: branch || 'main',
+      permissions: permissions || 'read'
     },
     { upsert: true, new: true }
   );
@@ -209,7 +219,9 @@ export const linkRepository = async (userId: string, workspaceId: string, repoDa
 
 export const listWorkspaceRepositories = async (workspaceId: string) => {
   // 1. Get official linked repos
-  const linkedRepos = await GithubRepository.find({ workspaceId }).sort({ createdAt: -1 });
+  const linkedRepos = await GithubRepository.find({ workspaceId })
+    .populate('projectId', 'name code')
+    .sort({ createdAt: -1 });
   
   // 2. Look for legacy project settings that aren't "officially" linked yet
   const projectsWithGithub = await Project.find({ 
@@ -281,25 +293,36 @@ async function getRelatedProjects(repoFullName: string, payloadRepoId?: string) 
       { repoId: payloadRepoId?.toString() }
     ]
   });
-  const linkedWorkspaceIds = linkedRepos.map(lr => lr.workspaceId);
+  
+  // Get explicit projectIds linked to these repositories
+  const explicitProjectIds = linkedRepos.map(lr => lr.projectId).filter(Boolean);
 
   // 2. Find projects via legacy settings
   const legacyProjects = await Project.find({ 
     'githubSettings.repoUrl': { $regex: new RegExp(repoFullName, 'i') },
     isActive: true
   });
+  const legacyProjectIds = legacyProjects.map(p => p._id);
 
-  // 3. Combine all potential project candidates
-  const projects = await Project.find({
-    $or: [
-      { _id: { $in: legacyProjects.map(p => p._id) } },
-      { workspaceId: { $in: linkedWorkspaceIds }, isActive: true },
-      { organizationId: { $in: linkedWorkspaceIds }, isActive: true }
-    ],
+  // 3. Fallback: if no project is explicitly linked to the repo, check workspace-level matching
+  let projectIds = [...explicitProjectIds, ...legacyProjectIds];
+  
+  if (projectIds.length === 0) {
+    const linkedWorkspaceIds = linkedRepos.map(lr => lr.workspaceId);
+    const fallbackProjects = await Project.find({
+      $or: [
+        { workspaceId: { $in: linkedWorkspaceIds }, isActive: true },
+        { organizationId: { $in: linkedWorkspaceIds }, isActive: true }
+      ],
+      isActive: true
+    });
+    projectIds = fallbackProjects.map(p => p._id);
+  }
+
+  return await Project.find({
+    _id: { $in: projectIds },
     isActive: true
   });
-
-  return projects;
 }
 
 export const processPushEvent = async (payload: any) => {
@@ -671,6 +694,10 @@ export const githubApiProxy = async (
 
   const text = await response.text();
   return text ? JSON.parse(text) : {};
+};
+
+export const getRepoDetails = (userId: string, owner: string, repo: string) => {
+  return githubApiProxy(userId, `/repos/${owner}/${repo}`);
 };
 
 export const getRepoBranches = (userId: string, owner: string, repo: string, page = 1, perPage = 30) => {

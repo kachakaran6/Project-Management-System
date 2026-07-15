@@ -24,6 +24,8 @@ router.get('/repos', githubController.getRepositories);
 router.post('/repos/link', githubController.linkRepository);
 router.get('/workspace-repos/:workspaceId', githubController.getWorkspaceRepositories);
 router.delete('/repos/:repoId', githubController.unlinkRepository);
+router.get('/repos/:owner/:repo/linkage', githubController.getRepositoryLinkage);
+router.put('/repos/:repoId', githubController.updateRepositorySettings);
 
 // Activity Feed
 router.get('/workspace-activity/:workspaceId', githubController.getWorkspaceActivity);
@@ -35,6 +37,7 @@ router.get('/activity/:projectId', githubController.getProjectGithubActivity);
 router.get('/full-activity/:projectId', githubController.getFullGithubActivity);
 
 // Proxy endpoints for GitHub API
+router.get('/repos/:owner/:repo', githubController.getRepoDetails);
 router.get('/repos/:owner/:repo/branches', githubController.getRepoBranches);
 router.get('/repos/:owner/:repo/commits/total', githubController.getRepoTotalCommits);
 router.get('/repos/:owner/:repo/commits', githubController.getRepoCommits);

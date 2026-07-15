@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/axios-instance";
+import { githubApi } from "@/features/projects/api/github.api";
 
 export const useRepoBranches = (owner: string, repo: string, page = 1) => {
   return useQuery({
@@ -232,5 +233,58 @@ export const useProfileCommitStats = (repos: any[]) => {
     enabled: !!repos && repos.length > 0,
     staleTime: 1000 * 60 * 5,
     retry: false,
+  });
+};
+
+export const useRepositoryLinkage = (owner: string, repo: string) => {
+  return useQuery({
+    queryKey: ["github", owner, repo, "linkage"],
+    queryFn: async () => {
+      const res = await githubApi.getRepositoryLinkage(owner, repo);
+      return res.data;
+    },
+    enabled: !!owner && !!repo,
+  });
+};
+
+export const useUpdateRepositorySettingsMutation = (owner: string, repo: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ repoId, data }: { repoId: string; data: { projectId?: string | null; branch?: string; permissions?: string } }) => {
+      return await githubApi.updateRepositorySettings(repoId, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["github", owner, repo, "linkage"] });
+      queryClient.invalidateQueries({ queryKey: ["github", "workspace-repos"] });
+    },
+  });
+};
+
+export const useLinkRepositoryMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { workspaceId: string; repo: any; projectId?: string; branch?: string; permissions?: string }) => {
+      return await githubApi.linkRepository(payload);
+    },
+    onSuccess: (data) => {
+      const repo = data.data;
+      if (repo) {
+        queryClient.invalidateQueries({ queryKey: ["github", repo.owner, repo.repoName, "linkage"] });
+      }
+      queryClient.invalidateQueries({ queryKey: ["github", "workspace-repos"] });
+    },
+  });
+};
+
+export const useRepositoryDetails = (owner: string, repo: string) => {
+  return useQuery({
+    queryKey: ["github", owner, repo, "details"],
+    queryFn: async () => {
+      const res = await githubApi.getRepositoryDetails(owner, repo);
+      return res.data;
+    },
+    enabled: !!owner && !!repo,
   });
 };
