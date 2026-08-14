@@ -1,5 +1,5 @@
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/next-navigation";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { ProjectForm } from "@/features/projects/components/project-form";
 import { useCreateProjectMutation } from "@/features/projects/hooks/use-projects-query";
 import { ProjectFormValues } from "@/features/projects/schemas/project.schema";
 import { projectResourcesApi } from "@/features/projects/api/project-resources.api";
-import Link from "next/link";
+import Link from "@/lib/next-link";
 import { api } from "@/lib/api/axios-instance";
 
 export default function CreateProjectPage() {

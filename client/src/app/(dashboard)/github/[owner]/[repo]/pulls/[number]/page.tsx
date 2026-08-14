@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import Link from "@/lib/next-link";
+import { useParams, useRouter } from "@/lib/next-navigation";
 import { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {

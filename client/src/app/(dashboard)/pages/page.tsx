@@ -57,12 +57,14 @@ import {
   getPagePublicPreviewPath,
   toAbsolutePublicUrl,
 } from "@/features/pages/utils/page-sharing";
-import {
-  createEmptySerializedContent,
-  extractPagePlainText,
-} from "@/features/pages/utils/page-content";
+import { createEmptySerializedContent, extractPagePlainText } from "@/features/pages/utils/page-content";
 import { PageDoc, PageVisibility } from "@/types/page.types";
 import Link from "@/lib/next-link";
+import { AppPage } from "@/components/patterns/app-page";
+import { PageHeader } from "@/components/layout/page-header";
+import { PageToolbar } from "@/components/patterns/page-toolbar";
+import { SectionCard } from "@/components/patterns/section-card";
+import { EntityLoadingState, EntityEmptyState } from "@/components/patterns/entity-list-state";
 
 function toInitials(firstName?: string, lastName?: string) {
   return (
@@ -251,111 +253,80 @@ export default function PagesListPage() {
     : null;
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-65px)] w-full max-w-7xl min-h-0 flex-col overflow-hidden px-4 py-2 lg:px-0">
-      <div className="flex shrink-0 flex-col gap-3 pb-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:flex-1 lg:gap-2">
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search pages..."
-                className="h-9 rounded-card border-border/40 bg-muted/20 pl-10 pr-4 text-sm focus-visible:ring-1 focus-visible:ring-primary/20"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar lg:pb-0 lg:overflow-visible">
-              <Select
-                value={visibilityFilter}
-                onValueChange={(value) => setVisibilityFilter(value as "ALL" | PageVisibility)}
-              >
-                <SelectTrigger className="h-8 min-w-30 rounded-card border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-35 lg:text-xs lg:rounded-card">
-                  <SelectValue placeholder="Visibility" />
-                </SelectTrigger>
-                <SelectContent className="rounded-card border-border/40">
-                  <SelectItem value="ALL">All visibility</SelectItem>
-                  <SelectItem value="PRIVATE">Private</SelectItem>
-                  <SelectItem value="WORKSPACE">Workspace</SelectItem>
-                  <SelectItem value="PUBLIC">Public</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={ownershipFilter}
-                onValueChange={(value) => setOwnershipFilter(value as "ALL" | "ME" | "SHARED")}
-              >
-                <SelectTrigger className="h-8 min-w-30 rounded-card border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-35 lg:text-xs lg:rounded-card">
-                  <SelectValue placeholder="Ownership" />
-                </SelectTrigger>
-                <SelectContent className="rounded-card border-border/40">
-                  <SelectItem value="ALL">All pages</SelectItem>
-                  <SelectItem value="ME">Created by me</SelectItem>
-                  <SelectItem value="SHARED">Shared with me</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={recentFilter}
-                onValueChange={(value) => setRecentFilter(value as "ALL" | "RECENT")}
-              >
-                <SelectTrigger className="h-8 min-w-30 rounded-card border-border/40 bg-muted/20 px-3 text-[10px] font-bold uppercase tracking-wider lg:h-10 lg:min-w-35 lg:text-xs lg:rounded-card">
-                  <SelectValue placeholder="Date" />
-                </SelectTrigger>
-                <SelectContent className="rounded-card border-border/40">
-                  <SelectItem value="ALL">Any time</SelectItem>
-                  <SelectItem value="RECENT">Edited in 3 days</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Button
-            className="h-9 w-full rounded-card px-4 lg:h-10 lg:w-auto lg:ml-auto font-bold text-xs lg:text-sm shadow-sm"
-            onClick={() => setCreateOpen(true)}
-            variant="secondary"
-          >
+    <AppPage>
+      <PageHeader
+        title="Pages"
+        description={`Document notes, specifications, and knowledge base pages (${visibleRows.length} total).`}
+        actions={
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="mr-1.5 size-4" />
             Create Page
           </Button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-10">
+      <PageToolbar
+        searchQuery={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search pages..."
+        filterControls={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select
+              value={visibilityFilter}
+              onValueChange={(value) => setVisibilityFilter(value as "ALL" | PageVisibility)}
+            >
+              <SelectTrigger className="h-9 w-[130px] text-xs">
+                <SelectValue placeholder="Visibility" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Visibility</SelectItem>
+                <SelectItem value="PRIVATE">Private</SelectItem>
+                <SelectItem value="WORKSPACE">Workspace</SelectItem>
+                <SelectItem value="PUBLIC">Public</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={ownershipFilter}
+              onValueChange={(value) => setOwnershipFilter(value as "ALL" | "ME" | "SHARED")}
+            >
+              <SelectTrigger className="h-9 w-[130px] text-xs">
+                <SelectValue placeholder="Ownership" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Pages</SelectItem>
+                <SelectItem value="ME">Created by me</SelectItem>
+                <SelectItem value="SHARED">Shared with me</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={recentFilter}
+              onValueChange={(value) => setRecentFilter(value as "ALL" | "RECENT")}
+            >
+              <SelectTrigger className="h-9 w-[130px] text-xs">
+                <SelectValue placeholder="Date" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Any Time</SelectItem>
+                <SelectItem value="RECENT">Edited in 3 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
+
+      <div className="flex-1 pb-10">
         {pagesQuery.isLoading ? (
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="rounded-card border border-white/5 bg-white/3 p-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                     <Skeleton className="h-4 w-4 rounded-button" />
-                     <Skeleton className="h-5 w-2/3" />
-                  </div>
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-4/5" />
-                  <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                    <div className="flex items-center gap-2">
-                       <Skeleton className="size-5 rounded-full" />
-                       <Skeleton className="h-3 w-16" />
-                    </div>
-                    <Skeleton className="h-3 w-12" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        {!pagesQuery.isLoading && visibleRows.length === 0 ? (
-          <div className="rounded-card border border-white/5 bg-white/3 p-8 text-center">
-            <EmptyState
-              icon={NotebookPen}
-              title="No pages found"
-              description="Start simple. Create a page to capture your team knowledge."
-              actionLabel="Create Page"
-              onAction={() => setCreateOpen(true)}
-            />
-          </div>
+          <EntityLoadingState type="cards" count={6} />
+        ) : visibleRows.length === 0 ? (
+          <EntityEmptyState
+            icon={<NotebookPen className="size-6" />}
+            title="No pages found"
+            description="Start simple. Create a page to capture your team knowledge."
+            actionLabel="Create Page"
+            onAction={() => setCreateOpen(true)}
+          />
         ) : null}
 
         {!pagesQuery.isLoading && visibleRows.length > 0 ? (
@@ -646,7 +617,7 @@ export default function PagesListPage() {
           scrollbar-width: none;
         }
       `}</style>
-    </div>
+    </AppPage>
   );
 }
 

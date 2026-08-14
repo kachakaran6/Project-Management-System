@@ -1068,9 +1068,8 @@ export default function PageEditorPage() {
 
     setSaveState("dirty");
 
-    if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
-
-    autosaveTimer.current = window.setTimeout(async () => {
+    if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current as any);
+    autosaveTimer.current = (window.setTimeout(async () => {
       try {
         setSaveState("saving");
 
@@ -1097,7 +1096,7 @@ export default function PageEditorPage() {
         if (err?.name === "CanceledError" || err?.name === "AbortError") return;
         setSaveState("error");
       }
-    }, 800);
+    }, 800)) as any;
   }, [canEdit, currentSnapshot, editor, page, serializedContent, title, updatePage, visibility]);
 
   // ── Copied link timer ────────────────────────────────────────

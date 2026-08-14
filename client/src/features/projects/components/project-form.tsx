@@ -1,6 +1,6 @@
 
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/next-navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { differenceInDays } from "date-fns";
 import {
@@ -124,7 +124,7 @@ export function ProjectForm({
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <div className="md:col-span-9">
                       <FormField
-                        control={form.control}
+                        control={form.control as any}
                         name="name"
                         render={({ field }) => (
                           <FormItem>
@@ -139,7 +139,7 @@ export function ProjectForm({
                     </div>
                     <div className="md:col-span-3">
                       <FormField
-                        control={form.control}
+                        control={form.control as any}
                         name="code"
                         render={({ field }) => (
                           <FormItem>
@@ -162,7 +162,7 @@ export function ProjectForm({
                     </div>
                   </div>
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="description"
                     render={({ field }) => (
                       <FormItem>
@@ -181,7 +181,7 @@ export function ProjectForm({
                   />
                   {isCreateMode && (
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="githubRepoId"
                       render={({ field }) => (
                         <FormItem>
@@ -223,7 +223,7 @@ export function ProjectForm({
                 </div>
                 <div className="bg-muted/20 p-4 rounded-button border border-border/40 shadow-sm">
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="techStack"
                     render={({ field }) => (
                       <FormItem>
@@ -253,7 +253,7 @@ export function ProjectForm({
                 <div className="bg-muted/20 p-4 rounded-button border border-border/40 space-y-4 shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-3">
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="startDate"
                       render={({ field }) => (
                         <FormItem className="flex-1">
@@ -271,7 +271,7 @@ export function ProjectForm({
                       <ArrowRight className="size-3 opacity-20" />
                     </div>
                     <FormField
-                      control={form.control}
+                      control={form.control as any}
                       name="endDate"
                       render={({ field }) => (
                         <FormItem className="flex-1">
@@ -297,7 +297,7 @@ export function ProjectForm({
                 </div>
                 <div className="bg-muted/20 p-4 rounded-button border border-border/40 space-y-6 shadow-sm">
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="members"
                     render={({ field }) => (
                       <FormItem>
@@ -310,16 +310,17 @@ export function ProjectForm({
                   />
 
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="defaultAssigneeIds"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs font-semibold">Default Task Assignees</FormLabel>
                         <FormControl>
                           <EditableMultiUserSelect
-                            value={(field.value || []).map((id: string) => 
-                              prefilledAssigneeUsers?.find(u => u.id === id) || { id, name: "Unknown", email: "" }
-                            )}
+                            value={(field.value || []).map((id: string) => {
+                              const found = prefilledAssigneeUsers?.find(u => u.id === id);
+                              return found ? { id: found.id, name: found.name, avatarUrl: found.avatarUrl, email: found.email || "" } : { id, name: "Unknown", email: "" };
+                            })}
                             onChange={(vals) => field.onChange(vals)}
                             placeholder="Choose default assignees for this project"
                             options={prefilledAssigneeUsers as any}
@@ -333,7 +334,7 @@ export function ProjectForm({
                   />
 
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="visibility"
                     render={({ field }) => (
                       <FormItem className="space-y-3">

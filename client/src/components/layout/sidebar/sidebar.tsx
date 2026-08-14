@@ -65,7 +65,7 @@ const navItems: SidebarNavItem[] = [
   {
     title: "GitHub",
     href: "/github",
-    icon: Github,
+    icon: Github as any,
     group: "workspace",
     roles: ["ADMIN", "OWNER", "MANAGER", "MEMBER", "USER"],
   },

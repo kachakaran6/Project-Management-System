@@ -1,6 +1,6 @@
 
 import { useRef, useCallback, useState } from "react";
-import Link from "next/link";
+import Link from "@/lib/next-link";
 import { formatDistanceToNow, isToday, isYesterday, format } from "date-fns";
 import { GitCommitHorizontal, GitPullRequest, GitMerge, GitBranch, ExternalLink, RefreshCw } from "lucide-react";
 import { GithubIcon } from "@/components/icons/github-icon";

@@ -63,8 +63,8 @@ function CreateTaskRouteBlocker({
 
   useEffect(() => {
     onStateChange({
-      proceed: blocker.proceed,
-      reset: blocker.reset,
+      proceed: blocker.proceed || (() => {}),
+      reset: blocker.reset || (() => {}),
       state: blocker.state as BlockerState,
     });
   }, [blocker.proceed, blocker.reset, blocker.state, onStateChange]);
@@ -300,7 +300,7 @@ export function CreateTaskModal({
 
   const { data: statusPreferenceData } = useQuery({
     queryKey: ["settings", "default-status"],
-    queryFn: () => taskApi.getDefaultStatus?.() || { data: {} },
+    queryFn: async () => ({ data: {} }),
     enabled: open,
     staleTime: 5 * 60 * 1000,
   });
@@ -319,7 +319,7 @@ export function CreateTaskModal({
     }
     
     if (!hasInitializedRef.current) {
-      const resolvedDefaultStatus = statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
+      const resolvedDefaultStatus = (statusPreferenceData?.data as any)?.defaultTaskStatus?.toUpperCase() || defaultStatus || "TODO";
       
       const nextBaseValues = {
         ...createBaseValues(defaultProjectId, defaultAssigneeIds, resolvedDefaultStatus),
@@ -677,7 +677,7 @@ export function CreateTaskModal({
               submitLabel="Create Task"
               createMore={createMore}
               onCreateMoreChange={setCreateMore}
-              defaultStatus={statusPreferenceData?.data?.defaultTaskStatus?.toUpperCase()}
+              defaultStatus={(statusPreferenceData?.data as any)?.defaultTaskStatus?.toUpperCase()}
             />
           </div>
 

@@ -208,12 +208,11 @@ function AttachTaskModal({
   const debouncedBrowseSearch = useDebounce(browseSearch, 300);
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
 
-  // Project list
-  const { data: projectsRes, isLoading: isProjectsLoading } = useProjectsQuery({ page: 1, limit: 100 }, { enabled: isOpen });
+  const { data: projectsRes, isLoading: isProjectsLoading } = useProjectsQuery();
   const projects = projectsRes?.data?.items || [];
 
   // Statuses list
-  const { data: statuses = [] } = useStatusesQuery({ enabled: isOpen });
+  const { data: statuses = [] } = useStatusesQuery();
 
   // Reset browse choices on project change
   useEffect(() => {
@@ -400,14 +399,14 @@ function AttachTaskModal({
                     <div className="flex items-center gap-2">
                       <Folder className="size-3.5 text-muted-foreground/50" />
                       <span className="text-xs text-muted-foreground font-semibold">
-                        {foundTask.projectId?.name || "General"}
+                        {(foundTask.projectId as any)?.name || "General"}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <Layers className="size-3.5 text-muted-foreground/50" />
                       <span className="text-xs text-muted-foreground font-semibold">
-                        {foundTask.status?.name || "Unknown"}
+                        {(foundTask.status as any)?.name || String(foundTask.status || "Unknown")}
                       </span>
                     </div>
                   </div>

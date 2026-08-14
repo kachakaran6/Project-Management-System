@@ -28,7 +28,7 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { taskApi } from "@/features/tasks/api/task.api";
 import { generateTasksPDF, type PDFExportOptions } from "../utils/pdf-generator";
-import type { Task, TaskFilters } from "@/types/task.types";
+import type { Task, TaskFilters, TaskPriority } from "@/types/task.types";
 
 interface ExportTasksModalProps {
   trigger: React.ReactNode;
@@ -139,7 +139,7 @@ export function ExportTasksModal({
       : {
           projectId: projectId !== "ALL" ? projectId : undefined,
           status: filters.status === "ALL" ? undefined : filters.status,
-          priority: filters.priority === "ALL" ? undefined : filters.priority,
+          priority: filters.priority === "ALL" ? undefined : (filters.priority as TaskPriority),
           search: filters.search || undefined,
           assigneeId: filters.assignee === "ALL" ? undefined : filters.assignee,
           dueDate: filters.dueDate || undefined,

@@ -58,7 +58,7 @@ export default function AuditLogPage() {
   });
 
   const history = data?.data?.items || [];
-  const totalPages = data?.data?.totalPages || 1;
+  const totalPages = data?.data?.meta?.totalPages || 1;
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -80,7 +80,7 @@ export default function AuditLogPage() {
 
         <div className="flex items-center gap-2">
            <Badge variant="outline" className="px-3 py-1 bg-background/50 backdrop-blur-sm border-border/40 text-muted-foreground font-bold">
-             {data?.data?.totalItems || 0} Total Events
+             {data?.data?.meta?.totalItems || 0} Total Events
            </Badge>
         </div>
       </div>

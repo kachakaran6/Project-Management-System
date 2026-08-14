@@ -35,7 +35,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { formatDistanceToNow } from "date-fns";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "@/lib/next-navigation";
 import { api } from "@/lib/api/axios-instance";
 import {
   RepositoryRowSkeleton,
@@ -51,6 +51,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GithubOnboardingModal } from "@/features/github/components/github-onboarding-modal";
+import { AppPage } from "@/components/patterns/app-page";
+import { PageHeader } from "@/components/layout/page-header";
 
 /**
  * 🧱 SHARED COMPONENTS
@@ -329,7 +331,7 @@ const ActivityItemMobile = ({ activity }: any) => (
         </span>
       </div>
       <p className="text-[11px] font-medium text-foreground/80 leading-snug line-clamp-2">
-        {activity.message.split(/([A-Z]{2,}-\d+)/g).map((part, i) => (
+        {activity.message.split(/([A-Z]{2,}-\d+)/g).map((part: string, i: number) => (
           part.match(/[A-Z]{2,}-\d+/) ? (
             <span key={i} className="text-primary font-bold">{part}</span>
           ) : part
@@ -731,7 +733,7 @@ const ActivityRowDesktop = ({ activity }: any) => (
       <div className="flex items-center gap-1.5 min-w-0">
         <GitCommit className="size-2.5 text-primary/60" />
         <p className="text-[10px] font-medium text-foreground/80 leading-tight truncate flex-1">
-          {activity.message.split(/([A-Z]{2,}-\d+)/g).map((part, i) => (
+          {activity.message.split(/([A-Z]{2,}-\d+)/g).map((part: string, i: number) => (
             part.match(/[A-Z]{2,}-\d+/) ? (
               <span key={i} className="text-primary font-bold">{part}</span>
             ) : part

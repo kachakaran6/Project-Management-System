@@ -14,6 +14,7 @@ export type TaskSortDirection = "asc" | "desc";
 
 export interface Status {
   id: string;
+  _id?: string;
   name: string;
   color: string;
   order: number;
@@ -79,6 +80,7 @@ export interface Task {
     repoUrl?: string;
     isEnabled?: boolean;
   };
+  githubLinks?: any[];
   linkedPagesCount?: number;
   images?: string[];
   createdAt: string;

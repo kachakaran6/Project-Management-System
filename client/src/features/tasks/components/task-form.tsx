@@ -279,7 +279,7 @@ export function TaskForm({
 
       if (targetStatus) {
         const targetId = targetStatus.id || targetStatus._id;
-        if (statusValue !== targetId) {
+        if (targetId && statusValue !== targetId) {
           form.setValue("status", targetId);
         }
       }
@@ -358,7 +358,7 @@ export function TaskForm({
   const handleTitleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      form.handleSubmit((values) => onSubmit(values, createMore))();
+      form.handleSubmit((values: TaskFormValues) => onSubmit(values, createMore))();
     }
   };
 
@@ -793,7 +793,7 @@ export function TaskForm({
 
           <Button
             type="button"
-            onClick={form.handleSubmit((values) =>
+            onClick={form.handleSubmit((values: TaskFormValues) =>
               onSubmit(values, createMore),
             )}
             disabled={isSubmitting || !titleValue || !titleValue.trim()}
@@ -817,7 +817,7 @@ export function TaskForm({
         </div>
       </div>
 
-      <style jsx global>{`
+      <style>{`
         .no-scrollbar::-webkit-scrollbar {
           display: none;
         }

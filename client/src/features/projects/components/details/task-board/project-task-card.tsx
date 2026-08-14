@@ -76,7 +76,7 @@ export function ProjectTaskCard({ task, index, onClick, canEdit, isDraggable = t
         </div>
 
         <div className="flex items-center gap-2">
-          {(task.attachments?.length > 0 || (task as any).files?.length > 0) && (
+          {((task as any).attachments?.length > 0 || (task as any).files?.length > 0) && (
              <Paperclip className="size-3 text-muted-foreground/30" />
           )}
           
@@ -110,12 +110,12 @@ export function ProjectTaskCard({ task, index, onClick, canEdit, isDraggable = t
                     <Avatar className="size-5 border border-background ring-1 ring-border/10 rounded-full shadow-sm hover:z-10 transition-transform hover:scale-110">
                       <AvatarImage src={a.avatarUrl} />
                       <AvatarFallback className="text-[7px] font-bold bg-primary/10 text-primary uppercase flex items-center justify-center">
-                        {a.firstName?.[0] || a.name?.[0] || <Users className="size-2.5" />}
+                        {(a as any).firstName?.[0] || a.name?.[0] || <Users className="size-2.5" />}
                       </AvatarFallback>
                     </Avatar>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="p-2 rounded-card bg-card/95 backdrop-blur-md border border-border/10">
-                     <p className="text-[10px] font-bold">{a.firstName} {a.lastName}</p>
+                     <p className="text-[10px] font-bold">{(a as any).firstName || a.name} {(a as any).lastName || ""}</p>
                      <p className="text-[9px] text-muted-foreground">{a.email}</p>
                   </TooltipContent>
                 </Tooltip>

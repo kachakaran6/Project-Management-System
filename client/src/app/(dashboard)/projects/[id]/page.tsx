@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "@/lib/next-navigation";
 import { useProjectQuery } from "@/features/projects/hooks/use-projects-query";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ProjectOverview } from "@/features/projects/components/project-overview";
@@ -141,7 +141,7 @@ export default function ProjectDetailsPage() {
                     startDate={project.startDate}
                     endDate={project.endDate}
                     createdAt={project.createdAt}
-                    progress={project.taskStats?.percent || 0}
+                    progress={(project as any).taskStats?.percent || 0}
                     members={project.members || []}
                   />
                 </div>

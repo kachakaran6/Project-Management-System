@@ -23,3 +23,10 @@ export const settingsApi = {
   },
 };
 
+export interface DefaultAssignee {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  email?: string;
+}
+

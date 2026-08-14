@@ -349,7 +349,7 @@ export function TaskDescriptionEditor({
         <EditorContent editor={editor} />
       </div>
 
-      <style jsx global>{`
+      <style>{`
         .ProseMirror:focus {
           outline: none !important;
           border: none !important;

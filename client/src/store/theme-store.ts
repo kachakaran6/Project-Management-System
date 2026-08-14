@@ -8,7 +8,9 @@ export type AccentColor =
   | "blue" | "indigo" | "purple" | "violet" | "fuchsia"
   | "pink" | "rose" | "crimson" | "orange" | "amber"
   | "yellow" | "lime" | "green" | "emerald" | "teal"
-  | "cyan" | "sky" | "slate" | "coffee" | "plum";
+  | "cyan" | "sky" | "slate" | "coffee" | "plum"
+  | "navy" | "steelblue" | "mint" | "aqua" | "gold"
+  | "bronze" | "charcoal" | "ice";
 
 export type RadiusPreset = "compact" | "standard" | "comfortable" | "soft";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
+import Link from "@/lib/next-link";
 import { useRepoPullRequests } from "@/features/github/hooks/use-github";
 import { PRSkeleton } from "@/components/ui/loading-system";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

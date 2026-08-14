@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "@/lib/next-navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RepositoryDetailsHeader } from "@/features/github/components/repository-details-header";
 import { BranchesTab } from "@/features/github/components/branches-tab";

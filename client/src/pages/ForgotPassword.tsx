@@ -99,7 +99,7 @@ export default function ForgotPassword() {
             </Button>
 
             <div className="text-center">
-              <Button variant="link" className="text-sm font-medium text-primary hover:underline" asChild>
+              <Button variant="ghost" className="text-sm font-medium text-primary hover:underline" asChild>
                 <Link to="/login" className="gap-2">
                   <ArrowLeft className="size-4" />
                   Back to login

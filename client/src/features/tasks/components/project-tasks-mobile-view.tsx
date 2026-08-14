@@ -1,7 +1,7 @@
 
 import { useState, useMemo } from "react";
 import { ChevronDown, ChevronRight, Plus, Search, CheckCircle2 } from "lucide-react";
-import Link from "next/link";
+import Link from "@/lib/next-link";
 import { useTasksQuery } from "@/features/tasks/hooks/use-tasks-query";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { useAuth } from "@/features/auth/hooks/use-auth";

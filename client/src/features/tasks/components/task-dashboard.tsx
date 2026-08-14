@@ -24,6 +24,7 @@ import {
   SlidersHorizontal,
   User,
   Calendar,
+  Check,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -1738,6 +1739,7 @@ function PaginationMeta({
 
 function FilterContent({
   isMobileView = false,
+  viewMode = "kanban",
   status, setStatus,
   priority, setPriority,
   projectId, setProjectId,

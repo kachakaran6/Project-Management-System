@@ -1,5 +1,5 @@
 
-import { Task } from "@/types/task.types";
+import { Task, UpdateTaskInput } from "@/types/task.types";
 import { 
   Calendar, 
   Flag, 
@@ -66,7 +66,7 @@ export function TaskProperties({ task }: TaskPropertiesProps) {
     return match ? (match.id || match._id) : id;
   };
 
-  const handleUpdate = (data: Partial<Task>) => {
+  const handleUpdate = (data: UpdateTaskInput) => {
     updateTaskMutation.mutate({ id: task.id || (task as any)._id, data });
   };
 

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   useRepositoryDetails, 
@@ -29,7 +30,7 @@ import {
 import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/next-navigation";
 import Link from "@/lib/next-link";
 
 interface RepositoryDetailsHeaderProps {
@@ -52,7 +53,7 @@ export const RepositoryDetailsHeader = ({ owner, repo }: RepositoryDetailsHeader
 
   // Fetch Projects in workspace to allow linking
   const { data: projectsResult } = useProjectsQuery();
-  const projects = projectsResult?.data || [];
+  const projects = Array.isArray(projectsResult?.data) ? projectsResult.data : (projectsResult?.data as any)?.items || [];
 
   // Update Settings mutation
   const updateMutation = useUpdateRepositorySettingsMutation(owner, repo);

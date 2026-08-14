@@ -36,6 +36,10 @@ import { useTasksQuery } from "@/features/tasks/hooks/use-tasks-query";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { Task, TaskPriority } from "@/types/task.types";
 import { resolveStatus, filterVisibleTasks, normalizeId } from "@/features/tasks/utils/resolve-status";
+import { AppPage } from "@/components/patterns/app-page";
+import { PageHeader } from "@/components/layout/page-header";
+import { StatusBadge } from "@/components/patterns/status-badge";
+import { PriorityIndicator } from "@/components/patterns/priority-indicator";
 
 type WorkTab = "summary" | "assigned" | "created" | "activity" | "visualize" | "stats";
 
@@ -374,36 +378,32 @@ function CustomChartTooltip({ active, payload, label, total }: any) {
 
 function TaskRow({ task, label }: { task: Task; label: string }) {
   const creatorName = getTaskCreatorName(task);
+  const rawPriority = typeof task.priority === "object" ? (task.priority as any).name || (task.priority as any).label : String(task.priority || "");
+  const rawStatus = getTaskStatusLabel(task.status);
+
   return (
-    <div className="flex items-center justify-between gap-3 rounded-card border border-border/70 bg-muted/10 px-4 py-3 transition-colors hover:bg-muted/20">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-medium text-foreground">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-3.5 transition-colors hover:border-primary/30">
+      <div className="min-w-0 flex-1 space-y-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <PriorityIndicator priority={rawPriority} size="sm" />
+          <p className="truncate text-sm font-semibold text-foreground">
             {task.title}
           </p>
-          <Badge
-            variant="secondary"
-            className="text-[10px] uppercase tracking-wide"
-          >
+          <Badge variant="outline" className="text-[10px] uppercase font-semibold">
             {label}
           </Badge>
         </div>
-        <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{(task.priority && typeof task.priority === 'object') ? (task.priority as any).name || (task.priority as any).label : String(task.priority || "")}</span>
-          <span>•</span>
-          <span>{getTaskStatusLabel(task.status)}</span>
-          {task.dueDate ? (
-            <>
-              <span>•</span>
-              <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-            </>
-          ) : null}
-        </p>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground pt-0.5">
+          <StatusBadge status={rawStatus} size="sm" />
+          {task.dueDate && (
+            <span>Due {new Date(task.dueDate).toLocaleDateString()}</span>
+          )}
+        </div>
       </div>
-      <div className="text-right text-xs text-muted-foreground">
-        <p>{formatTimeAgo(task.updatedAt)}</p>
-        <p className="mt-1 text-[11px] uppercase tracking-wider">
-          {creatorName}
+      <div className="text-right text-xs text-muted-foreground shrink-0">
+        <p className="font-medium text-foreground">{formatTimeAgo(task.updatedAt)}</p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground truncate max-w-[150px]">
+          By {creatorName}
         </p>
       </div>
     </div>

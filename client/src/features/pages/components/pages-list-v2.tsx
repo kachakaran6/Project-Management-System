@@ -71,9 +71,15 @@ function toInitials(firstName?: string, lastName?: string): string {
   );
 }
 
-// ============================================================================
-// PAGE CARD - GRID VIEW
-// ============================================================================
+function getPreview(page: PageDocV2) {
+  if (page.plainText && page.plainText.length > 0) return page.plainText.slice(0, 200);
+  if (typeof page.content === 'string') return page.content.replace(/<[^>]*>/g, '').slice(0, 200);
+  try {
+    return JSON.stringify(page.content).slice(0, 200);
+  } catch {
+    return '';
+  }
+}
 
 function PageCardGrid({ page, onEdit, onShare, onMore }: {
   page: PageDocV2;
@@ -123,7 +129,8 @@ function PageCardGrid({ page, onEdit, onShare, onMore }: {
 
         {/* Metadata */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-          <Avatar size="xs" src={page.creator?.avatarUrl}>
+          <Avatar>
+            <AvatarImage src={page.creator?.avatarUrl} />
             <AvatarFallback>
               {toInitials(page.creator?.firstName, page.creator?.lastName)}
             </AvatarFallback>
@@ -137,17 +144,17 @@ function PageCardGrid({ page, onEdit, onShare, onMore }: {
         <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/30">
           <div className="flex gap-1 flex-wrap">
             {page.visibility === 'PRIVATE' && (
-              <Badge variant="secondary" size="sm" className="gap-1">
+              <Badge variant="secondary" className="gap-1">
                 <Lock className="h-3 w-3" /> Private
               </Badge>
             )}
             {page.visibility === 'PUBLIC' && (
-              <Badge variant="secondary" size="sm" className="gap-1">
+              <Badge variant="secondary" className="gap-1">
                 <Globe className="h-3 w-3" /> Public
               </Badge>
             )}
             {page.tags?.slice(0, 1).map(tag => (
-              <Badge key={tag} variant="outline" size="sm">
+              <Badge key={tag} variant="outline">
                 #{tag}
               </Badge>
             ))}
@@ -217,8 +224,9 @@ function PageRowList({ page, onEdit, onShare, onMore }: {
       <div className="flex items-center gap-8 text-sm text-muted-foreground flex-shrink-0 w-96">
         {/* Creator */}
         <div className="flex items-center gap-2 w-32">
-          <Avatar size="xs" src={page.creator?.avatarUrl}>
-            <AvatarFallback size="xs">
+          <Avatar>
+            <AvatarImage src={page.creator?.avatarUrl} />
+            <AvatarFallback>
               {toInitials(page.creator?.firstName, page.creator?.lastName)}
             </AvatarFallback>
           </Avatar>
@@ -231,12 +239,12 @@ function PageRowList({ page, onEdit, onShare, onMore }: {
         {/* Visibility */}
         <div className="w-20">
           {page.visibility === 'PRIVATE' && (
-            <Badge variant="secondary" size="sm" className="gap-1">
+            <Badge variant="secondary" className="gap-1">
               <Lock className="h-3 w-3" /> Private
             </Badge>
           )}
           {page.visibility === 'PUBLIC' && (
-            <Badge variant="secondary" size="sm" className="gap-1">
+            <Badge variant="secondary" className="gap-1">
               <Globe className="h-3 w-3" /> Public
             </Badge>
           )}
@@ -363,17 +371,7 @@ export default function PagesListV2Page() {
   const pagesQuery = usePagesQueryV2({ page: 1, limit: 100 });
   const createPage = useCreatePageMutationV2();
 
-  const pages = (pagesQuery.data?.data?.items || pagesQuery.data?.items || []) as PageDocV2[];
-
-  const getPreview = (page: PageDocV2) => {
-    if (page.plainText && page.plainText.length > 0) return page.plainText.slice(0, 200);
-    if (typeof page.content === 'string') return page.content.replace(/<[^>]*>/g, '').slice(0, 200);
-    try {
-      return JSON.stringify(page.content).slice(0, 200);
-    } catch {
-      return '';
-    }
-  };
+  const pages = (((pagesQuery.data as any)?.data?.items || (pagesQuery.data as any)?.items || []) as PageDocV2[]);
 
   const filteredPages = useMemo(() => {
     if (!search) return pages;
@@ -391,13 +389,13 @@ export default function PagesListV2Page() {
     if (!title) return;
 
     try {
-      const created = await createPage.mutateAsync({
+      const created = await (createPage.mutateAsync as any)({
         title: title.trim(),
         content: '<p></p>',
         visibility: 'WORKSPACE',
       });
 
-      router.push(`/pages/${created.data.id}`);
+      router.push(`/pages/${created?.data?.id || created?.id}`);
       toast.success('Page created');
     } catch {
       toast.error('Failed to create page');
@@ -444,20 +442,15 @@ export default function PagesListV2Page() {
           // Empty state
           <div className="flex h-full items-center justify-center">
             <EmptyState
-              icon={<FileText className="h-12 w-12 text-muted-foreground" />}
+              icon={FileText as any}
               title="No pages yet"
               description={
                 search
                   ? `No pages match "${search}"`
                   : 'Create your first page to get started'
               }
-              action={
-                !search && (
-                  <Button onClick={handleCreatePage} className="gap-2">
-                    <Plus className="h-4 w-4" /> Create Page
-                  </Button>
-                )
-              }
+              actionLabel={!search ? "Create Page" : undefined}
+              onAction={!search ? handleCreatePage : undefined}
             />
           </div>
         ) : view === 'grid' ? (

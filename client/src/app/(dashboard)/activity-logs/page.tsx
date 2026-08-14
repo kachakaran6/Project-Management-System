@@ -5,6 +5,7 @@ import { format, formatDistanceToNow, isToday, isYesterday, parseISO } from 'dat
 import { Activity, CalendarDays, Search } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
@@ -14,8 +15,9 @@ import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/use-organization-members';
 import { useActivityLogsQuery } from '@/features/activity-logs/hooks/use-activity-logs';
 import { ActivityLogEntry } from '@/features/activity-logs/types/activity-log.types';
-import { cn } from '@/lib/utils';
 import { DatePicker } from '@/components/ui/date-picker';
+import { AppPage } from '@/components/patterns/app-page';
+import { PageHeader } from '@/components/layout/page-header';
 
 const PAGE_SIZE = 20;
 const ACTION_OPTIONS = [
@@ -108,7 +110,7 @@ function getEntityLabel(log: ActivityLogEntry) {
   return 'item';
 }
 
-function getDisplayValue(value: unknown) {
+function getDisplayValue(value: unknown): string {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -176,7 +178,7 @@ function formatActivityLog(log: ActivityLogEntry) {
     );
 
     if (action.includes('MEMBER_ROLE_CHANGED')) {
-      const newRole = getDisplayValue(log.metadata?.newRole || log.metadata?.changes?.after?.role);
+      const newRole = getDisplayValue(log.metadata?.newRole || (log.metadata as any)?.changes?.after?.role);
       return `${actor} changed ${targetPhrase} role${newRole ? ` to ${newRole}` : ''}. ${fieldSummary}`;
     }
 
@@ -237,7 +239,7 @@ function formatActivityLog(log: ActivityLogEntry) {
   }
 
   if (action.includes('MEMBER_ROLE_CHANGED')) {
-    const newRole = getDisplayValue(log.metadata?.newRole || log.metadata?.changes?.after?.role);
+    const newRole = getDisplayValue(log.metadata?.newRole || (log.metadata as any)?.changes?.after?.role);
     return `${actor} changed ${targetPhrase} role${newRole ? ` to ${newRole}` : ''}`;
   }
 
@@ -393,25 +395,21 @@ export default function ActivityLogsPage() {
 
   if (!canViewLogs) {
     return (
-      <div className="py-10">
+      <AppPage>
         <EmptyState
           title="Access restricted"
           description="Only admins can access activity logs."
         />
-      </div>
+      </AppPage>
     );
   }
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-7xl flex-col gap-4 overflow-hidden">
-      {/* <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Activity Logs
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Track user actions and changes across the organization.
-        </p>
-      </div> */}
+    <AppPage>
+      <PageHeader
+        title="Activity Logs"
+        description="Track user actions, status changes, and administrative security events across the workspace."
+      />
 
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-2">
         <Select value={selectedUserId} onValueChange={(value) => setSelectedUserId(value)}>
@@ -542,7 +540,7 @@ export default function ActivityLogsPage() {
                               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                 {log.entityName ? (
                                   entityHref ? (
-                                    <Link className="text-foreground/80 underline-offset-2 hover:underline" to={entityHref}>
+                                    <Link className="text-foreground/80 underline-offset-2 hover:underline" href={entityHref}>
                                       {log.entityName}
                                     </Link>
                                   ) : (
@@ -620,6 +618,6 @@ export default function ActivityLogsPage() {
           </div>
         </div>
       ) : null}
-    </div>
+    </AppPage>
   );
 }

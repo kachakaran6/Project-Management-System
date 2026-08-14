@@ -6,7 +6,7 @@ import { pageApi } from "@/features/pages/api/page.api";
 import { TaskPageLink } from "@/types/task.types";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
+import Link from "@/lib/next-link";
 import {
   Dialog,
   DialogContent,

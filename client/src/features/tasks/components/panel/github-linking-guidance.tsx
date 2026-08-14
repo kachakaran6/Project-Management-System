@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/next-navigation";
 import { GithubIcon as Github } from "@/components/icons/github-icon";
 import { Info, Copy, ExternalLink, GitCommit } from "lucide-react";
 import { toast } from "sonner";

@@ -29,7 +29,7 @@ export function useCreateStatusMutation() {
   return useMutation({
     mutationFn: (data: Partial<Status>) => statusAPI.createStatus(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: statusesQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["statuses"] });
     },
   });
 }
@@ -39,7 +39,7 @@ export function useUpdateStatusMutation() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Status> }) => statusAPI.updateStatus(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: statusesQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["statuses"] });
     },
   });
 }
@@ -49,7 +49,7 @@ export function useReorderStatusesMutation() {
   return useMutation({
     mutationFn: (reorderData: { id: string; order: number }[]) => statusAPI.reorderStatuses(reorderData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: statusesQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["statuses"] });
     },
   });
 }
@@ -59,7 +59,7 @@ export function useDeleteStatusMutation() {
   return useMutation({
     mutationFn: (id: string) => statusAPI.deleteStatus(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: statusesQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["statuses"] });
     },
   });
 }

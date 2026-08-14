@@ -22,7 +22,7 @@ export function ProjectOverview({ projectId }: ProjectOverviewProps) {
   
   if (!project) return null;
 
-  const stats = project.taskStats || { total: 0, completed: 0, percent: 0 };
+  const stats = (project as any).taskStats || { total: 0, completed: 0, percent: 0 };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

@@ -23,6 +23,7 @@ export interface Project {
   id: string;
   _id?: string;
   name: string;
+  code?: string;
   description?: string;
   status: ProjectStatus;
   visibility: ProjectVisibility;
@@ -45,6 +46,7 @@ export interface Project {
 
 export interface CreateProjectInput {
   name: string;
+  code?: string;
   description?: string;
   workspaceId?: string;
   status?: ProjectStatus;

@@ -81,9 +81,14 @@ import { TeamMember, TeamRole } from "@/features/team/api/team.api";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
+import { AppPage } from "@/components/patterns/app-page";
+import { PageHeader } from "@/components/layout/page-header";
+
 const ROLES: TeamRole[] = ["OWNER", "ADMIN", "MANAGER", "MEMBER"];
 
 export default function TeamPage() {
+  // ...
+
   // ─── State ──────────────────────────────────────────────────────────────────
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -237,15 +242,11 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4">
-      {/* <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Team
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Manage members, roles, and access controls.
-        </p>
-      </div> */}
+    <AppPage>
+      <PageHeader
+        title="Team"
+        description="Manage organization members, roles, and security permissions."
+      />
 
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-2">
         <div className="relative flex-1 min-w-45 max-w-sm">
@@ -582,7 +583,7 @@ export default function TeamPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AppPage>
   );
 }
 

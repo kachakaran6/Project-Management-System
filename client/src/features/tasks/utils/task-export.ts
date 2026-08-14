@@ -203,7 +203,7 @@ function mapPdfTaskRow(task: Task): PdfTaskRow {
     statusKey,
     statusLabel: STATUS_VISUALS[statusKey].label,
     dueDatePdf: formatPdfDate(task.dueDate),
-    tagsList: (task.tags || []).slice(0, 3),
+    tagsList: (task.tags || []).slice(0, 3).map((t: any) => typeof t === "string" ? t : t.name || t.label || t.id),
   };
 }
 

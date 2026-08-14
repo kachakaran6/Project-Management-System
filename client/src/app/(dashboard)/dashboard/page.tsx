@@ -1,6 +1,4 @@
-
 import { useMemo } from "react";
-
 import Link from "@/lib/next-link";
 import {
   FolderPlus,
@@ -10,13 +8,12 @@ import {
   Clock3,
   ArrowRight,
   CalendarDays,
-  Flag,
+  ListTodo,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectsQuery } from "@/features/projects/hooks/use-projects-query";
 import { useTasksQuery } from "@/features/tasks/hooks/use-tasks-query";
@@ -25,117 +22,36 @@ import { CreateTaskModal } from "@/features/tasks/components/create-task-modal";
 import { GithubOnboardingBanner } from "@/features/tasks/components/github-onboarding-banner";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 
-import { resolveStatus, filterVisibleTasks, normalizeId } from "@/features/tasks/utils/resolve-status";
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-const PROJECT_STATUS_COLORS: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-800",
-  ACTIVE: "bg-emerald-100 text-emerald-800",
-  planned: "bg-violet-100 text-violet-800",
-  PLANNED: "bg-violet-100 text-violet-800",
-  completed: "bg-blue-100 text-blue-800",
-  COMPLETED: "bg-blue-100 text-blue-800",
-  on_hold: "bg-amber-100 text-amber-800",
-  ON_HOLD: "bg-amber-100 text-amber-800",
-  archived: "bg-slate-100 text-slate-600",
-  ARCHIVED: "bg-slate-100 text-slate-600",
-};
-
-const PRIORITY_COLORS: Record<string, string> = {
-  LOW: "text-slate-400",
-  MEDIUM: "text-blue-500",
-  HIGH: "text-orange-500",
-  URGENT: "text-red-600",
-};
-
-const TASK_STATUS_COLORS: Record<string, string> = {
-  TODO: "bg-slate-100 text-slate-700",
-  BACKLOG: "bg-slate-100 text-slate-700",
-  IN_PROGRESS: "bg-blue-100 text-blue-800",
-  IN_REVIEW: "bg-amber-100 text-amber-800",
-  DONE: "bg-emerald-100 text-emerald-800",
-  ARCHIVED: "bg-slate-100 text-slate-500",
-};
-
-// ─── StatCard ───────────────────────────────────────────────────────────────
-
-interface StatCardProps {
-  label: string;
-  value: string | number;
-  icon: React.ElementType;
-  sub?: string;
-  variant?: "blue" | "amber" | "emerald" | "primary";
-}
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  sub,
-  variant = "primary",
-}: StatCardProps) {
-  const variants = {
-    primary: "bg-primary/10 text-primary border-primary/20",
-    blue: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    amber: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-    emerald: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-  };
-
-  return (
-    <Card className="overflow-hidden border-border/40 hover:border-border/80 transition-all duration-300 group bg-card/40 backdrop-blur-md">
-      <CardContent className="p-0">
-        <div className="flex flex-col md:flex-row items-center justify-center md:justify-start aspect-square md:aspect-auto p-3 md:p-6 md:pt-5 gap-1.5 md:gap-4 relative overflow-hidden">
-          <div
-            className={cn(
-              "flex h-9 w-9 md:h-12 md:w-12 items-center justify-center rounded-card md:rounded-card border shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg",
-              variants[variant],
-            )}
-          >
-            <Icon className="size-5 md:size-6" />
-          </div>
-          <div className="flex flex-col items-center md:items-start min-w-0 w-full overflow-hidden text-center md:text-left">
-            <span className="text-lg md:text-2xl font-bold tracking-tight text-foreground/90 group-hover:text-foreground transition-colors">
-              {value}
-            </span>
-            <span className="text-[9px] md:text-sm text-muted-foreground font-semibold truncate w-full uppercase md:normal-case tracking-wider md:tracking-normal opacity-70 group-hover:opacity-100 transition-opacity">
-              {label}
-            </span>
-            {sub && (
-              <p className="hidden md:block text-xs text-muted-foreground truncate w-full mt-1">
-                {sub}
-              </p>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ─── Dashboard Page ─────────────────────────────────────────────────────────
+import { resolveStatus, filterVisibleTasks } from "@/features/tasks/utils/resolve-status";
+import { AppPage } from "@/components/patterns/app-page";
+import { PageHeader } from "@/components/layout/page-header";
+import { MetricCard } from "@/components/patterns/metric-card";
+import { StatusBadge } from "@/components/patterns/status-badge";
+import { PriorityIndicator } from "@/components/patterns/priority-indicator";
+import { EntityEmptyState } from "@/components/patterns/entity-list-state";
 
 export default function DashboardPage() {
   const projectsQuery = useProjectsQuery({ page: 1, limit: 200 });
   const tasksQuery = useTasksQuery({ page: 1, limit: 300 });
-
-  const getStatusName = (status: any) => {
-    if (!status) return "Unknown";
-    if (status && typeof status === 'object') return status.name || "Unknown";
-    return String(status).replace("_", " ");
-  };
   const { data: dynamicStatuses = [] } = useStatusesQuery();
+
   const allTasks = tasksQuery.data?.data.items ?? [];
   const tasks = useMemo(() => filterVisibleTasks(allTasks), [allTasks]);
   const projects = projectsQuery.data?.data.items ?? [];
 
+  const getStatusName = (status: any) => {
+    if (!status) return "Unknown";
+    if (typeof status === "object") return status.name || "Unknown";
+    return String(status).replace("_", " ");
+  };
+
   const activeTasks = tasks.filter((t) => {
     const resolved = resolveStatus(t, dynamicStatuses);
-    if (!resolved) return true; // Assume active if unknown
+    if (!resolved) return true;
     const name = (resolved.name || "").toUpperCase().replace(/[\s_-]/g, "");
     return name !== "DONE" && name !== "ARCHIVED" && name !== "COMPLETED";
   }).length;
-  
+
   const completedTasks = tasks.filter((t) => {
     const resolved = resolveStatus(t, dynamicStatuses);
     if (!resolved) return false;
@@ -157,64 +73,81 @@ export default function DashboardPage() {
     )
     .slice(0, 8);
 
-  // Map projectId → project name for tasks table
   const projectMap = Object.fromEntries(
     projects.map((p: any) => [p.id || p._id, p.name]),
   );
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4">
+    <AppPage>
       <GithubOnboardingBanner />
 
-      {/* <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Dashboard
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Quick overview of projects, tasks, and progress.
-        </p>
-      </div> */}
+      <PageHeader
+        title="Dashboard"
+        description="Quick overview of projects, tasks, and progress."
+        actions={
+          <div className="flex items-center gap-2">
+            <CreateProjectModal
+              trigger={
+                <Button size="sm" variant="outline">
+                  <FolderPlus className="mr-2 size-4" />
+                  New Project
+                </Button>
+              }
+            />
+            <CreateTaskModal
+              trigger={
+                <Button size="sm">
+                  <SquarePen className="mr-2 size-4" />
+                  New Task
+                </Button>
+              }
+            />
+          </div>
+        }
+      />
 
-      {/* Stats */}
+      {/* Metrics Row */}
       {projectsQuery.isLoading || tasksQuery.isLoading ? (
-        <div className="grid grid-cols-3 gap-2 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
-          <Skeleton className="aspect-square md:h-28 rounded-card md:rounded-card border border-border/40" />
-          <Skeleton className="aspect-square md:h-28 rounded-card md:rounded-card border border-border/40" />
-          <Skeleton className="aspect-square md:h-28 rounded-card md:rounded-card border border-border/40" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-2 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
-          <StatCard
-            label="Total Projects"
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <MetricCard
+            title="Total Projects"
             value={projects.length}
             icon={BriefcaseBusiness}
-            variant="blue"
+            description="Active workspace projects"
+            variant="default"
           />
-          <StatCard
-            label="Active Tasks"
+          <MetricCard
+            title="Active Tasks"
             value={activeTasks}
             icon={Clock3}
-            variant="amber"
+            description="Tasks in progress or pending"
+            variant="primary"
           />
-          <StatCard
-            label="Completed Tasks"
+          <MetricCard
+            title="Completed Tasks"
             value={completedTasks}
             icon={CheckCircle2}
-            variant="emerald"
+            description="Tasks finished successfully"
+            variant="default"
           />
         </div>
       )}
 
-
-      {/* Main Content Grid */}
-      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        {/* Left: Projects + Tasks */}
-        <div className="space-y-4 lg:col-span-1 xl:col-span-2">
+      {/* Main Grid */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Left (2 Cols): Projects + Tasks */}
+        <div className="space-y-6 lg:col-span-2">
           {/* Recent Projects */}
-          <Card className="border-border/40 overflow-hidden">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Recent Projects</CardTitle>
-              <Button asChild variant="ghost" size="sm" className="h-8 rounded-card text-xs font-bold">
+              <Button asChild variant="ghost" size="sm" className="text-xs">
                 <Link href="/projects">
                   View all
                   <ArrowRight className="ml-1 size-4" />
@@ -224,52 +157,40 @@ export default function DashboardPage() {
             <CardContent>
               {projectsQuery.isLoading ? (
                 <div className="space-y-3">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 rounded-card border border-border/20">
-                      <Skeleton className="size-8 rounded-card" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-1/3 rounded-button" />
-                        <Skeleton className="h-3 w-1/4 rounded-button" />
-                      </div>
-                      <Skeleton className="h-7 w-16 rounded-full" />
-                    </div>
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-14 w-full rounded-lg" />
                   ))}
                 </div>
               ) : recentProjects.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 py-8 text-center">
-                  <p className="text-muted-foreground text-sm">
-                    No projects yet. Start by creating your first project.
-                  </p>
-                  <CreateProjectModal />
-                </div>
+                <EntityEmptyState
+                  title="No projects yet"
+                  description="Start by creating your first project to organize your team work."
+                  actionLabel="Create Project"
+                  onAction={() => {}}
+                />
               ) : (
                 <div className="space-y-2">
                   {recentProjects.map((project) => (
                     <div
                       key={project.id || (project as any)._id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-card border border-border p-3 hover:bg-muted/30 transition-colors"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border/80 p-3 hover:bg-muted/40 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <Link href={`/tasks?projectId=${project.id}`} className="flex h-8 w-8 items-center justify-center rounded-card bg-primary/10 text-primary font-bold text-sm shrink-0">
+                        <Link
+                          href={`/tasks?projectId=${project.id}`}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm shrink-0"
+                        >
                           {project.name.charAt(0).toUpperCase()}
                         </Link>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium">{project.name}</p>
+                          <p className="text-sm font-medium text-foreground truncate">{project.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {new Date(project.createdAt).toLocaleDateString()}
+                            Created {new Date(project.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center justify-between gap-2 sm:justify-end shrink-0">
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            "text-[10px] font-bold uppercase",
-                            PROJECT_STATUS_COLORS[project.status],
-                          )}
-                        >
-                          {project.status}
-                        </Badge>
+                        <StatusBadge status={project.status} size="sm" />
                         <Button
                           asChild
                           variant="outline"
@@ -287,10 +208,10 @@ export default function DashboardPage() {
           </Card>
 
           {/* Recent Tasks */}
-          <Card className="border-border/40 overflow-hidden">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Recent Tasks</CardTitle>
-              <Button asChild variant="ghost" size="sm" className="h-8 rounded-card text-xs font-bold">
+              <Button asChild variant="ghost" size="sm" className="text-xs">
                 <Link href="/tasks">
                   View all
                   <ArrowRight className="ml-1 size-4" />
@@ -300,71 +221,46 @@ export default function DashboardPage() {
             <CardContent>
               {tasksQuery.isLoading ? (
                 <div className="space-y-3">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 rounded-card border border-border/20">
-                      <Skeleton className="size-4 rounded-button" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-1/2 rounded-button" />
-                        <Skeleton className="h-3 w-1/4 rounded-button" />
-                      </div>
-                      <Skeleton className="h-6 w-16 rounded-full" />
-                    </div>
+                  {[1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} className="h-14 w-full rounded-lg" />
                   ))}
                 </div>
               ) : recentTasks.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 py-8 text-center">
-                  <p className="text-muted-foreground text-sm">
-                    No tasks yet. Create a project first, then add tasks.
-                  </p>
-                </div>
+                <EntityEmptyState
+                  title="No tasks yet"
+                  description="Create your first task to track progress and assign work."
+                />
               ) : (
                 <div className="space-y-2">
                   {recentTasks.map((task) => (
                     <div
                       key={task.id || (task as any)._id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-card border border-border p-3 hover:bg-muted/30 transition-colors"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border/80 p-3 hover:bg-muted/40 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <Flag
-                          className={`size-4 shrink-0 ${PRIORITY_COLORS[task.priority] ?? ""}`}
-                        />
+                        <PriorityIndicator priority={task.priority} showLabel={false} size="sm" />
                         <div className="min-w-0">
-                          <Link href={`/tasks/${(task as any)._id}`} className="text-sm font-medium">
+                          <Link href={`/tasks/${(task as any)._id}`} className="text-sm font-medium text-foreground hover:text-primary transition-colors block truncate">
                             {task.title}
                           </Link>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground truncate">
                             {(task.projectId as any)?.name ??
                               projectMap[task.projectId as string] ??
-                              "Unknown project"}
+                              "General Workspace"}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center justify-between gap-3 sm:justify-end shrink-0">
                         {task.dueDate && (
-                          <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                             <CalendarDays className="size-3" />
-                            {new Date(task.dueDate).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "short",
-                                day: "numeric",
-                              },
-                            )}
+                            {new Date(task.dueDate).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}
                           </div>
                         )}
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            "text-[10px] font-bold uppercase",
-                            (task.status && typeof task.status === 'object') ? "" : TASK_STATUS_COLORS[task.status as string],
-                          )}
-                          style={(task.status && typeof task.status === 'object') ? {
-                            backgroundColor: `${(task.status as any).color}15`,
-                            color: (task.status as any).color
-                          } : {}}
-                        >
-                          {getStatusName(task.status)}
-                        </Badge>
+                        <StatusBadge status={getStatusName(task.status)} size="sm" />
                       </div>
                     </div>
                   ))}
@@ -374,109 +270,84 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Right: Quick Actions */}
-        <div className="space-y-4">
+        {/* Right Column: Sidebar Widgets */}
+        <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Quick Actions</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2.5">
               <CreateProjectModal
                 trigger={
-                  <Button className="w-full justify-start" variant="secondary">
-                    <FolderPlus className="mr-2 size-4" />
+                  <Button className="w-full justify-start" variant="outline" size="sm">
+                    <FolderPlus className="mr-2 size-4 text-primary" />
                     Create Project
                   </Button>
                 }
               />
               <CreateTaskModal
                 trigger={
-                  <Button className="w-full justify-start" variant="secondary">
-                    <SquarePen className="mr-2 size-4" />
+                  <Button className="w-full justify-start" variant="outline" size="sm">
+                    <SquarePen className="mr-2 size-4 text-primary" />
                     Create Task
                   </Button>
                 }
               />
-              <Button
-                asChild
-                className="w-full justify-start"
-                variant="secondary"
-              >
+              <Button asChild className="w-full justify-start" variant="ghost" size="sm">
                 <Link href="/projects">
-                  <BriefcaseBusiness className="mr-2 size-4" />
-                  View All Projects
+                  <BriefcaseBusiness className="mr-2 size-4 text-muted-foreground" />
+                  All Projects
                 </Link>
               </Button>
-              <Button
-                asChild
-                className="w-full justify-start"
-                variant="secondary"
-              >
+              <Button asChild className="w-full justify-start" variant="ghost" size="sm">
                 <Link href="/tasks">
-                  <Clock3 className="mr-2 size-4" />
-                  View All Tasks
+                  <ListTodo className="mr-2 size-4 text-muted-foreground" />
+                  All Tasks
                 </Link>
               </Button>
             </CardContent>
           </Card>
 
-          {/* Progress Summary */}
+          {/* Progress Breakdown */}
           {!tasksQuery.isLoading && tasks.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Task Progress</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4">
                 {(
                   [
-                    {
-                      label: "To Do",
-                      statusKey: "TODO",
-                      color: "bg-slate-400",
-                    },
-                    {
-                      label: "In Progress",
-                      statusKey: "IN_PROGRESS",
-                      color: "bg-blue-500",
-                    },
-                    {
-                      label: "In Review",
-                      statusKey: "IN_REVIEW",
-                      color: "bg-amber-500",
-                    },
-                    {
-                      label: "Done",
-                      statusKey: "DONE",
-                      color: "bg-emerald-500",
-                    },
+                    { label: "To Do", statusKey: "TODO", color: "bg-slate-500" },
+                    { label: "In Progress", statusKey: "IN_PROGRESS", color: "bg-blue-500" },
+                    { label: "In Review", statusKey: "IN_REVIEW", color: "bg-amber-500" },
+                    { label: "Done", statusKey: "DONE", color: "bg-emerald-500" },
                   ] as const
                 ).map(({ label, statusKey, color }) => {
                   const count = tasks.filter((t) => {
                     const resolved = resolveStatus(t, dynamicStatuses);
                     if (!resolved) return false;
                     const name = (resolved.name || "").toUpperCase().replace(/[\s_-]/g, "");
-                    
+
                     if (statusKey === "TODO") return name === "TODO" || name === "NOTSTARTED" || name === "BACKLOG";
                     if (statusKey === "IN_PROGRESS") return name === "INPROGRESS";
                     if (statusKey === "IN_REVIEW") return name === "INREVIEW" || name === "REVIEW";
                     if (statusKey === "DONE") return name === "DONE" || name === "COMPLETED";
                     return false;
                   }).length;
-                  const pct =
-                    tasks.length > 0
-                      ? Math.round((count / tasks.length) * 100)
-                      : 0;
+
+                  const pct = tasks.length > 0 ? Math.round((count / tasks.length) * 100) : 0;
+
                   return (
-                    <div key={statusKey} className="space-y-1">
+                    <div key={statusKey} className="space-y-1.5">
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">{label}</span>
-                        <span className="font-medium">
+                        <span className="font-semibold text-foreground">
                           {count} ({pct}%)
                         </span>
                       </div>
-                      <div className="h-1.5 w-full rounded-full bg-muted">
+                      <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
                         <div
-                          className={`h-1.5 rounded-full ${color} transition-all`}
+                          className={cn("h-full rounded-full transition-all duration-500", color)}
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -488,6 +359,6 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-    </div>
+    </AppPage>
   );
 }

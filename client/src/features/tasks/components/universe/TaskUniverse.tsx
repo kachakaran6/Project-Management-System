@@ -548,7 +548,7 @@ export const TaskUniverse: React.FC<TaskUniverseProps> = ({ tasks }) => {
 
   // Animation Loop
   const particles = useRef<TaskParticle[]>([]);
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (!containerRef.current) return;

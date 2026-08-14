@@ -352,7 +352,7 @@ const TaskCard = React.memo(({ task, index, canEdit = true, onContextMenu, onDel
   }, [dynamicStatuses]);
 
   const resolvedStatusObj = resolveStatus(task, dynamicStatuses);
-  const currentStatusId = normalizeId(task.status?._id) || normalizeId(task.status?.$oid) || normalizeId(task.status);
+  const currentStatusId = normalizeId((task.status as any)?._id) || normalizeId((task.status as any)?.$oid) || normalizeId(task.status);
   const statusLabel = resolvedStatusObj?.name || (task.status && typeof task.status === 'object' ? (task.status as any).name : null) || "Unknown";
   const statusColor = resolvedStatusObj?.color || (task.status && typeof task.status === 'object' ? (task.status as any).color : ALL_STATUS_CONFIG.find((c) => c.id === task.status)?.dotColor || "#94a3b8");
 
@@ -850,7 +850,7 @@ export function TaskBoard({
     const cols = [...dynamicStatuses];
     
     // Always ensure Drafts column is present if not already there
-    if (!cols.some(c => c.value === 'DRAFT' || (c as any).id === 'draft')) {
+    if (!cols.some(c => (c as any).value === 'DRAFT' || (c as any).id === 'draft')) {
       cols.unshift({
         _id: 'draft',
         name: 'Drafts',
@@ -1141,7 +1141,7 @@ export function TaskBoard({
     }
   };
 
-  if (isLoadingStatuses && (!dynamicStatuses || dynamicStatuses.length === 0)) {
+  if (isLoadingStatuses && (!dynamicStatuses || (dynamicStatuses as any).length === 0)) {
     return (
       <div className="flex flex-1 items-center justify-center h-full">
         <div className="flex flex-col items-center gap-4">
@@ -1400,7 +1400,10 @@ function KanbanColumn({
                     index={index}
                     canEdit={canEdit}
 	                    onContextMenu={(event, task) => onContextMenu(event, task, columnPanelContext)}
-	                    onDelete={onDelete}
+	                    onDelete={(id: string) => {
+	                      const found = tasks.find(t => String(t.id || (t as any)._id) === id);
+	                      if (found) onDelete(found);
+	                    }}
 	                    isEmbedded={isEmbedded}
                         panelContext={columnPanelContext}
 	                  />

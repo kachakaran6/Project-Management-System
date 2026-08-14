@@ -5,12 +5,12 @@ export const projectFormSchema = z.object({
   code: z.string().min(2, "Key must be at least 2 characters").max(10, "Key must be max 10 characters").optional().or(z.literal("")),
   description: z.string().max(2000).optional().or(z.literal("")),
   status: z.enum(["PLANNED", "ACTIVE", "ON_HOLD", "COMPLETED", "ARCHIVED"]),
-  visibility: z.enum(["public", "private"]).default("public"),
-  techStack: z.array(z.string()).default([]),
+  visibility: z.enum(["public", "private"]),
+  techStack: z.array(z.string()),
   startDate: z.date().optional().nullable(),
   endDate: z.date().optional().nullable(),
-  members: z.array(z.string()).default([]),
-  defaultAssigneeIds: z.array(z.string()).default([]),
+  members: z.array(z.string()),
+  defaultAssigneeIds: z.array(z.string()),
   githubRepoId: z.string().optional().or(z.literal("")),
   resources: z.array(z.object({
     title: z.string().min(2, "Title is required"),
@@ -19,7 +19,7 @@ export const projectFormSchema = z.object({
     username: z.string().optional(),
     password: z.string().optional(),
     description: z.string().optional(),
-  })).optional().default([]),
+  })).optional(),
 });
 
 export type ProjectFormValues = z.infer<typeof projectFormSchema>;

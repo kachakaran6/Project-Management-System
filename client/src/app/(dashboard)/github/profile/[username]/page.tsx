@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "@/lib/next-navigation";
 import { useTheme } from "next-themes";
 import { useProfileAnalytics } from "@/features/github/hooks/use-github";
 import { ProfileAnalyticsSkeleton } from "@/components/ui/loading-system";

@@ -118,10 +118,10 @@ function SortableStatusItem({
                 onChange={(e) => setEditColor(e.target.value)}
                 className="h-8 w-10 p-1 cursor-pointer bg-transparent"
               />
-              <Button size="icon-sm" onClick={() => handleUpdate(status.id)}>
+              <Button size="icon" className="h-7 w-7" onClick={() => handleUpdate(status.id)}>
                 <Check className="size-3.5" />
               </Button>
-              <Button variant="ghost" size="icon-sm" onClick={() => setEditingId(null)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingId(null)}>
                 <X className="size-3.5" />
               </Button>
             </div>
@@ -155,7 +155,8 @@ function SortableStatusItem({
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button 
             variant="ghost" 
-            size="icon-sm" 
+            size="icon" 
+            className="h-7 w-7"
             onClick={() => {
               setEditingId(status.id);
               setEditName(status.name);
@@ -168,8 +169,8 @@ function SortableStatusItem({
           {!status.isSystem && (
             <Button 
               variant="ghost" 
-              size="icon-sm" 
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              size="icon" 
+              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
               onClick={() => handleDelete(status.id)}
             >
               <Trash2 className="size-3.5" />

@@ -31,7 +31,7 @@ import {
   useUpdateTaskStatusMutation,
 } from "@/features/tasks/hooks/use-tasks-query";
 import { ProjectTaskColumn } from "./project-task-column";
-import { Task, TaskStatus } from "@/types/task.types";
+import { Task, TaskStatus, TaskPriority, TaskSortField, Tag } from "@/types/task.types";
 import { cn } from "@/lib/utils";
 import { useStatusesQuery } from "@/features/status/hooks/use-statuses";
 import { resolveStatus } from "@/features/tasks/utils/resolve-status";
@@ -88,12 +88,12 @@ export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [] }: Project
     limit: 1000,
     search: search || undefined,
     status: statusFilter !== "ALL" ? statusFilter : undefined,
-    priority: priorityFilter !== "ALL" ? priorityFilter : undefined,
+    priority: priorityFilter !== "ALL" ? (priorityFilter as TaskPriority) : undefined,
     assigneeId: assigneeFilter !== "ALL" ? assigneeFilter : undefined,
     creatorId: creatorFilter !== "ALL" ? creatorFilter : undefined,
     dueDate: dueDateFilter || undefined,
     tagIds: tagFilters.length > 0 ? tagFilters : undefined,
-    sortBy: sortBy || undefined,
+    sortBy: (sortBy as TaskSortField) || undefined,
     sortOrder: sortOrder || undefined
   });
 
@@ -104,7 +104,7 @@ export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [] }: Project
 
   const tasks = tasksResult?.data.items || [];
   const members = membersResult?.data.members || [];
-  const tags = tagsResult?.data || [];
+  const tags: Tag[] = Array.isArray(tagsResult) ? tagsResult : (tagsResult as any)?.data || [];
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -576,7 +576,7 @@ export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [] }: Project
                                   <Avatar key={a.id} className="h-6 w-6 ring-2 ring-background border border-border/10 shadow-sm">
                                     <AvatarImage src={a.avatarUrl} />
                                     <AvatarFallback className="text-[8px] bg-primary/10 text-primary uppercase flex items-center justify-center font-bold">
-                                       {a.firstName?.[0] || a.name?.[0] || <User className="size-2.5" />}
+                                       {(a as any).firstName?.[0] || a.name?.[0] || <User className="size-2.5" />}
                                     </AvatarFallback>
                                   </Avatar>
                                 ))}
@@ -595,7 +595,7 @@ export function ProjectTaskBoard({ projectId, defaultAssigneeIds = [] }: Project
                               {(!task.assigneeUsers || task.assigneeUsers.length === 0)
                                 ? "Unassigned"
                                 : task.assigneeUsers.length === 1
-                                  ? task.assigneeUsers[0].name || `${task.assigneeUsers[0].firstName} ${task.assigneeUsers[0].lastName}`
+                                  ? task.assigneeUsers[0].name || `${(task.assigneeUsers[0] as any).firstName || ""} ${(task.assigneeUsers[0] as any).lastName || ""}`.trim()
                                   : `${task.assigneeUsers.length} members`}
                             </span>
                           </div>

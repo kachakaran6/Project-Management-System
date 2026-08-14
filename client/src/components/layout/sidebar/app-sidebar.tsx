@@ -15,7 +15,7 @@ import {
   type SidebarNavItem,
 } from "@/components/layout/sidebar/sidebar-nav";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/next-navigation";
 
 const navItems: SidebarNavItem[] = [
   {

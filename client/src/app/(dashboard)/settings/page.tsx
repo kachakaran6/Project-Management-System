@@ -52,7 +52,7 @@ import {
   Send,
   X,
 } from "lucide-react";
-import Link from "next/link";
+import Link from "@/lib/next-link";
 
 import {
   Sheet,
@@ -1783,7 +1783,7 @@ function renderSection(id: SectionId) {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
 
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "@/lib/next-navigation";
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();

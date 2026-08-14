@@ -15,7 +15,7 @@ export default function NotFound() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-          <Button variant="default" size="lg" className="w-full sm:w-auto gap-2" asChild>
+          <Button variant="primary" size="lg" className="w-full sm:w-auto gap-2" asChild>
             <Link to="/dashboard">
               <Home className="size-4" />
               Go to Dashboard

@@ -424,7 +424,7 @@ function ActivityRow({ activity }: { activity: any }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
           <p className="text-sm font-bold text-foreground leading-snug">
-            {activity.action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+            {activity.action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}
             {activity.entityName && (
               <span className="text-muted-foreground font-medium">
                 {" "}{activity.entityType.toLowerCase()} <span className="text-primary font-bold">"{activity.entityName}"</span>

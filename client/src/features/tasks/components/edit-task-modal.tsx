@@ -81,7 +81,7 @@ export function EditTaskModal({
         return;
       }
 
-      await updateTask.mutateAsync({ id: taskId, data: finalData });
+      await updateTask.mutateAsync({ id: taskId, data: finalData as any });
       toast.success("Task updated successfully!");
       handleOpenChange(false);
     } catch (err: any) {

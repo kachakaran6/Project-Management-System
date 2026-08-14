@@ -1,6 +1,6 @@
 
 import React from "react";
-import Link from "next/link";
+import Link from "@/lib/next-link";
 import { ArrowLeft, Settings, Maximize2, Minimize2, LayoutDashboard, CheckSquare, Shield, History, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

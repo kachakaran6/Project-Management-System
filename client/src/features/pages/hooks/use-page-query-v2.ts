@@ -9,51 +9,65 @@ const fetcher = async (url: string, opts?: RequestInit) => {
 };
 
 export const usePagesQueryV2 = (params: Record<string, any>, options = {}) => {
-  const queryKey = ['pagesV2', params];
-  return useQuery(queryKey, () => fetcher(API_BASE + '?' + new URLSearchParams(params).toString()), {
+  return useQuery({
+    queryKey: ['pagesV2', params],
+    queryFn: () => fetcher(API_BASE + '?' + new URLSearchParams(params).toString()),
     staleTime: 10000,
-    keepPreviousData: true,
     ...options,
   });
 };
 
 export const usePageQueryV2 = (id: string, options = {}) => {
-  return useQuery(['pageV2', id], () => fetcher(`${API_BASE}/${id}`), { staleTime: 10000, ...options });
+  return useQuery({
+    queryKey: ['pageV2', id],
+    queryFn: () => fetcher(`${API_BASE}/${id}`),
+    staleTime: 10000,
+    ...options,
+  });
 };
 
 export const useCreatePageMutationV2 = () => {
   const qc = useQueryClient();
-  return useMutation((data: any) => fetcher(API_BASE, { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }), {
-    onSuccess: () => qc.invalidateQueries(['pagesV2']),
+  return useMutation({
+    mutationFn: (data: any) => fetcher(API_BASE, { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pagesV2'] }),
   });
 };
 
 export const useUpdatePageMutationV2 = (id?: string) => {
   const qc = useQueryClient();
-  return useMutation((data: any) => fetcher(`${API_BASE}/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }), {
-    onSuccess: (_data, _vars) => {
-      qc.invalidateQueries(['pagesV2']);
-      qc.invalidateQueries(['pageV2', id]);
+  return useMutation({
+    mutationFn: (data: any) => fetcher(`${API_BASE}/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pagesV2'] });
+      qc.invalidateQueries({ queryKey: ['pageV2', id] });
     },
   });
 };
 
 export const useDeletePageMutationV2 = () => {
   const qc = useQueryClient();
-  return useMutation((id: string) => fetcher(`${API_BASE}/${id}`, { method: 'DELETE' }), {
-    onSuccess: () => qc.invalidateQueries(['pagesV2']),
+  return useMutation({
+    mutationFn: (id: string) => fetcher(`${API_BASE}/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pagesV2'] }),
   });
 };
 
 export const useCreateSnapshotMutation = () => {
   const qc = useQueryClient();
-  return useMutation((vars: { id: string; description?: string }) => fetcher(`${API_BASE}/${vars.id}/snapshots`, { method: 'POST', body: JSON.stringify({ description: vars.description }), headers: { 'Content-Type': 'application/json' } }), {
-    onSuccess: () => qc.invalidateQueries(['pageV2']),
+  return useMutation({
+    mutationFn: (vars: { id: string; description?: string }) => fetcher(`${API_BASE}/${vars.id}/snapshots`, { method: 'POST', body: JSON.stringify({ description: vars.description }), headers: { 'Content-Type': 'application/json' } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pageV2'] }),
   });
 };
 
 export const usePageVersionsQuery = (id: string, options = {}) => {
-  return useQuery(['pageV2', id, 'versions'], () => fetcher(`${API_BASE}/${id}/versions`), { staleTime: 10000, ...options });
+  return useQuery({
+    queryKey: ['pageV2', id, 'versions'],
+    queryFn: () => fetcher(`${API_BASE}/${id}/versions`),
+    staleTime: 10000,
+    ...options,
+  });
 };
 
 export default {
