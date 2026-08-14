@@ -823,6 +823,7 @@ export default function PageEditorPage() {
   const [sidebarTab, setSidebarTab] = useState<"outline" | "details" | "tasks">("outline");
   const [activeHeadingId, setActiveHeadingId] = useState<string | undefined>();
   const [outline, setOutline] = useState<OutlineItem[]>([]);
+  const [contentVersion, setContentVersion] = useState(0);
 
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedSnapshot = useRef("");
@@ -937,6 +938,7 @@ export default function PageEditorPage() {
     onUpdate: ({ editor: ed }) => {
       if (!canEdit) return;
       setSaveState("dirty");
+      setContentVersion((v) => v + 1);
 
       // Update outline
       const doc = ed.getJSON();
@@ -1017,7 +1019,11 @@ export default function PageEditorPage() {
       if (isDirty && pid) {
         fetch(`${API_URL}/pages/${pid}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token") || ""}`,
+            "x-organization-id": localStorage.getItem("activeOrgId") || ""
+          },
           body: JSON.stringify({ title: t.trim() || "Untitled", visibility: v, content: c }),
           keepalive: true,
         }).catch(() => {});
@@ -1032,7 +1038,7 @@ export default function PageEditorPage() {
       doc: editor.getJSON(),
       meta: { icon, coverUrl, templateId },
     });
-  }, [coverUrl, editor, icon, templateId]);
+  }, [coverUrl, editor, icon, templateId, contentVersion]);
 
   const currentSnapshot = useMemo(
     () => JSON.stringify({ title, visibility, content: serializedContent }),

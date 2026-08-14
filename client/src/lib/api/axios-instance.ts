@@ -151,6 +151,11 @@ api.interceptors.response.use(
       requestUrl.startsWith("/auth/login") ||
       requestUrl.startsWith("/auth/register");
 
+    // 0. Handle Canceled Requests (e.g., from AbortController during autosave)
+    if (axios.isCancel(error)) {
+      return Promise.reject(error);
+    }
+
     // 1. Handle Network Errors
     if (!error.response) {
       const isTimeout = error.code === "ECONNABORTED" || error.message.includes("timeout");
