@@ -11,6 +11,9 @@ const ALLOWED_TAGS = new Set([
   "H1",
   "H2",
   "H3",
+  "H4",
+  "H5",
+  "H6",
   "UL",
   "OL",
   "LI",
@@ -31,6 +34,10 @@ const ALLOWED_TAGS = new Set([
   "TD",
   "TH",
   "IMG",
+  "DETAILS",
+  "SUMMARY",
+  "SUP",
+  "SUB",
 ]);
 
 function sanitizeUrl(url: string): string {
@@ -83,6 +90,27 @@ export function sanitizePageHtml(rawHtml: string): string {
 
     const cleanElement = document.createElement(tag.toLowerCase());
 
+    // Preserve dataset attributes (e.g. data-type, data-callout-type, data-checked, etc.)
+    if (element.dataset) {
+      for (const [key, value] of Object.entries(element.dataset)) {
+        if (value !== undefined) {
+          const attrName = `data-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
+          cleanElement.setAttribute(attrName, value);
+        }
+      }
+    }
+
+    // Preserve safe classes (for syntax highlighting, callouts, etc.)
+    if (element.className && typeof element.className === "string") {
+      const safeClasses = element.className
+        .split(/\s+/)
+        .filter((c) => /^(hljs-[\w-]+|callout-[\w-]+|task-[\w-]+|table[\w-]*)$/.test(c))
+        .join(" ");
+      if (safeClasses) {
+        cleanElement.className = safeClasses;
+      }
+    }
+
     if (tag === "A") {
       const href = sanitizeUrl(element.getAttribute("href") || "");
       if (!href) {
@@ -106,10 +134,6 @@ export function sanitizePageHtml(rawHtml: string): string {
       return cleanElement;
     }
 
-    if ((tag === "UL" || tag === "LI" || tag === "DIV") && element.dataset.type) {
-      cleanElement.setAttribute("data-type", element.dataset.type);
-    }
-
     if (tag === "INPUT") {
       if ((element.getAttribute("type") || "").toLowerCase() !== "checkbox") {
         return null;
@@ -123,6 +147,19 @@ export function sanitizePageHtml(rawHtml: string): string {
       }
 
       return cleanElement;
+    }
+
+    if (tag === "DETAILS" && element.hasAttribute("open")) {
+      cleanElement.setAttribute("open", "true");
+    }
+
+    if (tag === "TD" || tag === "TH") {
+      const colspan = element.getAttribute("colspan");
+      const rowspan = element.getAttribute("rowspan");
+      const colwidth = element.getAttribute("colwidth");
+      if (colspan) cleanElement.setAttribute("colspan", colspan);
+      if (rowspan) cleanElement.setAttribute("rowspan", rowspan);
+      if (colwidth) cleanElement.setAttribute("colwidth", colwidth);
     }
 
     cleanElement.appendChild(fragment);

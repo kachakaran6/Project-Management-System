@@ -6,6 +6,9 @@ import { useParams, useRouter } from "@/lib/next-navigation";
 import { usePublicPageQuery } from "@/features/pages/hooks/use-pages-query";
 import { sanitizePageHtmlForDisplay } from "@/features/pages/utils/page-html";
 
+// Import editor CSS for consistent documentation styling
+import "@/features/pages/editor/editor.css";
+
 function authorInitials(name?: string | null) {
   if (!name) return "P";
 
@@ -62,66 +65,84 @@ export default function PublicPageView() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.10),transparent_35%),linear-gradient(180deg,rgba(15,23,42,0.03),transparent_35%)] bg-background px-4 py-8 text-foreground md:px-6 md:py-12">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-8 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">
-          <Globe className="size-3.5" />
-          Public Page
+    <div className="min-h-screen bg-background selection:bg-primary/20">
+      {/* Premium Ambient Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(var(--primary-rgb,59,130,246),0.08),transparent_50%),linear-gradient(to_bottom,rgba(var(--primary-rgb,59,130,246),0.02),transparent_100%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(var(--primary-rgb,59,130,246),0.12),transparent_50%),linear-gradient(to_bottom,rgba(var(--primary-rgb,59,130,246),0.02),transparent_100%)]" />
+
+      <div className="relative z-10 mx-auto max-w-[48rem] px-5 py-12 md:py-20 lg:py-28">
+        {/* Top Label */}
+        <div className="mb-10 flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/20">
+            <Globe className="size-3.5" />
+          </div>
+          <span className="text-[13px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/80">
+            Public Document
+          </span>
         </div>
 
-        <article className="overflow-hidden rounded-[28px] border border-border/50 bg-card/80 shadow-sm backdrop-blur">
-          <header className="border-b border-border/50 px-6 py-7 md:px-10 md:py-9">
-            <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-              <div className="min-w-0">
-                <h1 className="text-3xl font-black tracking-tight text-foreground md:text-5xl">
-                  {page.title}
-                </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Shared as a read-only public page.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                {page.author?.name ? (
-                  <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/70 px-3 py-1.5">
-                    <Avatar className="h-7 w-7">
-                      <AvatarImage src={page.author.avatarUrl} alt={page.author.name} />
-                      <AvatarFallback className="text-[10px] font-bold">
-                        {authorInitials(page.author.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium text-foreground/85">{page.author.name}</span>
+        <article className="animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
+          <header className="mb-14">
+            <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-[4rem] lg:leading-[1.1]">
+              {page.title}
+            </h1>
+            
+            <div className="mt-8 flex flex-wrap items-center gap-5 border-y border-border/40 py-5">
+              {page.author?.name ? (
+                <div className="flex items-center gap-3">
+                  <Avatar className="size-9 ring-1 ring-border/50">
+                    <AvatarImage src={page.author.avatarUrl} alt={page.author.name} />
+                    <AvatarFallback className="bg-muted/50 text-[11px] font-bold text-foreground/70">
+                      {authorInitials(page.author.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="text-[13px] font-medium text-foreground/90">
+                      {page.author.name}
+                    </span>
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+                      Author
+                    </span>
                   </div>
-                ) : null}
+                </div>
+              ) : null}
 
-                <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/70 px-3 py-1.5">
-                  <CalendarDays className="size-4" />
-                  <span>Updated {new Date(page.updatedAt).toLocaleDateString()}</span>
+              {page.author?.name && <div className="h-8 w-px bg-border/40" />}
+
+              <div className="flex items-center gap-3">
+                <div className="flex size-9 items-center justify-center rounded-full bg-muted/40 ring-1 ring-border/50">
+                  <CalendarDays className="size-4 text-muted-foreground" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[13px] font-medium text-foreground/90">
+                    {new Date(page.updatedAt).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </span>
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+                    Last Updated
+                  </span>
                 </div>
               </div>
             </div>
           </header>
 
-          <div className="px-6 py-8 md:px-10 md:py-10">
+          <div className="page-editor !text-[16px] !leading-relaxed">
             <div
-              className="prose prose-slate dark:prose-invert max-w-none text-[16px] leading-8 text-foreground/90
-              [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4
-              [&_blockquote]:border-l-2 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:italic
-              [&_code]:rounded-button [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5
-              [&_pre]:overflow-x-auto [&_pre]:rounded-card [&_pre]:bg-slate-950 [&_pre]:p-4 [&_pre]:text-slate-100
-              [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-card
-              [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2
-              [&_th]:border [&_th]:border-border [&_th]:bg-muted/40 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left
-              [&_img]:max-w-full [&_img]:rounded-card
-              [&_ul[data-type='taskList']]:list-none [&_ul[data-type='taskList']]:pl-0
-              [&_li[data-type='taskItem']]:my-2 [&_li[data-type='taskItem']>label]:mr-3 [&_li[data-type='taskItem']>label]:inline-flex
-              [&_input[type='checkbox']]:pointer-events-none"
               dangerouslySetInnerHTML={{
-                __html: contentHtml || "<p>No content available.</p>",
+                __html: contentHtml || "<p className='text-muted-foreground italic'>This document is currently empty.</p>",
               }}
             />
           </div>
         </article>
+        
+        <footer className="mt-24 border-t border-border/40 pt-8 pb-12 flex justify-between items-center text-sm text-muted-foreground">
+          <span>Powered by Project Management System</span>
+          <Button variant="ghost" size="sm" asChild className="hover:bg-muted/50">
+            <a href="/">Go to App</a>
+          </Button>
+        </footer>
       </div>
     </div>
   );

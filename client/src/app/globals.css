@@ -960,9 +960,7 @@ body {
 }
 
 body {
-  height: 100vh;
   width: 100vw;
-  overflow: hidden;
   background:
     radial-gradient(circle at 85% 5%,
       rgba(var(--accent-hue, 217), 110, 225, 0.12),
