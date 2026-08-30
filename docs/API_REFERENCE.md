@@ -1,21 +1,19 @@
-# REST API Reference
+# REST & Real-Time API Reference
 
-All requests must include standard JSON headers. Authenticated endpoints require a valid JWT token passed in the `Authorization: Bearer <token>` header or HttpOnly cookie.
+## Socket.io Event Catalog
 
-## Authentication
-- `POST /api/auth/register` - Create a new user account.
-- `POST /api/auth/login` - Authenticate credentials and receive token.
-- `POST /api/auth/refresh` - Rotate refresh token.
-- `POST /api/auth/logout` - Invalidate session token.
+### Inbound Events (Client -> Server)
+- `join:workspace` - Join a workspace room `(workspaceId: string)`.
+- `leave:workspace` - Leave a workspace room.
+- `board:cursor_move` - Broadcast live mouse coordinate `({ x, y, user })`.
+- `task:drag_start` - Lock task card while dragged by active user.
 
-## Projects & Workspaces
-- `GET /api/workspaces` - List workspaces accessible to current user.
-- `POST /api/workspaces` - Create a workspace.
-- `GET /api/projects/:projectId` - Fetch detailed project metadata and board summary.
-- `POST /api/projects/:projectId/boards` - Provision a new board with default columns.
+### Outbound Events (Server -> Client)
+- `board:updated` - Payload containing changed column order or card delta.
+- `notification:new` - Real-time push alert for mentions or assignment.
+- `member:presence` - Active user list update for current room.
 
-## Tasks & Issues
-- `GET /api/boards/:boardId/tasks` - Query tasks with pagination and filter criteria.
-- `POST /api/tasks` - Create task with assignees, labels, and due dates.
-- `PATCH /api/tasks/:taskId` - Partial update (title, priority, custom fields).
-- `DELETE /api/tasks/:taskId` - Soft-delete task.
+## Rate Limiting Standards
+- Unauthenticated endpoints: 60 requests per 15 minutes per IP.
+- Authenticated read endpoints: 1,200 requests per minute.
+- Bulk write endpoints: 300 requests per minute.
