@@ -4,22 +4,35 @@
 [![React](https://img.shields.io/badge/React-19.2-61dafb.svg)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-3178c6.svg)](https://www.typescriptlang.org/)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)]()
 
 An enterprise-grade, real-time collaboration and project management platform designed for agile teams, engineering squads, and product organizations.
 
-## Key Features
+## Quickstart
 
-- **Interactive Kanban Boards**: Drag-and-drop task orchestration with column-level WIP limits and custom swimlanes.
-- **Real-Time Collaboration**: Instant presence and live state synchronization powered by WebSockets (Socket.io).
-- **Rich Document Editor**: Block-based TipTap editor supporting collaborative markdown notes, tables, code highlighting, and mentions.
-- **Workflow Automation**: Automated task transitions, notifications, and webhook integrations.
-- **Granular RBAC**: Role-based access control across organizations, workspaces, and team projects.
-- **Sprint & Velocity Analytics**: Burndown charts, cycle time metrics, and cumulative flow diagrams via Recharts.
+```bash
+# 1. Clone repository
+git clone https://github.com/kachakaran6/Project-Management-System.git
+cd Project-Management-System
 
-## Architecture Highlights
+# 2. Configure environment
+cp backend/.env.example backend/.env
+cp client/.env.example client/.env
 
+# 3. Start Backend & Frontend
+cd backend && npm run dev
+cd ../client && npm run dev
 ```
-client (React 19, Zustand, TanStack Query, Radix UI)
-    ↕  (REST & WebSocket via Socket.io)
-backend (Express.js, Mongoose, MongoDB, Winston)
-```
+
+## Documentation
+
+- [System Architecture](docs/ARCHITECTURE.md)
+- [REST & Socket API](docs/API_REFERENCE.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Testing Strategy](docs/TESTING.md)
+- [Troubleshooting & FAQ](docs/TROUBLESHOOTING.md)
+- [Product Roadmap](docs/ROADMAP.md)
+- [Code Style Guide](docs/STYLE_GUIDE.md)
+
+## Contributing
+Please review [CONTRIBUTING.md](CONTRIBUTING.md) and our [Code of Conduct](SECURITY.md).
